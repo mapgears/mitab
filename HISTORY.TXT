@@ -54,8 +54,8 @@ CHANGES - Current Version:
   but in OGRSpatialReference/WKT they are always in meters.  Convert 
   accordingly in mitab_coordsys.cpp and mitab_spatialref.cpp.  NFW
 
-- Added support for reading and writing new V650 Multipoint (not fully
-  implemented for MIF yet)
+- Added support for reading and writing new V650 Multipoint for both TAB and 
+  MIF.
 
 - Added support for Cassini Soldner projection (projection 30). NFW
 
@@ -402,5 +402,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.82 2002-04-25 16:07:02 julien Exp $
+$Id: HISTORY.TXT,v 1.83 2002-04-26 14:16:49 julien Exp $
 ------------

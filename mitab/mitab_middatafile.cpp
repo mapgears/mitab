@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_middatafile.cpp,v 1.9 2002-04-24 18:37:39 daniel Exp $
+ * $Id: mitab_middatafile.cpp,v 1.10 2002-04-26 14:16:49 julien Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_middatafile.cpp,v $
- * Revision 1.9  2002-04-24 18:37:39  daniel
+ * Revision 1.10  2002-04-26 14:16:49  julien
+ * Finishing the implementation of Multipoint (support for MIF)
+ *
+ * Revision 1.9  2002/04/24 18:37:39  daniel
  * Added return statement at end of GetLastLine()
  *
  * Revision 1.8  2002/04/22 13:49:09  julien
@@ -278,7 +281,8 @@ GBool MIDDATAFile::IsValidFeature(const char *pszString)
         EQUAL(papszToken[0],"LINE")||EQUAL(papszToken[0],"PLINE")||
         EQUAL(papszToken[0],"REGION")||EQUAL(papszToken[0],"ARC")||
         EQUAL(papszToken[0],"TEXT")||EQUAL(papszToken[0],"RECT")||
-        EQUAL(papszToken[0],"ROUNDRECT")||EQUAL(papszToken[0],"ELLIPSE"))
+        EQUAL(papszToken[0],"ROUNDRECT")||EQUAL(papszToken[0],"ELLIPSE")||
+        EQUAL(papszToken[0],"MULTIPOINT"))
     {
         CSLDestroy(papszToken);
         return TRUE;

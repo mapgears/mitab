@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.31 2001-09-19 21:39:15 warmerda Exp $
+ * $Id: mitab_miffile.cpp,v 1.32 2002-04-26 14:16:49 julien Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.31  2001-09-19 21:39:15  warmerda
+ * Revision 1.32  2002-04-26 14:16:49  julien
+ * Finishing the implementation of Multipoint (support for MIF)
+ *
+ * Revision 1.31  2001/09/19 21:39:15  warmerda
  * get extents efficiently
  *
  * Revision 1.30  2001/09/19 14:31:22  warmerda
@@ -1268,6 +1271,10 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
         else if (EQUALN(pszLine,"ELLIPSE",7))
         {
             m_poCurFeature = new TABEllipse(m_poDefn);       
+        }
+        else if (EQUALN(pszLine,"MULTIPOINT",10))
+        {
+            m_poCurFeature = new TABMultiPoint(m_poDefn);       
         }
         else
         {

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.18 2002-03-26 19:27:43 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.19 2002-04-26 14:16:49 julien Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.18  2002-03-26 19:27:43  daniel
+ * Revision 1.19  2002-04-26 14:16:49  julien
+ * Finishing the implementation of Multipoint (support for MIF)
+ *
+ * Revision 1.18  2002/03/26 19:27:43  daniel
  * Got rid of tabs in source
  *
  * Revision 1.17  2002/02/22 14:10:33  daniel
@@ -492,7 +495,8 @@ mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
  * @param feature_type the type of feature object to create.  At this point,
  *        only the following types can be created by this C API function:
  *        TABFC_Point (1), TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6), 
- *        TABFC_Region (7), TABFC_Rectangle (8), and TABFC_Ellipse (9)
+ *        TABFC_Region (7), TABFC_Rectangle (8), TABFC_Ellipse (9) and
+ *        TABFC_MultiPoint (10)
  * @return the new mitab_feature object, or NULL if creation failed.  Note that
  *         the new object will have to be released using 
  *         mitab_c_destroy_feature().
@@ -530,6 +534,8 @@ mitab_c_create_feature( mitab_handle handle,
         poFeature = new TABRectangle(poFile->GetLayerDefn());
     else if( feature_type == TABFC_Ellipse )
         poFeature = new TABEllipse(poFile->GetLayerDefn());
+    else if( feature_type == TABFC_MultiPoint )
+        poFeature = new TABMultiPoint(poFile->GetLayerDefn());
 
     return poFeature;
 }
@@ -666,6 +672,25 @@ mitab_c_set_points( mitab_feature feature, int part,
             poPoly->addRingDirectly( poRing );
             poFeature->SetGeometryDirectly( poPoly );
         }
+    }
+
+    else if( poFeature->GetFeatureClass() == TABFC_MultiPoint )
+    {
+        OGRPoint        *poPoint;
+        OGRMultiPoint   *poMultiPoint;
+        int i;
+
+        if( poFeature->GetGeometryRef() != NULL )
+            poMultiPoint = (OGRMultiPoint *) poFeature->GetGeometryRef();
+        else
+            poMultiPoint = new OGRMultiPoint;
+
+        for(i=0; i<vertex_count; i++)
+        {
+            poPoint =  new OGRPoint( x[0], y[0] );
+            poMultiPoint->addGeometryDirectly( poPoint );
+        }
+        poFeature->SetGeometryDirectly( poMultiPoint );
     }
 
 }
@@ -1471,7 +1496,8 @@ mitab_c_get_pen_pattern( mitab_feature feature )
 /************************************************************************/
 
 /**
- * Set an object's symbol properties.  Applies only to point objects.
+ * Set an object's symbol properties.  Applies only to point objects and
+ * multipoint.
  *
  * See the MIF specs for more details on the meaning and valid values of
  * each parameter.
@@ -1489,7 +1515,8 @@ mitab_c_set_symbol( mitab_feature feature, int symbol_no,
 {
     TABPoint    *poFeature = (TABPoint *) feature;
 
-    if( poFeature->GetFeatureClass() == TABFC_Point )
+    if(( poFeature->GetFeatureClass() == TABFC_Point ) ||
+       ( poFeature->GetFeatureClass() == TABFC_MultiPoint ))
     {
         poFeature->SetSymbolNo( symbol_no );
         poFeature->SetSymbolSize( symbol_size );
@@ -1502,7 +1529,8 @@ mitab_c_set_symbol( mitab_feature feature, int symbol_no,
 /************************************************************************/
 
 /**
- * Get an object's symbol color property.  Applies only to point objects.
+ * Get an object's symbol color property.  Applies only to point and 
+ * multipoint objects.
  *
  * @param feature the mitab_feature object.
  * @return the symbol color (24 bits RGB value).
@@ -1514,7 +1542,8 @@ mitab_c_get_symbol_color( mitab_feature feature )
 {
     TABPoint    *poFeature = (TABPoint *) feature;
 
-    if( poFeature->GetFeatureClass() == TABFC_Point )
+    if(( poFeature->GetFeatureClass() == TABFC_Point ) ||
+       ( poFeature->GetFeatureClass() == TABFC_MultiPoint ))
     {
         return poFeature->GetSymbolColor();
     }
@@ -1526,7 +1555,8 @@ mitab_c_get_symbol_color( mitab_feature feature )
 /************************************************************************/
 
 /**
- * Get an object's symbol number property.  Applies only to point objects.
+ * Get an object's symbol number property.  Applies only to point and 
+ * multipoint objects.
  *
  * @param feature the mitab_feature object.
  * @return the symbol number (valid range: 32 to 67)
@@ -1538,7 +1568,8 @@ mitab_c_get_symbol_no( mitab_feature feature )
 {
     TABPoint    *poFeature = (TABPoint *) feature;
 
-    if( poFeature->GetFeatureClass() == TABFC_Point )
+    if(( poFeature->GetFeatureClass() == TABFC_Point ) ||
+       ( poFeature->GetFeatureClass() == TABFC_MultiPoint ))
     {
         return poFeature->GetSymbolNo();
     }
@@ -1550,7 +1581,8 @@ mitab_c_get_symbol_no( mitab_feature feature )
 /************************************************************************/
 
 /**
- * Get an object's symbol size property.  Applies only to point objects.
+ * Get an object's symbol size property.  Applies only to point and 
+ * multipoint objects.
  *
  * @param feature the mitab_feature object.
  * @return the symbol size in pixels (valid range 1 to 48)
@@ -1562,7 +1594,8 @@ mitab_c_get_symbol_size( mitab_feature feature )
 {
     TABPoint    *poFeature = (TABPoint *) feature;
 
-    if( poFeature->GetFeatureClass() == TABFC_Point )
+    if(( poFeature->GetFeatureClass() == TABFC_Point ) ||
+       ( poFeature->GetFeatureClass() == TABFC_MultiPoint ))
     {
         return poFeature->GetSymbolSize();
     }
@@ -1581,7 +1614,7 @@ mitab_c_get_symbol_size( mitab_feature feature )
  * @return the feature type, one of TABFC_NoGeom (0), TABFC_Point (1), 
  *         TABFC_FontPoint (2), TABFC_CustomPoint (3), TABFC_Text (4),
  *         TABFC_Polyline (5), TABFC_Arc (6), TABFC_Region (7),
- *         TABFC_Rectangle (8) or TABFC_Ellipse (9).
+ *         TABFC_Rectangle (8), TABFC_Ellipse (9) or TABFC_MultiPoint (10).
  */
 
 int MITAB_STDCALL 
@@ -2172,6 +2205,35 @@ static int _mitab_c_get_feature_info( mitab_feature feature, int what_info,
         {
             *vertex = poRing->getY(*point);
             return 0;
+        }
+    }
+    else if( poFeature->GetFeatureClass() == TABFC_MultiPoint )
+    {
+/* -------------------------------------------------------------------- */
+/*      MultiPoint                                                      */
+/* -------------------------------------------------------------------- */
+        double dX, dY;
+        TABMultiPoint *poMultiPoint = (TABMultiPoint *)poFeature;
+        if (what_info == INFO_NUMPARTS)
+        {
+            *part = 1;
+            return 0;
+        }
+        if (*part != 0)
+            return -1;  /* Invalid part number */
+
+        if (poMultiPoint && what_info == INFO_NUMPOINTS)
+        {
+            *point = poMultiPoint->GetNumPoints();
+            return 0;
+        }
+        if (poMultiPoint && what_info == INFO_XVERTEX)
+        {
+            return poMultiPoint->GetXY(*point, *vertex, dY);
+        }
+        if (poMultiPoint && what_info == INFO_YVERTEX)
+        {
+            return poMultiPoint->GetXY(*point, dX, *vertex);
         }
     }
 

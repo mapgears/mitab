@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.13 2002-02-22 13:50:28 daniel Exp $
+ * $Id: mitab_capi.h,v 1.14 2002-04-26 14:16:49 julien Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.13  2002-02-22 13:50:28  daniel
+ * Revision 1.14  2002-04-26 14:16:49  julien
+ * Finishing the implementation of Multipoint (support for MIF)
+ *
+ * Revision 1.13  2002/02/22 13:50:28  daniel
  * (From Bo Thomsen) New VB interface functions
  *
  * Revision 1.13  2002/02/20 12:35:00  bvt
@@ -110,6 +113,7 @@ typedef void * mitab_projinfo;
 #define TABFC_Region    7
 #define TABFC_Rectangle 8
 #define TABFC_Ellipse   9
+#define TABFC_MultiPoint 10
 
 /* field types */
 #define TABFT_Char      1

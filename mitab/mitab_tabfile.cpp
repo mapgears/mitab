@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.19 1999-11-14 04:49:11 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.20 1999-11-14 17:43:32 stephane Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.19  1999-11-14 04:49:11  daniel
+ * Revision 1.20  1999-11-14 17:43:32  stephane
+ * Add ifdef to remove CPLError if OGR is define
+ *
+ * Revision 1.19  1999/11/14 04:49:11  daniel
  * Support dataset with no .MAP/.ID files, support version 100 files,
  * and return better error message for unsupported .TAB file types.
  *
@@ -175,8 +178,12 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
    
     if (m_poMAPFile)
     {
+#ifndef OGR
         CPLError(CE_Failure, CPLE_FileIO,
                  "Open() failed: object already contains an open file");
+#else
+	CPLErrorReset();
+#endif
         return -1;
     }
 
@@ -195,8 +202,12 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
     }
     else
     {
+#ifndef OGR
         CPLError(CE_Failure, CPLE_FileIO,
                  "Open() failed: access mode \"%s\" not supported", pszAccess);
+#else
+	CPLErrorReset();
+#endif
         return -1;
     }
 
@@ -216,9 +227,13 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
         strcpy(m_pszFname+nFnameLen-4, ".tab");
     else
     {
+#ifndef OGR
         CPLError(CE_Failure, CPLE_FileIO,
                  "Open() failed for %s: invalid filename extension",
                  m_pszFname);
+#else
+	CPLErrorReset();
+#endif
         CPLFree(m_pszFname);
         return -1;
     }
@@ -249,6 +264,9 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
         {
             // Failed... an error has already been produced.
             CPLFree(m_pszFname);
+#ifdef OGR
+	    CPLErrorReset();
+#endif
             return -1;
         }
 
@@ -269,11 +287,16 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
 
         if ( !bFieldsFound )
         {
-            CPLError(CE_Failure, CPLE_NotSupported,
+#ifndef OGR
+           CPLError(CE_Failure, CPLE_NotSupported,
                      "%s contains no table field definition.  "
                      "This type of .TAB file cannot be read by this library.",
                      m_pszFname);
+#else
+	    CPLErrorReset();
+#endif
             CPLFree(m_pszFname);
+
             return -1;
         }
     }
@@ -307,6 +330,9 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
         // Open Failed... an error has already been reported, just return.
         CPLFree(pszTmpFname);
         Close();
+#ifdef OGR
+	CPLErrorReset();
+#endif
         return -1;
     }
 
@@ -321,6 +347,9 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
         // Failed... an error has already been reported, just return.
         CPLFree(pszTmpFname);
         Close();
+#ifdef OGR
+	CPLErrorReset();
+#endif
         return -1;
     }
 
@@ -364,6 +393,9 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
         // an error has already been reported, just return.
         CPLFree(pszTmpFname);
         Close();
+#ifdef OGR
+	CPLErrorReset();
+#endif
         return -1;
     }
 

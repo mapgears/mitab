@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapobjectblock.cpp,v 1.10 2001-11-19 15:07:06 daniel Exp $
+ * $Id: mitab_mapobjectblock.cpp,v 1.11 2001-12-05 22:40:27 daniel Exp $
  *
  * Name:     mitab_mapobjectblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapobjectblock.cpp,v $
- * Revision 1.10  2001-11-19 15:07:06  daniel
+ * Revision 1.11  2001-12-05 22:40:27  daniel
+ * Init MBR to 0 in TABMAPObjHdr and modif. SetMBR() to validate min/max
+ *
+ * Revision 1.10  2001/11/19 15:07:06  daniel
  * Handle the case of TAB_GEOM_NONE with the new TABMAPObjHdr classes.
  *
  * Revision 1.9  2001/11/17 21:54:06  daniel
@@ -691,6 +694,7 @@ TABMAPObjHdr *TABMAPObjHdr::NewObj(GByte nNewObjType, GInt32 nId /*=0*/)
     {
         poObj->m_nType = nNewObjType;
         poObj->m_nId = nId;
+        poObj->m_nMinX = poObj->m_nMinY = poObj->m_nMaxX = poObj->m_nMaxY = 0;
     }
 
     return poObj;
@@ -758,10 +762,10 @@ int TABMAPObjHdr::WriteObjTypeAndId(TABMAPObjectBlock *poObjBlock)
 void TABMAPObjHdr::SetMBR(GInt32 nMinX, GInt32 nMinY, 
                           GInt32 nMaxX, GInt32 nMaxY)
 {
-    m_nMinX = nMinX;
-    m_nMinY = nMinY;
-    m_nMaxX = nMaxX;
-    m_nMaxY = nMaxY;
+    m_nMinX = MIN(nMinX, nMaxX);
+    m_nMinY = MIN(nMinY, nMaxY);
+    m_nMaxX = MAX(nMinX, nMaxX);
+    m_nMaxY = MAX(nMinY, nMaxY);
 }
 
 
@@ -787,8 +791,7 @@ int TABMAPObjLine::ReadObj(TABMAPObjectBlock *poObjBlock)
 
     m_nPenId = poObjBlock->ReadByte();      // Pen index
 
-    SetMBR(MIN(m_nX1, m_nX2), MIN(m_nY1, m_nY2),
-           MAX(m_nX1, m_nX2), MAX(m_nY1, m_nY2) );
+    SetMBR(m_nX1, m_nY1, m_nX2, m_nY2);
 
     if (CPLGetLastErrorNo() != 0)
         return -1;

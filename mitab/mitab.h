@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.21 1999-12-15 16:13:43 warmerda Exp $
+ * $Id: mitab.h,v 1.22 1999-12-17 01:41:58 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.21  1999-12-15 16:13:43  warmerda
+ * Revision 1.22  1999-12-17 01:41:58  daniel
+ * Avoid */ outside of comment warning
+ *
+ * Revision 1.21  1999/12/15 16:13:43  warmerda
  * Avoid unused parameter warnings.
  *
  * Revision 1.20  1999/12/14 04:04:44  daniel
@@ -396,17 +399,17 @@ class TABView: public IMapInfoFile
     //
     virtual int SetBounds(double /*dXMin*/, double /*dYMin*/, 
                           double /*dXMax*/, double /*dYMax*/)  {return -1;};
-    virtual int SetFeatureDefn(OGRFeatureDefn */*poFeatureDefn*/,
-                            TABFieldType */*paeMapInfoNativeFieldTypes*/ =NULL)
+    virtual int SetFeatureDefn(OGRFeatureDefn * /*poFeatureDefn*/,
+                           TABFieldType * /*paeMapInfoNativeFieldTypes*/ =NULL)
                                                        {return -1;};
-    virtual int AddFieldNative(const char */*pszName*/,
+    virtual int AddFieldNative(const char * /*pszName*/,
                                TABFieldType /*eMapInfoType*/,
                                int /*nWidth*/, int /*nPrecision*/=0)
     							{return -1;};
-    virtual int SetSpatialRef(OGRSpatialReference */*poSpatialRef*/)
+    virtual int SetSpatialRef(OGRSpatialReference * /*poSpatialRef*/)
                                                        {return -1;};
 
-    virtual int SetFeature(TABFeature */*poFeature*/, int /*nFeatureId*/ = -1)
+    virtual int SetFeature(TABFeature * /*poFeature*/, int /*nFeatureId*/ = -1)
                                                        {return -1;};
 
     ///////////////
@@ -417,7 +420,7 @@ class TABView: public IMapInfoFile
     int          SetProjInfo(TABProjInfo *poPI)
 	    { return m_nMainTableIndex!=-1?
                      m_papoTABFiles[m_nMainTableIndex]->SetProjInfo(poPI):-1; }
-    int          SetMIFCoordSys(const char */*pszMIFCoordSys*/) {return -1;};
+    int          SetMIFCoordSys(const char * /*pszMIFCoordSys*/) {return -1;};
 
 #ifdef DEBUG
     virtual void Dump(FILE *fpOut = NULL);

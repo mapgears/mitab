@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.2 1999-11-10 02:19:05 warmerda Exp $
+ * $Id: mitab_coordsys.cpp,v 1.3 1999-11-10 20:13:12 warmerda Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.2  1999-11-10 02:19:05  warmerda
+ * Revision 1.3  1999-11-10 20:13:12  warmerda
+ * implement spheroid table
+ *
+ * Revision 1.2  1999/11/10 02:19:05  warmerda
  * fixed up datum support when reading MIF coord sys
  *
  * Revision 1.1  1999/11/09 22:29:38  warmerda
@@ -40,6 +43,7 @@
 #include "mitab.h"
 
 extern MapInfoDatumInfo asDatumInfoList[200];
+extern MapInfoSpheroidInfo asSpheroidInfoList[200];
 
 /************************************************************************/
 /*                             GetMIFParm()                             */
@@ -63,8 +67,6 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
 {
     char	**papszFields;
     OGRSpatialReference *poSR;
-
-    printf( "MITABCoordSys2SpatialRef(%s)\n", pszCoordSys );
 
     if( pszCoordSys == NULL )
         return NULL;
@@ -370,7 +372,6 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
 /* -------------------------------------------------------------------- */
 /*      Set linear units.                                               */
 /* -------------------------------------------------------------------- */
-    printf( "MIFUnits = %s\n", pszMIFUnits );
     if( nProjection == 1 || pszMIFUnits == NULL )
         /* do nothing */;
     else if( EQUAL(pszMIFUnits,"km") )
@@ -428,20 +429,13 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
 /*      Find the datum, and collect it's parameters if possible.        */
 /* -------------------------------------------------------------------- */
     int		iDatum;
+    MapInfoDatumInfo *psDatumInfo = NULL;
     
     for( iDatum = 0; asDatumInfoList[iDatum].nMapInfoDatumID != -1; iDatum++ )
     {
         if( asDatumInfoList[iDatum].nMapInfoDatumID == nDatum )
         {
-            nEllipsoid = asDatumInfoList[iDatum].nEllipsoid;
-            adfDatumParm[0] =  asDatumInfoList[iDatum].dfShiftX;
-            adfDatumParm[1] = asDatumInfoList[iDatum].dfShiftY;
-            adfDatumParm[2] = asDatumInfoList[iDatum].dfShiftZ;
-            adfDatumParm[3] = asDatumInfoList[iDatum].dfDatumParm0;
-            adfDatumParm[4] = asDatumInfoList[iDatum].dfDatumParm1;
-            adfDatumParm[5] = asDatumInfoList[iDatum].dfDatumParm2;
-            adfDatumParm[6] = asDatumInfoList[iDatum].dfDatumParm3;
-            adfDatumParm[7] = asDatumInfoList[iDatum].dfDatumParm4;
+            psDatumInfo = asDatumInfoList + iDatum;
             break;
         }
     }
@@ -450,15 +444,34 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
         && nDatum != 999 && nDatum != 9999 )
     {
         /* use WGS84 */
-        nEllipsoid = asDatumInfoList[0].nEllipsoid;
-        adfDatumParm[0] = asDatumInfoList[0].dfShiftX;
-        adfDatumParm[1] = asDatumInfoList[0].dfShiftY;
-        adfDatumParm[2] = asDatumInfoList[0].dfShiftZ;
-        adfDatumParm[3] = asDatumInfoList[0].dfDatumParm0;
-        adfDatumParm[4] = asDatumInfoList[0].dfDatumParm1;
-        adfDatumParm[5] = asDatumInfoList[0].dfDatumParm2;
-        adfDatumParm[6] = asDatumInfoList[0].dfDatumParm3;
-        adfDatumParm[7] = asDatumInfoList[0].dfDatumParm4;
+        psDatumInfo = asDatumInfoList + 0;
+    }
+
+    if( psDatumInfo != NULL )
+    {
+        nEllipsoid = psDatumInfo->nEllipsoid;
+        adfDatumParm[0] =  psDatumInfo->dfShiftX;
+        adfDatumParm[1] = psDatumInfo->dfShiftY;
+        adfDatumParm[2] = psDatumInfo->dfShiftZ;
+        adfDatumParm[3] = psDatumInfo->dfDatumParm0;
+        adfDatumParm[4] = psDatumInfo->dfDatumParm1;
+        adfDatumParm[5] = psDatumInfo->dfDatumParm2;
+        adfDatumParm[6] = psDatumInfo->dfDatumParm3;
+        adfDatumParm[7] = psDatumInfo->dfDatumParm4;
+    }
+    
+/* -------------------------------------------------------------------- */
+/*	Set the spheroid if it is known from the table.			*/
+/* -------------------------------------------------------------------- */
+    for( int i = 0; asSpheroidInfoList[i].nMapInfoId != -1; i++ )
+    {
+        if( asSpheroidInfoList[i].nMapInfoId == nEllipsoid )
+        {
+            dfSemiMajor = asSpheroidInfoList[i].dfA;
+            dfInvFlattening = asSpheroidInfoList[i].dfInvFlattening;
+            pszSpheroidName = asSpheroidInfoList[i].pszMapinfoName;
+            break;
+        }
     }
 
 /* -------------------------------------------------------------------- */
@@ -489,7 +502,12 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
                  adfDatumParm[6],
                  adfDatumParm[7] );
     }
-    else 
+    else if( psDatumInfo->pszOGCDatumName != NULL )
+    {
+        strncpy( szDatumName, psDatumInfo->pszOGCDatumName,
+                 sizeof(szDatumName) );
+    }
+    else
     {
         sprintf( szDatumName, "MIF %d", nDatum );
     }
@@ -513,13 +531,19 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
                      atof(SRS_UA_DEGREE_CONV) );
 
     
-#ifdef DEBUG
+/* -------------------------------------------------------------------- */
+/*      Report on translation.                                          */
+/* -------------------------------------------------------------------- */
     char	*pszWKT;
 
     poSR->exportToWkt( &pszWKT );
-    printf( "This CoordSys value:\n%s\nwas translated to:\n%s\n",
-            pszCoordSys, pszWKT );
-#endif    
+    if( pszWKT != NULL )
+    {
+        CPLDebug( "MITAB",
+                  "This CoordSys value:\n%s\nwas translated to:\n%s\n",
+                  pszCoordSys, pszWKT );
+        CPLFree( pszWKT );
+    }
 
     return poSR;
 }
@@ -898,13 +922,20 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
         sprintf( szCoordSys + strlen(szCoordSys),
                  ", %.15g",
                  parms[iParm] );
-#ifdef DEBUG
-    char	*pszWKT;
+
+/* -------------------------------------------------------------------- */
+/*      Report on translation                                           */
+/* -------------------------------------------------------------------- */
+    char	*pszWKT = NULL;
 
     poSR->exportToWkt( &pszWKT );
-    printf( "This WKT Projection:\n%s\n\ntranslates to:\n%s\n",
-            pszWKT, szCoordSys );
-#endif    
+    if( pszWKT != NULL )
+    {
+        CPLDebug( "MITAB",
+                  "This WKT Projection:\n%s\n\ntranslates to:\n%s\n",
+                  pszWKT, szCoordSys );
+        CPLFree( pszWKT );
+    }
 
     return( CPLStrdup( szCoordSys ) );
 }

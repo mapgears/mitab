@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.15 1999-11-09 22:31:38 warmerda Exp $
+ * $Id: mitab.h,v 1.16 1999-11-10 20:13:12 warmerda Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.15  1999-11-09 22:31:38  warmerda
+ * Revision 1.16  1999-11-10 20:13:12  warmerda
+ * implement spheroid table
+ *
+ * Revision 1.15  1999/11/09 22:31:38  warmerda
  * initial implementation of MIF CoordSys support
  *
  * Revision 1.14  1999/11/09 07:33:04  daniel
@@ -1121,6 +1124,14 @@ typedef struct {
     double	dfDatumParm3; /* Scale Factor */
     double	dfDatumParm4; /* Prime Meridian */
 } MapInfoDatumInfo;
+
+typedef struct
+{
+    int		nMapInfoId;
+    const char *pszMapinfoName;
+    double	dfA; /* semi major axis in meters */
+    double      dfInvFlattening; /* Inverse flattening */
+} MapInfoSpheroidInfo;
 
 #endif /* _MITAB_H_INCLUDED_ */
 

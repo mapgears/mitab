@@ -47,6 +47,8 @@ ToDo - Open Questions:
 CHANGES - Current Version:
 --------------------------
 
+- Fixed problem opening datasets with 0 features in them.
+
 - Added support for reading TAB datasets with "Table Type DBF"... only 
   type "NATIVE" was supported until now.
 
@@ -62,6 +64,9 @@ CHANGES - Current Version:
 - TABText objects now return their text string with any "\n" escaped on
   2 chars  (i.e. "\"+"n").  TABText::SetText() also expects newlines to
   be escaped in the string it receives.
+
+- Fixed some projection problems, including possible crashes with some
+  9999 datums with big parameter values or with some unrecognized projections.
 
 Version 0.2 - (1999-12-20)
 --------------------------
@@ -119,5 +124,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.9 2000-01-16 19:42:34 daniel Exp $
+$Id: HISTORY.TXT,v 1.10 2000-02-04 05:33:43 daniel Exp $
 ------------

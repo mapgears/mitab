@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab.pas,v 1.5 2003-07-29 14:39:26 dmorissette Exp $
+ * $Id: mitab.pas,v 1.6 2003-08-07 18:51:00 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab.pas,v $
- * Revision 1.5  2003-07-29 14:39:26  dmorissette
+ * Revision 1.6  2003-08-07 18:51:00  dmorissette
+ * Added mitab_c_getlibversion declaration (BVT - Bug 21)
+ *
+ * Revision 1.5  2003/07/29 14:39:26  dmorissette
  * Update for v1.2.4 from BVT (mitab_c_add_field declaration changed)
  *
  * Revision 1.5  2003/07/29 13:53:11  daniel
@@ -115,6 +118,7 @@ const
 const
 
   DLL = 'mitab.dll';
+  Libversion = 1002004;
 
 function  mitab_c_add_field              (handle: mitab_handle; field_name: pchar;field_type, width, precision, indexed, unique: longint): longint;             stdcall; external DLL Name '_mitab_c_add_field@28'            ;
 procedure mitab_c_close                  (handle: mitab_handle);                                                                                                stdcall; external DLL Name '_mitab_c_close@4'                 ;
@@ -133,6 +137,7 @@ function  mitab_c_get_field_name         (handle: mitab_handle; field: longint):
 function  mitab_c_get_field_type         (handle: mitab_handle; field: longint): longint;                                                                       stdcall; external DLL Name '_mitab_c_get_field_type@8'        ;
 function  mitab_c_get_font_vb            (feature: mitab_feature; font: pchar; l: longint): longint;                                                            stdcall; external DLL Name '_mitab_c_get_font_vb@12'          ;
 function  mitab_c_get_font               (feature: mitab_feature): pchar;                                                                                       stdcall; external DLL Name '_mitab_c_get_font@4'              ;
+function  mitab_c_getlibversion          (): longint;                                                                                                           stdcall; external DLL Name '_mitab_c_getlibversion@0'         ;
 function  mitab_c_get_mif_coordsys_vb    (dataset: mitab_handle; coordsys: pchar; l: longint): longint;								stdcall; external DLL Name '_mitab_c_get_mif_coordsys_vb@12'  ;
 function  mitab_c_get_mif_coordsys       (dataset: mitab_handle): pchar;                                                                                        stdcall; external DLL Name '_mitab_c_get_mif_coordsys@4'      ;
 function  mitab_c_get_parts              (feature: mitab_feature): longint;                                                                                     stdcall; external DLL Name '_mitab_c_get_parts@4'             ;

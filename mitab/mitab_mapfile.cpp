@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.5 1999-10-01 03:52:22 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.6 1999-10-06 13:17:46 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.5  1999-10-01 03:52:22  daniel
+ * Revision 1.6  1999-10-06 13:17:46  daniel
+ * Update m_nMaxCoordBufSize in header block
+ *
+ * Revision 1.5  1999/10/01 03:52:22  daniel
  * Avoid producing an unused block in the file when closing it.
  *
  * Revision 1.4  1999/09/26 14:59:36  daniel
@@ -745,7 +748,14 @@ int TABMAPFile::CommitObjBlock(GBool bInitNewBlock /*=TRUE*/)
      *----------------------------------------------------------------*/
     if (m_poCurCoordBlock)
     {
+        // Update the m_nMaxCoordBufSize member in the header block
+        //
+        int nTotalCoordSize = m_poCurCoordBlock->GetNumBlocksInChain()*512;
+        if (nTotalCoordSize > m_poHeader->m_nMaxCoordBufSize)
+            m_poHeader->m_nMaxCoordBufSize = nTotalCoordSize;
+
         // Update the references to this coord block in the MAPObjBlock
+        //
         m_poCurObjBlock->AddCoordBlockRef(m_poCurCoordBlock->
                                                          GetStartAddress());
         nStatus = m_poCurCoordBlock->CommitToFile();

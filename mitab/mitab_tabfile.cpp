@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.4 1999-09-16 02:39:17 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.5 1999-09-17 17:36:05 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.4  1999-09-16 02:39:17  daniel
+ * Revision 1.5  1999-09-17 17:36:05  warmerda
+ * The appropriate default value for RectifiedGridAngle in HOM is 90.0.
+ *
+ * Revision 1.4  1999/09/16 02:39:17  daniel
  * Completed read support for most feature types
  *
  * Revision 1.3  1999/09/01 17:50:28  daniel
@@ -795,7 +798,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         m_poSpatialRef->SetHOM( sTABProj.adProjParams[1],
                                 sTABProj.adProjParams[0], 
                                 sTABProj.adProjParams[2],
-                                0.0, 
+                                90.0, 
                                 sTABProj.adProjParams[3],
                                 sTABProj.adProjParams[4],
                                 sTABProj.adProjParams[5] );

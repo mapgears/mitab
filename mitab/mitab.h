@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.34 2000-06-28 00:30:25 warmerda Exp $
+ * $Id: mitab.h,v 1.35 2000-07-04 01:45:16 warmerda Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.34  2000-06-28 00:30:25  warmerda
+ * Revision 1.35  2000-07-04 01:45:16  warmerda
+ * avoid warning on nfieldid of IsFieldUnique
+ *
+ * Revision 1.34  2000/06/28 00:30:25  warmerda
  * added count of points, lines, egions and text for MIFFile
  *
  * Revision 1.33  2000/04/21 12:40:01  daniel
@@ -341,7 +344,7 @@ class TABFile: public IMapInfoFile
                                       GBool bForce = TRUE);
 
     virtual GBool IsFieldIndexed(int nFieldId);
-    virtual GBool IsFieldUnique(int nFieldId)   {return FALSE;};
+    virtual GBool IsFieldUnique(int /*nFieldId*/)   {return FALSE;};
 
     ///////////////
     // Write access specific stuff

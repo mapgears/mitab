@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.4 1999-09-29 17:59:21 daniel Exp $
+ * $Id: mitab_utils.cpp,v 1.5 1999-11-08 04:30:59 stephane Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.4  1999-09-29 17:59:21  daniel
+ * Revision 1.5  1999-11-08 04:30:59  stephane
+ * Modify TABGenerateArc()
+ *
+ * Revision 1.4  1999/09/29 17:59:21  daniel
  * Definition for PI was gone on Windows
  *
  * Revision 1.3  1999/09/16 02:39:17  daniel
@@ -81,11 +84,19 @@ int TABGenerateArc(OGRLineString *poLine, int numPoints,
 
     for(i=0; i<numPoints; i++)
     {
-        dAngle = (dStartAngle + i*dAngleStep);
+        dAngle = (dStartAngle + (double)i*dAngleStep);
         dX = dCenterX + dXRadius*cos(dAngle);
         dY = dCenterY + dYRadius*sin(dAngle);
         poLine->addPoint(dX, dY);
     }
+
+    // Complete the arc with the last EndAngle, to make sure that 
+    // the arc is correcly close.
+
+    dX = dCenterX + dXRadius*cos(dAngle);
+    dY = dCenterY + dYRadius*sin(dAngle);
+    poLine->addPoint(dX,dY);
+
 
     return 0;
 }

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.5 1999-09-17 17:36:05 warmerda Exp $
+ * $Id: mitab_tabfile.cpp,v 1.6 1999-09-20 18:42:20 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.5  1999-09-17 17:36:05  warmerda
+ * Revision 1.6  1999-09-20 18:42:20  daniel
+ * Use binary access to open files.
+ *
+ * Revision 1.5  1999/09/17 17:36:05  warmerda
  * The appropriate default value for RectifiedGridAngle in HOM is 90.0.
  *
  * Revision 1.4  1999/09/16 02:39:17  daniel
@@ -114,6 +117,7 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
     if (EQUALN(pszAccess, "r", 1))
     {
         m_eAccessMode = TABRead;
+        pszAccess = "rb";
     }
     else if (EQUALN(pszAccess, "w", 1))
     {
@@ -122,6 +126,7 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
         return -1;
 
         m_eAccessMode = TABWrite;
+        pszAccess = "wb";
     }
     else
     {

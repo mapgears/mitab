@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.23 2000-01-26 21:18:39 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.24 2000-02-05 19:33:04 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.23  2000-01-26 21:18:39  daniel
+ * Revision 1.24  2000-02-05 19:33:04  daniel
+ * Write regions with proper polygon/hole information in the coord. block
+ * since MapInfo 5.0 appears to use that information for rendering of regions.
+ *
+ * Revision 1.23  2000/01/26 21:18:39  daniel
  * Fixed writing of arc angles... they were written in reversed order.
  *
  * Revision 1.22  2000/01/16 19:08:48  daniel
@@ -2221,14 +2225,13 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
          * We accept both OGRPolygons (with one or multiple rings) and 
          * OGRMultiPolygons as input.
          *============================================================*/
-        int     nStatus=0, i, iRing, numPointsTotal, numPoints;
+        int     nStatus=0, i, iRing;
         int     numRingsTotal;
         GUInt32 nCoordDataSize;
         GInt32  nCoordBlockPtr;
         GInt32  nXMin, nYMin, nXMax, nYMax;
         TABMAPCoordBlock        *poCoordBlock;
-        TABMAPCoordSecHdr       *pasSecHdrs;
-        OGREnvelope             sEnvelope;
+        TABMAPCoordSecHdr       *pasSecHdrs = NULL;
 
         /*-------------------------------------------------------------
          * Process geometry first...
@@ -2238,57 +2241,12 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
         nCoordBlockPtr = poCoordBlock->GetCurAddress();
 
         /*-------------------------------------------------------------
-         * Fetch total number of rings to build array of coord 
-         * sections headers 
-         * Note that we want to handle both OGRPolygons and OGRMultiPolygons
-         * that's why we use the GetNumRings()/GetRingRef() interface.
+         * Fetch total number of rings and build array of coord 
+         * sections headers.
          *------------------------------------------------------------*/
-        numRingsTotal = GetNumRings();
-
-        pasSecHdrs = (TABMAPCoordSecHdr*)CPLCalloc(numRingsTotal,
-                                                   sizeof(TABMAPCoordSecHdr));
-
-        numPointsTotal = 0;
-
-        /*-------------------------------------------------------------
-         * Go through all the rings in our OGRMultiPolygon or OGRPolygon
-         * to build the coord. section header
-         *------------------------------------------------------------*/
-
-        for(iRing=0; iRing < numRingsTotal; iRing++)
-        {
-            OGRLinearRing       *poRing;
-
-            poRing = GetRingRef(iRing);
-            if (poRing == NULL)
-            {
-                CPLError(CE_Failure, CPLE_AssertionFailed,
-                         "TABRegion: Object Geometry contains NULL rings!");
-                return -1;
-            }
-                
-            numPoints = poRing->getNumPoints();
-
-            poRing->getEnvelope(&sEnvelope);
-
-            pasSecHdrs[iRing].numVertices = poRing->getNumPoints();
-            if (iRing == 0)
-                pasSecHdrs[iRing].numHoles = numRingsTotal-1;
-            else
-                pasSecHdrs[iRing].numHoles = 0;
-            
-            poMapFile->Coordsys2Int(sEnvelope.MinX, sEnvelope.MinY,
-                                    pasSecHdrs[iRing].nXMin,
-                                    pasSecHdrs[iRing].nYMin);
-            poMapFile->Coordsys2Int(sEnvelope.MaxX, sEnvelope.MaxY,
-                                    pasSecHdrs[iRing].nXMax,
-                                    pasSecHdrs[iRing].nYMax);
-            pasSecHdrs[iRing].nDataOffset = numRingsTotal * 24 +
-                                                     numPointsTotal*4*2;
-            pasSecHdrs[iRing].nVertexOffset = numPointsTotal;
-
-            numPointsTotal += numPoints;
-        }/* for iRing*/
+        numRingsTotal = ComputeNumRings(&pasSecHdrs, poMapFile);
+        if (numRingsTotal == 0)
+            nStatus = -1;
 
         /*-------------------------------------------------------------
          * Write the Coord. Section Header
@@ -2320,7 +2278,7 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
                 return -1;
             }
 
-            numPoints = poRing->getNumPoints();
+            int numPoints = poRing->getNumPoints();
             
             for(i=0; nStatus == 0 && i<numPoints; i++)
             {
@@ -2383,9 +2341,17 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
  **********************************************************************/
 int TABRegion::GetNumRings()
 {
-    OGRGeometry         *poGeom;
-    int                 numRingsTotal = 0;
+    return ComputeNumRings(NULL, NULL);
+}
 
+int TABRegion::ComputeNumRings(TABMAPCoordSecHdr **ppasSecHdrs,
+                               TABMAPFile *poMapFile)
+{
+    OGRGeometry         *poGeom;
+    int                 numRingsTotal = 0, iLastSect = 0;
+
+    if (ppasSecHdrs)
+        *ppasSecHdrs = NULL;
     poGeom = GetGeometryRef();
 
     if (poGeom && (poGeom->getGeometryType() == wkbPolygon ||
@@ -2404,18 +2370,116 @@ int TABRegion::GetNumRings()
             {
                 // We are guaranteed that all parts are OGRPolygons
                 poPolygon = (OGRPolygon*)poMultiPolygon->getGeometryRef(iPoly);
-                if (poPolygon)
-                    numRingsTotal += poPolygon->getNumInteriorRings()+1;
-            }
+                if (poPolygon  == NULL)
+                    continue;
+
+                numRingsTotal += poPolygon->getNumInteriorRings()+1;
+
+                if (ppasSecHdrs)
+                {
+                    if (AppendSecHdrs(poPolygon, *ppasSecHdrs, 
+                                      poMapFile, iLastSect) != 0)
+                        return 0; // An error happened, return count=0
+                }
+
+            }/*for*/
         }
         else
         {
             poPolygon = (OGRPolygon*)poGeom;
             numRingsTotal = poPolygon->getNumInteriorRings()+1;
+
+            if (ppasSecHdrs)
+            {
+                if (AppendSecHdrs(poPolygon, *ppasSecHdrs, 
+                                  poMapFile, iLastSect) != 0)
+                    return 0;  // An error happened, return count=0
+            }
+        }
+    }
+
+    /*-----------------------------------------------------------------
+     * If we're generating section header blocks, then init the 
+     * coordinate offset values.
+     *----------------------------------------------------------------*/
+    if (ppasSecHdrs)
+    {
+        int numPointsTotal = 0;
+        CPLAssert(iLastSect == numRingsTotal);
+        for (int iRing=0; iRing<numRingsTotal; iRing++)
+        {
+            (*ppasSecHdrs)[iRing].nDataOffset = numRingsTotal * 24 +
+                numPointsTotal*4*2;
+            (*ppasSecHdrs)[iRing].nVertexOffset = numPointsTotal;
+
+            numPointsTotal += (*ppasSecHdrs)[iRing].numVertices;
         }
     }
 
     return numRingsTotal;
+}
+
+
+/**********************************************************************
+ *                   TABRegion::AppendSecHdrs()
+ *
+ * (Private method)
+ *
+ * Add a TABMAPCoordSecHdr for each ring in the specified polygon.
+ **********************************************************************/
+int TABRegion::AppendSecHdrs(OGRPolygon *poPolygon,
+                             TABMAPCoordSecHdr * &pasSecHdrs,
+                             TABMAPFile *poMapFile,
+                             int &iLastRing)
+{
+    int iRing, numRingsInPolygon;
+    /*-------------------------------------------------------------
+     * Add a pasSecHdrs[] entry for each ring in this polygon.
+     * Note that the structs won't be fully initialized.
+     *------------------------------------------------------------*/
+    numRingsInPolygon = poPolygon->getNumInteriorRings()+1;
+
+    pasSecHdrs = (TABMAPCoordSecHdr*)CPLRealloc(pasSecHdrs,
+                                                (iLastRing+numRingsInPolygon)*
+                                                sizeof(TABMAPCoordSecHdr));
+
+    for(iRing=0; iRing < numRingsInPolygon; iRing++)
+    {
+        OGRLinearRing   *poRing;
+        OGREnvelope     sEnvelope;
+
+        if (iRing == 0)
+            poRing = poPolygon->getExteriorRing();
+        else 
+            poRing = poPolygon->getInteriorRing(iRing-1);
+
+        if (poRing == NULL)
+        {
+            CPLError(CE_Failure, CPLE_AssertionFailed, 
+                     "Assertion Failed: Encountered NULL ring in OGRPolygon");
+            return -1;
+        }
+
+        poRing->getEnvelope(&sEnvelope);
+            
+        pasSecHdrs[iLastRing].numVertices = poRing->getNumPoints();
+
+        if (iRing == 0)
+            pasSecHdrs[iLastRing].numHoles = numRingsInPolygon-1;
+        else 
+            pasSecHdrs[iLastRing].numHoles = 0;
+
+        poMapFile->Coordsys2Int(sEnvelope.MinX, sEnvelope.MinY,
+                                pasSecHdrs[iLastRing].nXMin,
+                                pasSecHdrs[iLastRing].nYMin);
+        poMapFile->Coordsys2Int(sEnvelope.MaxX, sEnvelope.MaxY,
+                                pasSecHdrs[iLastRing].nXMax,
+                                pasSecHdrs[iLastRing].nYMax);
+
+        iLastRing++;
+    }/* for iRing*/
+
+    return 0;
 }
 
 /**********************************************************************

@@ -5,6 +5,10 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+- Support reading and writing TEXT objects with strings longer than 512
+  bytes.  MITABMAPCoordBlock's Read/WriteBytes() had to be fixed to 
+  allow reading/writing data split over more than 2 blocks.
+
 
 Version 1.1.1 - (2001-05-01)
 ----------------------------
@@ -273,5 +277,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.52 2001-05-01 18:36:10 daniel Exp $
+$Id: HISTORY.TXT,v 1.53 2001-05-09 17:54:49 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.9 2001-01-22 16:03:59 warmerda Exp $
+ * $Id: mitab_capi.h,v 1.10 2001-06-25 01:49:47 daniel Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -7,10 +7,10 @@
  * Purpose:  Simple C access API prototypes.  Suitable for limited access
  *           to MITAB from an application able to call C style DLL
  *           entry points.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  **********************************************************************
- * Copyright (c) 2000, Frank Warmerdam
+ * Copyright (c) 2000-2001, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.9  2001-01-22 16:03:59  warmerda
+ * Revision 1.10  2001-06-25 01:49:47  daniel
+ * Added get methods for all pen, brush, font and symbol properties.
+ *
+ * Revision 1.9  2001/01/22 16:03:59  warmerda
  * expanded tabs
  *
  * Revision 1.8  2000/10/03 20:43:36  daniel
@@ -157,18 +160,57 @@ mitab_c_set_text_display( mitab_feature feature,
                           double angle, double height, double width,
                           int fg_color, int bg_color,
                           int justification, int spacing, int linetype );
+double MITAB_DLL
+mitab_c_get_text_angle( mitab_feature feature );
+double MITAB_DLL
+mitab_c_get_text_height( mitab_feature feature );
+double MITAB_DLL
+mitab_c_get_text_width( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_text_fgcolor( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_text_bgcolor( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_text_justification( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_text_spacing( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_text_linetype( mitab_feature feature );
 
 void MITAB_DLL mitab_c_set_pen( mitab_feature feature,
                                 int width, int pattern, int color );
+int MITAB_DLL
+mitab_c_get_pen_color( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_pen_width( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_pen_pattern( mitab_feature feature );
 
 void MITAB_DLL mitab_c_set_brush( mitab_feature feature,
                                   int fg_color, int bg_color, int pattern,
                                   int transparent );
+int MITAB_DLL
+mitab_c_get_brush_fgcolor( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_brush_bgcolor( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_brush_pattern( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_brush_transparent( mitab_feature feature );
+
 void MITAB_DLL
 mitab_c_set_font( mitab_feature feature, const char * font_name );
+const char MITAB_DLL *
+mitab_c_get_font( mitab_feature feature, const char * fontname );
 
 void MITAB_DLL mitab_c_set_symbol( mitab_feature feature, int symbol_no,
                                    int symbol_size, int symbol_color );
+int MITAB_DLL
+mitab_c_get_symbol_color( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_symbol_no( mitab_feature feature );
+int MITAB_DLL
+mitab_c_get_symbol_size( mitab_feature feature );
 
 void MITAB_DLL mitab_c_set_points( mitab_feature feature, int part,
                                    int vertex_count, double * x, double * y );

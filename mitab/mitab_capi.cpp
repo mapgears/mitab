@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.10 2001-01-22 16:03:58 warmerda Exp $
+ * $Id: mitab_capi.cpp,v 1.11 2001-06-25 01:49:47 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -7,10 +7,10 @@
  * Purpose:  Simple C access API.  Suitable for limited access
  *           to MITAB from an application able to call C style DLL
  *           entry points.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  **********************************************************************
- * Copyright (c) 2000, Frank Warmerdam
+ * Copyright (c) 2000-2001, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.10  2001-01-22 16:03:58  warmerda
+ * Revision 1.11  2001-06-25 01:49:47  daniel
+ * Added get methods for all pen, brush, font and symbol properties.
+ *
+ * Revision 1.10  2001/01/22 16:03:58  warmerda
  * expanded tabs
  *
  * Revision 1.9  2000/10/16 21:44:50  warmerda
@@ -750,6 +753,200 @@ mitab_c_set_text_display( mitab_feature feature,
 }
 
 /************************************************************************/
+/*                       mitab_c_get_text_angle()                       */
+/************************************************************************/
+
+/**
+ * Fetch a TABFC_Text object's angle property.
+ *
+ * @param feature the mitab_feature object.
+ * @return the text angle in degrees.
+ */
+
+double MITAB_STDCALL
+mitab_c_get_text_angle( mitab_feature feature )
+    
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        return poFeature->GetTextAngle();
+    }
+    return 0.0;
+}
+
+/************************************************************************/
+/*                       mitab_c_get_text_height()                       */
+/************************************************************************/
+
+/**
+ * Fetch a TABFC_Text object's MBR height property.
+ *
+ * @param feature the mitab_feature object.
+ * @return  the height of the text's MBR in ground units.
+ */
+
+double MITAB_STDCALL
+mitab_c_get_text_height( mitab_feature feature )
+    
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        return poFeature->GetTextBoxHeight();
+    }
+    return 0.0;
+}
+
+/************************************************************************/
+/*                       mitab_c_get_text_width()                       */
+/************************************************************************/
+
+/**
+ * Fetch a TABFC_Text object's MBR width property.
+ *
+ * @param feature the mitab_feature object.
+ * @return  the width of the text's MBR in ground units.
+ */
+
+double MITAB_STDCALL
+mitab_c_get_text_width( mitab_feature feature )
+    
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        return poFeature->GetTextBoxWidth();
+    }
+    return 0.0;
+}
+
+/************************************************************************/
+/*                      mitab_c_get_text_fgcolor()                      */
+/************************************************************************/
+
+/**
+ * Fetch a TABFC_Text object's foreground color property.
+ *
+ * @param feature the mitab_feature object.
+ * @return the text foreground color (24 bits RGB value).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_text_fgcolor( mitab_feature feature )
+    
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        return poFeature->GetFontFGColor();
+    }
+    return 0x000000;
+}
+
+/************************************************************************/
+/*                      mitab_c_get_text_bgcolor()                      */
+/************************************************************************/
+
+/**
+ * Fetch a TABFC_Text object's background color property.
+ *
+ * @param feature the mitab_feature object.
+ * @return the text background color (24 bits RGB value).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_text_bgcolor( mitab_feature feature )
+    
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        return poFeature->GetFontBGColor();
+    }
+    return 0x000000;
+}
+
+/************************************************************************/
+/*                   mitab_c_get_text_justification()                   */
+/************************************************************************/
+
+/**
+ * Fetch a TABFC_Text object's justification property.
+ *
+ * @param feature the mitab_feature object.
+ * @return the text justification, one of TABTJ_Left (0), TABTJ_Center (1), or 
+ *        TABTJ_Right (2).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_text_justification( mitab_feature feature )
+    
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        return poFeature->GetTextJustification();
+    }
+    return 0;
+}
+
+/************************************************************************/
+/*                      mitab_c_get_text_spacing()                      */
+/************************************************************************/
+
+/**
+ * Fetch a TABFC_Text object's spacing property.
+ *
+ * @param feature the mitab_feature object.
+ * @return the text spacing, one of TABTS_1 (0), TABTS_1_5 (1), or TABTS_2 (2).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_text_spacing( mitab_feature feature )
+    
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        return poFeature->GetTextSpacing();
+    }
+    return 0;
+}
+
+/************************************************************************/
+/*                     mitab_c_get_text_linetype()                      */
+/************************************************************************/
+
+/**
+ * Fetch a TABFC_Text object's linetype property.
+ *
+ * @param feature the mitab_feature object.
+ * @return the text linetype, one of TABTL_NoLine (0), TABTL_Simple (1), or 
+ *        TABTL_Arrow (2).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_text_linetype( mitab_feature feature )
+    
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        return poFeature->GetTextLineType();
+    }
+    return 0;
+}
+
+/************************************************************************/
 /*                          mitab_c_set_font()                          */
 /************************************************************************/
 
@@ -768,6 +965,29 @@ mitab_c_set_font( mitab_feature feature, const char * fontname )
 
     if( poFeature->GetFeatureClass() == TABFC_Text )
         poFeature->SetFontName( fontname );
+}
+
+/************************************************************************/
+/*                          mitab_c_get_font()                          */
+/************************************************************************/
+
+/** 
+ * Get a TABFC_Text object's font name.
+ *
+ * @param feature the mitab_feature object.
+ * @return the text font name.
+ */
+
+const char MITAB_STDCALL *
+mitab_c_get_font( mitab_feature feature, const char * fontname )
+
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+        return poFeature->GetFontNameRef();
+
+    return "";
 }
 
 /************************************************************************/
@@ -806,6 +1026,117 @@ mitab_c_set_brush( mitab_feature feature,
         poFeature->SetBrushTransparent( transparent );
     }
 }
+
+/************************************************************************/
+/*                     mitab_c_get_brush_fgcolor()                      */
+/************************************************************************/
+
+/**
+ * Get an object's brush foreground color property.  Applies to region, 
+ * ellipse and rectangle objects.
+ *
+ * @param feature the mitab_feature object.
+ * @return the brush foreground color (24 bits RGB value).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_brush_fgcolor( mitab_feature feature )
+    
+{
+    TABRegion   *poFeature = (TABRegion *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Region ||
+        poFeature->GetFeatureClass() == TABFC_Ellipse ||
+        poFeature->GetFeatureClass() == TABFC_Rectangle )
+    {
+        return poFeature->GetBrushFGColor();
+    }
+    return 0x000000;
+}
+
+/************************************************************************/
+/*                     mitab_c_get_brush_bgcolor()                      */
+/************************************************************************/
+
+/**
+ * Get an object's brush background color property.  Applies to region, 
+ * ellipse and rectangle objects.
+ *
+ * @param feature the mitab_feature object.
+ * @return the brush background color (24 bits RGB value).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_brush_bgcolor( mitab_feature feature )
+    
+{
+    TABRegion   *poFeature = (TABRegion *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Region ||
+        poFeature->GetFeatureClass() == TABFC_Ellipse ||
+        poFeature->GetFeatureClass() == TABFC_Rectangle )
+    {
+        return poFeature->GetBrushBGColor();
+    }
+    return 0x000000;
+}
+
+/************************************************************************/
+/*                     mitab_c_get_brush_pattern()                      */
+/************************************************************************/
+
+/**
+ * Get an object's brush pattern property.  Applies to region, 
+ * ellipse and rectangle objects.
+ *
+ * @param feature the mitab_feature object.
+ * @return the brush pattern number (1 is none, 2 is solid fill, etc.).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_brush_pattern( mitab_feature feature )
+    
+{
+    TABRegion   *poFeature = (TABRegion *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Region ||
+        poFeature->GetFeatureClass() == TABFC_Ellipse ||
+        poFeature->GetFeatureClass() == TABFC_Rectangle )
+    {
+        return poFeature->GetBrushPattern();
+    }
+    return 1;
+}
+
+/************************************************************************/
+/*                   mitab_c_get_brush_transparent()                    */
+/************************************************************************/
+
+/**
+ * Get an object's brush transparency property.  Applies to region, 
+ * ellipse and rectangle objects.
+ *
+ * @param feature the mitab_feature object.
+ * @return the brush transparency value, either 0 for an opaque brush 
+ *        (using bg color) or 1 for transparent (ignore bg color).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_brush_transparent( mitab_feature feature )
+    
+{
+    TABRegion   *poFeature = (TABRegion *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Region ||
+        poFeature->GetFeatureClass() == TABFC_Ellipse ||
+        poFeature->GetFeatureClass() == TABFC_Rectangle )
+    {
+        return poFeature->GetBrushTransparent();
+    }
+    return 0;
+}
+
+
 
 /************************************************************************/
 /*                          mitab_c_set_pen()                           */
@@ -860,6 +1191,143 @@ mitab_c_set_pen( mitab_feature feature,
 }
 
 /************************************************************************/
+/*                       mitab_c_get_pen_color()                        */
+/************************************************************************/
+
+/**
+ * Get an object's pen color property.  Applies only to polyline, region, 
+ * rectangle, arc and ellipse objects.
+ *
+ * @param feature the mitab_feature object.
+ * @return the pen color (24 bits RGB value).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_pen_color( mitab_feature feature )
+    
+{
+    TABFeature          *poFeature = (TABFeature *) feature;
+    ITABFeaturePen      *poPen = NULL;
+
+    if( poFeature->GetFeatureClass() == TABFC_Polyline )
+        poPen = ((TABPolyline *) poFeature);
+    
+    if( poFeature->GetFeatureClass() == TABFC_Region )
+        poPen = ((TABRegion *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Rectangle )
+        poPen = ((TABRectangle *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Arc )
+        poPen = ((TABArc *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Ellipse )
+        poPen = ((TABEllipse *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+        poPen = ((TABText *) poFeature);
+
+    if( poPen != NULL )
+    {
+        return poPen->GetPenColor();
+    }
+
+    return 0x000000;
+}
+
+/************************************************************************/
+/*                       mitab_c_get_pen_width()                        */
+/************************************************************************/
+
+/**
+ * Get an object's pen width property.  Applies only to polyline, region, 
+ * rectangle, arc and ellipse objects.
+ *
+ * @param feature the mitab_feature object.
+ * @return the pen as defined in the MIF specs:  1-7 for pixel 
+ *        width, or 11-2047 for width in points (10 + (point_width*10)).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_pen_width( mitab_feature feature )
+    
+{
+    TABFeature          *poFeature = (TABFeature *) feature;
+    ITABFeaturePen      *poPen = NULL;
+
+    if( poFeature->GetFeatureClass() == TABFC_Polyline )
+        poPen = ((TABPolyline *) poFeature);
+    
+    if( poFeature->GetFeatureClass() == TABFC_Region )
+        poPen = ((TABRegion *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Rectangle )
+        poPen = ((TABRectangle *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Arc )
+        poPen = ((TABArc *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Ellipse )
+        poPen = ((TABEllipse *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+        poPen = ((TABText *) poFeature);
+
+    if( poPen != NULL )
+    {
+        return poPen->GetPenWidthMIF();
+    }
+
+    return 0;
+}
+
+/************************************************************************/
+/*                      mitab_c_get_pen_pattern()                       */
+/************************************************************************/
+
+/**
+ * Get an object's pen pattern property.  Applies only to polyline, region, 
+ * rectangle, arc and ellipse objects.
+ *
+ * @param feature the mitab_feature object.
+ * @return the pen pattern number (2 is default solid pen).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_pen_pattern( mitab_feature feature )
+    
+{
+    TABFeature          *poFeature = (TABFeature *) feature;
+    ITABFeaturePen      *poPen = NULL;
+
+    if( poFeature->GetFeatureClass() == TABFC_Polyline )
+        poPen = ((TABPolyline *) poFeature);
+    
+    if( poFeature->GetFeatureClass() == TABFC_Region )
+        poPen = ((TABRegion *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Rectangle )
+        poPen = ((TABRectangle *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Arc )
+        poPen = ((TABArc *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Ellipse )
+        poPen = ((TABEllipse *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+        poPen = ((TABText *) poFeature);
+
+    if( poPen != NULL )
+    {
+        return poPen->GetPenPattern();
+    }
+
+    return 0x000000;
+}
+
+
+/************************************************************************/
 /*                         mitab_c_set_symbol()                         */
 /************************************************************************/
 
@@ -889,6 +1357,79 @@ mitab_c_set_symbol( mitab_feature feature, int symbol_no,
         poFeature->SetSymbolColor( symbol_color );
     }
 }                                                               
+
+/************************************************************************/
+/*                     mitab_c_get_symbol_color()                       */
+/************************************************************************/
+
+/**
+ * Get an object's symbol color property.  Applies only to point objects.
+ *
+ * @param feature the mitab_feature object.
+ * @return the symbol color (24 bits RGB value).
+ */
+
+int MITAB_STDCALL
+mitab_c_get_symbol_color( mitab_feature feature )
+    
+{
+    TABPoint    *poFeature = (TABPoint *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Point )
+    {
+        return poFeature->GetSymbolColor();
+    }
+    return 0x000000;
+}
+
+/************************************************************************/
+/*                       mitab_c_get_symbol_no()                        */
+/************************************************************************/
+
+/**
+ * Get an object's symbol number property.  Applies only to point objects.
+ *
+ * @param feature the mitab_feature object.
+ * @return the symbol number (valid range: 32 to 67)
+ */
+
+int MITAB_STDCALL
+mitab_c_get_symbol_no( mitab_feature feature )
+    
+{
+    TABPoint    *poFeature = (TABPoint *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Point )
+    {
+        return poFeature->GetSymbolNo();
+    }
+    return 0;
+}
+
+/************************************************************************/
+/*                     mitab_c_get_symbol_size()                        */
+/************************************************************************/
+
+/**
+ * Get an object's symbol size property.  Applies only to point objects.
+ *
+ * @param feature the mitab_feature object.
+ * @return the symbol size in pixels (valid range 1 to 48)
+ */
+
+int MITAB_STDCALL
+mitab_c_get_symbol_size( mitab_feature feature )
+    
+{
+    TABPoint    *poFeature = (TABPoint *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Point )
+    {
+        return poFeature->GetSymbolSize();
+    }
+    return 1;
+}
+
 
 /************************************************************************/
 /*                          mitab_c_get_type()                          */
@@ -925,7 +1466,7 @@ mitab_c_get_type( mitab_feature feature )
  * Return the number of parts (rings or polyline segments) in an object.
  *
  * @param feature the mitab_feature object.
- * @return the number parts (in a region or polyline) or 0 if the object's
+ * @return the number of parts (in a region or polyline) or 0 if the object's
  *         geometry was not set.  For all object types other than polyline 
  *         region, returns 1 if object geometry is set.
  */

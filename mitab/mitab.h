@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.46 2001-01-23 21:23:41 daniel Exp $
+ * $Id: mitab.h,v 1.47 2001-01-23 22:06:50 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.46  2001-01-23 21:23:41  daniel
+ * Revision 1.47  2001-01-23 22:06:50  daniel
+ * Added MITABCoordSysTableLoaded()
+ *
+ * Revision 1.46  2001/01/23 21:23:41  daniel
  * Added projection bounds lookup table, called from TABFile::SetProjInfo()
  *
  * Revision 1.45  2001/01/22 16:03:59  warmerda
@@ -1495,6 +1498,7 @@ GBool   MITABLookupCoordSysBounds(TABProjInfo *psCS,
                                   double &dXMax, double &dYMax);
 int     MITABLoadCoordSysTable(const char *pszFname);
 void    MITABFreeCoordSysTable();
+GBool   MITABCoordSysTableLoaded();
 
 #endif /* _MITAB_H_INCLUDED_ */
 

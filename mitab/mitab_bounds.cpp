@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_bounds.cpp,v 1.1 2001-01-23 21:23:41 daniel Exp $
+ * $Id: mitab_bounds.cpp,v 1.2 2001-01-23 22:06:50 daniel Exp $
  *
  * Name:     mitab_bounds.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_bounds.cpp,v $
- * Revision 1.1  2001-01-23 21:23:41  daniel
+ * Revision 1.2  2001-01-23 22:06:50  daniel
+ * Added MITABCoordSysTableLoaded()
+ *
+ * Revision 1.1  2001/01/23 21:23:41  daniel
  * Added projection bounds lookup table, called from TABFile::SetProjInfo()
  *
  **********************************************************************/
@@ -1193,6 +1196,14 @@ void MITABFreeCoordSysTable()
         CPLFree(gpapsExtBoundsList);
         gpapsExtBoundsList = NULL;
     }
-
 }
 
+/**********************************************************************
+ *                     MITABCoordSysTableLoaded()
+ *
+ * Returns TRUE if a coordsys table was loaded, FALSE otherwise.
+ **********************************************************************/
+GBool MITABCoordSysTableLoaded()
+{
+    return (gpapsExtBoundsList != NULL);
+}

@@ -5,6 +5,11 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+Version 1.2.5 (CVS)
+--------------------------
+
+ - Added mitab_c_getlibversion() to C API. (Uffe K. - bug 21)
+
 
 Version 1.2.4 (2003-07-23)
 --------------------------
@@ -530,5 +535,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.111 2003-07-24 02:48:05 daniel Exp $
+$Id: HISTORY.TXT,v 1.112 2003-08-07 03:32:14 dmorissette Exp $
 ------------

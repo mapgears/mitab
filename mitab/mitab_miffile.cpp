@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.36 2003-08-13 02:49:02 dmorissette Exp $
+ * $Id: mitab_miffile.cpp,v 1.37 2003-12-19 07:54:50 fwarmerdam Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.36  2003-08-13 02:49:02  dmorissette
+ * Revision 1.37  2003-12-19 07:54:50  fwarmerdam
+ * write mif header on close if not already written out
+ *
+ * Revision 1.36  2003/08/13 02:49:02  dmorissette
  * Use tab as default delimiter if not explicitly specified (Anthony D, bug 37)
  *
  * Revision 1.35  2003/01/30 22:42:39  daniel
@@ -1013,6 +1016,11 @@ int MIFFile::WriteMIFHeader()
  **********************************************************************/
 int MIFFile::Close()
 {
+    /* flush .mif header if not already written */
+    if ( m_poDefn != NULL && m_bHeaderWrote == FALSE)
+    {
+        WriteMIFHeader();     
+    }
 
     if (m_poMIDFile)
     {

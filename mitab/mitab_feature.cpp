@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.42 2001-11-23 22:50:17 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.43 2001-12-05 22:38:59 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.42  2001-11-23 22:50:17  daniel
+ * Revision 1.43  2001-12-05 22:38:59  daniel
+ * Fixed problems writing TAB_GEOM_LINE (bug 610, 633).
+ *
+ * Revision 1.42  2001/11/23 22:50:17  daniel
  * Fixed geometry type assertion in TABPolyline::WriteGeomToMAPFile (bug605)
  *
  * Revision 1.41  2001/11/17 21:54:06  daniel
@@ -1592,8 +1595,18 @@ int  TABPolyline::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
 
     /*-----------------------------------------------------------------
      * Decide if coordinates should be compressed or not.
+     *
+     * __TODO__ We never write type LINE (2 points line) as compressed
+     * for the moment.  If we ever do it, then the decision to write
+     * a 2 point line in compressed coordinates or not should take into
+     * account the location of the object block MBR, so this would be
+     * better handled directly by TABMAPObjLine::WriteObject() since the
+     * object block center is not known until it is written to disk.
      *----------------------------------------------------------------*/
-    ValidateCoordType(poMapFile);
+    if (m_nMapInfoType != TAB_GEOM_LINE)
+    {
+        ValidateCoordType(poMapFile);
+    }
 
     return m_nMapInfoType;
 }
@@ -1642,7 +1655,7 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
                                 dXMin, dYMin);
         poLine->setPoint(0, dXMin, dYMin);
 
-        poMapFile->Int2Coordsys(poLineHdr->m_nX1, poLineHdr->m_nY1,
+        poMapFile->Int2Coordsys(poLineHdr->m_nX2, poLineHdr->m_nY2,
                                 dXMax, dYMax);
         poLine->setPoint(1, dXMax, dYMax);
 
@@ -1898,6 +1911,8 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                                 poLineHdr->m_nX1, poLineHdr->m_nY1);
         poMapFile->Coordsys2Int(poLine->getX(1), poLine->getY(1), 
                                 poLineHdr->m_nX2, poLineHdr->m_nY2);
+        poLineHdr->SetMBR(poLineHdr->m_nX1, poLineHdr->m_nY1,
+                          poLineHdr->m_nX2, poLineHdr->m_nY2 );
 
         m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
         poLineHdr->m_nPenId = m_nPenDefIndex;      // Pen index
@@ -1954,10 +1969,7 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         poPLineHdr->m_bSmooth = m_bSmooth;
 
         // MBR
-        poPLineHdr->m_nMinX = m_nXMin;
-        poPLineHdr->m_nMinY = m_nYMin;
-        poPLineHdr->m_nMaxX = m_nXMax;
-        poPLineHdr->m_nMaxY = m_nYMax;
+        poPLineHdr->SetMBR(m_nXMin, m_nYMin, m_nXMax, m_nYMax);
 
         // Polyline center/label point
         double dX, dY;
@@ -2132,10 +2144,7 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         poPLineHdr->m_bSmooth = m_bSmooth;
 
         // MBR
-        poPLineHdr->m_nMinX = m_nXMin;
-        poPLineHdr->m_nMinY = m_nYMin;
-        poPLineHdr->m_nMaxX = m_nXMax;
-        poPLineHdr->m_nMaxY = m_nYMax;
+        poPLineHdr->SetMBR(m_nXMin, m_nYMin, m_nXMax, m_nYMax);
 
         // Polyline center/label point
         double dX, dY;
@@ -2767,10 +2776,7 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         poPLineHdr->m_bSmooth = m_bSmooth;
 
         // MBR
-        poPLineHdr->m_nMinX = m_nXMin;
-        poPLineHdr->m_nMinY = m_nYMin;
-        poPLineHdr->m_nMaxX = m_nXMax;
-        poPLineHdr->m_nMaxY = m_nYMax;
+        poPLineHdr->SetMBR(m_nXMin, m_nYMin, m_nXMax, m_nYMax);
 
         // Region center/label point
         double dX, dY;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.25 1999-12-19 17:38:55 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.26 2000-01-15 21:40:03 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -10,27 +10,33 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, Daniel Morissette
+ * Copyright (c) 1999, 2000, Daniel Morissette
  *
- * All rights reserved.  This software may be copied or reproduced, in
- * all or in part, without the prior written consent of its author,
- * Daniel Morissette (danmo@videotron.ca).  However, any material copied
- * or reproduced must bear the original copyright notice (above), this 
- * original paragraph, and the original disclaimer (below).
- *  
- * The entire risk as to the results and performance of the software,
- * supporting text and other information contained in this file
- * (collectively called the "Software") is with the user.  Although 
- * considerable efforts have been used in preparing the Software, the 
- * author does not warrant the accuracy or completeness of the Software.
- * In no event will the author be liable for damages, including loss of
- * profits or consequential damages, arising out of the use of the 
- * Software.
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  * 
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ * DEALINGS IN THE SOFTWARE.
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.25  1999-12-19 17:38:55  daniel
+ * Revision 1.26  2000-01-15 21:40:03  daniel
+ * Switched to MIT license +  When unsupported feature types encountered,
+ * return a feature with NONE geometry and produce only a warning.
+ *
+ * Revision 1.25  1999/12/19 17:38:55  daniel
  * Fixed memory leaks
  *
  * Revision 1.24  1999/12/16 17:13:18  daniel
@@ -935,10 +941,16 @@ int TABFile::GetNextFeatureId(int nPrevId)
  * Returns NULL if the specified feature id does not exist of if an
  * error happened.  In any case, CPLError() will have been called to
  * report the reason of the failure.
+ *
+ * If an unsupported object type is encountered (likely from a newer version
+ * of MapInfo) then a valid feature will be returned with a NONE geometry,
+ * and a warning will be produced with code TAB_WarningFeatureTypeNotSupported
+ * CPLGetLastErrorNo() should be used to detect that case.
  **********************************************************************/
 TABFeature *TABFile::GetFeatureRef(int nFeatureId)
 {
-    
+    CPLErrorReset();
+
     if (m_eAccessMode != TABRead)
     {
         CPLError(CE_Failure, CPLE_NotSupported,
@@ -1030,12 +1042,19 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
         m_poCurFeature = new TABText(m_poDefn);
         break;
       default:
+        /*-------------------------------------------------------------
+         * Unsupported feature type... we still return a valid feature
+         * with NONE geometry after producing a Warning.
+         * Callers can trap that case by checking CPLGetLastErrorNo() 
+         * against TAB_WarningFeatureTypeNotSupported
+         *------------------------------------------------------------*/
 //        m_poCurFeature = new TABDebugFeature(m_poDefn);
+        m_poCurFeature = new TABFeature(m_poDefn);
 
-        CPLError(CE_Failure, CPLE_NotSupported,
-                 "Unsupported object type %d (0x%2.2x)", 
+        CPLError(CE_Warning, TAB_WarningFeatureTypeNotSupported,
+                 "Unsupported object type %d (0x%2.2x).  Feature will be "
+                 "returned with NONE geometry.", 
                  m_poMAPFile->GetCurObjType(), m_poMAPFile->GetCurObjType() );
-        return NULL;
     }
 
     /*-----------------------------------------------------------------

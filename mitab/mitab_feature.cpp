@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.41 2001-11-17 21:54:06 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.42 2001-11-23 22:50:17 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,9 +30,13 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.41  2001-11-17 21:54:06  daniel
- * Made several changes in order to support writing objects in 16 bits coordinate format.
- * New TABMAPObjHdr-derived classes are used to hold object info in mem until block is full.
+ * Revision 1.42  2001-11-23 22:50:17  daniel
+ * Fixed geometry type assertion in TABPolyline::WriteGeomToMAPFile (bug605)
+ *
+ * Revision 1.41  2001/11/17 21:54:06  daniel
+ * Made several changes in order to support writing objects in 16 bits 
+ * coordinate format.  New TABMAPObjHdr-derived classes are used to hold 
+ * object info in mem until block is full.
  *
  * Revision 1.40  2001/09/17 21:33:44  daniel
  * TABText: do not produce an error when reading 0-length text strings.
@@ -1993,7 +1997,9 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         GBool   bCompressed = poObjHdr->IsCompressedType();
 
         CPLAssert(m_nMapInfoType == TAB_GEOM_MULTIPLINE ||
-                  m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE);
+                  m_nMapInfoType == TAB_GEOM_MULTIPLINE_C ||
+                  m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE ||
+                  m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C);
         /*-------------------------------------------------------------
          * Process geometry first...
          *------------------------------------------------------------*/
@@ -2024,7 +2030,8 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
          * V450 header section uses int32 instead of int16 for numVertices
          * and we add another 2 bytes to align with a 4 bytes boundary.
          *------------------------------------------------------------*/
-        GBool bV450 = (m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE);
+        GBool bV450 = (m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE ||
+                       m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C );
         int nTotalHdrSizeUncompressed;
         if (bV450)
             nTotalHdrSizeUncompressed = 28 * numLines;
@@ -3492,7 +3499,7 @@ int TABRectangle::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
      *----------------------------------------------------------------*/
     TABMAPObjRectEllipse *poRectHdr = (TABMAPObjRectEllipse *)poObjHdr;
 
-    if (m_nMapInfoType == TAB_GEOM_ROUNDRECT|| 
+    if (m_nMapInfoType == TAB_GEOM_ROUNDRECT || 
         m_nMapInfoType == TAB_GEOM_ROUNDRECT_C)
     {
         poMapFile->Coordsys2IntDist(m_dRoundXRadius*2.0, m_dRoundYRadius*2.0,

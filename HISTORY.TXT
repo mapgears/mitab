@@ -17,6 +17,8 @@ CHANGES - Current Version:
    uses EPSG 9607's 7 parameter datum shift method, but TOWGS84 is defined
    to hold EPSG 9606 style parameters.  Only the rotational signs differ. NFW
 
+ - Fixed spelling of Provisional_South_American_Datum_1956 in datum list. NFS
+
 
 Version 1.2.3 - (2002-10-15)
 ----------------------------
@@ -497,5 +499,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.104 2002-12-12 20:12:26 warmerda Exp $
+$Id: HISTORY.TXT,v 1.105 2002-12-19 20:46:01 warmerda Exp $
 ------------

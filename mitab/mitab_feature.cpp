@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.7 1999-10-01 03:54:46 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.8 1999-10-06 13:15:54 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.7  1999-10-01 03:54:46  daniel
+ * Revision 1.8  1999-10-06 13:15:54  daniel
+ * Added several Get/Set() methods to feature classes
+ *
+ * Revision 1.7  1999/10/01 03:54:46  daniel
  * Moved fix for writing string fields down in TABDATFile::WriteCharField()
  *
  * Revision 1.6  1999/10/01 02:09:25  warmerda
@@ -830,6 +833,14 @@ int TABFontPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
 GBool TABFontPoint::QueryFontStyle(TABFontStyle eStyleToQuery)
 {
     return (m_nFontStyle & (int)eStyleToQuery) ? TRUE: FALSE;
+}
+
+void TABFontPoint::ToggleFontStyle(TABFontStyle eStyleToToggle, GBool bStyleOn)
+{
+    if (bStyleOn)
+        m_nFontStyle |=  (int)eStyleToToggle;
+    else
+        m_nFontStyle &=  ~(int)eStyleToToggle;
 }
 
 
@@ -2446,7 +2457,8 @@ int  TABEllipse::ValidateMapInfoType()
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
     poGeom = GetGeometryRef();
-    if (poGeom && poGeom->getGeometryType() == wkbPolygon)
+    if ( (poGeom && poGeom->getGeometryType() == wkbPolygon ) ||
+         (poGeom && poGeom->getGeometryType() == wkbPoint ) )
     {
         m_nMapInfoType = TAB_GEOM_ELLIPSE;
     }
@@ -2566,7 +2578,6 @@ int TABEllipse::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
     GInt32              nX, nY;
     TABMAPObjectBlock   *poObjBlock;
     OGRGeometry         *poGeom;
-    OGRPolygon          *poPolygon;
     OGREnvelope         sEnvelope;
 
     if (ValidateMapInfoType() == TAB_GEOM_NONE)
@@ -2576,23 +2587,20 @@ int TABEllipse::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry
+     * Note that we will simply use the ellipse's MBR and don't really 
+     * read the polygon geometry... this should be OK unless the 
+     * polygon geometry was not really an ellipse.
      *----------------------------------------------------------------*/
     poGeom = GetGeometryRef();
-    if (poGeom && poGeom->getGeometryType() == wkbPolygon)
-        poPolygon = (OGRPolygon*)poGeom;
+    if ( (poGeom && poGeom->getGeometryType() == wkbPolygon ) ||
+         (poGeom && poGeom->getGeometryType() == wkbPoint )  )
+        poGeom->getEnvelope(&sEnvelope);
     else
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
                  "TABEllipse: Missing or Invalid Geometry!");
         return -1;
     }
-
-    /*-----------------------------------------------------------------
-     * Note that we will simply use the ellipse's MBR and don't really 
-     * read the polygon geometry... this should be OK unless the 
-     * polygon geometry was not really an ellipse.
-     *----------------------------------------------------------------*/
-    poPolygon->getEnvelope(&sEnvelope);
 
     /*-----------------------------------------------------------------
      * Write object information
@@ -2727,7 +2735,8 @@ int  TABArc::ValidateMapInfoType()
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
     poGeom = GetGeometryRef();
-    if (poGeom && poGeom->getGeometryType() == wkbLineString)
+    if ( (poGeom && poGeom->getGeometryType() == wkbPolygon ) ||
+         (poGeom && poGeom->getGeometryType() == wkbPoint ) )
     {
         m_nMapInfoType = TAB_GEOM_ARC;
     }
@@ -2876,7 +2885,6 @@ int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
     GInt32              nX, nY;
     TABMAPObjectBlock   *poObjBlock;
     OGRGeometry         *poGeom;
-    OGRLineString       *poLine;
     OGREnvelope         sEnvelope;
 
     if (ValidateMapInfoType() == TAB_GEOM_NONE)
@@ -2886,23 +2894,20 @@ int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry
+     * Note that we will simply use the ellipse's MBR and don't really 
+     * read the polygon geometry... this should be OK unless the 
+     * polygon geometry was not really an ellipse.
      *----------------------------------------------------------------*/
     poGeom = GetGeometryRef();
-    if (poGeom && poGeom->getGeometryType() == wkbLineString)
-        poLine = (OGRLineString*)poGeom;
+    if ( (poGeom && poGeom->getGeometryType() == wkbPolygon ) ||
+         (poGeom && poGeom->getGeometryType() == wkbPoint ) )
+        poGeom->getEnvelope(&sEnvelope);
     else
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
                  "TABArc: Missing or Invalid Geometry!");
         return -1;
     }
-
-    /*-----------------------------------------------------------------
-     * Note that we will simply use the ellipse's MBR and don't really 
-     * read the polygon geometry... this should be OK unless the 
-     * polygon geometry was not really an ellipse.
-     *----------------------------------------------------------------*/
-    poLine->getEnvelope(&sEnvelope);
 
     /*-----------------------------------------------------------------
      * Write object information
@@ -2947,6 +2952,8 @@ int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
     poObjBlock->WriteIntCoord(nX, nY);
 
     // Write the Arc's actual MBR
+    // __TODO__ We should compute the MBR if the arc's geometry is
+    //          only a point
     poMapFile->Coordsys2Int(sEnvelope.MinX, sEnvelope.MinY, nX, nY);
     poObjBlock->WriteIntCoord(nX, nY);
     poMapFile->Coordsys2Int(sEnvelope.MaxX, sEnvelope.MaxY, nX, nY);
@@ -3403,6 +3410,11 @@ double TABText::GetTextAngle()
     return m_dAngle;
 }
 
+void TABText::SetTextAngle(double dAngle)
+{
+    m_dAngle = dAngle;
+}
+
 /**********************************************************************
  *                   TABText::GetTextHeight()
  *
@@ -3411,6 +3423,11 @@ double TABText::GetTextAngle()
 double TABText::GetTextHeight()
 {
     return m_dHeight;
+}
+
+void TABText::SetTextHeight(double dHeight)
+{
+    m_dHeight = dHeight;
 }
 
 /**********************************************************************
@@ -3423,6 +3440,11 @@ GInt32 TABText::GetFontBGColor()
     return m_rgbBackground;
 }
 
+void TABText::SetFontBGColor(GInt32 rgbColor)
+{
+    m_rgbBackground = rgbColor;
+}
+
 /**********************************************************************
  *                   TABText::GetFontFGColor()
  *
@@ -3431,6 +3453,11 @@ GInt32 TABText::GetFontBGColor()
 GInt32 TABText::GetFontFGColor()
 {
     return m_rgbForeground;
+}
+
+void TABText::SetFontFGColor(GInt32 rgbColor)
+{
+    m_rgbForeground = rgbColor;
 }
 
 /**********************************************************************
@@ -3450,6 +3477,17 @@ TABTextJust TABText::GetTextJustification()
     return eJust;
 }
 
+void TABText::SetTextJustification(TABTextJust eJustification)
+{
+    // Flush current value... default is TABTJLeft
+    m_nTextAlignment &= ~ 0x0600;
+    // ... and set new one.
+    if (eJustification == TABTJCenter)
+        m_nTextAlignment |= 0x0200;
+    else if (eJustification == TABTJRight)
+        m_nTextAlignment |= 0x0400;
+}
+
 /**********************************************************************
  *                   TABText::GetTextSpacing()
  *
@@ -3465,6 +3503,17 @@ TABTextSpacing TABText::GetTextSpacing()
         eSpacing = TABTSDouble;
 
     return eSpacing;
+}
+
+void TABText::SetTextSpacing(TABTextSpacing eSpacing)
+{
+    // Flush current value... default is TABTSSingle
+    m_nTextAlignment &= ~ 0x1800;
+    // ... and set new one.
+    if (eSpacing == TABTS1_5)
+        m_nTextAlignment |= 0x0800;
+    else if (eSpacing == TABTSDouble)
+        m_nTextAlignment |= 0x1000;
 }
 
 /**********************************************************************
@@ -3484,6 +3533,17 @@ TABTextLineType TABText::GetTextLineType()
     return eLine;
 }
 
+void TABText::SetTextLineType(TABTextLineType eLineType)
+{
+    // Flush current value... default is TABTLNoLine
+    m_nTextAlignment &= ~ 0x6000;
+    // ... and set new one.
+    if (eLineType == TABTLSimple)
+        m_nTextAlignment |= 0x2000;
+    else if (eLineType == TABTLArrow)
+        m_nTextAlignment |= 0x4000;
+}
+
 /**********************************************************************
  *                   TABText::QueryFontStyle()
  *
@@ -3494,6 +3554,14 @@ TABTextLineType TABText::GetTextLineType()
 GBool TABText::QueryFontStyle(TABFontStyle eStyleToQuery)
 {
     return (m_nFontStyle & (int)eStyleToQuery) ? TRUE: FALSE;
+}
+
+void TABText::ToggleFontStyle(TABFontStyle eStyleToToggle, GBool bStyleOn)
+{
+    if (bStyleOn)
+        m_nFontStyle |=  (int)eStyleToToggle;
+    else
+        m_nFontStyle &=  ~ (int)eStyleToToggle;
 }
 
 /**********************************************************************

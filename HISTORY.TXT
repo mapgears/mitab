@@ -5,6 +5,16 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+- Support auto-addition of a dummy "FID" column if TAB files are created
+  with no fields, instead of producing an error.  A corresponding change
+  has not yet been applied to the MIF driver. NFW
+
+- Fixed lots of places that check for errors by examining CPLGetLastErrorNo().
+  A warning will trigger all these places as an error.  Changed to check that
+  the last error type was CE_Failure and add a CPLErrorReset() at the 
+  beginning of many affected sections.  NFW
+
+
 Version 1.2.2 - (2002-07-06)
 ----------------------------
 
@@ -456,5 +466,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.94 2002-07-30 13:54:11 julien Exp $
+$Id: HISTORY.TXT,v 1.95 2002-08-27 17:19:27 warmerda Exp $
 ------------

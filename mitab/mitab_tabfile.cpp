@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.13 1999-10-06 15:09:58 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.14 1999-10-19 06:14:52 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.13  1999-10-06 15:09:58  daniel
+ * Revision 1.14  1999-10-19 06:14:52  daniel
+ * Check that new tables contain at least one column (MapInfo requirement)
+ *
+ * Revision 1.13  1999/10/06 15:09:58  daniel
  * Removed unused variables
  *
  * Revision 1.12  1999/10/06 13:16:50  daniel
@@ -878,6 +881,17 @@ int TABFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
          *------------------------------------------------------------*/
         if (m_poDefn == NULL)
             SetFeatureDefn(poFeature->GetDefnRef(), NULL);
+
+        /*-------------------------------------------------------------
+         * Make sure table contains at least one field... this is a
+         * MAPInfo requirement.
+         *------------------------------------------------------------*/
+        if (m_poDefn == NULL || m_poDefn->GetFieldCount() == 0)
+        {
+            CPLError(CE_Failure, CPLE_IllegalArg,
+                     "MapInfo tables must contain at least 1 column.");
+            return -1;
+        }
 
         nFeatureId = m_nLastFeatureId = 1;
     }

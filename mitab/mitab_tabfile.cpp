@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.17 1999-11-09 07:36:34 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.18 1999-11-12 05:52:45 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.17  1999-11-09 07:36:34  daniel
+ * Revision 1.18  1999-11-12 05:52:45  daniel
+ * Added SetMIFCoordSys()
+ *
+ * Revision 1.17  1999/11/09 07:36:34  daniel
  * Modif. GetNextFeatureId() to skip deleted features when reading
  *
  * Revision 1.16  1999/11/08 19:18:09  stephane
@@ -1312,6 +1315,76 @@ int TABFile::GetBounds(double &dXMin, double &dYMin,
 
     return 0;
 }
+
+/**********************************************************************
+ *                   TABFile::SetMIFCoordSys()
+ *
+ * Set projection for a new file using a MIF coordsys string.
+ *
+ * This function must be called after creating a new dataset and before any
+ * feature can be written to it.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABFile::SetMIFCoordSys(const char *pszMIFCoordSys)
+{
+    if (m_eAccessMode != TABWrite)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "SetMIFCoordSys() can be used only with Write access.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Check that dataset has been created but no feature set yet.
+     *----------------------------------------------------------------*/
+    if (m_poMAPFile && m_nLastFeatureId < 1)
+    {
+        OGRSpatialReference *poSpatialRef;
+
+        poSpatialRef = MITABCoordSys2SpatialRef( pszMIFCoordSys );
+
+        if (poSpatialRef)
+        {
+            double dXMin, dYMin, dXMax, dYMax;
+            if (SetSpatialRef(poSpatialRef) != 0)
+            {
+                if (MITABExtractCoordSysBounds(pszMIFCoordSys,
+                                               dXMin, dYMin, 
+                                               dXMax, dYMax) == TRUE)
+                {
+                    // If the coordsys string contains bounds, then use them
+                    if (SetBounds(dXMin, dYMin, dXMax, dYMax) != 0)
+                    {
+                        // Failed Setting Bounds... an error should have
+                        // been already reported.
+                        return -1;
+                    }
+                }
+            }
+            else
+            {
+                // Failed setting poSpatialRef... and error should have 
+                // been reported.
+                return -1;
+            }
+
+            // Release our handle on poSpatialRef
+            poSpatialRef->Dereference();
+        }
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "SetMIFCoordSys() can be called only after dataset has been "
+                 "created and before any feature is set.");
+        return -1;
+    }
+
+    return 0;
+}
+
+
 
 /************************************************************************/
 /*                           TestCapability()                           */

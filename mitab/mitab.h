@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.37 2000-09-07 23:32:13 daniel Exp $
+ * $Id: mitab.h,v 1.38 2000-09-19 17:23:52 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.37  2000-09-07 23:32:13  daniel
+ * Revision 1.38  2000-09-19 17:23:52  daniel
+ * Maintain and/or compute valid region and polyline center/label point
+ *
+ * Revision 1.37  2000/09/07 23:32:13  daniel
  * Added RecordDeletedFlag to TABFeature with get/set methods
  *
  * Revision 1.36  2000/07/27 02:03:57  daniel
@@ -1108,6 +1111,10 @@ class TABCustomPoint: public TABPoint,
 class TABPolyline: public TABFeature, 
                    public ITABFeaturePen
 {
+  private:
+    GBool       m_bCenterIsSet;
+    double      m_dCenterX, m_dCenterY;
+
   public:
              TABPolyline(OGRFeatureDefn *poDefnIn);
     virtual ~TABPolyline();
@@ -1129,6 +1136,9 @@ class TABPolyline: public TABFeature,
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
 
     virtual void DumpMIF(FILE *fpOut = NULL);
+
+    int         GetCenter(double &dX, double &dY);
+    void        SetCenter(double dX, double dY);
 
     // MapInfo-specific attributes... made available through public vars
     // for now.
@@ -1160,9 +1170,10 @@ class TABRegion: public TABFeature,
                  public ITABFeatureBrush
 {
     GBool       m_bSmooth;
-    GBool       m_bCentroid;
-    double      m_dfCentroidX, m_dfCentroidY;
   private:
+    GBool       m_bCenterIsSet;
+    double      m_dCenterX, m_dCenterY;
+
     int     ComputeNumRings(TABMAPCoordSecHdr **ppasSecHdrs, 
                             TABMAPFile *poMAPFile);
     int     AppendSecHdrs(OGRPolygon *poPolygon,
@@ -1192,6 +1203,9 @@ class TABRegion: public TABFeature,
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
 
     virtual void DumpMIF(FILE *fpOut = NULL);
+
+    int         GetCenter(double &dX, double &dY);
+    void        SetCenter(double dX, double dY);
 };
 
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.28 2000-09-07 23:32:13 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.29 2000-09-19 17:23:52 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.28  2000-09-07 23:32:13  daniel
+ * Revision 1.29  2000-09-19 17:23:52  daniel
+ * Maintain and/or compute valid region and polyline center/label point
+ *
+ * Revision 1.28  2000/09/07 23:32:13  daniel
  * Added RecordDeletedFlag to TABFeature with get/set methods
  *
  * Revision 1.27  2000/07/10 14:56:25  daniel
@@ -124,6 +127,7 @@
 
 #include "mitab.h"
 #include "mitab_utils.h"
+#include "mitab_geometry.h"
 
 /*=====================================================================
  *                      class TABFeature
@@ -1299,6 +1303,7 @@ int TABCustomPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
 TABPolyline::TABPolyline(OGRFeatureDefn *poDefnIn):
               TABFeature(poDefnIn)
 {
+    m_bCenterIsSet = FALSE;
     m_bSmooth = FALSE;
 }
 
@@ -1335,6 +1340,9 @@ TABFeature *TABPolyline::CloneTABFeature(OGRFeatureDefn *poNewDefn/*=NULL*/)
     *(poNew->GetPenDefRef()) = *GetPenDefRef();
 
     poNew->m_bSmooth = m_bSmooth;
+    poNew->m_bCenterIsSet = m_bCenterIsSet;
+    poNew->m_dCenterX = m_dCenterX;
+    poNew->m_dCenterY = m_dCenterY;
 
     return poNew;
 }
@@ -1567,6 +1575,8 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         }
         nCenterX = poObjBlock->ReadInt32();
         nCenterY = poObjBlock->ReadInt32();
+        poMapFile->Int2Coordsys(nCenterX, nCenterY, dX, dY);
+        SetCenter(dX, dY);
 
         poObjBlock->ReadIntCoord(bComprCoord, nX, nY);    // Read MBR
         poMapFile->Int2Coordsys(nX, nY, dXMin, dYMin);
@@ -1655,6 +1665,8 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         }
         nCenterX = poObjBlock->ReadInt32();
         nCenterY = poObjBlock->ReadInt32();
+        poMapFile->Int2Coordsys(nCenterX, nCenterY, dX, dY);
+        SetCenter(dX, dY);
 
         poObjBlock->ReadIntCoord(bComprCoord, nX, nY);    // Read MBR
         poMapFile->Int2Coordsys(nX, nY, dXMin, dYMin);
@@ -1838,8 +1850,15 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
         poObjBlock->WriteInt32(nCoordBlockPtr);
         poObjBlock->WriteInt32(nCoordDataSize);
 
-        // Polyline center
-        poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
+        // Polyline center point
+        double dX, dY;
+        if (GetCenter(dX, dY) != -1)
+        {
+            poMapFile->Coordsys2Int(dX, dY, nX, nY);
+            poObjBlock->WriteIntCoord(nX, nY);
+        }
+        else
+            poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
 
         // MBR
         poObjBlock->WriteIntMBRCoord(nXMin, nYMin, nXMax, nYMax);
@@ -1996,8 +2015,15 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
         poObjBlock->WriteInt32(nCoordDataSize);
         poObjBlock->WriteInt16(numLines);
 
-        // Polyline center
-        poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
+        // Polyline center point
+        double dX, dY;
+        if (GetCenter(dX, dY) != -1)
+        {
+            poMapFile->Coordsys2Int(dX, dY, nX, nY);
+            poObjBlock->WriteIntCoord(nX, nY);
+        }
+        else
+            poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
 
         // MBR
         poObjBlock->WriteIntMBRCoord(nXMin, nYMin, nXMax, nYMax);
@@ -2085,10 +2111,85 @@ void TABPolyline::DumpMIF(FILE *fpOut /*=NULL*/)
         return;
     }
 
+    if (m_bCenterIsSet)
+        fprintf(fpOut, "Center %g %g\n", m_dCenterX, m_dCenterY);
+
     // Finish with PEN/BRUSH/etc. clauses
     DumpPenDef();
 
     fflush(fpOut);
+}
+
+/**********************************************************************
+ *                   TABPolyline::GetCenter()
+ *
+ * Returns the center point of the line.  Compute one if it was not 
+ * explicitly set:
+ *
+ * In MapInfo, for a simple or multiple polyline (pline), the center point 
+ * in the object definition is supposed to be either the center point of 
+ * the pline or the first section of a multiple pline (if an odd number of 
+ * points in the pline or first section), or the midway point between the 
+ * two central points (if an even number of points involved). 
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABPolyline::GetCenter(double &dX, double &dY)
+{
+    if (!m_bCenterIsSet)
+    {
+        OGRGeometry     *poGeom;
+        OGRLineString   *poLine = NULL;
+
+        poGeom = GetGeometryRef();
+        if (poGeom && poGeom->getGeometryType() == wkbLineString)
+        {
+            poLine = (OGRLineString *)poGeom;
+        }
+        else if (poGeom && poGeom->getGeometryType() == wkbMultiLineString)
+        {
+            OGRMultiLineString *poMultiLine = (OGRMultiLineString*)poGeom;
+            if (poMultiLine->getNumGeometries() > 0)
+                poLine = (OGRLineString *)poMultiLine->getGeometryRef(0);
+        }
+
+        if (poLine && poLine->getNumPoints() > 0)
+        {
+            int i = poLine->getNumPoints()/2;
+            if (poLine->getNumPoints() % 2 == 0)
+            {
+                // Return the midway between the 2 center points
+                m_dCenterX = (poLine->getX(i-1) + poLine->getX(i))/2.0;
+                m_dCenterY = (poLine->getY(i-1) + poLine->getY(i))/2.0;
+            }
+            else
+            {
+                // Return the center point
+                m_dCenterX = poLine->getX(i);
+                m_dCenterY = poLine->getY(i);
+            }
+            m_bCenterIsSet = TRUE;
+        }
+    }
+
+    if (!m_bCenterIsSet)
+        return -1;
+
+    dX = m_dCenterX;
+    dY = m_dCenterY;
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABPolyline::SetCenter()
+ *
+ * Set the X,Y coordinates to use as center point for the line.
+ **********************************************************************/
+void TABPolyline::SetCenter(double dX, double dY)
+{
+    m_dCenterX = dX;
+    m_dCenterY = dY;
+    m_bCenterIsSet = TRUE;
 }
 
 
@@ -2104,7 +2205,7 @@ void TABPolyline::DumpMIF(FILE *fpOut /*=NULL*/)
 TABRegion::TABRegion(OGRFeatureDefn *poDefnIn):
               TABFeature(poDefnIn)
 {
-    m_bCentroid = FALSE;
+    m_bCenterIsSet = FALSE;
     m_bSmooth = FALSE;
 }
 
@@ -2144,9 +2245,9 @@ TABFeature *TABRegion::CloneTABFeature(OGRFeatureDefn *poNewDefn/*=NULL*/)
     *(poNew->GetBrushDefRef()) = *GetBrushDefRef();
 
     poNew->m_bSmooth = m_bSmooth;
-    poNew->m_bCentroid = m_bCentroid;
-    poNew->m_dfCentroidX = m_dfCentroidX;
-    poNew->m_dfCentroidY = m_dfCentroidY;
+    poNew->m_bCenterIsSet = m_bCenterIsSet;
+    poNew->m_dCenterX = m_dCenterX;
+    poNew->m_dCenterY = m_dCenterY;
 
     return poNew;
 }
@@ -2264,6 +2365,8 @@ int TABRegion::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         }
         nCenterX = poObjBlock->ReadInt32();
         nCenterY = poObjBlock->ReadInt32();
+        poMapFile->Int2Coordsys(nCenterX, nCenterY, dX, dY);
+        SetCenter(dX, dY);
 
         poObjBlock->ReadIntCoord(bComprCoord, nX, nY);    // Read MBR
         poMapFile->Int2Coordsys(nX, nY, dXMin, dYMin);
@@ -2486,8 +2589,15 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
         poObjBlock->WriteInt32(nCoordDataSize);
         poObjBlock->WriteInt16(numRingsTotal);
 
-        // Polyline center
-        poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
+        // Region center/label point
+        double dX, dY;
+        if (GetCenter(dX, dY) != -1)
+        {
+            poMapFile->Coordsys2Int(dX, dY, nX, nY);
+            poObjBlock->WriteIntCoord(nX, nY);
+        }
+        else
+            poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
 
         // MBR
         poObjBlock->WriteIntMBRCoord(nXMin, nYMin, nXMax, nYMax);
@@ -2802,12 +2912,89 @@ void TABRegion::DumpMIF(FILE *fpOut /*=NULL*/)
         return;
     }
 
+    if (m_bCenterIsSet)
+        fprintf(fpOut, "Center %g %g\n", m_dCenterX, m_dCenterY);
+
     // Finish with PEN/BRUSH/etc. clauses
     DumpPenDef();
     DumpBrushDef();
 
     fflush(fpOut);
 }
+
+/**********************************************************************
+ *                   TABRegion::GetCenter()
+ *
+ * Returns the center/label point of the region.  
+ * Compute one using OGRPolygonLabelPoint() if it was not explicitly set 
+ * before.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABRegion::GetCenter(double &dX, double &dY)
+{
+    if (!m_bCenterIsSet)
+    {
+        /*-------------------------------------------------------------
+         * Calculate label point.  If we have a multipolygon then we use 
+         * the first OGRPolygon in the feature to calculate the point.
+         *------------------------------------------------------------*/
+        OGRPoint        oLabelPoint;
+        OGRPolygon      *poPolygon=NULL;
+        OGRGeometry     *poGeom;
+
+        poGeom = GetGeometryRef();
+        if (poGeom == NULL)
+            return -1;
+
+        if (poGeom->getGeometryType() == wkbMultiPolygon)
+        {
+            OGRMultiPolygon *poMultiPolygon = (OGRMultiPolygon *)poGeom;
+            if (poMultiPolygon->getNumGeometries() > 0)
+                poPolygon = (OGRPolygon*)poMultiPolygon->getGeometryRef(0);
+        }
+        else if (poGeom->getGeometryType() == wkbPolygon)
+        {
+            poPolygon = (OGRPolygon*)poGeom;
+        }
+
+        if (poPolygon != NULL &&
+            OGRPolygonLabelPoint(poPolygon, &oLabelPoint) == OGRERR_NONE)
+        {
+            m_dCenterX = oLabelPoint.getX();
+            m_dCenterY = oLabelPoint.getY();
+        }
+        else
+        {
+            OGREnvelope oEnv;
+            poGeom->getEnvelope(&oEnv);
+            m_dCenterX = (oEnv.MaxX + oEnv.MinX)/2.0;
+            m_dCenterY = (oEnv.MaxY + oEnv.MinY)/2.0;
+        }
+
+        m_bCenterIsSet = TRUE;
+    }
+
+    if (!m_bCenterIsSet)
+        return -1;
+
+    dX = m_dCenterX;
+    dY = m_dCenterY;
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABRegion::SetCenter()
+ *
+ * Set the X,Y coordinates to use as center/label point for the region.
+ **********************************************************************/
+void TABRegion::SetCenter(double dX, double dY)
+{
+    m_dCenterX = dX;
+    m_dCenterY = dY;
+    m_bCenterIsSet = TRUE;
+}
+
 
 /*=====================================================================
  *                      class TABRectangle

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.13 2000-03-27 03:33:45 daniel Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.14 2000-09-19 17:23:53 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.13  2000-03-27 03:33:45  daniel
+ * Revision 1.14  2000-09-19 17:23:53  daniel
+ * Maintain and/or compute valid region and polyline center/label point
+ *
+ * Revision 1.13  2000/03/27 03:33:45  daniel
  * Treat SYMBOL line as optional when reading TABPoint
  *
  * Revision 1.12  2000/02/28 16:56:32  daniel
@@ -862,14 +865,8 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	    {
 		if (CSLCount(papszToken) == 3)
 		{
-		    OGRPoint oPoint;
-		    oPoint.setX(fp->GetXTrans(atof(papszToken[1])));
-		    oPoint.setY(fp->GetYTrans(atof(papszToken[2])));
-		    if (poPolygon)
-		      poPolygon->Centroid(&oPoint);
-		    m_bCentroid = TRUE;
-		    m_dfCentroidX = fp->GetXTrans(atof(papszToken[1]));
-		    m_dfCentroidY = fp->GetYTrans(atof(papszToken[2]));
+                    SetCenter(fp->GetXTrans(atof(papszToken[1])),
+                              fp->GetYTrans(atof(papszToken[2])) );
 		}
 	    }
 	}
@@ -948,10 +945,9 @@ int TABRegion::WriteGeometryToMIFFile(MIDDATAFile *fp)
 			    GetBrushFGColor());
 	}
 
-	if (m_bCentroid)
+	if (m_bCenterIsSet)
 	{
-	    fp->WriteLine("    Center %.16g %.16g\n", m_dfCentroidX,
-			  m_dfCentroidY);
+	    fp->WriteLine("    Center %.16g %.16g\n", m_dCenterX, m_dCenterY);
 	}
 
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.2 1999-09-16 02:39:16 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.3 1999-09-21 03:36:33 warmerda Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.2  1999-09-16 02:39:16  daniel
+ * Revision 1.3  1999-09-21 03:36:33  warmerda
+ * slight modification to dump precision
+ *
+ * Revision 1.2  1999/09/16 02:39:16  daniel
  * Completed read support for most feature types
  *
  * Revision 1.1  1999/07/12 04:18:24  daniel
@@ -455,12 +458,12 @@ void TABMAPHeaderBlock::Dump(FILE *fpOut /*=NULL*/)
             fprintf(fpOut, " %g",  m_sProj.adProjParams[i]);
         fprintf(fpOut,"\n");
 
-        fprintf(fpOut,"  m_sProj.dDatumShiftX  = %g\n", m_sProj.dDatumShiftX);
-        fprintf(fpOut,"  m_sProj.dDatumShiftY  = %g\n", m_sProj.dDatumShiftY);
-        fprintf(fpOut,"  m_sProj.dDatumShiftZ  = %g\n", m_sProj.dDatumShiftZ);
+        fprintf(fpOut,"  m_sProj.dDatumShiftX  = %.15g\n", m_sProj.dDatumShiftX);
+        fprintf(fpOut,"  m_sProj.dDatumShiftY  = %.15g\n", m_sProj.dDatumShiftY);
+        fprintf(fpOut,"  m_sProj.dDatumShiftZ  = %.15g\n", m_sProj.dDatumShiftZ);
         fprintf(fpOut,"  m_sProj.adDatumParams =");
         for(i=0; i<5; i++)
-            fprintf(fpOut, " %g",  m_sProj.adDatumParams[i]);
+            fprintf(fpOut, " %.15g",  m_sProj.adDatumParams[i]);
         fprintf(fpOut,"\n");
 
     }

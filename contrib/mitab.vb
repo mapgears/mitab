@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.vb,v 1.5 2002-08-01 13:59:38 daniel Exp $
+' * $Id: mitab.vb,v 1.6 2002-08-29 14:20:57 daniel Exp $
 ' *
 ' * Name:     mitab.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.vb,v $
-' * Revision 1.5  2002-08-01 13:59:38  daniel
+' * Revision 1.6  2002-08-29 14:20:57  daniel
+' * Added missing 'ByVal l As Long' to mitab_c_get_mif_coordsys_vb()
+' *
+' * Revision 1.5  2002/08/01 13:59:38  daniel
 ' * (Update From BVT) Fixed mitab_c_get_vertex_x/y() declarations
 ' *
 ' * Revision 1.4  2002/07/07 22:04:22  bvt
@@ -122,7 +125,7 @@ Public Declare Function mitab_c_get_field_count Lib "mitab.dll" Alias "_mitab_c_
 Public Declare Function mitab_c_get_field_name_vb Lib "mitab.dll" Alias "_mitab_c_get_field_name_vb@16" (ByVal handle As Long, ByVal field As Long, ByVal name As String, ByVal l As Long) As Long
 Public Declare Function mitab_c_get_field_type Lib "mitab.dll" Alias "_mitab_c_get_field_type@8" (ByVal handle As Long, ByVal field As Long) As Long
 Public Declare Function mitab_c_get_font_vb Lib "mitab.dll" Alias "_mitab_c_get_font_vb@12" (ByVal feature As Long, ByVal font As String, ByVal l As Long) As Long
-Public Declare Function mitab_c_get_mif_coordsys_vb Lib "mitab.dll" Alias "_mitab_c_get_mif_coordsys_vb@12" (ByVal dataset As Long, ByVal coordsys As String) As Long
+Public Declare Function mitab_c_get_mif_coordsys_vb Lib "mitab.dll" Alias "_mitab_c_get_mif_coordsys_vb@12" (ByVal dataset As Long, ByVal coordsys As String, ByVal l As Long) As Long
 Public Declare Function mitab_c_get_parts Lib "mitab.dll" Alias "_mitab_c_get_parts@4" (ByVal feature As Long) As Long
 Public Declare Function mitab_c_get_pen_color Lib "mitab.dll" Alias "_mitab_c_get_pen_color@4" (ByVal feature As Long) As Long
 Public Declare Function mitab_c_get_pen_pattern Lib "mitab.dll" Alias "_mitab_c_get_pen_pattern@4" (ByVal feature As Long) As Long

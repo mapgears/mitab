@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.25 2000-12-05 14:56:55 daniel Exp $
+ * $Id: mitab_spatialref.cpp,v 1.26 2001-01-19 21:56:18 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.25  2000-12-05 14:56:55  daniel
+ * Revision 1.26  2001-01-19 21:56:18  warmerda
+ * added untested support for Swiss Oblique Mercator
+ *
+ * Revision 1.25  2000/12/05 14:56:55  daniel
  * Added some missing unit names (aliases) in TABFile::SetSpatialRef()
  *
  * Revision 1.24  2000/10/16 21:44:50  warmerda
@@ -347,6 +350,8 @@ MapInfoSpheroidInfo asSpheroidInfoList[] =
     {-1,NULL,                                   0.0,         0.0}
 };
  
+#define MITAB_SRS_PT_SWISS_OBLIQUE_MERCATOR "Swiss_Oblique_Mercator"
+
 /**********************************************************************
  *                   TABFile::GetSpatialRef()
  *
@@ -603,6 +608,21 @@ OGRSpatialReference *TABFile::GetSpatialRef()
                                           sTABProj.adProjParams[2],
                                           sTABProj.adProjParams[3],
                                           sTABProj.adProjParams[4] );
+        break;
+
+        /*--------------------------------------------------------------
+         * Swiss Oblique Mercator
+         *
+         * I am not too sure what this really is, but we preserve it
+         * in the same format as NZMG with the name overridden to be 
+         * 
+         *-------------------------------------------------------------*/
+      case 25:
+        m_poSpatialRef->SetNZMG( sTABProj.adProjParams[1],
+                                 sTABProj.adProjParams[0],
+                                 sTABProj.adProjParams[2],
+                                 sTABProj.adProjParams[3] );
+        m_poSpatialRef->SetProjection( MITAB_SRS_PT_SWISS_OBLIQUE_MERCATOR );
         break;
 
       default:
@@ -1020,6 +1040,15 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     else if( EQUAL(pszProjection,SRS_PT_NEW_ZEALAND_MAP_GRID) )
     {
         sTABProj.nProjId = 18;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[2] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,MITAB_SRS_PT_SWISS_OBLIQUE_MERCATOR) )
+    {
+        sTABProj.nProjId = 25;
         parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
         parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
         parms[2] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);

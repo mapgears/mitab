@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.17 2000-12-05 14:55:27 daniel Exp $
+ * $Id: mitab_coordsys.cpp,v 1.18 2001-01-19 21:56:18 warmerda Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.17  2000-12-05 14:55:27  daniel
+ * Revision 1.18  2001-01-19 21:56:18  warmerda
+ * added untested support for Swiss Oblique Mercator
+ *
+ * Revision 1.17  2000/12/05 14:55:27  daniel
  * Added some missing unit name aliases in MITABSpatialRef2CoordSys()
  *
  * Revision 1.16  2000/10/16 21:44:50  warmerda
@@ -90,6 +93,8 @@
 
 extern MapInfoDatumInfo asDatumInfoList[200];
 extern MapInfoSpheroidInfo asSpheroidInfoList[200];
+
+#define MITAB_SRS_PT_SWISS_OBLIQUE_MERCATOR "Swiss_Oblique_Mercator"
 
 /************************************************************************/
 /*                             GetMIFParm()                             */
@@ -436,6 +441,21 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
                                 GetMIFParm( papszNextField, 2, 1.0 ),
                                 GetMIFParm( papszNextField, 3, 0.0 ),
                                 GetMIFParm( papszNextField, 4, 0.0 ) );
+        break;
+
+        /*--------------------------------------------------------------
+         * Swiss Oblique Mercator
+         *
+         * I am not too sure what this really is, but we preserve it
+         * in the same format as NZMG with the name overridden to be 
+         * 
+         *-------------------------------------------------------------*/
+      case 25:
+        poSR->SetNZMG( GetMIFParm( papszNextField, 1, 0.0 ),
+                       GetMIFParm( papszNextField, 0, 0.0 ),
+                       GetMIFParm( papszNextField, 2, 0.0 ),
+                       GetMIFParm( papszNextField, 3, 0.0 ) );
+        poSR->SetProjection( MITAB_SRS_PT_SWISS_OBLIQUE_MERCATOR );
         break;
 
       default:
@@ -786,6 +806,16 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
     else if( EQUAL(pszProjection,SRS_PT_NEW_ZEALAND_MAP_GRID) )
     {
         nProjection = 18;
+        parms[0] = poSR->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSR->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[2] = poSR->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[3] = poSR->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+        nParmCount = 4;
+    }
+
+    else if( EQUAL(pszProjection,MITAB_SRS_PT_SWISS_OBLIQUE_MERCATOR) )
+    {
+        nProjection = 25;
         parms[0] = poSR->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
         parms[1] = poSR->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
         parms[2] = poSR->GetProjParm(SRS_PP_FALSE_EASTING,0.0);

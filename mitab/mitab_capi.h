@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.22 2003-08-07 03:20:46 dmorissette Exp $
+ * $Id: mitab_capi.h,v 1.23 2003-08-12 20:20:49 dmorissette Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,13 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.22  2003-08-07 03:20:46  dmorissette
+ * Revision 1.23  2003-08-12 20:20:49  dmorissette
+ * Changes from Anthony Dunk, Encom:
+ * - Added ability to create a feature of type TABFC_NoGeom
+ * - Added mitab_c_get_feature_count(), mitab_c_get_field_as_double() and
+ *   mitab_c_get_extended_mif_coordsys()
+ *
+ * Revision 1.22  2003/08/07 03:20:46  dmorissette
  * Added mitab_c_getlibversion() to C API. (Uffe K. - bug 21)
  *
  * Revision 1.21  2003/01/18 21:44:33  daniel
@@ -284,6 +290,8 @@ int MITAB_DLL MITAB_STDCALL mitab_c_get_vertex_count( mitab_feature feature, int
 double MITAB_DLL MITAB_STDCALL mitab_c_get_vertex_x( mitab_feature, int part, int vertex );
 double MITAB_DLL MITAB_STDCALL mitab_c_get_vertex_y( mitab_feature, int part, int vertex );
 
+int MITAB_DLL MITAB_STDCALL mitab_c_get_feature_count( mitab_handle handle );
+
 int MITAB_DLL MITAB_STDCALL mitab_c_get_field_count( mitab_handle handle );
 int MITAB_DLL MITAB_STDCALL mitab_c_get_field_type( mitab_handle handle, int field );
 const char MITAB_DLL * MITAB_STDCALL mitab_c_get_field_name(mitab_handle handle, int field);
@@ -294,12 +302,17 @@ int MITAB_DLL MITAB_STDCALL mitab_c_get_field_precision( mitab_handle handle, in
 
 const char MITAB_DLL * MITAB_STDCALL mitab_c_get_field_as_string( mitab_feature feature, 
                                                    int field );
+
+double MITAB_DLL MITAB_STDCALL mitab_c_get_field_as_double(mitab_feature feature, int field);
+
 int MITAB_DLL MITAB_STDCALL mitab_c_get_field_as_string_vb( mitab_feature feature, int field, char * value, int l );
 
 mitab_projinfo MITAB_DLL MITAB_STDCALL mitab_c_get_projinfo( mitab_handle dataset );
 int            MITAB_DLL MITAB_STDCALL mitab_c_set_projinfo( mitab_handle dataset, 
                                                mitab_projinfo projinfo );
 const char MITAB_DLL * MITAB_STDCALL mitab_c_get_mif_coordsys( mitab_handle dataset);
+const char * MITAB_STDCALL mitab_c_get_extended_mif_coordsys( mitab_handle dataset);
+
 int MITAB_DLL MITAB_STDCALL mitab_c_get_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l);
 
 int MITAB_DLL MITAB_STDCALL 

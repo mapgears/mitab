@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.30 2003-08-07 03:20:46 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.31 2003-08-12 20:20:33 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,13 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.30  2003-08-07 03:20:46  dmorissette
+ * Revision 1.31  2003-08-12 20:20:33  dmorissette
+ * Changes from Anthony Dunk, Encom:
+ * - Added ability to create a feature of type TABFC_NoGeom
+ * - Added mitab_c_get_feature_count(), mitab_c_get_field_as_double() and
+ *   mitab_c_get_extended_mif_coordsys()
+ *
+ * Revision 1.30  2003/08/07 03:20:46  dmorissette
  * Added mitab_c_getlibversion() to C API. (Uffe K. - bug 21)
  *
  * Revision 1.29  2003/01/18 21:44:33  daniel
@@ -163,6 +169,46 @@ static int _mitab_c_get_feature_info( mitab_feature feature, int what_info,
 #define INFO_NUMPOINTS 1
 #define INFO_XVERTEX   2
 #define INFO_YVERTEX   3
+
+
+// Used in mitab_c_get_extended_mif_coordsys().
+static const char sUnitsLookup[][20]=
+{
+    "mi",       // 0
+    "km",       // 1
+    "in",       // 2
+    "ft",       // 3
+    "yd",       // 4
+    "mm",       // 5
+    "cm",       // 6
+    "m",        // 7
+    "survey ft",// 8
+    "nmi",      // 9
+    "",         // 10
+    "",         // 11
+    "",         // 12
+    "",         // 13
+    "",         // 14
+    "",         // 15
+    "",         // 16
+    "",         // 17
+    "",         // 18
+    "",         // 19
+    "",         // 20
+    "",         // 21
+    "",         // 22
+    "",         // 23
+    "",         // 24
+    "",         // 25
+    "",         // 26
+    "",         // 27
+    "",         // 28
+    "",         // 29
+    "li",       // 30
+    "ch",       // 31
+    "rd"        // 32
+};
+
 
 
 /* ==================================================================== */
@@ -1942,6 +1988,31 @@ mitab_c_get_field_count( mitab_handle handle )
     return 0;
 }
 
+
+/************************************************************************/
+/*                       mitab_c_get_feature_count()                    */
+/************************************************************************/
+
+/**
+ * Return the number of features in a dataset.
+ *
+ * @param handle the dataset's handle.
+ * @return the number of features in the dataset.
+ */
+
+int MITAB_STDCALL 
+mitab_c_get_feature_count( mitab_handle handle )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+
+    if (poFile != NULL)
+        return poFile->GetFeatureCount(TRUE);
+
+    return 0;
+}
+
+
+
 /************************************************************************/
 /*                       mitab_c_get_field_type()                       */
 /************************************************************************/
@@ -2124,6 +2195,7 @@ mitab_c_get_field_as_string( mitab_feature feature, int field )
     return "";
 }
 
+
 /************************************************************************/
 /*                    mitab_c_get_field_as_string_vb()                  */
 /************************************************************************/
@@ -2155,6 +2227,32 @@ mitab_c_get_field_as_string_vb( mitab_feature feature, int field, char * value, 
     };
     return 0;
 }
+
+/************************************************************************/
+/*                    mitab_c_get_field_as_double()                     */
+/************************************************************************/
+
+/**
+ * Fetch an attribute field value in a mitab_feature as a double.
+ *
+ * @param feature the mitab_feature object.
+ * @param field the index of the field to look at, with 0 being the first 
+ *        field.
+ * @return the value of the field converted to double.
+ */
+
+double MITAB_STDCALL
+mitab_c_get_field_as_double( mitab_feature feature, int field )
+{
+    TABFeature          *poFeature = (TABFeature *) feature;
+
+    if (poFeature)
+        return poFeature->GetFieldAsDouble(field);
+
+    return -1e30;
+}
+
+
 
 
 /********************************************************************/
@@ -2245,6 +2343,65 @@ mitab_c_get_mif_coordsys( mitab_handle dataset)
 
     return NULL;
 }
+
+
+/************************************************************************/
+/*                    mitab_c_get_extended_mif_coordsys()               */
+/************************************************************************/
+
+/**
+ * Get the MIF CoordSys string from an opened dataset including the 
+ * affine transformation parameters if available.
+ *
+ * @param dataset the mitab_handle of the source dataset.
+ * @return a string with the dataset coordinate system definition in MIF
+ *    CoordSys format.  Returns NULL if the information could not be read.
+ *    The returned string is valid only until the next call to 
+ *    mitab_c_get_mif_coordsys().
+ */
+
+#ifdef __TO_BE_REVIEWED__
+
+// DM, 2003-08-12 - This function needs to be reviewed in light of the
+//                  corresponding changes to the OGR SRS class.
+//   Also it needs to be modified to not leak a copy of the szExtCoordSys
+//   buffer
+
+const char * MITAB_STDCALL
+mitab_c_get_extended_mif_coordsys( mitab_handle dataset)
+{
+    static char *spszCoordSys = NULL;
+    IMapInfoFile        *poFile = (IMapInfoFile *) dataset;
+    OGRSpatialReference *poSRS;
+
+    if (poFile && (poSRS = poFile->GetSpatialRef()) != NULL)
+    {
+        CPLFree( spszCoordSys );
+        spszCoordSys = MITABSpatialRef2CoordSys( poSRS );
+
+        // Append extra stuff if necessary (Added by Encom 2003)
+        if (poSRS->nAffineFlag)
+        {
+            int nAffineUnit = poSRS->nAffineUnit;
+            if (nAffineUnit>32) nAffineUnit=7; // Use "m" if units out of range
+
+            // Note: We should also probably add the optional bounds clause if reqd.
+            //       (Anthony Dunk, Encom Technology P/L, 25/07/03)
+            char szExtCoordSys[1000];
+            sprintf(szExtCoordSys,"%s Affine Units \"%s\", %.12f, %.12f, %.12f, %.12f, %.12f, %.12f",
+                    spszCoordSys, sUnitsLookup[nAffineUnit],
+                    poSRS->dAffineParamA, poSRS->dAffineParamB,
+                    poSRS->dAffineParamC, poSRS->dAffineParamD,
+                    poSRS->dAffineParamE, poSRS->dAffineParamF);
+            return( CPLStrdup( szExtCoordSys ) ); // Return extended string
+        }
+        return spszCoordSys;
+    }
+
+    return NULL;
+}
+
+#endif // __TO_BE_REVIEWED__
 
 /************************************************************************/
 /*                        mitab_c_get_mif_coordsys_vb()                 */

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.27 2004-12-08 23:27:35 dmorissette Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.28 2004-12-15 22:52:49 dmorissette Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.27  2004-12-08 23:27:35  dmorissette
+ * Revision 1.28  2004-12-15 22:52:49  dmorissette
+ * Revert back to using doubles for range check in CoordSys2Int(). Hopefully
+ * I got it right this time. (bug 894)
+ *
+ * Revision 1.27  2004/12/08 23:27:35  dmorissette
  * Fixed coordinates rounding error in Coordsys2Int() (bug 894)
  *
  * Revision 1.26  2004/06/30 20:29:04  dmorissette
@@ -434,22 +438,22 @@ int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY,
     // a quadrant 0 and it should be treated the same way as quadrant 3
 
     /*-----------------------------------------------------------------
-     * NOTE: double value must be use here, the limit of integer value 
-     * have been reach some times due to the very big number used here.
+     * NOTE: double values must be used here, the limit of integer value 
+     * have been reached some times due to the very big numbers used here.
      *----------------------------------------------------------------*/
-    GInt32 nTempX, nTempY;
+    double dTempX, dTempY;
 
     if (m_nCoordOriginQuadrant==2 || m_nCoordOriginQuadrant==3 ||
         m_nCoordOriginQuadrant==0 )
-        nTempX = ROUND_INT(-1.0*dX*m_XScale - m_XDispl);
+        dTempX = (double)(-1.0*dX*m_XScale - m_XDispl);
     else
-        nTempX = ROUND_INT(dX*m_XScale + m_XDispl);
+        dTempX = (double)(dX*m_XScale + m_XDispl);
 
     if (m_nCoordOriginQuadrant==3 || m_nCoordOriginQuadrant==4 ||
         m_nCoordOriginQuadrant==0 )
-        nTempY = ROUND_INT(-1.0*dY*m_YScale - m_YDispl);
+        dTempY = (double)(-1.0*dY*m_YScale - m_YDispl);
     else
-        nTempY = ROUND_INT(dY*m_YScale + m_YDispl);
+        dTempY = (double)(dY*m_YScale + m_YDispl);
 
     /*-----------------------------------------------------------------
      * Make sure we'll never output coordinates outside of the valid
@@ -457,29 +461,29 @@ int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY,
      * Integer coordinates outside of that range will confuse MapInfo.
      *----------------------------------------------------------------*/
     GBool bIntBoundsOverflow = FALSE;
-    if (nTempX < -1000000000)
+    if (dTempX < -1000000000)
     {
-        nTempX = -1000000000;
+        dTempX = -1000000000;
         bIntBoundsOverflow = TRUE;
     }
-    if (nTempX > 1000000000)
+    if (dTempX > 1000000000)
     {
-        nTempX = 1000000000;
+        dTempX = 1000000000;
         bIntBoundsOverflow = TRUE;
     }
-    if (nTempY < -1000000000)
+    if (dTempY < -1000000000)
     {
-        nTempY = -1000000000;
+        dTempY = -1000000000;
         bIntBoundsOverflow = TRUE;
     }
-    if (nTempY > 1000000000)
+    if (dTempY > 1000000000)
     {
-        nTempY = 1000000000;
+        dTempY = 1000000000;
         bIntBoundsOverflow = TRUE;
     }
 
-    nX = nTempX;
-    nY = nTempY;
+    nX = (GInt32) ROUND_INT(dTempX);
+    nY = (GInt32) ROUND_INT(dTempY);
 
     if (bIntBoundsOverflow && !bIgnoreOverflow)
     {

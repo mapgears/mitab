@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.h,v 1.5 1999-12-14 02:08:16 daniel Exp $
+ * $Id: mitab_utils.h,v 1.6 2000-01-14 23:47:00 daniel Exp $
  *
  * Name:     mitab_utils.h
  * Project:  MapInfo TAB Read/Write library
@@ -8,7 +8,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, Daniel Morissette
+ * Copyright (c) 1999, 2000, Daniel Morissette
  *
  * All rights reserved.  This software may be copied or reproduced, in
  * all or in part, without the prior written consent of its author,
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.h,v $
- * Revision 1.5  1999-12-14 02:08:16  daniel
+ * Revision 1.6  2000-01-14 23:47:00  daniel
+ * Added TABEscapeString()/TABUnEscapeString()
+ *
+ * Revision 1.5  1999/12/14 02:08:16  daniel
  * Added TABGetBasename() + TAB_CSLLoad()
  *
  * Revision 1.4  1999/09/28 13:33:32  daniel
@@ -68,6 +71,10 @@ int TABCloseRing(OGRLineString *poRing);
 GBool TABAdjustFilenameExtension(char *pszFname);
 char *TABGetBasename(const char *pszFname);
 char **TAB_CSLLoad(const char *pszFname);
+
+char *TABEscapeString(char *pszString);
+char *TABUnEscapeString(char *pszString, GBool bSrcIsConst);
+
 
 #endif /* _MITAB_UTILS_H_INCLUDED_ */
 

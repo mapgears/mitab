@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.22 2002-05-08 21:37:40 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.23 2002-05-10 20:54:56 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.22  2002-05-08 21:37:40  daniel
+ * Revision 1.23  2002-05-10 20:54:56  daniel
+ * Fixed crash in mitab_c_sef_font()... I was using an illegal type cast
+ *
+ * Revision 1.22  2002/05/08 21:37:40  daniel
  * Added FontPoint and CustomPoint in mitab_c_create_feature() and
  * mitab_c_set_points().  And (hopefully) fixed the STDCALL stuff.
  *
@@ -1119,15 +1122,24 @@ mitab_c_set_font( mitab_feature feature, const char * fontname )
 
 {
     TABFeature *poFeature = (TABFeature *)feature;
+    ITABFeatureFont *poFontFeature = NULL;
 
-    if( poFeature->GetFeatureClass() == TABFC_Text ||
-        poFeature->GetFeatureClass() == TABFC_FontPoint ||
-        poFeature->GetFeatureClass() == TABFC_CustomPoint )
+    if( poFeature->GetFeatureClass() == TABFC_Text )
     {
-        ITABFeatureFont *poFontFeature = (ITABFeatureFont *) poFeature;
-
-        poFontFeature->SetFontName( fontname );
+        poFontFeature = (TABText *) poFeature;
     }
+    else if ( poFeature->GetFeatureClass() == TABFC_FontPoint )
+    {
+        poFontFeature = (TABFontPoint *) poFeature;
+    }
+    else if ( poFeature->GetFeatureClass() == TABFC_CustomPoint )
+    {
+        poFontFeature = (TABCustomPoint *) poFeature;
+    }
+
+    if (poFontFeature)
+        poFontFeature->SetFontName( fontname );
+
 }
 
 /************************************************************************/
@@ -1147,15 +1159,23 @@ mitab_c_get_font( mitab_feature feature )
 
 {
     TABFeature *poFeature = (TABFeature *)feature;
+    ITABFeatureFont *poFontFeature = NULL;
 
-    if( poFeature->GetFeatureClass() == TABFC_Text ||
-        poFeature->GetFeatureClass() == TABFC_FontPoint ||
-        poFeature->GetFeatureClass() == TABFC_CustomPoint )
+    if( poFeature->GetFeatureClass() == TABFC_Text )
     {
-        ITABFeatureFont *poFontFeature = (ITABFeatureFont *) poFeature;
-
-        return poFontFeature->GetFontNameRef();
+        poFontFeature = (TABText *) poFeature;
     }
+    else if ( poFeature->GetFeatureClass() == TABFC_FontPoint )
+    {
+        poFontFeature = (TABFontPoint *) poFeature;
+    }
+    else if ( poFeature->GetFeatureClass() == TABFC_CustomPoint )
+    {
+        poFontFeature = (TABCustomPoint *) poFeature;
+    }
+
+    if (poFontFeature)
+        return poFontFeature->GetFontNameRef();
 
     return "";
 }
@@ -1179,12 +1199,23 @@ mitab_c_get_font_vb( mitab_feature feature, char * font, int l )
 {
     TABFeature *poFeature = (TABFeature *)feature;
 
-    if( poFeature->GetFeatureClass() == TABFC_Text ||
-        poFeature->GetFeatureClass() == TABFC_FontPoint ||
-        poFeature->GetFeatureClass() == TABFC_CustomPoint )
-    {
-        ITABFeatureFont *poFontFeature = (ITABFeatureFont *) poFeature;
+    ITABFeatureFont *poFontFeature = NULL;
 
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        poFontFeature = (TABText *) poFeature;
+    }
+    else if ( poFeature->GetFeatureClass() == TABFC_FontPoint )
+    {
+        poFontFeature = (TABFontPoint *) poFeature;
+    }
+    else if ( poFeature->GetFeatureClass() == TABFC_CustomPoint )
+    {
+        poFontFeature = (TABCustomPoint *) poFeature;
+    }
+
+    if( poFontFeature )
+    {
         strncpy(font, poFontFeature->GetFontNameRef(), l);
         return strlen(font);
     }

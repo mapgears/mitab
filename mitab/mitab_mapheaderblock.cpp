@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.19 2001-11-19 15:05:42 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.20 2001-12-05 21:56:15 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.19  2001-11-19 15:05:42  daniel
+ * Revision 1.20  2001-12-05 21:56:15  daniel
+ * Mod. CoordSys2Int() to use rint() for double to integer coord. conversion.
+ *
+ * Revision 1.19  2001/11/19 15:05:42  daniel
  * Prevent writing of coordinates outside of the +/-1e9 integer bounds.
  *
  * Revision 1.18  2000/12/07 03:58:20  daniel
@@ -143,6 +146,7 @@ TABMAPHeaderBlock::TABMAPHeaderBlock(TABAccess eAccessMode /*= TABRead*/):
     m_nYMin = -1000000000;
     m_nXMax = 1000000000;
     m_nYMax = 1000000000;
+    m_bIntBoundsOverflow = FALSE;
 
     m_nFirstIndexBlock = 0;
     m_nFirstGarbageBlock = 0;
@@ -385,15 +389,15 @@ int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY,
 
     if (m_nCoordOriginQuadrant==2 || m_nCoordOriginQuadrant==3 ||
         m_nCoordOriginQuadrant==0 )
-        nX = (GInt32)(-1.0*dX*m_XScale - m_XDispl);
+        nX = (GInt32)rint(-1.0*dX*m_XScale - m_XDispl);
     else
-        nX = (GInt32)(dX*m_XScale + m_XDispl);
+        nX = (GInt32)rint(dX*m_XScale + m_XDispl);
 
     if (m_nCoordOriginQuadrant==3 || m_nCoordOriginQuadrant==4 ||
         m_nCoordOriginQuadrant==0 )
-        nY = (GInt32)(-1.0*dY*m_YScale - m_YDispl);
+        nY = (GInt32)rint(-1.0*dY*m_YScale - m_YDispl);
     else
-        nY = (GInt32)(dY*m_YScale + m_YDispl);
+        nY = (GInt32)rint(dY*m_YScale + m_YDispl);
 
 //printf("Coordsys2Int: (%10g, %10g) -> (%d, %d)\n", dX, dY, nX, nY);
 
@@ -402,25 +406,35 @@ int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY,
      * integer coordinates range: (-1e9, -1e9) - (1e9, 1e9)
      * Integer coordinates outside of that range will confuse MapInfo.
      *----------------------------------------------------------------*/
+    GBool bIntBoundsOverflow = FALSE;
     if (nX < -1000000000)
     {
         nX = -1000000000;
-        m_bIntBoundsOverflow = TRUE;
+        bIntBoundsOverflow = TRUE;
     }
     if (nX > 1000000000)
     {
         nX = 1000000000;
-        m_bIntBoundsOverflow = TRUE;
+        bIntBoundsOverflow = TRUE;
     }
     if (nY < -1000000000)
     {
         nY = -1000000000;
-        m_bIntBoundsOverflow = TRUE;
+        bIntBoundsOverflow = TRUE;
     }
     if (nY > 1000000000)
     {
         nY = 1000000000;
+        bIntBoundsOverflow = TRUE;
+    }
+    if (bIntBoundsOverflow)
+    {
         m_bIntBoundsOverflow = TRUE;
+#ifdef DEBUG
+        CPLError(CE_Warning, TAB_WarningBoundsOverflow, 
+                 "Integer bounds overflow: (%f, %f) -> (%d, %d)\n",
+                 dX, dY, nX, nY);
+#endif
     }
 
     return 0;

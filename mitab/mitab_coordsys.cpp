@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.11 2000-03-19 23:26:27 daniel Exp $
+ * $Id: mitab_coordsys.cpp,v 1.12 2000-03-27 03:31:15 daniel Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.11  2000-03-19 23:26:27  daniel
+ * Revision 1.12  2000-03-27 03:31:15  daniel
+ * Fixed parsing of CoordSys NonEarth broken by previous change
+ *
+ * Revision 1.11  2000/03/19 23:26:27  daniel
  * Made MITABCoordSys2SpatialRef() remove leading spaces in coordsys string
  * and produce a CPLError() if it fails parsing string.
  *
@@ -140,13 +143,22 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
         nProjection = atoi(papszFields[2]);
         papszNextField = papszFields + 3;
     }
+    else if (CSLCount( papszFields ) >= 3
+             && EQUAL(papszFields[0],"NonEarth")
+             && EQUAL(papszFields[1],"Units") )
+    {
+        // NonEarth Units "..." Bounds (x, y) (x, y)
+        nProjection = 0;
+        papszNextField = papszFields + 2;
+    }
     else
     {
+        // Invalid projection string ???
         if (CSLCount(papszFields) > 0)
             CPLError(CE_Warning, CPLE_IllegalArg,
                      "Failed parsing CoordSys: '%s'", pszCoordSys);
         CSLDestroy(papszFields);
-        return NULL; // should we handle the units?
+        return NULL;
     }
 
 /* -------------------------------------------------------------------- */

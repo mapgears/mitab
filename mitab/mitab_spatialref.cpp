@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.12 1999-10-19 16:31:32 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.13 1999-11-09 22:31:38 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.12  1999-10-19 16:31:32  warmerda
+ * Revision 1.13  1999-11-09 22:31:38  warmerda
+ * initial implementation of MIF CoordSys support
+ *
+ * Revision 1.12  1999/10/19 16:31:32  warmerda
  * Improved mile support.
  *
  * Revision 1.11  1999/10/19 16:27:50  warmerda
@@ -70,23 +73,8 @@
  **********************************************************************/
 
 #include "mitab.h"
-#include "mitab_utils.h"
 
-typedef struct {
-    int		nMapInfoDatumID;
-    const char  *pszOGCDatumName;
-    int		nEllipsoid;
-    double      dfShiftX;
-    double	dfShiftY;
-    double	dfShiftZ;
-    double	dfDatumParm0; /* RotX */
-    double	dfDatumParm1; /* RotY */
-    double	dfDatumParm2; /* RotZ */
-    double	dfDatumParm3; /* Scale Factor */
-    double	dfDatumParm4; /* Prime Meridian */
-} MapInfoDatumInfo;
-
-static MapInfoDatumInfo asDatumInfoList[] =
+MapInfoDatumInfo asDatumInfoList[] =
 {
 {104, "WGS_1984", 28, 0, 0, 0, 0, 0, 0, 0, 0},
 {74, "North_American_Datum_1983", 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -913,13 +901,22 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     const char *pszWKTDatum = poSpatialRef->GetAttrValue("DATUM");
     MapInfoDatumInfo *psDatumInfo = NULL;
 
+    
+    /*-----------------------------------------------------------------
+     * Default to WGS83 if we have no datum at all.
+     *----------------------------------------------------------------*/
+    if( pszWKTDatum == NULL )
+    {
+        psDatumInfo = asDatumInfoList+0; /* WGS 84 */
+    }
+    
     /*-----------------------------------------------------------------
      * We know the MIF datum number, and need to look it up to
      * translate into datum parameters.
      *----------------------------------------------------------------*/
-    if( EQUALN(pszWKTDatum,"MIF ",4)
-        && atoi(pszWKTDatum+4) != 999
-        && atoi(pszWKTDatum+4) != 9999 )
+    else if( EQUALN(pszWKTDatum,"MIF ",4)
+             && atoi(pszWKTDatum+4) != 999
+             && atoi(pszWKTDatum+4) != 9999 )
     {
         int	i;
 

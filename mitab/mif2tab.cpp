@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mif2tab.cpp,v 1.1 1999-11-08 19:16:22 stephane Exp $
+ * $Id: mif2tab.cpp,v 1.2 1999-11-09 22:31:38 warmerda Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mif2tab.cpp,v $
- * Revision 1.1  1999-11-08 19:16:22  stephane
+ * Revision 1.2  1999-11-09 22:31:38  warmerda
+ * initial implementation of MIF CoordSys support
+ *
+ * Revision 1.1  1999/11/08 19:16:22  stephane
  * first revision
  *
  * Revision 1.1  1999/11/08 04:16:07  stephane
@@ -109,9 +112,13 @@ static int Mif2Tab(const char *pszSrcFname, const char *pszDstFname)
         oDstFile.SetBounds(dXMin, dYMin, dXMax, dYMax);
 
     // Pass Proj. info directly
-    TABProjInfo sProjInfo;
-    if (oSrcFile.GetProjInfo(&sProjInfo) == 0)
-        oDstFile.SetProjInfo(&sProjInfo);
+    OGRSpatialReference *poSR;
+
+    poSR = oSrcFile.GetSpatialRef();
+    if( poSR != NULL )
+    {
+        oDstFile.SetSpatialRef( poSR );
+    }
 
     /*---------------------------------------------------------------------
      * Copy objects until EOF is reached

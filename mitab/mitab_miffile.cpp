@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.1 1999-11-08 19:19:34 stephane Exp $
+ * $Id: mitab_miffile.cpp,v 1.2 1999-11-09 22:31:38 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.1  1999-11-08 19:19:34  stephane
+ * Revision 1.2  1999-11-09 22:31:38  warmerda
+ * initial implementation of MIF CoordSys support
+ *
+ * Revision 1.1  1999/11/08 19:19:34  stephane
  * Add CoordSys string support
  *
  * Revision 1.1  1999/11/08 04:16:07  stephane
@@ -348,10 +351,15 @@ int MIFFile::ParseMIFHeader()
 	    CSLDestroy(papszToken);
 	
 	}
-	else if (EQUALN(pszLine,"COORDSYS",8))
+	else if (EQUALN(pszLine,"COORDSYS",8) )
+        {
+	    bCoordSys = TRUE;
+	    m_pszCoordSys = CPLStrdup(pszLine + 9);
+        }
+        else if( EQUALN(pszLine," COORDSYS",9) )
 	{
 	    bCoordSys = TRUE;
-	    m_pszCoordSys = CPLStrdup(CPLSPrintf("%s",pszLine));
+	    m_pszCoordSys = CPLStrdup(pszLine+10);
 	}
 	else if (EQUALN(pszLine,"TRANSFORM",9))
 	{
@@ -1139,6 +1147,32 @@ TABFieldType MIFFile::GetNativeFieldType(int nFieldId)
   return TABFUnknown;
 }
 
+/************************************************************************/
+/*                       MIFFile::SetSpatialRef()                       */
+/************************************************************************/
+
+int MIFFile::SetSpatialRef( OGRSpatialReference * poSpatialRef )
+
+{
+    CPLFree( m_pszCoordSys );
+
+    m_pszCoordSys = MITABSpatialRef2CoordSys( poSpatialRef );
+
+    return( m_pszCoordSys != NULL );
+}
+
+/************************************************************************/
+/*                       MIFFile::GetSpatialRef()                       */
+/************************************************************************/
+
+OGRSpatialReference *MIFFile::GetSpatialRef()
+
+{
+    if( m_poSpatialRef == NULL )
+        m_poSpatialRef = MITABCoordSys2SpatialRef( m_pszCoordSys );
+
+    return m_poSpatialRef;
+}
 
 /**********************************************************************
  *                   MIFFile::UpdateBounds()
@@ -1240,13 +1274,4 @@ int MIFFile::TestCapability( const char * pszCap )
     else 
         return FALSE;
 }
-
-
-
-
-
-
-
-
-
 

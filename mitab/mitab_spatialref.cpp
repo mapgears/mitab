@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.18 2000-02-04 05:30:50 daniel Exp $
+ * $Id: mitab_spatialref.cpp,v 1.19 2000-02-07 17:43:17 daniel Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.18  2000-02-04 05:30:50  daniel
+ * Revision 1.19  2000-02-07 17:43:17  daniel
+ * Fixed offset in parsing of custom datum string in SetSpatialRef()
+ *
+ * Revision 1.18  2000/02/04 05:30:50  daniel
  * Fixed problem in GetSpatialRef() with szDatumName[] buffer size and added
  * use of an epsilon in comparing of datum parameters.
  *
@@ -1024,11 +1027,11 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
 
         if( CSLCount(papszFields) >= 10 )
         {
-            sTABProj.adDatumParams[0] = atof(papszFields[4]);
-            sTABProj.adDatumParams[1] = atof(papszFields[5]);
-            sTABProj.adDatumParams[2] = atof(papszFields[6]);
-            sTABProj.adDatumParams[3] = atof(papszFields[7]);
-            sTABProj.adDatumParams[4] = atof(papszFields[8]);
+            sTABProj.adDatumParams[0] = atof(papszFields[5]);
+            sTABProj.adDatumParams[1] = atof(papszFields[6]);
+            sTABProj.adDatumParams[2] = atof(papszFields[7]);
+            sTABProj.adDatumParams[3] = atof(papszFields[8]);
+            sTABProj.adDatumParams[4] = atof(papszFields[9]);
         }
 
         CSLDestroy( papszFields );

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.9 2000-01-15 22:30:43 daniel Exp $
+ * $Id: mitab_coordsys.cpp,v 1.10 2000-02-07 17:43:37 daniel Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.9  2000-01-15 22:30:43  daniel
+ * Revision 1.10  2000-02-07 17:43:37  daniel
+ * Fixed offset in parsing of custom datum string in SetSpatialRef()
+ *
+ * Revision 1.9  2000/01/15 22:30:43  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.8  2000/01/14 14:53:32  warmerda
@@ -162,7 +165,7 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
     }
 
     if( nDatum == 9999
-        && CSLCount(papszNextField) >= 3 )
+        && CSLCount(papszNextField) >= 5 )
     {
         adfDatumParm[3] = atof(papszNextField[0]);
         adfDatumParm[4] = atof(papszNextField[1]);
@@ -818,11 +821,11 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
 
         if( CSLCount(papszFields) >= 10 )
         {
-            adfDatumParm[3] = atof(papszFields[4]);
-            adfDatumParm[4] = atof(papszFields[5]);
-            adfDatumParm[5] = atof(papszFields[6]);
-            adfDatumParm[6] = atof(papszFields[7]);
-            adfDatumParm[7] = atof(papszFields[8]);
+            adfDatumParm[3] = atof(papszFields[5]);
+            adfDatumParm[4] = atof(papszFields[6]);
+            adfDatumParm[5] = atof(papszFields[7]);
+            adfDatumParm[6] = atof(papszFields[8]);
+            adfDatumParm[7] = atof(papszFields[9]);
         }
 
         if( CSLCount(papszFields) < 5 )

@@ -9,13 +9,6 @@ ToDo - Open Questions:
  - Can we do anything for optimized spatial searches in TAB files?
    (i.e. See SetSpatialFilter())
 
- - Support for bForceFlag incomplete in GetBounds(), GetFeatureCount()
-   and GetFeatureCountByType() in MIFFile.
-
- - Since we are not guaranteed that MapInfo REGIONs are topologically 
-   correct polygons with one outer ring and a set of inner rings, should
-   we return REGIONs as OGRMultiPolygons instead?
-
  - API Documentation
 
  - TABView support:
@@ -94,6 +87,9 @@ CHANGES - Current Version:
 
  - Fixed some problems with MIF generation of Float fields and PLINE MULTIPLE
 
+ - Run a bunch of read/write tests for both .TAB and .MIF through Purify...
+   fixed all memory leaks found.
+
 Version 0.1 - (1999-12-04)
 --------------------------
 
@@ -103,5 +99,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.4 1999-12-18 08:30:59 daniel Exp $
+$Id: HISTORY.TXT,v 1.5 1999-12-19 18:55:36 daniel Exp $
 ------------

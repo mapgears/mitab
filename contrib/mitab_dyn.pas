@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.2 2003-07-24 20:55:53 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.3 2003-07-25 15:43:51 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,11 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.2  2003-07-24 20:55:53  dmorissette
- * Update from Uffe K. for V1.2.4
+ * Revision 1.3  2003-07-25 15:43:51  dmorissette
+ * V1.2.4 update from Uffe K. with mitab_c_add_field fixed (bug 22)
  *
- * Revision 1.24  2003/07/23  8:30:00  uffe
- * Updated to version 1.2.4 (mitab_c_add_field)
+ * Revision 1.24  2003/07/25  9:45:00  uffe
+ * Updated to version 1.2.4 (mitab_c_add_field, now with correct function name)
  * 
  * Revision 1.1  2002/08/01 13:56:01  daniel
  * Contributed by Uffe K. - header for dynamic loading of mitab.dll in Delphi
@@ -70,6 +70,11 @@
 unit mitab;
 
 interface
+
+// This define is missing in D5 and before
+{$IFDEF VER130}
+  {$DEFINE MSWINDOWS}
+{$ENDIF}
 
 Type
   mitab_handle = Longword;
@@ -120,7 +125,7 @@ const
   TABTL_Arrow       = 2;
 
 type
-  Tmitab_c_add_field              = function(handle: mitab_handle; field_name: pchar;field_type, width, precision, indexed, unique: longint): longint; stdcall;
+  Tmitab_c_add_field              = function(handle: mitab_handle; field_name: pchar; field_type, width, precision, indexed, unique: longint): longint; stdcall;
   Tmitab_c_close                  = procedure(handle: mitab_handle); stdcall;
   Tmitab_c_create                 = function(filename, mif_or_tab, mif_projectiondef: pchar; north, south, east, west: double): mitab_handle; stdcall;
   Tmitab_c_create_feature         = function(handle: mitab_handle; feature_type: longint): mitab_feature; stdcall;
@@ -273,7 +278,7 @@ begin
   if MITABDLL_Handle<>0 then
   begin
     MITAB_LibOK:= true;
-    @mitab_c_add_field:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_add_field@20');
+    @mitab_c_add_field:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_add_field@28');
     @mitab_c_close:=                  GetProcAddress(MITABDLL_Handle,'_mitab_c_close@4');
     @mitab_c_create:=                 GetProcAddress(MITABDLL_Handle,'_mitab_c_create@44');
     @mitab_c_create_feature:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_create_feature@8');

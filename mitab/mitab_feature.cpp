@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.12 1999-11-05 05:54:14 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.13 1999-11-08 04:41:46 stephane Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.12  1999-11-05 05:54:14  daniel
+ * Revision 1.13  1999-11-08 04:41:46  stephane
+ * Modification in arc GeometryType
+ *
+ * Revision 1.12  1999/11/05 05:54:14  daniel
  * Fixed TABArc to expect wkbLineString instead of wkbPolygon geometry
  *
  * Revision 1.11  1999/10/19 06:13:38  daniel
@@ -1703,6 +1706,7 @@ void TABPolyline::DumpMIF(FILE *fpOut /*=NULL*/)
 TABRegion::TABRegion(OGRFeatureDefn *poDefnIn):
               TABFeature(poDefnIn)
 {
+    m_bCentroid = FALSE;
     m_bSmooth = FALSE;
 }
 
@@ -2951,9 +2955,9 @@ int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
     poLine = new OGRLineString;
 
     if (m_dEndAngle < m_dStartAngle)
-        numPts = (int) ABS( ((m_dEndAngle+360)-m_dStartAngle)/2 ) + 1;
+        numPts = (int) ABS( ((m_dEndAngle+360.0)-m_dStartAngle)/2.0 ) + 1;
     else
-        numPts = (int) ABS( (m_dEndAngle-m_dStartAngle)/2 ) + 1;
+        numPts = (int) ABS( (m_dEndAngle-m_dStartAngle)/2.0 ) + 1;
     numPts = MAX(2, numPts);
 
     TABGenerateArc(poLine, numPts,
@@ -3416,7 +3420,7 @@ int TABText::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
     GInt32              nCoordBlockPtr;
     TABMAPCoordBlock    *poCoordBlock;
     int                 nStringLen;
-
+  
     if (ValidateMapInfoType() == TAB_GEOM_NONE)
         return -1;      // Invalid Geometry... an error has already been sent
 
@@ -3489,6 +3493,7 @@ int TABText::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
      *----------------------------------------------------------------*/
     double dXMin, dYMin, dXMax, dYMax;
     // Make sure Feature MBR is in sync with other params
+ 
     UpdateTextMBR();
     GetMBR(dXMin, dYMin, dXMax, dYMax);
 
@@ -3498,7 +3503,7 @@ int TABText::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
     // Line/arrow endpoint... default to bounding box center
     poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
 
-    // Text Height
+        // Text Height
     poMapFile->Coordsys2IntDist(0.0, m_dHeight, nX, nY);
     poObjBlock->WriteInt32(nY);
 

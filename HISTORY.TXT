@@ -8,6 +8,11 @@ CHANGES - Current Version:
 - Added implementation for OGRLayer::GetExtent() that returns extents 
   of the data, which is differents from the bounds of the projection.
 
+- Added code to set TOWGS84 values for mitab_coordsys.cpp and 
+  mitab_spatialref.cpp.  
+
+  See http://bugzilla.remotesensing.org/show_bug.cgi?id=41
+
 
 Version 1.1.0 - (2001-03-08)
 ----------------------------
@@ -250,5 +255,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.49 2001-03-15 03:57:51 daniel Exp $
+$Id: HISTORY.TXT,v 1.50 2001-04-04 21:46:05 warmerda Exp $
 ------------

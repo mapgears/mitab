@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.1 1999-07-12 04:18:26 daniel Exp $
+ * $Id: tabdump.cpp,v 1.2 1999-09-20 14:27:49 warmerda Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.1  1999-07-12 04:18:26  daniel
+ * Revision 1.2  1999-09-20 14:27:49  warmerda
+ * Use access of "rb" instead of "r".
+ *
+ * Revision 1.1  1999/07/12 04:18:26  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -211,7 +214,7 @@ static int DumpMapFileObjects(const char *pszFname)
     /*---------------------------------------------------------------------
      * Try to open source file
      *--------------------------------------------------------------------*/
-    if (oMAPFile.Open(pszFname, "r") != 0)
+    if (oMAPFile.Open(pszFname, "rb") != 0)
     {
         printf("Failed to open %s\n", pszFname);
         return -1;
@@ -249,7 +252,7 @@ static int DumpTabFile(const char *pszFname)
     /*---------------------------------------------------------------------
      * Try to open source file
      *--------------------------------------------------------------------*/
-    if (oFile.Open(pszFname, "r") != 0)
+    if (oFile.Open(pszFname, "rb") != 0)
     {
         printf("Failed to open %s\n", pszFname);
         return -1;

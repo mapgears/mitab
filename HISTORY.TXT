@@ -24,8 +24,6 @@ ToDo - Open Questions:
      - What is the proper behavior when no record in RelTable for a feature
        from MainTable?  For now we leave fields unset
 
- - What to do about m_dCoordsys2DistUnits in both read and write.
-
  - TABMAPObjBlocks could be split during write when they're full in order to
    optimize spatial index.  Files are still usable even without this kind 
    of optimization.
@@ -48,6 +46,8 @@ ToDo - Open Questions:
 CHANGES - Current Version:
 --------------------------
 
+- Modified new table field name filtering to accept extended chars with
+  accents. 
 
 Version 1.0 - (2000-03-26)
 --------------------------
@@ -153,5 +153,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.15 2000-03-27 06:00:31 daniel Exp $
+$Id: HISTORY.TXT,v 1.16 2000-04-18 04:42:47 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.vb,v 1.3 2002-05-09 22:04:22 daniel Exp $
+' * $Id: mitab.vb,v 1.4 2002-08-01 13:53:11 daniel Exp $
 ' *
 ' * Name:     mitab.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,13 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.vb,v $
-' * Revision 1.3  2002-05-09 22:04:22  daniel
+' * Revision 1.4  2002-08-01 13:53:11  daniel
+' * Update for v1.2.2 from BVT
+' *
+' * Revision 1.4  2002/07/07 22:04:22  bvt
+' * Added declaration for mitab_c_is_interior_ring
+' *
+' * Revision 1.3  2002/05/09 22:04:22  daniel
 ' * Added missing TABFC_MultiPoint=10
 ' *
 ' * Revision 1.2  2002/05/08 20:23:53  daniel
@@ -156,5 +162,6 @@ Public Declare Sub mitab_c_set_text_display Lib "mitab.dll" Alias "_mitab_c_set_
 Public Declare Function mitab_c_write_feature Lib "mitab.dll" Alias "_mitab_c_write_feature@8" (ByVal handle As Long, ByVal feature As Long) As Long
 Public Declare Function mitab_c_get_field_width Lib "mitab.dll" Alias "_mitab_c_get_field_width@8" (ByVal handle  As Long, ByVal field  As Long)  As Long
 Public Declare Function mitab_c_get_field_precision Lib "mitab.dll" Alias "_mitab_c_get_field_precision@8" (ByVal handle  As Long, ByVal field As Long)  As Long
+Public Declare Function mitab_c_is_interior_ring Lib "mitab.dll" Alias "_mitab_c_is_interior_ring@8" (ByVal feature As Long, ByVal requestedringindex As Long) As Long
 
 

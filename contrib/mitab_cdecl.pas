@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_cdecl.pas,v 1.3 2002-05-09 22:04:22 daniel Exp $
+ * $Id: mitab_cdecl.pas,v 1.4 2002-08-01 13:53:11 daniel Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,13 @@
  **********************************************************************
  *
  * $Log: mitab_cdecl.pas,v $
- * Revision 1.3  2002-05-09 22:04:22  daniel
+ * Revision 1.4  2002-08-01 13:53:11  daniel
+ * Update for v1.2.2 from BVT
+ *
+ * Revision 1.4  2002/07/07 22:04:22  bvt
+ * Added declaration for mitab_c_is_interior_ring
+ *
+ * Revision 1.3  2002/05/09 22:04:22  daniel
  * Added missing TABFC_MultiPoint=10
  *
  * Revision 1.2  2002/05/08 20:23:53  daniel
@@ -166,6 +172,7 @@ procedure mitab_c_set_text_display       (feature: mitab_feature; angle, height,
 function  mitab_c_write_feature          (handle: mitab_handle; feature: mitab_feature): longint;                                                               cdecl; external DLL Name 'mitab_c_write_feature'           ;
 function  mitab_c_get_field_width        (handle: mitab_handle; field: longint): longint;                                                                       cdecl; external DLL Name 'mitab_c_get_field_width'         ;              
 function  mitab_c_get_field_precision    (handle: mitab_handle; field: longint): longint;                                                                       cdecl; external DLL Name 'mitab_c_get_field_precision'     ;
+function  mitab_c_is_interior_ring       (feature: mitab_feature; requestedringindex: longint): longint;                                                        cdecl; external DLL Name 'mitab_c_is_interior_ring'        ;
 
 implementation
 end.

@@ -13,6 +13,10 @@ CHANGES - Current Version:
 
   See http://bugzilla.remotesensing.org/show_bug.cgi?id=41
 
+- Fixed serious bug in TABFile::SetSpatialRef() (mitab_spatialref.cpp).  A
+  core dump could occur for type 999 and 9999 datums.  Thanks to Stephen
+  Cheesman of Geosoft for finding and pointing this out.  (NFW)
+
 
 Version 1.1.0 - (2001-03-08)
 ----------------------------
@@ -255,5 +259,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.50 2001-04-04 21:46:05 warmerda Exp $
+$Id: HISTORY.TXT,v 1.51 2001-04-23 17:38:06 warmerda Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.h,v 1.3 1999-09-26 14:59:38 daniel Exp $
+ * $Id: mitab_utils.h,v 1.4 1999-09-28 13:33:32 daniel Exp $
  *
  * Name:     mitab_utils.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.h,v $
- * Revision 1.3  1999-09-26 14:59:38  daniel
+ * Revision 1.4  1999-09-28 13:33:32  daniel
+ * Moved definition for PI to mitab.h
+ *
+ * Revision 1.3  1999/09/26 14:59:38  daniel
  * Implemented write support
  *
  * Revision 1.2  1999/09/16 02:39:17  daniel
@@ -43,10 +46,6 @@
 #define _MITAB_UTILS_H_INCLUDED_
 
 #include "ogr_geometry.h"
-
-#ifndef PI
-#define PI 3.14159265358979
-#endif
 
 #define COLOR_R(color) ((color&0xff0000)/0x10000)
 #define COLOR_G(color) ((color&0xff00)/0x100)

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.15 1999-11-08 04:36:28 stephane Exp $
+ * $Id: mitab_tabfile.cpp,v 1.16 1999-11-08 19:18:09 stephane Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -17,7 +17,7 @@
  * Daniel Morissette (danmo@videotron.ca).  However, any material copied
  * or reproduced must bear the original copyright notice (above), this 
  * original paragraph, and the original disclaimer (below).
- * 
+ *  
  * The entire risk as to the results and performance of the software,
  * supporting text and other information contained in this file
  * (collectively called the "Software") is with the user.  Although 
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.15  1999-11-08 04:36:28  stephane
+ * Revision 1.16  1999-11-08 19:18:09  stephane
+ * remove multiply definition
+ *
+ * Revision 1.15  1999/11/08 04:36:28  stephane
  * add ogr support
  *
  * Revision 1.14  1999/10/19 06:14:52  daniel
@@ -79,116 +82,6 @@
 
 #include "mitab.h"
 #include "mitab_utils.h"
-
-IMapInfoFile::IMapInfoFile()
-{
-    m_poFilterGeom = NULL;
-    
-}
-
-IMapInfoFile::~IMapInfoFile()
-{
-    if( m_poFilterGeom != NULL )
-    {
-	delete m_poFilterGeom;
-	m_poFilterGeom = NULL;
-    }
-}
-
-OGRFeature *IMapInfoFile::GetNextFeature()
-{
-    OGRFeature *poFeature, *poFeatureRef;
-      
-    poFeatureRef = GetFeatureRef(m_nCurFeatureId+1);
-    if (poFeatureRef)
-    {
-	poFeature = poFeatureRef->Clone();
-	poFeature->SetFID(poFeatureRef->GetFID());
-	return poFeature;
-    }
-    else
-      return NULL;
-}
-
-OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
-{
-    TABFeature *poTABFeature;
-    OGRGeometry   *poGeom;
-
-    poGeom = poFeature->GetGeometryRef();
-
-    switch (poGeom->getGeometryType())
-    {
-      case wkbPoint:
-	poTABFeature = new TABPoint(poFeature->GetDefnRef());
-	break;
-      case wkbPolygon:
-	poTABFeature = new TABRegion(poFeature->GetDefnRef());
-	break;
-      case wkbLineString:
-      case wkbMultiPoint:
-      case wkbMultiLineString:
-      case wkbMultiPolygon:
-	poTABFeature = new TABPolyline(poFeature->GetDefnRef());
-	break;
-      case wkbGeometryCollection:
-      case wkbUnknown:
-      default:
-         poTABFeature = new TABFeature(poFeature->GetDefnRef()); 
-        break;
-    }
-
-    poTABFeature->SetGeometryDirectly(poGeom->clone());
-    
-    for (int i=0; i< poFeature->GetDefnRef()->GetFieldCount();i++)
-    {
-	poTABFeature->SetField(i,poFeature->GetRawFieldRef( i ));
-    }
-    
-
-    if (SetFeature(poTABFeature) == 0)
-      return OGRERR_NONE;
-    else
-      return OGRERR_FAILURE;
-}
-
-OGRFeature *IMapInfoFile::GetFeature(long nFeatureId)
-{
-    OGRFeature *poFeature, *poFeatureRef;
-
-    
-    poFeatureRef = GetFeatureRef(nFeatureId);
-    if (poFeatureRef)
-    {
-	poFeature = poFeatureRef->Clone();
-	poFeature->SetFID(poFeatureRef->GetFID());
-	
-	return poFeature;
-    }
-    else
-      return NULL;
-}
-
-OGRGeometry *IMapInfoFile::GetSpatialFilter()
-{
-    return m_poFilterGeom;
-}
-
-void IMapInfoFile::SetSpatialFilter (OGRGeometry * poGeomIn )
-
-{
-    if( m_poFilterGeom != NULL )
-    {
-        delete m_poFilterGeom;
-        m_poFilterGeom = NULL;
-    }
-
-    if( poGeomIn != NULL )
-        m_poFilterGeom = poGeomIn->clone();
-}
-
-
-
 
 /*=====================================================================
  *                      class TABFile

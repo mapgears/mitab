@@ -8,7 +8,7 @@ MITAB library in your application.
 Please also visit the following URLs:
 
   - The library's web page:
-    http://pages.infinit.net/danmo/e00/index-mitab.html
+    http://mitab.maptools.org/
 
   - The OGR architecture documentation:
     http://gdal.velocet.ca/projects/opengis/ogrhtml/ogr_arch.html
@@ -18,9 +18,9 @@ COPYRIGHT AND LICENSE TERMS:
 ----------------------------
 
 The most part of the MITAB library is 
-   Copyright (c) 1998-2000, Daniel Morissette (danmo@videotron.ca)
+   Copyright (c) 1998-2003, Daniel Morissette (morissette@dmsolutions.ca)
 it also contains parts and uses support libraries that are
-   Copyright (c) 1998-2000, Frank Warmerdam (warmerda@home.com)
+   Copyright (c) 1998-2003, Frank Warmerdam (warmerdam@pobox.com)
 and 
    Copyright (c) 1999, 2000, Stephane Villeneuve (stephane.v@videotron.ca)
 
@@ -28,8 +28,8 @@ The MITAB library, and its supporting libraries (OGR and CPL) are freely
 available under the following OpenSource license terms:
 
  **********************************************************************
- * Copyright (c) 1998-2000, Daniel Morissette
- * Copyright (c) 1998-2000, Frank Warmerdam
+ * Copyright (c) 1998-2003, Daniel Morissette
+ * Copyright (c) 1998-2003, Frank Warmerdam
  * Copyright (c) 1999,2000, Stephane Villeneuve
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -222,5 +222,5 @@ the "\n" sequence in char attribute field values.
 
 
 ------------
-$Id: README.TXT,v 1.7 2002-02-22 13:47:10 daniel Exp $
+$Id: README.TXT,v 1.8 2003-07-24 05:34:59 dmorissette Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.8 2000-10-03 20:43:36 daniel Exp $
+ * $Id: mitabc_test.c,v 1.9 2001-12-17 16:08:22 warmerda Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.8  2000-10-03 20:43:36  daniel
+ * Revision 1.9  2001-12-17 16:08:22  warmerda
+ * added a bit of error reporting
+ *
+ * Revision 1.8  2000/10/03 20:43:36  daniel
  * Added support for writing arcs,ellipses and rectangles in C API
  *
  * Revision 1.7  2000/04/21 12:53:41  daniel
@@ -147,6 +150,10 @@ static void ReportFile( const char * pszFilename )
     }
 
     mitab_c_close( dataset );
+
+    if( mitab_c_getlasterrormsg() != NULL 
+        && strlen(mitab_c_getlasterrormsg()) > 0 )
+        fprintf( stderr, "Last Error: %s\n", mitab_c_getlasterrormsg() );
 }
 
 /************************************************************************/
@@ -156,6 +163,7 @@ static void ReportFile( const char * pszFilename )
 static void CopyFile( const char * pszSource, const char * pszDest )
 
 {
+    fprintf( stderr, "Copy File not implemented at this time.\n" );
 }
 
 /************************************************************************/
@@ -373,6 +381,9 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
 /* -------------------------------------------------------------------- */
     mitab_c_close( dataset );
     
+    if( mitab_c_getlasterrormsg() != NULL 
+        && strlen(mitab_c_getlasterrormsg()) > 0 )
+        fprintf( stderr, "Last Error: %s\n", mitab_c_getlasterrormsg() );
 }
 
 /************************************************************************/

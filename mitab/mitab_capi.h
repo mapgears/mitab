@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.17 2002-05-08 20:27:07 daniel Exp $
+ * $Id: mitab_capi.h,v 1.18 2002-05-08 21:38:16 daniel Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.17  2002-05-08 20:27:07  daniel
+ * Revision 1.18  2002-05-08 21:38:16  daniel
+ * (Hopefully) fixed the STDCALL stuff.
+ *
+ * Revision 1.17  2002/05/08 20:27:07  daniel
  * Use cdecl calling convention if MITAB_CDECL is set at compile time.
  *
  * Revision 1.16  2002/05/08 19:59:23  daniel
@@ -100,7 +103,7 @@ extern "C" {
 
 #ifdef _WIN32
 # ifndef MITAB_CDECL  /* STDCALL is the default */
-#   define MITAB_DLL __declspec(dllexport) __stdcall
+#   define MITAB_DLL  __declspec(dllexport)
 #   define MITAB_STDCALL __stdcall
 # else                /* Use CDECL only if MITAB_CDECL explicitly set */
 #   define MITAB_DLL __declspec(dllexport)
@@ -153,136 +156,136 @@ typedef void * mitab_projinfo;
 #define TABTL_Simple    1
 #define TABTL_Arrow     2
 
-const char MITAB_DLL *mitab_c_getlasterrormsg();
-int MITAB_DLL mitab_c_getlasterrormsg_vb (char * errormsg, int l);
-int MITAB_DLL mitab_c_getlasterrorno();
+const char MITAB_DLL * MITAB_STDCALL mitab_c_getlasterrormsg();
+int MITAB_DLL MITAB_STDCALL mitab_c_getlasterrormsg_vb (char * errormsg, int l);
+int MITAB_DLL MITAB_STDCALL mitab_c_getlasterrorno();
 
-mitab_handle MITAB_DLL mitab_c_open( const char * filename );
-void MITAB_DLL mitab_c_close( mitab_handle handle );
+mitab_handle MITAB_DLL MITAB_STDCALL mitab_c_open( const char * filename );
+void MITAB_DLL MITAB_STDCALL mitab_c_close( mitab_handle handle );
 
-mitab_handle MITAB_DLL mitab_c_create( const char * filename,
+mitab_handle MITAB_DLL MITAB_STDCALL mitab_c_create( const char * filename,
                                        const char * mif_or_tab,
                                        const char * mif_projectiondef,
                                        double north, double south,
                                        double east, double west );
 
-int MITAB_DLL mitab_c_add_field( mitab_handle handle, const char * field_name,
+int MITAB_DLL MITAB_STDCALL mitab_c_add_field( mitab_handle handle, const char * field_name,
                                  int field_type, int width, int precision );
 
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_write_feature( mitab_handle handle, mitab_feature feature );
 
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_next_feature_id( mitab_handle handle, int last_feature_id );
 
-mitab_feature MITAB_DLL
+mitab_feature MITAB_DLL MITAB_STDCALL
 mitab_c_read_feature( mitab_handle handle, int feature_id );
 
-void MITAB_DLL mitab_c_destroy_feature( mitab_feature );
-int MITAB_DLL mitab_c_get_feature_id( mitab_feature );
+void MITAB_DLL MITAB_STDCALL mitab_c_destroy_feature( mitab_feature );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_feature_id( mitab_feature );
 
-mitab_feature MITAB_DLL
+mitab_feature MITAB_DLL MITAB_STDCALL
 mitab_c_create_feature( mitab_handle, int feature_type );
 
-void MITAB_DLL
+void MITAB_DLL MITAB_STDCALL
 mitab_c_set_field( mitab_feature, int field_index, const char * value );
     
-void MITAB_DLL
+void MITAB_DLL MITAB_STDCALL
 mitab_c_set_text( mitab_feature feature, const char * text );
-const char MITAB_DLL *
+const char MITAB_DLL * MITAB_STDCALL
 mitab_c_get_text( mitab_feature feature );
-int MITAB_DLL 
+int MITAB_DLL MITAB_STDCALL 
 mitab_c_get_text_vb( mitab_feature feature, char * text, int l );
 
-void MITAB_DLL
+void MITAB_DLL MITAB_STDCALL
 mitab_c_set_text_display( mitab_feature feature,
                           double angle, double height, double width,
                           int fg_color, int bg_color,
                           int justification, int spacing, int linetype );
-double MITAB_DLL
+double MITAB_DLL MITAB_STDCALL
 mitab_c_get_text_angle( mitab_feature feature );
-double MITAB_DLL
+double MITAB_DLL MITAB_STDCALL
 mitab_c_get_text_height( mitab_feature feature );
-double MITAB_DLL
+double MITAB_DLL MITAB_STDCALL
 mitab_c_get_text_width( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_text_fgcolor( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_text_bgcolor( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_text_justification( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_text_spacing( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_text_linetype( mitab_feature feature );
 
-void MITAB_DLL mitab_c_set_pen( mitab_feature feature,
+void MITAB_DLL MITAB_STDCALL mitab_c_set_pen( mitab_feature feature,
                                 int width, int pattern, int color );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_pen_color( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_pen_width( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_pen_pattern( mitab_feature feature );
 
-void MITAB_DLL mitab_c_set_brush( mitab_feature feature,
+void MITAB_DLL MITAB_STDCALL mitab_c_set_brush( mitab_feature feature,
                                   int fg_color, int bg_color, int pattern,
                                   int transparent );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_brush_fgcolor( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_brush_bgcolor( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_brush_pattern( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_brush_transparent( mitab_feature feature );
 
-void MITAB_DLL
+void MITAB_DLL MITAB_STDCALL
 mitab_c_set_font( mitab_feature feature, const char * font_name );
-const char MITAB_DLL *
+const char MITAB_DLL * MITAB_STDCALL
 mitab_c_get_font( mitab_feature feature );
-int MITAB_DLL 
+int MITAB_DLL MITAB_STDCALL 
 mitab_c_get_font_vb( mitab_feature feature, char * font, int l );
 
-void MITAB_DLL mitab_c_set_symbol( mitab_feature feature, int symbol_no,
+void MITAB_DLL MITAB_STDCALL mitab_c_set_symbol( mitab_feature feature, int symbol_no,
                                    int symbol_size, int symbol_color );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_symbol_color( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_symbol_no( mitab_feature feature );
-int MITAB_DLL
+int MITAB_DLL MITAB_STDCALL
 mitab_c_get_symbol_size( mitab_feature feature );
 
-void MITAB_DLL mitab_c_set_points( mitab_feature feature, int part,
+void MITAB_DLL MITAB_STDCALL mitab_c_set_points( mitab_feature feature, int part,
                                    int vertex_count, double * x, double * y );
-void MITAB_DLL mitab_c_set_arc( mitab_feature feature, 
+void MITAB_DLL MITAB_STDCALL mitab_c_set_arc( mitab_feature feature, 
                                 double center_x, double center_y,
                                 double x_radius, double y_radius,
                                 double start_angle, double end_angle);
 
-int MITAB_DLL mitab_c_get_type( mitab_feature feature );
-int MITAB_DLL mitab_c_get_parts( mitab_feature feature );
-int MITAB_DLL mitab_c_get_vertex_count( mitab_feature feature, int part );
-double MITAB_DLL mitab_c_get_vertex_x( mitab_feature, int part, int vertex );
-double MITAB_DLL mitab_c_get_vertex_y( mitab_feature, int part, int vertex );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_type( mitab_feature feature );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_parts( mitab_feature feature );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_vertex_count( mitab_feature feature, int part );
+double MITAB_DLL MITAB_STDCALL mitab_c_get_vertex_x( mitab_feature, int part, int vertex );
+double MITAB_DLL MITAB_STDCALL mitab_c_get_vertex_y( mitab_feature, int part, int vertex );
 
-int MITAB_DLL mitab_c_get_field_count( mitab_handle handle );
-int MITAB_DLL mitab_c_get_field_type( mitab_handle handle, int field );
-const char MITAB_DLL *mitab_c_get_field_name(mitab_handle handle, int field);
-int MITAB_DLL mitab_c_get_field_name_vb( mitab_handle handle, int field, char * name, int l );
-int MITAB_DLL mitab_c_get_field_width( mitab_handle handle, int field );
-int MITAB_DLL mitab_c_get_field_precision( mitab_handle handle, int field );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_field_count( mitab_handle handle );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_field_type( mitab_handle handle, int field );
+const char MITAB_DLL * MITAB_STDCALL mitab_c_get_field_name(mitab_handle handle, int field);
+int MITAB_DLL MITAB_STDCALL mitab_c_get_field_name_vb( mitab_handle handle, int field, char * name, int l );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_field_width( mitab_handle handle, int field );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_field_precision( mitab_handle handle, int field );
 
 
-const char MITAB_DLL *mitab_c_get_field_as_string( mitab_feature feature, 
+const char MITAB_DLL * MITAB_STDCALL mitab_c_get_field_as_string( mitab_feature feature, 
                                                    int field );
-int MITAB_DLL mitab_c_get_field_as_string_vb( mitab_feature feature, int field, char * value, int l );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_field_as_string_vb( mitab_feature feature, int field, char * value, int l );
 
-mitab_projinfo MITAB_DLL mitab_c_get_projinfo( mitab_handle dataset );
-int            MITAB_DLL mitab_c_set_projinfo( mitab_handle dataset, 
+mitab_projinfo MITAB_DLL MITAB_STDCALL mitab_c_get_projinfo( mitab_handle dataset );
+int            MITAB_DLL MITAB_STDCALL mitab_c_set_projinfo( mitab_handle dataset, 
                                                mitab_projinfo projinfo );
-const char MITAB_DLL *mitab_c_get_mif_coordsys( mitab_handle dataset);
-int MITAB_DLL mitab_c_get_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l);
+const char MITAB_DLL * MITAB_STDCALL mitab_c_get_mif_coordsys( mitab_handle dataset);
+int MITAB_DLL MITAB_STDCALL mitab_c_get_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l);
 
 #ifdef __cplusplus
 }

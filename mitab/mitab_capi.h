@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.21 2003-01-18 21:44:33 daniel Exp $
+ * $Id: mitab_capi.h,v 1.22 2003-08-07 03:20:46 dmorissette Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.21  2003-01-18 21:44:33  daniel
+ * Revision 1.22  2003-08-07 03:20:46  dmorissette
+ * Added mitab_c_getlibversion() to C API. (Uffe K. - bug 21)
+ *
+ * Revision 1.21  2003/01/18 21:44:33  daniel
  * Added 'indexed' and 'unique' parameters to mitab_c_add_field().
  *
  * Revision 1.20  2002/06/18 14:31:07  julien
@@ -166,6 +169,7 @@ typedef void * mitab_projinfo;
 #define TABTL_Simple    1
 #define TABTL_Arrow     2
 
+int MITAB_DLL MITAB_STDCALL mitab_c_getlibversion();
 const char MITAB_DLL * MITAB_STDCALL mitab_c_getlasterrormsg();
 int MITAB_DLL MITAB_STDCALL mitab_c_getlasterrormsg_vb (char * errormsg, int l);
 int MITAB_DLL MITAB_STDCALL mitab_c_getlasterrorno();

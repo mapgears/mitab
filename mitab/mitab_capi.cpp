@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.29 2003-01-18 21:44:33 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.30 2003-08-07 03:20:46 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.29  2003-01-18 21:44:33  daniel
+ * Revision 1.30  2003-08-07 03:20:46  dmorissette
+ * Added mitab_c_getlibversion() to C API. (Uffe K. - bug 21)
+ *
+ * Revision 1.29  2003/01/18 21:44:33  daniel
  * Added 'indexed' and 'unique' parameters to mitab_c_add_field().
  *
  * Revision 1.28  2003/01/18 20:43:31  daniel
@@ -165,6 +168,24 @@ static int _mitab_c_get_feature_info( mitab_feature feature, int what_info,
 /* ==================================================================== */
 /*                   Error handling functions                           */
 /* ==================================================================== */
+
+/************************************************************************/
+/*                       mitab_c_libversion()                           */
+/************************************************************************/
+
+/**
+ * Returns the version of the library.
+ * 
+ * @return an integer representing the current version of the MITAB library
+ * in the format xxxyyyzzz, e.g. returns 1002004 for v1.2.4.
+ */
+
+int MITAB_STDCALL
+mitab_c_getlibversion()
+
+{
+    return MITAB_VERSION_INT;
+}
 
 /************************************************************************/
 /*                       mitab_c_getlasterrorno()                       */

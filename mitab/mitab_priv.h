@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.8 1999-11-08 04:34:54 stephane Exp $
+ * $Id: mitab_priv.h,v 1.9 1999-11-09 07:37:22 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.8  1999-11-08 04:34:54  stephane
+ * Revision 1.9  1999-11-09 07:37:22  daniel
+ * Support for deleted records when reading TABDATFiles
+ *
+ * Revision 1.8  1999/11/08 04:34:54  stephane
  * mid/mif support
  *
  * Revision 1.7  1999/10/18 15:40:27  daniel
@@ -838,6 +841,7 @@ class TABDATFile
     int         m_nBlockSize;
     int         m_nRecordSize;
     int         m_nCurRecordId;
+    GBool       m_bCurRecordDeletedFlag;
 
     GInt32      m_numRecords;
     GInt32      m_nFirstRecordPtr;
@@ -866,6 +870,7 @@ class TABDATFile
 
     GInt32      GetNumRecords();
     TABRawBinBlock *GetRecordBlock(int nRecordId);
+    GBool       IsCurrentRecordDeleted() { return m_bCurRecordDeletedFlag;};
     int         CommitRecordToFile();
 
     const char  *ReadCharField(int nWidth);

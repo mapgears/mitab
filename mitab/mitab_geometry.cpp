@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_geometry.cpp,v 1.1 2000-09-19 17:19:40 daniel Exp $
+ * $Id: mitab_geometry.cpp,v 1.2 2000-09-28 16:39:44 warmerda Exp $
  *
  * Name:     mitab_geometry.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_geometry.cpp,v $
- * Revision 1.1  2000-09-19 17:19:40  daniel
+ * Revision 1.2  2000-09-28 16:39:44  warmerda
+ * avoid warnings for unused, and unitialized variables
+ *
+ * Revision 1.1  2000/09/19 17:19:40  daniel
  * Initial Revision
  *
  **********************************************************************/
@@ -135,7 +138,6 @@ int OGRPolygonLabelPoint(OGRPolygon *poPoly, OGRPoint *poLabelPoint)
     double        len, max_len=0;
     double        skip;
     OGREnvelope   oEnv;
-    OGRLinearRing *poRing;
 
     if (poPoly == NULL)
         return OGRERR_FAILURE;

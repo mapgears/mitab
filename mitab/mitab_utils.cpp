@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.13 2000-09-20 18:35:51 daniel Exp $
+ * $Id: mitab_utils.cpp,v 1.14 2000-09-28 16:39:44 warmerda Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.13  2000-09-20 18:35:51  daniel
+ * Revision 1.14  2000-09-28 16:39:44  warmerda
+ * avoid warnings for unused, and unitialized variables
+ *
+ * Revision 1.13  2000/09/20 18:35:51  daniel
  * Fixed TABAdjustFilenameExtension() to also handle basename and path
  * using TABAdjustCaseSensitiveFilename()
  *
@@ -100,7 +103,7 @@ int TABGenerateArc(OGRLineString *poLine, int numPoints,
                    double dXRadius, double dYRadius,
                    double dStartAngle, double dEndAngle)
 {
-    double dX, dY, dAngleStep, dAngle;
+    double dX, dY, dAngleStep, dAngle=0.0;
     int i;
 
     // Adjust angles to go counterclockwise

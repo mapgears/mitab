@@ -46,6 +46,8 @@ ToDo - Open Questions:
 CHANGES - Current Version:
 --------------------------
 
+- Avoid warnings building with gcc -Wall -O2 (NFW).
+
 - Modified generation of .MAP spatial index to generate a balanced tree
   instead of the old 'chained list of nodes' that exceeded the 255 levels
   limit on the tree depth with files with > 100,000 objects.
@@ -182,5 +184,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.23 2000-09-20 18:40:00 daniel Exp $
+$Id: HISTORY.TXT,v 1.24 2000-09-28 16:40:16 warmerda Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.19 2000-02-07 17:43:17 daniel Exp $
+ * $Id: mitab_spatialref.cpp,v 1.20 2000-09-28 16:39:44 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.19  2000-02-07 17:43:17  daniel
+ * Revision 1.20  2000-09-28 16:39:44  warmerda
+ * avoid warnings for unused, and unitialized variables
+ *
+ * Revision 1.19  2000/02/07 17:43:17  daniel
  * Fixed offset in parsing of custom datum string in SetSpatialRef()
  *
  * Revision 1.18  2000/02/04 05:30:50  daniel
@@ -637,7 +640,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
 #define TAB_EQUAL(a, b) (((a)<(b) ? ((b)-(a)) : ((a)-(b))) < 1e-10)
     char	szDatumName[160];
     int		iDatumInfo;
-    MapInfoDatumInfo *psDatumInfo;
+    MapInfoDatumInfo *psDatumInfo = NULL;
 
     for( iDatumInfo = 0;
          asDatumInfoList[iDatumInfo].nMapInfoDatumID != -1;
@@ -708,7 +711,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     /*-----------------------------------------------------------------
      * Set the spheroid.
      *----------------------------------------------------------------*/
-    double	dfSemiMajor, dfInvFlattening;
+    double	dfSemiMajor=0.0, dfInvFlattening=0.0;
     const char *pszSpheroidName = NULL;
 
     for( int i = 0; asSpheroidInfoList[i].nMapInfoId != -1; i++ )

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.13 2000-08-29 22:30:45 daniel Exp $
+ * $Id: mitab_coordsys.cpp,v 1.14 2000-09-28 16:39:44 warmerda Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.13  2000-08-29 22:30:45  daniel
+ * Revision 1.14  2000-09-28 16:39:44  warmerda
+ * avoid warnings for unused, and unitialized variables
+ *
+ * Revision 1.13  2000/08/29 22:30:45  daniel
  * Made MITABCoordSys2SpatialRef() return NULL for a NonEarth coordsys since
  * returning an empty SpatialRef created confusion between LatLon and NonEarth
  *
@@ -170,7 +173,7 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
 /* -------------------------------------------------------------------- */
     int		nDatum = 0;
     double	adfDatumParm[8];
-    int		nEllipsoid;
+    int		nEllipsoid=0;
 
     if( nProjection != 0 && CSLCount(papszNextField) > 0 )
     {
@@ -823,10 +826,9 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
      * ============================================================== */
     int		nDatum = 0;
     double	adfDatumParm[8];
-    int		nEllipsoid;
+    int		nEllipsoid=0;
     
     const char *pszWKTDatum = poSR->GetAttrValue("DATUM");
-    MapInfoDatumInfo *psDatumInfo = NULL;
 
     if( pszWKTDatum == NULL )
     {

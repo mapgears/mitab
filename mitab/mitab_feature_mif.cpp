@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.14 2000-09-19 17:23:53 daniel Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.15 2000-09-28 16:39:44 warmerda Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.14  2000-09-19 17:23:53  daniel
+ * Revision 1.15  2000-09-28 16:39:44  warmerda
+ * avoid warnings for unused, and unitialized variables
+ *
+ * Revision 1.14  2000/09/19 17:23:53  daniel
  * Maintain and/or compute valid region and polyline center/label point
  *
  * Revision 1.13  2000/03/27 03:33:45  daniel
@@ -105,7 +108,6 @@ int TABFeature::ReadRecordFromMIDFile(MIDDATAFile *fp)
     const char       *pszLine;
     char            **papszToken;
     int               nFields,i;
-    OGRFieldDefn     *poFDefn  = NULL;
 
     nFields = GetFieldCount();
     
@@ -142,7 +144,6 @@ int TABFeature::ReadRecordFromMIDFile(MIDDATAFile *fp)
 int TABFeature::WriteRecordToMIDFile(MIDDATAFile *fp)
 {
     int                  iField, numFields;
-    OGRFeatureDefn      *poDefn = GetDefnRef();
     OGRFieldDefn	*poFDefn = NULL;
 
     CPLAssert(fp);
@@ -487,7 +488,7 @@ int TABPolyline::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     OGRLineString       *poLine;
     OGRMultiLineString  *poMultiLine;
     GBool                bMultiple = FALSE;
-    int                  nNumPoints,nNumSec,i,j;
+    int                  nNumPoints,nNumSec=0,i,j;
     OGREnvelope          sEnvelope;
     
 
@@ -749,7 +750,7 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     OGRGeometry         *poGeometry = NULL;
     OGRPolygon          *poPolygon = NULL;
     OGRMultiPolygon     *poMultiPolygon = NULL;
-    int                  i,iSection, numLineSections;
+    int                  i,iSection, numLineSections=0;
     char               **papszToken;
     const char          *pszLine;
     OGREnvelope          sEnvelope;
@@ -781,7 +782,7 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 
     for(iSection=0; iSection<numLineSections; iSection++)
     {
-	int     numSectionVertices;
+	int     numSectionVertices = 0;
 
         poPolygon = new OGRPolygon();
 

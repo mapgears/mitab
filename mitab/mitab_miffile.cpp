@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.4 1999-11-14 17:43:32 stephane Exp $
+ * $Id: mitab_miffile.cpp,v 1.5 1999-11-14 18:12:47 stephane Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.4  1999-11-14 17:43:32  stephane
+ * Revision 1.5  1999-11-14 18:12:47  stephane
+ * add a test if it's a empty line for unknown feature type
+ *
+ * Revision 1.4  1999/11/14 17:43:32  stephane
  * Add ifdef to remove CPLError if OGR is define
  *
  * Revision 1.3  1999/11/11 01:22:05  stephane
@@ -990,8 +993,9 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
 	}
 	else
 	{
-	    CPLError(CE_Failure, CPLE_NotSupported,
-                 "Error during reading, unknown type %s.",
+	    if (!EQUAL(pszLine,""))
+	       CPLError(CE_Failure, CPLE_NotSupported,
+                   "Error during reading, unknown type %s.",
 		     pszLine);
 	
 	    //m_poCurFeature = new TABDebugFeature(m_poDefn);

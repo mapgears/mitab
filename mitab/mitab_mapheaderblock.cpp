@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.6 1999-10-01 03:47:38 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.7 1999-10-06 13:21:37 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.6  1999-10-01 03:47:38  daniel
+ * Revision 1.7  1999-10-06 13:21:37  daniel
+ * Reworked int<->coordsys coords. conversion... hopefully it's OK this time!
+ *
+ * Revision 1.6  1999/10/01 03:47:38  daniel
  * Better defaults for header fields, and more complete Dump() for debugging
  *
  * Revision 1.5  1999/09/29 04:25:03  daniel
@@ -112,8 +115,8 @@ TABMAPHeaderBlock::TABMAPHeaderBlock(TABAccess eAccessMode /*= TABRead*/):
     m_nDistUnitsCode = 7;       // Meters
     m_nMaxSpIndexDepth = 0;
     m_nCoordPrecision = 3;      // ??? 3 Digits of precision
-    m_nCoordOriginQuadrant = 2; // ???
-    m_nReflectXAxisCoord = 1;
+    m_nCoordOriginQuadrant = 1; // ???
+    m_nReflectXAxisCoord = 0;
     m_nMaxObjLenArrayId = HDR_OBJ_LEN_ARRAY_SIZE-1;  // See gabyObjLenArray[]
     m_numPenDefs = 0;
     m_numBrushDefs = 0;
@@ -277,8 +280,24 @@ int TABMAPHeaderBlock::Int2Coordsys(GInt32 nX, GInt32 nY,
 
     // For some obscure reason, the X axis values are arbitrarily 
     // scaled by -1 !!!
-    dX = -1.0 * (nX - m_XDispl) / m_XScale;
-    dY = (nY - m_YDispl) / m_YScale;
+//    dX = -1.0 * (nX - m_XDispl) / m_XScale;
+//    dY = (nY - m_YDispl) / m_YScale;
+
+    if (m_nCoordOriginQuadrant==2 || m_nCoordOriginQuadrant==3)
+        dX = -1.0 * (nX + m_XDispl) / m_XScale;
+    else
+        dX = (nX - m_XDispl) / m_XScale;
+
+
+//    if (m_nReflectXAxisCoord)
+//        dX *= -1.0;
+
+    if (m_nCoordOriginQuadrant==3 || m_nCoordOriginQuadrant==4)
+        dY = -1.0 * (nY + m_YDispl) / m_YScale;
+    else
+        dY = (nY - m_YDispl) / m_YScale;
+
+//printf("Int2Coordsys: (%d, %d) -> (%.10g, %.10g)\n", nX, nY, dX, dY);
 
     return 0;
 }
@@ -302,8 +321,20 @@ int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY,
 
     // For some obscure reason, the X axis values are arbitrarily 
     // scaled by -1 !!!
-    nX = (GInt32)(dX*m_XScale + m_XDispl) * -1;
-    nY = (GInt32)(dY*m_YScale + m_YDispl);
+//    nX = (GInt32)(-1.0*dX*m_XScale + m_XDispl);
+//    nY = (GInt32)(dY*m_YScale + m_YDispl);
+
+    if (m_nCoordOriginQuadrant==2 || m_nCoordOriginQuadrant==3)
+        nX = (GInt32)(-1.0*dX*m_XScale - m_XDispl);
+    else
+        nX = (GInt32)(dX*m_XScale + m_XDispl);
+
+    if (m_nCoordOriginQuadrant==3 || m_nCoordOriginQuadrant==4)
+        nY = (GInt32)(-1.0*dY*m_YScale - m_YDispl);
+    else
+        nY = (GInt32)(dY*m_YScale + m_YDispl);
+
+//printf("Coordsys2Int: (%10g, %10g) -> (%d, %d)\n", dX, dY, nX, nY);
 
     return 0;
 }
@@ -331,8 +362,15 @@ int TABMAPHeaderBlock::ComprInt2Coordsys(GInt32 nCenterX, GInt32 nCenterY,
 {
     if (m_pabyBuf == NULL)
         return -1;
+
+    return Int2Coordsys(nCenterX+nDeltaX, nCenterY+nDeltaY, dX, dY);
+
+#ifdef __TODO__DELETE__
     // Compute the centroid coords
-    dX = (nCenterX - m_XDispl) / m_XScale;
+//    dX = (nCenterX - m_XDispl) / m_XScale;
+//    dY = (nCenterY - m_YDispl) / m_YScale;
+
+    dX = (nCenterX + m_XDispl) / m_XScale;
     dY = (nCenterY - m_YDispl) / m_YScale;
 
     // Add scaled displacement
@@ -342,7 +380,7 @@ int TABMAPHeaderBlock::ComprInt2Coordsys(GInt32 nCenterX, GInt32 nCenterY,
     // For some obscure reason, the X axis values are arbitrarily 
     // scaled by -1 !!!
     dX *= -1.0;
-
+#endif
     return 0;
 }
 
@@ -416,17 +454,39 @@ int TABMAPHeaderBlock::Coordsys2IntDist(double dX, double dY,
 int TABMAPHeaderBlock::SetCoordsysBounds(double dXMin, double dYMin, 
                                          double dXMax, double dYMax)
 {
+//printf("SetCoordsysBounds(%10g, %10g, %10g, %10g)\n", dXMin, dYMin, dXMax, dYMax);
+    /*-----------------------------------------------------------------
+     * Check for 0-width or 0-height bounds
+     *----------------------------------------------------------------*/
+    if (dXMax == dXMin)
+    {
+        dXMin -= 1.0;
+        dXMax += 1.0;
+    }
+
+    if (dYMax == dYMin)
+    {
+        dYMin -= 1.0;
+        dYMax += 1.0;
+    }
+
     /*-----------------------------------------------------------------
      * X and Y scales are used to map coordsys coordinates to integer
      * internal coordinates.  We want to find the scale and displacement
      * values that will result in an integer coordinate range of
      * (-1e9, -1e9) - (1e9, 1e9)
+     *
+     * Note that we ALWAYS generate datasets with the OriginQuadrant = 1
+     * so that we avoid reverted X/Y axis complications, etc.
      *----------------------------------------------------------------*/
     m_XScale = 2e9 / (dXMax - dXMin);
     m_YScale = 2e9 / (dYMax - dYMin);
 
     m_XDispl = -1.0 * m_XScale * (dXMax + dXMin) / 2;
     m_YDispl = -1.0 * m_YScale * (dYMax + dYMin) / 2;
+
+//    m_XDispl = -1.0 * (dXMax + dXMin) / 2.0;
+//    m_YDispl = -1.0 * (dYMax + dYMin) / 2.0;
 
     m_nXMin = -1000000000;
     m_nYMin = -1000000000;
@@ -683,8 +743,8 @@ int     TABMAPHeaderBlock::InitNewBlock(FILE *fpSrc, int nBlockSize,
     m_nDistUnitsCode = 7;       // Meters
     m_nMaxSpIndexDepth = 0;
     m_nCoordPrecision = 3;      // ??? 3 digits of precision
-    m_nCoordOriginQuadrant = 2; // ??? N-E quadrant
-    m_nReflectXAxisCoord = 1;
+    m_nCoordOriginQuadrant = 1; // ??? N-E quadrant
+    m_nReflectXAxisCoord = 0;
     m_nMaxObjLenArrayId = HDR_OBJ_LEN_ARRAY_SIZE-1;  // See gabyObjLenArray[]
     m_numPenDefs = 0;
     m_numBrushDefs = 0;

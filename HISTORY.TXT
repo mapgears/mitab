@@ -52,6 +52,8 @@ CHANGES - Current Version:
   There would still be room for improvement by implementing splitting of
   object data blocks.
 
+- Handle m_nOriginQuadrant value of 0 the same way as quadrant 3
+
 
 Version 1.0.1 - (2000-04-21)
 ----------------------------
@@ -167,5 +169,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.18 2000-05-19 07:10:34 daniel Exp $
+$Id: HISTORY.TXT,v 1.19 2000-07-10 14:55:35 daniel Exp $
 ------------

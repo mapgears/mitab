@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapobjectblock.cpp,v 1.3 1999-09-29 04:23:06 daniel Exp $
+ * $Id: mitab_mapobjectblock.cpp,v 1.4 1999-10-18 15:41:00 daniel Exp $
  *
  * Name:     mitab_mapobjectblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapobjectblock.cpp,v $
- * Revision 1.3  1999-09-29 04:23:06  daniel
+ * Revision 1.4  1999-10-18 15:41:00  daniel
+ * Added WriteIntMBRCoord()
+ *
+ * Revision 1.3  1999/09/29 04:23:06  daniel
  * Fixed typo in GetMBR()
  *
  * Revision 1.2  1999/09/26 14:59:37  daniel
@@ -312,6 +315,31 @@ int     TABMAPObjectBlock::WriteIntCoord(GInt32 nX, GInt32 nY,
     
         m_nCenterX = (m_nMinX + m_nMaxX) /2;
         m_nCenterY = (m_nMinY + m_nMaxY) /2;
+    }
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABMAPObjectBlock::WriteIntMBRCoord()
+ *
+ * Write 2 pairs of integer coordinates values to the current position 
+ * in the the block after making sure that min values are smaller than
+ * max values.  Use this function to write MBR coordinates for an object.
+ *
+ * This function also updates the block's MBR and center if requested.
+ *
+ * Returns 0 if succesful or -1 if an error happened, in which case 
+ * CPLError() will have been called.
+ **********************************************************************/
+int     TABMAPObjectBlock::WriteIntMBRCoord(GInt32 nXMin, GInt32 nYMin,
+                                            GInt32 nXMax, GInt32 nYMax,
+                                            GBool bUpdateMBR /*=TRUE*/)
+{
+    if (WriteIntCoord(MIN(nXMin, nXMax), MIN(nYMin, nYMax), bUpdateMBR) != 0 ||
+        WriteIntCoord(MAX(nXMin, nXMax), MAX(nYMin, nYMax), bUpdateMBR) != 0 )
+    {
+        return -1;
     }
 
     return 0;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.9 2000-01-15 22:30:45 daniel Exp $
+ * $Id: mitab_utils.cpp,v 1.10 2000-02-18 20:46:35 daniel Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.9  2000-01-15 22:30:45  daniel
+ * Revision 1.10  2000-02-18 20:46:35  daniel
+ * Added TABCleanFieldName()
+ *
+ * Revision 1.9  2000/01/15 22:30:45  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.8  2000/01/14 23:46:59  daniel
@@ -411,3 +414,34 @@ char *TABEscapeString(char *pszString)
     return pszWorkString;
 }
 
+/**********************************************************************
+ *                       TABCleanFieldName()
+ *
+ * Return a copy of pszSrcName that contains only valid characters for a
+ * TAB field name.  All invalid characters are replaced by '_'.
+ * The returned string should be freed by the caller.
+ **********************************************************************/
+char *TABCleanFieldName(const char *pszSrcName)
+{
+    char *pszNewName;
+    int numInvalidChars = 0;
+
+    pszNewName = CPLStrdup(pszSrcName);
+    for(int i=0; pszSrcName && pszSrcName[i] != '\0'; i++)
+    {
+        if (pszSrcName[i] != '_' && !isalnum(pszSrcName[i]))
+        {
+            pszNewName[i] = '_';
+            numInvalidChars++;
+        }
+    }
+
+    if (numInvalidChars > 0)
+    {
+        CPLError(CE_Warning, TAB_WarningInvalidFieldName,
+                 "Field name '%s' contains invalid characters.  "
+                 "'%s' will be used instead.", pszSrcName, pszNewName);
+    }
+
+    return pszNewName;
+}

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.1 1999-09-26 14:59:38 daniel Exp $
+ * $Id: tab2tab.cpp,v 1.2 1999-10-01 03:43:36 daniel Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.1  1999-09-26 14:59:38  daniel
+ * Revision 1.2  1999-10-01 03:43:36  daniel
+ * Pass ProjInfo
+ *
+ * Revision 1.1  1999/09/26 14:59:38  daniel
  * Implemented write support
  *
  **********************************************************************/
@@ -100,6 +103,11 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
 
     // __TODO__ Set real bounds
     oDstFile.SetBounds(-1000, -1000, 1000, 1000);
+
+    // Pass Proj. info directly
+    TABProjInfo sProjInfo;
+    if (oSrcFile.GetProjInfo(&sProjInfo) == 0)
+        oDstFile.SetProjInfo(&sProjInfo);
 
     /*---------------------------------------------------------------------
      * Copy objects until EOF is reached

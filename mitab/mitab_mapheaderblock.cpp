@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.8 1999-10-19 06:05:35 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.9 1999-10-19 16:27:10 warmerda Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.8  1999-10-19 06:05:35  daniel
+ * Revision 1.9  1999-10-19 16:27:10  warmerda
+ * Default unitsid to 7 (meters) instead of 0 (miles).
+ *
+ * Revision 1.8  1999/10/19 06:05:35  daniel
  * Removed obsolete code segments in the coord. conversion functions.
  *
  * Revision 1.7  1999/10/06 13:21:37  daniel
@@ -129,7 +132,7 @@ TABMAPHeaderBlock::TABMAPHeaderBlock(TABAccess eAccessMode /*= TABRead*/):
 
     m_sProj.nProjId  = 0;
     m_sProj.nEllipsoidId = 0;
-    m_sProj.nUnitsId = 0;
+    m_sProj.nUnitsId = 7;
     m_XScale = 1000.0;  // Default coord range (before SetCoordSysBounds()) 
     m_YScale = 1000.0;  // will be [-1000000.000 .. 1000000.000]
     m_XDispl = 0.0;
@@ -725,7 +728,7 @@ int     TABMAPHeaderBlock::InitNewBlock(FILE *fpSrc, int nBlockSize,
 
     m_sProj.nProjId  = 0;
     m_sProj.nEllipsoidId = 0;
-    m_sProj.nUnitsId = 0;
+    m_sProj.nUnitsId = 7;
     m_XScale = 1000.0;  // Default coord range (before SetCoordSysBounds()) 
     m_YScale = 1000.0;  // will be [-1000000.000 .. 1000000.000]
     m_XDispl = 0.0;

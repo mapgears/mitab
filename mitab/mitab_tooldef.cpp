@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tooldef.cpp,v 1.1 1999-09-26 14:59:37 daniel Exp $
+ * $Id: mitab_tooldef.cpp,v 1.2 1999-10-18 15:39:21 daniel Exp $
  *
  * Name:     mitab_tooldef.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_tooldef.cpp,v $
- * Revision 1.1  1999-09-26 14:59:37  daniel
+ * Revision 1.2  1999-10-18 15:39:21  daniel
+ * Handle case of "no pen" or "no brush" in AddPen/BrushRef()
+ *
+ * Revision 1.1  1999/09/26 14:59:37  daniel
  * Implemented write support
  *
  **********************************************************************/
@@ -371,6 +374,12 @@ int TABToolDefTable::AddPenDefRef(TABPenDef *poNewPenDef)
         return -1;
 
     /*-----------------------------------------------------------------
+     * Check for "none" case: pattern = 0 (pattern 0 does not exist!)
+     *----------------------------------------------------------------*/
+    if (poNewPenDef->nLinePattern < 1)
+        return 0;
+
+    /*-----------------------------------------------------------------
      * Start by searching the list of existing pens
      *----------------------------------------------------------------*/
     for (i=0; nNewPenIndex == 0 && i<m_numPen; i++)
@@ -453,6 +462,12 @@ int TABToolDefTable::AddBrushDefRef(TABBrushDef *poNewBrushDef)
 
     if (poNewBrushDef == NULL)
         return -1;
+
+    /*-----------------------------------------------------------------
+     * Check for "none" case: pattern = 0 (pattern 0 does not exist!)
+     *----------------------------------------------------------------*/
+    if (poNewBrushDef->nFillPattern < 1)
+        return 0;
 
     /*-----------------------------------------------------------------
      * Start by searching the list of existing Brushs

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.32 2000-02-28 17:11:14 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.33 2000-03-19 23:22:43 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.32  2000-02-28 17:11:14  daniel
+ * Revision 1.33  2000-03-19 23:22:43  daniel
+ * Fixed test on return value of SetSpatialRef() in SetMIFCoordSys()
+ *
+ * Revision 1.32  2000/02/28 17:11:14  daniel
  * Support indexed fields and new V450 object types
  *
  * Revision 1.31  2000/02/18 20:45:56  daniel
@@ -1935,7 +1938,7 @@ int TABFile::SetMIFCoordSys(const char *pszMIFCoordSys)
         if (poSpatialRef)
         {
             double dXMin, dYMin, dXMax, dYMax;
-            if (SetSpatialRef(poSpatialRef) != 0)
+            if (SetSpatialRef(poSpatialRef) == 0)
             {
                 if (MITABExtractCoordSysBounds(pszMIFCoordSys,
                                                dXMin, dYMin, 

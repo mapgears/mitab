@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.6 1999-10-01 03:45:27 daniel Exp $
+ * $Id: mitab_priv.h,v 1.7 1999-10-18 15:40:27 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.6  1999-10-01 03:45:27  daniel
+ * Revision 1.7  1999-10-18 15:40:27  daniel
+ * Added TABMAPObjectBlock::WriteIntMBRCoord()
+ *
+ * Revision 1.6  1999/10/01 03:45:27  daniel
  * Small modifs for tuning of write mode
  *
  * Revision 1.5  1999/09/28 02:53:09  warmerda
@@ -543,6 +546,9 @@ class TABMAPObjectBlock: public TABRawBinBlock
 
     virtual int ReadIntCoord(GBool bCompressed, GInt32 &nX, GInt32 &nY);
     int         WriteIntCoord(GInt32 nX, GInt32 nY, GBool bUpdateMBR=TRUE);
+    int         WriteIntMBRCoord(GInt32 nXMin, GInt32 nYMin,
+                                 GInt32 nXMax, GInt32 nYMax,
+                                 GBool bUpdateMBR =TRUE);
 
     void        AddCoordBlockRef(GInt32 nCoordBlockAddress);
 

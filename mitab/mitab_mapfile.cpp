@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.2 1999-09-16 02:39:16 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.3 1999-09-20 18:42:42 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.2  1999-09-16 02:39:16  daniel
+ * Revision 1.3  1999-09-20 18:42:42  daniel
+ * Use binary access to open file.
+ *
+ * Revision 1.2  1999/09/16 02:39:16  daniel
  * Completed read support for most feature types
  *
  * Revision 1.1  1999/07/12 04:18:24  daniel
@@ -98,11 +101,12 @@ int TABMAPFile::Open(const char *pszFname, const char *pszAccess)
     }
 
     /*-----------------------------------------------------------------
-     * Validate access mode
+     * Validate access mode and make sure we use binary access.
      *----------------------------------------------------------------*/
     if (EQUALN(pszAccess, "r", 1))
     {
         m_eAccessMode = TABRead;
+        pszAccess = "rb";
     }
     else if (EQUALN(pszAccess, "w", 1))
     {
@@ -111,6 +115,7 @@ int TABMAPFile::Open(const char *pszFname, const char *pszAccess)
         return -1;
 
         m_eAccessMode = TABWrite;
+        pszAccess = "wb";
     }
     else
     {

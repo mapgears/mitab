@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_datfile.cpp,v 1.1 1999-07-12 04:18:23 daniel Exp $
+ * $Id: mitab_datfile.cpp,v 1.2 1999-09-20 18:43:20 daniel Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_datfile.cpp,v $
- * Revision 1.1  1999-07-12 04:18:23  daniel
+ * Revision 1.2  1999-09-20 18:43:20  daniel
+ * Use binary access to open file.
+ *
+ * Revision 1.1  1999/07/12 04:18:23  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -103,11 +106,12 @@ int TABDATFile::Open(const char *pszFname, const char *pszAccess)
     }
 
     /*-----------------------------------------------------------------
-     * Validate access mode
+     * Validate access mode and make sure we use binary access.
      *----------------------------------------------------------------*/
     if (EQUALN(pszAccess, "r", 1))
     {
         m_eAccessMode = TABRead;
+        pszAccess = "rb";
     }
     else if (EQUALN(pszAccess, "w", 1))
     {
@@ -116,6 +120,7 @@ int TABDATFile::Open(const char *pszFname, const char *pszAccess)
         return -1;
 
         m_eAccessMode = TABWrite;
+        pszAccess = "wb";
     }
     else
     {
@@ -325,7 +330,7 @@ TABRawBinBlock *TABDATFile::GetRecordBlock(int nRecordId)
     }
 
     /*-----------------------------------------------------------------
-     * The first char of hte record is a ' ' for an active record, or
+     * The first char of the record is a ' ' for an active record, or
      * '*' for a deleted one.
      * __TODO__ What should we do about deleted records?????
      *----------------------------------------------------------------*/

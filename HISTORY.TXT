@@ -17,6 +17,9 @@ CHANGES - Current Version:
 Version 1.4.0 (2005-03-23)
 --------------------------
 
+ - Added bounds entry to match datum 1011 based on MapInfo's "Svenska 
+   rikssystemet, 2,5 gon väst (RT 90 7 parametrar)" (bug 997)
+
  - Added initial version of .NET bindings, contributed by Graham Sims in
    mitab/contrib/dotnet directory (bug 992)
 
@@ -616,5 +619,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.135 2005-03-23 20:36:09 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.136 2005-03-31 22:01:51 dmorissette Exp $
 ------------

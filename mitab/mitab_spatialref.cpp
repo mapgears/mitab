@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.22 2000-10-02 14:46:36 daniel Exp $
+ * $Id: mitab_spatialref.cpp,v 1.23 2000-10-16 18:01:20 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.22  2000-10-02 14:46:36  daniel
+ * Revision 1.23  2000-10-16 18:01:20  warmerda
+ * added check for NULL on passed in spatial ref
+ *
+ * Revision 1.22  2000/10/02 14:46:36  daniel
  * Added 7 parameter datums with id 1000+
  *
  * Revision 1.21  2000/09/29 22:09:18  daniel
@@ -838,6 +841,13 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
                  "SetSpatialRef() failed: file has not been opened yet.");
+        return -1;
+    }
+
+    if( poSpatialRef == NULL )
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "SetSpatialRef() failed: Called with NULL poSpatialRef.");
         return -1;
     }
 

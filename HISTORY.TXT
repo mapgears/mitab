@@ -83,6 +83,17 @@ CHANGES - Current Version:
  - Fixed some problems that had appeared following a change in OGR's
    addGeometry()... use the new addGeometryDirectly() + more error checking.
 
+ - TABRegions geometry now returned as OGRMultiPolygon instead of OGRPolygon
+   with multiple rings.  This change had to be done because OGRPolygons
+   MUST have only one outer ring with a set of inner rings, and this
+   cannot be guaranteed to be the case with a MapInfo file.
+   Also added TABRegion::GetNumRings() and TABRegion::GetRing() to 
+   make it simpler to manipulate the complex geometry as if it was a 
+   simple collection of rings which is actually what we have in the 
+   MapInfo model.
+
+ - Fixed some problems with MIF generation of Float fields and PLINE MULTIPLE
+
 Version 0.1 - (1999-12-04)
 --------------------------
 
@@ -92,5 +103,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.3 1999-12-17 02:39:02 daniel Exp $
+$Id: HISTORY.TXT,v 1.4 1999-12-18 08:30:59 daniel Exp $
 ------------

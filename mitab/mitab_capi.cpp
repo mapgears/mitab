@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.20 2002-05-03 15:09:14 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.21 2002-05-08 20:02:03 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.20  2002-05-03 15:09:14  daniel
+ * Revision 1.21  2002-05-08 20:02:03  daniel
+ * Made mitab_c_set_font() and mitab_c_get_font() work for TABFC_FontPoint
+ * and TABFC_CustomPoint.
+ *
+ * Revision 1.20  2002/05/03 15:09:14  daniel
  * Added mitab_c_get_field_width() and mitab_c_get_field_precision()
  *
  * Revision 1.19  2002/04/26 14:16:49  julien
@@ -1092,7 +1096,8 @@ mitab_c_get_text_linetype( mitab_feature feature )
 /************************************************************************/
 
 /** 
- * Set a TABFC_Text object's font name.
+ * Set the font name in a a TABFC_Text or TABFC_FontPoint object, or set the
+ * symbol name in a TABFC_CustomPoint.
  *
  * @param feature the mitab_feature object.
  * @param fontname the new font name.
@@ -1102,10 +1107,16 @@ void MITAB_STDCALL
 mitab_c_set_font( mitab_feature feature, const char * fontname )
 
 {
-    TABText     *poFeature = (TABText *) feature;
+    TABFeature *poFeature = (TABFeature *)feature;
 
-    if( poFeature->GetFeatureClass() == TABFC_Text )
-        poFeature->SetFontName( fontname );
+    if( poFeature->GetFeatureClass() == TABFC_Text ||
+        poFeature->GetFeatureClass() == TABFC_FontPoint ||
+        poFeature->GetFeatureClass() == TABFC_CustomPoint )
+    {
+        ITABFeatureFont *poFontFeature = (ITABFeatureFont *) poFeature;
+
+        poFontFeature->SetFontName( fontname );
+    }
 }
 
 /************************************************************************/
@@ -1113,7 +1124,8 @@ mitab_c_set_font( mitab_feature feature, const char * fontname )
 /************************************************************************/
 
 /** 
- * Get a TABFC_Text object's font name.
+ * Get the font name from a TABFC_Text or TABFC_FontPoint object, or the
+ * symbol name from a TABFC_CustomPoint.
  *
  * @param feature the mitab_feature object.
  * @return the text font name.
@@ -1123,10 +1135,16 @@ const char MITAB_STDCALL *
 mitab_c_get_font( mitab_feature feature )
 
 {
-    TABText     *poFeature = (TABText *) feature;
+    TABFeature *poFeature = (TABFeature *)feature;
 
-    if( poFeature->GetFeatureClass() == TABFC_Text )
-        return poFeature->GetFontNameRef();
+    if( poFeature->GetFeatureClass() == TABFC_Text ||
+        poFeature->GetFeatureClass() == TABFC_FontPoint ||
+        poFeature->GetFeatureClass() == TABFC_CustomPoint )
+    {
+        ITABFeatureFont *poFontFeature = (ITABFeatureFont *) poFeature;
+
+        return poFontFeature->GetFontNameRef();
+    }
 
     return "";
 }
@@ -1136,7 +1154,8 @@ mitab_c_get_font( mitab_feature feature )
 /************************************************************************/
 
 /** 
- * Get a TABFC_Text object's font name. (VB Version)
+ * Get the font name from a TABFC_Text or TABFC_FontPoint object, or the
+ * symbol name from a TABFC_CustomPoint. (VB Version)
  *
  * @param feature the mitab_feature object.
  * @param font string buffer to return the text font name.
@@ -1147,13 +1166,18 @@ mitab_c_get_font( mitab_feature feature )
 int MITAB_STDCALL 
 mitab_c_get_font_vb( mitab_feature feature, char * font, int l )
 {
-    TABText     *poFeature = (TABText *) feature;
+    TABFeature *poFeature = (TABFeature *)feature;
 
-    if( poFeature->GetFeatureClass() == TABFC_Text )
+    if( poFeature->GetFeatureClass() == TABFC_Text ||
+        poFeature->GetFeatureClass() == TABFC_FontPoint ||
+        poFeature->GetFeatureClass() == TABFC_CustomPoint )
     {
-         strncpy(font,poFeature->GetFontNameRef(),l);
-           return strlen(font);
+        ITABFeatureFont *poFontFeature = (ITABFeatureFont *) poFeature;
+
+        strncpy(font, poFontFeature->GetFontNameRef(), l);
+        return strlen(font);
     }
+
     return 0;
 }
 

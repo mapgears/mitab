@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.14 1999-10-19 06:14:52 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.15 1999-11-08 04:36:28 stephane Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.14  1999-10-19 06:14:52  daniel
+ * Revision 1.15  1999-11-08 04:36:28  stephane
+ * add ogr support
+ *
+ * Revision 1.14  1999/10/19 06:14:52  daniel
  * Check that new tables contain at least one column (MapInfo requirement)
  *
  * Revision 1.13  1999/10/06 15:09:58  daniel
@@ -77,6 +80,116 @@
 #include "mitab.h"
 #include "mitab_utils.h"
 
+IMapInfoFile::IMapInfoFile()
+{
+    m_poFilterGeom = NULL;
+    
+}
+
+IMapInfoFile::~IMapInfoFile()
+{
+    if( m_poFilterGeom != NULL )
+    {
+	delete m_poFilterGeom;
+	m_poFilterGeom = NULL;
+    }
+}
+
+OGRFeature *IMapInfoFile::GetNextFeature()
+{
+    OGRFeature *poFeature, *poFeatureRef;
+      
+    poFeatureRef = GetFeatureRef(m_nCurFeatureId+1);
+    if (poFeatureRef)
+    {
+	poFeature = poFeatureRef->Clone();
+	poFeature->SetFID(poFeatureRef->GetFID());
+	return poFeature;
+    }
+    else
+      return NULL;
+}
+
+OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
+{
+    TABFeature *poTABFeature;
+    OGRGeometry   *poGeom;
+
+    poGeom = poFeature->GetGeometryRef();
+
+    switch (poGeom->getGeometryType())
+    {
+      case wkbPoint:
+	poTABFeature = new TABPoint(poFeature->GetDefnRef());
+	break;
+      case wkbPolygon:
+	poTABFeature = new TABRegion(poFeature->GetDefnRef());
+	break;
+      case wkbLineString:
+      case wkbMultiPoint:
+      case wkbMultiLineString:
+      case wkbMultiPolygon:
+	poTABFeature = new TABPolyline(poFeature->GetDefnRef());
+	break;
+      case wkbGeometryCollection:
+      case wkbUnknown:
+      default:
+         poTABFeature = new TABFeature(poFeature->GetDefnRef()); 
+        break;
+    }
+
+    poTABFeature->SetGeometryDirectly(poGeom->clone());
+    
+    for (int i=0; i< poFeature->GetDefnRef()->GetFieldCount();i++)
+    {
+	poTABFeature->SetField(i,poFeature->GetRawFieldRef( i ));
+    }
+    
+
+    if (SetFeature(poTABFeature) == 0)
+      return OGRERR_NONE;
+    else
+      return OGRERR_FAILURE;
+}
+
+OGRFeature *IMapInfoFile::GetFeature(long nFeatureId)
+{
+    OGRFeature *poFeature, *poFeatureRef;
+
+    
+    poFeatureRef = GetFeatureRef(nFeatureId);
+    if (poFeatureRef)
+    {
+	poFeature = poFeatureRef->Clone();
+	poFeature->SetFID(poFeatureRef->GetFID());
+	
+	return poFeature;
+    }
+    else
+      return NULL;
+}
+
+OGRGeometry *IMapInfoFile::GetSpatialFilter()
+{
+    return m_poFilterGeom;
+}
+
+void IMapInfoFile::SetSpatialFilter (OGRGeometry * poGeomIn )
+
+{
+    if( m_poFilterGeom != NULL )
+    {
+        delete m_poFilterGeom;
+        m_poFilterGeom = NULL;
+    }
+
+    if( poGeomIn != NULL )
+        m_poFilterGeom = poGeomIn->clone();
+}
+
+
+
+
 /*=====================================================================
  *                      class TABFile
  *====================================================================*/
@@ -99,8 +212,8 @@ TABFile::TABFile()
     m_poDefn = NULL;
     m_poSpatialRef = NULL;
     m_poCurFeature = NULL;
-    m_nCurFeatureId = -1;
-    m_nLastFeatureId = -1;
+    m_nCurFeatureId = 0;
+    m_nLastFeatureId = 0;
 
     m_bBoundsSet = FALSE;
 }
@@ -114,6 +227,23 @@ TABFile::~TABFile()
 {
     Close();
 }
+
+
+int TABFile::GetFeatureCount (int bForce)
+{
+    
+    if( m_poFilterGeom != NULL )
+        return OGRLayer::GetFeatureCount( bForce );
+    else
+        return m_nLastFeatureId;
+
+}
+
+void TABFile::ResetReading()
+{
+    m_nCurFeatureId = 0;
+}
+
 
 /**********************************************************************
  *                   TABFile::Open()
@@ -132,7 +262,8 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
 {
     char *pszTmpFname = NULL;
     int nFnameLen = 0;
-    
+
+   
     if (m_poMAPFile)
     {
         CPLError(CE_Failure, CPLE_FileIO,
@@ -165,6 +296,7 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
      *----------------------------------------------------------------*/
     m_pszFname = CPLStrdup(pszFname);
     nFnameLen = strlen(m_pszFname);
+
     if (nFnameLen > 4 && (strcmp(m_pszFname+nFnameLen-4, ".TAB")==0 ||
                      strcmp(m_pszFname+nFnameLen-4, ".MAP")==0 ||
                      strcmp(m_pszFname+nFnameLen-4, ".DAT")==0 ) )
@@ -662,12 +794,8 @@ int TABFile::Close()
     CPLFree(m_pszCharset);
     m_pszCharset = NULL;
 
-    m_nCurFeatureId = -1;
-    m_nLastFeatureId = -1;
-
     return 0;
 }
-
 
 /**********************************************************************
  *                   TABFile::GetNextFeatureId()
@@ -710,6 +838,7 @@ int TABFile::GetNextFeatureId(int nPrevId)
  **********************************************************************/
 TABFeature *TABFile::GetFeatureRef(int nFeatureId)
 {
+    
     if (m_eAccessMode != TABRead)
     {
         CPLError(CE_Failure, CPLE_NotSupported,
@@ -728,16 +857,17 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
         return NULL;
     }
 
+
     if (nFeatureId <= 0 || nFeatureId > m_nLastFeatureId ||
         m_poMAPFile->MoveToObjId(nFeatureId) != 0 ||
         m_poDATFile->GetRecordBlock(nFeatureId) == NULL )
     {
-        CPLError(CE_Failure, CPLE_IllegalArg,
-                 "GetFeatureRef() failed: invalid feature id %d", 
-                 nFeatureId);
+	//     CPLError(CE_Failure, CPLE_IllegalArg,
+	//    "GetFeatureRef() failed: invalid feature id %d", 
+	//    nFeatureId);
         return NULL;
     }
-
+    
     /*-----------------------------------------------------------------
      * Flush current feature object
      * __TODO__ try to reuse if it is already of the right type
@@ -830,7 +960,8 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
         return NULL;
     }
 
-
+    m_nCurFeatureId = nFeatureId;
+    m_poCurFeature->SetFID(m_nCurFeatureId);
     return m_poCurFeature;
 }
 
@@ -936,7 +1067,7 @@ int TABFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
 
 
 /**********************************************************************
- *                   TABFile::GetFeatureDefn()
+ *                   TABFile::GetLayerDefn()
  *
  * Returns a reference to the OGRFeatureDefn that will be used to create
  * features in this dataset.
@@ -946,7 +1077,7 @@ int TABFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
  * NULL if the OGRFeatureDefn has not been initialized yet (i.e. no file
  * opened yet)
  **********************************************************************/
-OGRFeatureDefn *TABFile::GetFeatureDefn()
+OGRFeatureDefn *TABFile::GetLayerDefn()
 {
     return m_poDefn;
 }
@@ -1051,7 +1182,7 @@ int TABFile::SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
  * This function will build/update the OGRFeatureDefn that will have to be
  * used when writing features to this dataset.
  *
- * A reference to the OGRFeatureDefn can be obtained using GetFeatureDefn().
+ * A reference to the OGRFeatureDefn can be obtained using GetLayerDefn().
  *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
@@ -1250,6 +1381,32 @@ int TABFile::GetBounds(double &dXMin, double &dYMin,
 
     return 0;
 }
+
+/************************************************************************/
+/*                           TestCapability()                           */
+/************************************************************************/
+
+int TABFile::TestCapability( const char * pszCap )
+
+{
+    if( EQUAL(pszCap,OLCRandomRead) )
+        return TRUE;
+
+    else if( EQUAL(pszCap,OLCSequentialWrite) 
+             || EQUAL(pszCap,OLCRandomWrite) )
+        return FALSE;
+
+    else if( EQUAL(pszCap,OLCFastFeatureCount) )
+        return m_poFilterGeom == NULL;
+
+    else if( EQUAL(pszCap,OLCFastSpatialFilter) )
+        return FALSE;
+
+    else 
+        return FALSE;
+}
+
+
 
 
 

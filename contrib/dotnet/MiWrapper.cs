@@ -1,7 +1,4 @@
-// .NET bindings for MITAB.
-// Contributed by Graham Sims. See README_DOTNET.TXT for more details.
-//
-// $Id: MiWrapper.cs,v 1.1 2005-03-23 19:53:42 dmorissette Exp $
+// $Id: MiWrapper.cs,v 1.2 2005-03-24 17:02:06 dmorissette Exp $
 //
 
 using System;
@@ -12,14 +9,23 @@ using System.Text;
 
 namespace EBop.MapObjects.MapInfo {
 
-	/// <summary>
-	/// These class wrap the mitab c api functions to produce a heirarchy of related objects.
-	/// The 
-	/// Graham Sims
-	/// Environment BOP.
-	/// 
-	/// </summary>
+	/*
+	 * These classes wrap the mitab c api functions to produce a hierarchy of classes giving readonly 
+	 * access to the feature points.
+	 * 
+	 * Requires mitab.dll (www.maptools.org)
+	 * See http://mitab.maptools.org/
+	 * 
+	 * Graham Sims,
+	 * Environment Bay of Plenty, Whakatane, New Zealand
+	 * http://www.envbop.govt.nz		
+	 */
 
+	/// <summary>
+	/// This is a helper class for our standard enumerator based on EnumImpl. Implementataions 
+	/// (Features, Parts, Fields and Vertices) are array like structures that can provide
+	/// an object at a given index between 0 and Count  - 1.
+	/// </summary>
 	interface IObjectProvider {
 		int Count {
 			get;
@@ -28,8 +34,16 @@ namespace EBop.MapObjects.MapInfo {
 	}
 
 	/// <summary>
-	/// Partial implementation of an enumeration scheme over an index (array like) structure.
+	/// Implementation of an enumeration scheme over an index (array like) structure. 
+	/// This class provides an enumerator that will work over any IObjectProvider implementation
+	/// (Features, Parts, Fields and Vertices).
 	/// </summary>
+	/// <remarks>
+	/// Calls to the GetEnumerator method of Fields, Parts and Vertices will return
+	/// an instance of this class. Calls to GetEnumerator of Features will return a descendant
+	/// of this class (due to the fact that features don't necessarily have a sequential
+	/// index).
+	/// </remarks>
 	public class IndexedEnum : IEnumerator {
 		public readonly int Count;
 		protected int eIdx = -1;
@@ -57,6 +71,10 @@ namespace EBop.MapObjects.MapInfo {
 	/// <summary>
 	/// Partial implementation of IEnumerable over an indexed (aray like) structure.
 	/// </summary>
+	/// <remarks>
+	/// Fields, Vertices, Parts and Features all descend from this class. It serves to
+	/// provide the common functionality required to generate their enumerators.
+	/// </remarks>
 	public abstract class EnumImpl : IEnumerable, IObjectProvider {
 		public readonly int count;
 
@@ -81,9 +99,11 @@ namespace EBop.MapObjects.MapInfo {
 	/// <summary>
 	/// Represents a readonly view of field in a layer.
 	/// </summary>
-	/// <remarks>A field instance does not relate explicity to a single feature instance. Rather
+	/// <remarks>
+	/// A field instance does not relate explicity to a single feature instance. Rather
 	/// it represents all the features in the layer. To find the value of a field for a particular
-	/// feature one of the GetValueAs methods should be called, passing the feature in.</remarks>
+	/// feature one of the GetValueAs methods should be called, passing the feature in.
+	/// </remarks>
 	public class Field {
 		/// <summary>
 		/// The field name
@@ -144,12 +164,14 @@ namespace EBop.MapObjects.MapInfo {
 	}
 
 	/// <summary>
-	/// Contains the a set of fields belonging to a layer.
+	/// Contains the set of fields belonging to a layer.
 	/// </summary>
-	/// <remarks>This class implements IEnumerable, meaning the fields in the
+	/// <remarks>
+	/// This class descends EnumImpl, meaning the fields in the
 	/// set can be iterated using foreach.
 	/// It also has an index property allowing any field between 0 and Fields.Count-1
-	/// to be accessed directly with Fields[idx]</remarks>
+	/// to be accessed directly with Fields[idx]
+	/// </remarks>
 	public class Fields : EnumImpl {
 		private Field[] fields;
 
@@ -188,16 +210,17 @@ namespace EBop.MapObjects.MapInfo {
 
 
 	/// <summary>
-	/// Represents a single vertex with an X,Y point in geometric space
+	/// Represents a single vertex with an X,Y point in geometric space.
 	/// </summary>
-	/// <remarks>This is the base building block of a feature</remarks>
+	/// <remarks>
+	/// This is the base building block of a feature
+	/// </remarks>
 	public class Vertex {
 		public readonly double X,Y;
 		protected internal Vertex(double x, double y) {
 			this.X = x;
 			this.Y = y;
 		}
-
 		
 		public override string ToString() {
 			return this.X+", "+this.Y;
@@ -205,12 +228,14 @@ namespace EBop.MapObjects.MapInfo {
 	}
 
 	/// <summary>
-	/// Contains the a set of Vertices belonging to a single Part.
+	/// Contains the set of Vertices belonging to a single Part.
 	/// </summary>
-	/// <remarks>This class implements IEnumerable, meaning the vertices in the
+	/// <remarks>
+	/// This class descends EnumImpl, meaning the vertices in the
 	/// set can be iterated using foreach.
 	/// It also has an index property allowing any vertice between 0 and Vertices.Count-1
-	/// to be accessed directly with Vertices[idx]</remarks>
+	/// to be accessed directly with Vertices[idx]
+	/// </remarks>
 	public class Vertices : EnumImpl {
 		public readonly Part Part;
 
@@ -277,12 +302,13 @@ namespace EBop.MapObjects.MapInfo {
 	}
 
 	/// <summary>
-	/// Contains the a set of Parts belonging to a single Feature.
+	/// Contains the set of Parts belonging to a single Feature.
 	/// </summary>
-	/// <remarks>This class implements IEnumerable, meaning the Parts in the
+	/// <remarks>This class descends EnumImple, meaning the Parts in the
 	/// set can be iterated using foreach.
 	/// It also has an index property allowing any Part between 0 and Parts.Count-1
-	/// to be accessed directly with Parts[idx]</remarks>
+	/// to be accessed directly with Parts[idx]
+	/// </remarks>
 	public class Parts :  EnumImpl {
 		/// <summary>
 		/// The feature these parts belong to.
@@ -432,9 +458,9 @@ namespace EBop.MapObjects.MapInfo {
 	}
 
 	/// <summary>
-	/// Contains the a set of features belonging to a single layer.
+	/// Contains the set of features belonging to a single layer.
 	/// </summary>
-	/// <remarks>This class implements IEnumerable, meaning the features in the
+	/// <remarks>This class descends EnumImpl, meaning the features in the
 	/// set can be iterated using foreach.
 	/// It also has an index property allowing any feature between 0 and Features.Count-1
 	/// to be accessed directly with Features[idx]</remarks>

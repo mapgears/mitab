@@ -1,7 +1,4 @@
-// .NET bindings for MITAB.
-// Contributed by Graham Sims. See README_DOTNET.TXT for more details.
-//
-// $Id: MiApi.cs,v 1.1 2005-03-23 19:53:42 dmorissette Exp $
+// $Id: MiApi.cs,v 1.2 2005-03-24 17:02:06 dmorissette Exp $
 //
 
 using System;
@@ -54,11 +51,13 @@ namespace EBop.MapObjects.MapInfo {
 	/// Wrapper functions for the version 1.3.0 of the MapInfo Tab API.
 	/// </summary>
 	/// <remarks>
-	/// Requires mitab.dll.
+	/// Requires mitab.dll (www.maptools.org)
 	/// See http://mitab.maptools.org/
+	/// 
 	/// Graham Sims
+	/// Environment Bay of Plenty, Whakatane, New Zealand
+	/// http://www.envbop.govt.nz
 	/// </remarks>
-	
 	public class MiApi {
 
 		private MiApi() {
@@ -108,7 +107,7 @@ namespace EBop.MapObjects.MapInfo {
 		/// <param name="filename">The complete filename (including extension .TAB or .MIF) of the file to open.</param>
 		/// <returns>A valid mitab_handle, or NULL if the file could not be opened.</returns>
 		[DllImport("mitab.dll")]
-		public static extern IntPtr mitab_c_open([MarshalAs(UnmanagedType.LPStr, SizeConst = 260)] string filename);
+		public static extern IntPtr mitab_c_open([MarshalAs(UnmanagedType.LPStr)] string filename);
 
 		/// <summary>
 		/// Close a dataset previously opened using mitab_c_open() or created using mitab_c_create(). 
@@ -308,7 +307,7 @@ namespace EBop.MapObjects.MapInfo {
 
 		[DllImport("mitab.dll")]
 		public static extern void mitab_c_set_font( IntPtr feature, 
-			[MarshalAs(UnmanagedType.LPStr, SizeConst = 80)] string font_name );
+			[MarshalAs(UnmanagedType.LPStr)] string font_name );
 
 		/// <summary>
 		/// Get the font name from a TABFC_Text or TABFC_FontPoint object, or the symbol name from a 

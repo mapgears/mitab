@@ -1,29 +1,28 @@
--------- Original Message --------
-Subject: 	.net bindings for MiTab
-Date: 	Tue, 1 Mar 2005 12:56:50 +1300
-From: 	Graham Sims <GrahamS@envbop.govt.nz>
-To: 	<morissette@dmsolutions.ca>
+The .net wrappers include:
 
-Hello Daniel,
+  1. MiApi.cs     This imports the c functions and enumerations from version 
+            1.3.0 of the MapInfo Tab API.
+  
+  2. MiWrapper.cs   These classes wrap the functions in MiApi to produce a 
+            hierarchy of classes giving readonly access to the feature points. 
 
-I have made use of your MITAB dll in my MapObjects based application. 
-Thank you for the making the package available. It has proved useful.
+            eg. 
+            
+            Layer layer = Layer.GetByName("c:/test.tab");
+            foreach( Feature feature in layer.Features) {
+              foreach(Part part in feature.Parts) {
+                foreach (Vertrex v in part.Vertices) {
+                  Console.Out(v.X+”,”v.Y)
+                }
+              }
+            }
 
-My application is in C#, so to use MITAB I created a set of .net 
-bindings. I also created a basic object model proving feature only 
-access to the fields, features, parts and vertices in a layer.
+These source files can either be dropped directly into your project, or
+alternatively you could build it as a seperate assembly.
+            
+Graham Sims,
+Environment Bay of Plenty, Whakatane, New Zealand
+http://www.envbop.govt.nz
 
-I've attached my source in the hope that it may be of some use to 
-others. I must point out that I've not undertaken extensive testing. The 
-MITAB calls that I use in my object model do work perfectly (for me at 
-least).
-
-BTW, I'm not sure that I've used the most efficient approach here. It 
-may have been wiser to build the .net bindings directly onto the C++ API?
-
-Best wishes,
-
-Graham Sims
-
------------
-$Id: README_DOTNET.TXT,v 1.1 2005-03-23 19:53:42 dmorissette Exp $
+--------
+$Id: README_DOTNET.TXT,v 1.2 2005-03-24 17:02:06 dmorissette Exp $

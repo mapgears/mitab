@@ -5,6 +5,8 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+ - Ensure that a blank line in a mid file is treated as one field containing
+   an empty string instead of being zero fields.  NFW
 
 Version 1.2.3 - (2002-10-15)
 ----------------------------
@@ -485,5 +487,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.101 2002-10-15 23:30:49 daniel Exp $
+$Id: HISTORY.TXT,v 1.102 2002-10-29 21:10:12 warmerda Exp $
 ------------

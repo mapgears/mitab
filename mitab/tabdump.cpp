@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.6 2000-10-18 03:57:55 daniel Exp $
+ * $Id: tabdump.cpp,v 1.7 2000-11-13 22:05:45 daniel Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.6  2000-10-18 03:57:55  daniel
+ * Revision 1.7  2000-11-13 22:05:45  daniel
+ * Added SearchIndex() - For string indexes only
+ *
+ * Revision 1.6  2000/10/18 03:57:55  daniel
  * Added DumpCoordsys()
  *
  * Revision 1.5  2000/02/28 17:14:31  daniel
@@ -62,10 +65,12 @@ static int DumpIndFileObjects(const char *pszFname);
 static int DumpTabFile(const char *pszFname);
 static int DumpCoordsys(const char *pszFname);
 
+static int SearchIndex(const char *pszFname, int nIndexNo, const char *pszVal);
 
-#define TABTEST_USAGE "Usage: tabtest -a|-all     <filename>\n" \
-                      "       tabtest -b|-blocks  <filename>\n" \
-                      "       tabtest -o|-objects <filename>\n"
+#define TABTEST_USAGE "Usage: tabdump -a|-all     <filename>\n" \
+                      "       tabdump -b|-blocks  <filename>\n" \
+                      "       tabdump -o|-objects <filename>\n" \
+                      "       tabdump -i|-index   <filename> <indexno> <val>\n"
 
 /**********************************************************************
  *                          main()
@@ -160,6 +165,14 @@ int main(int argc, char *argv[])
         {
             DumpCoordsys(pszFname);
         }
+    }
+/*---------------------------------------------------------------------
+ *     With option -index <filename> <indexno> <value> 
+ *     Search specified index for a value.
+ *--------------------------------------------------------------------*/
+    else if (EQUALN(argv[1], "-index", 2) && argc >=5)
+    {
+        SearchIndex(pszFname, atoi(argv[3]), argv[4]);
     }
 /*---------------------------------------------------------------------
  *     With option -otheroption <filename> ... 
@@ -356,6 +369,7 @@ static int DumpIndFileObjects(const char *pszFname)
         return -1;
     }
 
+    // oINDFile.SetIndexFieldType(1,TABFChar);
     oINDFile.Dump();
 
     /*---------------------------------------------------------------------
@@ -447,3 +461,64 @@ static int DumpCoordsys(const char *pszFname)
     return 0;
 }
 
+
+/**********************************************************************
+ *                          SearchIndex()
+ *
+ * Search a TAB dataset's .IND file for pszVal in index nIndexNo
+ **********************************************************************/
+static int SearchIndex(const char *pszFname, int nIndexNo, const char *pszVal)
+{
+    TABFile     oTABFile;
+    TABINDFile  *poINDFile;
+
+    /*---------------------------------------------------------------------
+     * Try to open source file
+     *--------------------------------------------------------------------*/
+    if (oTABFile.Open(pszFname, "rb") != 0)
+    {
+        printf("Failed to open %s as a TABFile.\n", pszFname);
+        return -1;
+    }
+
+    /*---------------------------------------------------------------------
+     * Fetch IND file handle
+     *--------------------------------------------------------------------*/
+    if ((poINDFile = oTABFile.GetINDFileRef()) == NULL)
+    {
+        printf("Dataset %s has no .IND file\n", pszFname);
+        return -1;
+    }
+
+    /*---------------------------------------------------------------------
+     * Search the index.
+     * For now we search only 'char' index types!!!
+     *--------------------------------------------------------------------*/
+    GByte *pKey;
+    int nRecordNo;
+
+    pKey = poINDFile->BuildKey(nIndexNo, pszVal);
+    nRecordNo = poINDFile->FindFirst(nIndexNo, pKey);
+
+    if (nRecordNo < 1)
+    {
+        printf("Value '%s' not found in index #%d\n", pszVal, nIndexNo);
+    }
+    else
+    {
+        while(nRecordNo > 0)
+        {
+            printf("Record %d...\n", nRecordNo);
+
+            nRecordNo = poINDFile->FindNext(nIndexNo, pKey);
+        }
+    }
+
+    /*---------------------------------------------------------------------
+     * Cleanup and exit.
+     *--------------------------------------------------------------------*/
+    oTABFile.Close();
+
+    return 0;
+
+}

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.15 2000-11-22 04:03:10 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.16 2000-11-23 20:47:46 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.15  2000-11-22 04:03:10  daniel
+ * Revision 1.16  2000-11-23 20:47:46  daniel
+ * Use MI defaults for Pen, Brush, Font, Symbol instead of all zeros
+ *
+ * Revision 1.15  2000/11/22 04:03:10  daniel
  * Added warning when objects written outside of the +/-1e9 int. coord. range
  *
  * Revision 1.14  2000/11/15 04:13:49  daniel
@@ -1259,7 +1262,8 @@ int   TABMAPFile::ReadPenDef(int nPenIndex, TABPenDef *psDef)
     }
     else if (psDef)
     {
-        memset(psDef, 0, sizeof(TABPenDef));
+        /* Init to MapInfo default */
+        *psDef = MITAB_PEN_DEFAULT;
         return -1;
     }
     return 0;
@@ -1314,7 +1318,8 @@ int   TABMAPFile::ReadBrushDef(int nBrushIndex, TABBrushDef *psDef)
     }
     else if (psDef)
     {
-        memset(psDef, 0, sizeof(TABBrushDef));
+        /* Init to MapInfo default */
+        *psDef = MITAB_BRUSH_DEFAULT;
         return -1;
     }
     return 0;
@@ -1369,7 +1374,8 @@ int   TABMAPFile::ReadFontDef(int nFontIndex, TABFontDef *psDef)
     }
     else if (psDef)
     {
-        memset(psDef, 0, sizeof(TABFontDef));
+        /* Init to MapInfo default */
+        *psDef = MITAB_FONT_DEFAULT;
         return -1;
     }
     return 0;
@@ -1423,7 +1429,8 @@ int   TABMAPFile::ReadSymbolDef(int nSymbolIndex, TABSymbolDef *psDef)
     }
     else if (psDef)
     {
-        memset(psDef, 0, sizeof(TABSymbolDef));
+        /* Init to MapInfo default */
+        *psDef = MITAB_SYMBOL_DEFAULT;
         return -1;
     }
     return 0;

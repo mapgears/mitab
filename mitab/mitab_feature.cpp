@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.31 2000-10-18 03:23:37 warmerda Exp $
+ * $Id: mitab_feature.cpp,v 1.32 2000-11-23 20:47:45 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.31  2000-10-18 03:23:37  warmerda
+ * Revision 1.32  2000-11-23 20:47:45  daniel
+ * Use MI defaults for Pen, Brush, Font, Symbol instead of all zeros
+ *
+ * Revision 1.31  2000/10/18 03:23:37  warmerda
  * ensure TABText::m_dWidth is initialized in constructor
  *
  * Revision 1.30  2000/10/03 19:29:51  daniel
@@ -5320,6 +5323,19 @@ void TABDebugFeature::DumpMIF(FILE *fpOut /*=NULL*/)
  *====================================================================*/
 
 /**********************************************************************
+ *                   ITABFeaturePen::ITABFeaturePen()
+ **********************************************************************/
+
+ITABFeaturePen::ITABFeaturePen()
+{
+    m_nPenDefIndex=-1;
+
+    /* MI default is PEN(1,2,0) */
+    m_sPenDef = MITAB_PEN_DEFAULT;
+}
+
+
+/**********************************************************************
  *                   ITABFeaturePen::GetPenWidthPixel()
  *                   ITABFeaturePen::SetPenWidthPixel()
  *                   ITABFeaturePen::GetPenWidthPoint()
@@ -5554,6 +5570,19 @@ void ITABFeaturePen::DumpPenDef(FILE *fpOut /*=NULL*/)
  *====================================================================*/
 
 /**********************************************************************
+ *                   ITABFeatureBrush::ITABFeatureBrush()
+ **********************************************************************/
+
+ITABFeatureBrush::ITABFeatureBrush()
+{
+    m_nBrushDefIndex=-1;
+
+    /* MI default is BRUSH(2,16777215,16777215) */
+    m_sBrushDef = MITAB_BRUSH_DEFAULT;
+}
+
+
+/**********************************************************************
  *                   ITABFeatureBrush::GetBrushStyleString()
  *
  *  Return a Brush() string. All representations info for the Brush are here.
@@ -5619,6 +5648,18 @@ void ITABFeatureBrush::DumpBrushDef(FILE *fpOut /*=NULL*/)
  *====================================================================*/
 
 /**********************************************************************
+ *                   ITABFeatureFont::ITABFeatureFont()
+ **********************************************************************/
+
+ITABFeatureFont::ITABFeatureFont()
+{
+    m_nFontDefIndex=-1;
+
+    /* MI default is Font("Arial",0,0,0) */
+    m_sFontDef = MITAB_FONT_DEFAULT;
+}
+
+/**********************************************************************
  *                   ITABFeatureFont::DumpFontDef()
  *
  * Dump Font definition information.
@@ -5639,6 +5680,18 @@ void ITABFeatureFont::DumpFontDef(FILE *fpOut /*=NULL*/)
 /*=====================================================================
  *                      class ITABFeatureSymbol
  *====================================================================*/
+
+/**********************************************************************
+ *                   ITABFeatureSymbol::ITABFeatureSymbol()
+ **********************************************************************/
+
+ITABFeatureSymbol::ITABFeatureSymbol()
+{
+    m_nSymbolDefIndex=-1;
+
+    /* MI default is Symbol(35,0,12) */
+    m_sSymbolDef = MITAB_SYMBOL_DEFAULT;
+}
 
 /**********************************************************************
  *                   ITABFeatureSymbol::GetSymbolStyleString()

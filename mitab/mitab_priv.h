@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.20 2000-11-15 04:13:50 daniel Exp $
+ * $Id: mitab_priv.h,v 1.21 2000-11-23 20:47:46 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.20  2000-11-15 04:13:50  daniel
+ * Revision 1.21  2000-11-23 20:47:46  daniel
+ * Use MI defaults for Pen, Brush, Font, Symbol instead of all zeros
+ *
+ * Revision 1.20  2000/11/15 04:13:50  daniel
  * Fixed writing of TABMAPToolBlock to allocate a new block when full
  *
  * Revision 1.19  2000/11/13 22:19:30  daniel
@@ -266,6 +269,9 @@ typedef struct TABPenDef_t
     GInt32      rgbColor;
 } TABPenDef;
 
+/* MI Default = PEN(1,2,0) */
+#define MITAB_PEN_DEFAULT (TABPenDef){0, 1, 2, 0, 0x000000}
+
 /*---------------------------------------------------------------------
  * TABBrushDef - Brush definition information
  *--------------------------------------------------------------------*/
@@ -278,6 +284,9 @@ typedef struct TABBrushDef_t
     GInt32      rgbBGColor;
 } TABBrushDef;
 
+/* MI Default = BRUSH(2,16777215,16777215) */
+#define MITAB_BRUSH_DEFAULT (TABBrushDef){0, 2, 0, 0xffffff, 0xffffff}
+
 /*---------------------------------------------------------------------
  * TABFontDef - Font Name information
  *--------------------------------------------------------------------*/
@@ -286,6 +295,9 @@ typedef struct TABFontDef_t
     GInt32      nRefCount;
     char        szFontName[33];
 } TABFontDef;
+
+/* MI Default = FONT("Arial",0,0,0) */
+#define MITAB_FONT_DEFAULT (TABFontDef){0, "Arial"}
 
 /*---------------------------------------------------------------------
  * TABSymbolDef - Symbol definition information
@@ -299,6 +311,8 @@ typedef struct TABSymbolDef_t
     GInt32      rgbColor;
 } TABSymbolDef;
 
+/* MI Default = SYMBOL(35,0,12) */
+#define MITAB_SYMBOL_DEFAULT (TABSymbolDef){0, 35, 12, 0, 0x000000}
 
 /*---------------------------------------------------------------------
  *                      class TABToolDefTable

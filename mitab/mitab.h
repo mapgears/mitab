@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.43 2000-11-22 04:04:04 daniel Exp $
+ * $Id: mitab.h,v 1.44 2000-11-23 20:47:45 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.43  2000-11-22 04:04:04  daniel
+ * Revision 1.44  2000-11-23 20:47:45  daniel
+ * Use MI defaults for Pen, Brush, Font, Symbol instead of all zeros
+ *
+ * Revision 1.43  2000/11/22 04:04:04  daniel
  * Added TAB_WarningBoundsOverflow
  *
  * Revision 1.42  2000/11/15 04:35:35  daniel
@@ -83,7 +86,7 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION "1.0.4 (2000-11-21)"
+#define MITAB_VERSION "1.0.4 (2000-11-23)"
 
 #ifndef PI
 #  define PI 3.14159265358979323846
@@ -714,8 +717,7 @@ class ITABFeaturePen
     int         m_nPenDefIndex;
     TABPenDef   m_sPenDef;
   public:
-    ITABFeaturePen() { m_nPenDefIndex=-1;
-                      memset(&m_sPenDef, 0, sizeof(TABPenDef)); };
+    ITABFeaturePen();
     ~ITABFeaturePen() {};
     int         GetPenDefIndex() {return m_nPenDefIndex;};
     TABPenDef  *GetPenDefRef() {return &m_sPenDef;};
@@ -744,8 +746,7 @@ class ITABFeatureBrush
     int         m_nBrushDefIndex;
     TABBrushDef m_sBrushDef;
   public:
-    ITABFeatureBrush() { m_nBrushDefIndex=-1;
-                        memset(&m_sBrushDef, 0, sizeof(TABBrushDef)); };
+    ITABFeatureBrush();
     ~ITABFeatureBrush() {};
     int         GetBrushDefIndex() {return m_nBrushDefIndex;};
     TABBrushDef *GetBrushDefRef() {return &m_sBrushDef;};
@@ -772,8 +773,7 @@ class ITABFeatureFont
     int         m_nFontDefIndex;
     TABFontDef  m_sFontDef;
   public:
-    ITABFeatureFont() { m_nFontDefIndex=-1;
-                       memset(&m_sFontDef, 0, sizeof(TABFontDef)); };
+    ITABFeatureFont();
     ~ITABFeatureFont() {};
     int         GetFontDefIndex() {return m_nFontDefIndex;};
     TABFontDef *GetFontDefRef() {return &m_sFontDef;};
@@ -793,8 +793,7 @@ class ITABFeatureSymbol
     int         m_nSymbolDefIndex;
     TABSymbolDef m_sSymbolDef;
   public:
-    ITABFeatureSymbol() { m_nSymbolDefIndex=-1;
-                         memset(&m_sSymbolDef, 0, sizeof(TABSymbolDef)); };
+    ITABFeatureSymbol();
     ~ITABFeatureSymbol() {};
     int         GetSymbolDefIndex() {return m_nSymbolDefIndex;};
     TABSymbolDef *GetSymbolDefRef() {return &m_sSymbolDef;};

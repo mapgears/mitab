@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_datfile.cpp,v 1.5 1999-10-01 03:56:28 daniel Exp $
+ * $Id: mitab_datfile.cpp,v 1.6 1999-10-19 06:09:25 daniel Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_datfile.cpp,v $
- * Revision 1.5  1999-10-01 03:56:28  daniel
+ * Revision 1.6  1999-10-19 06:09:25  daniel
+ * Removed obsolete GetFieldDef() method
+ *
+ * Revision 1.5  1999/10/01 03:56:28  daniel
  * Avoid multiple InitWriteHeader() calls (caused a leak) and added a fix
  * in WriteCharField() to prevent reading bytes past end of string buffer
  *
@@ -415,32 +418,6 @@ int  TABDATFile::GetNumFields()
 {
     return m_numFields;
 }
-
-#ifdef __TODO__DELETE__
-/**********************************************************************
- *                   TABDATFile::GetFieldDef()
- *
- * Returns a reference to the internal TABDATFieldDef struct with 
- * the specified field definition information from the header of 
- * the .DAT file.
- * 
- * Note that field ids are positive and start at 0.
- *
- * Since this function returns a reference to an internal structure, 
- * it should not be modified or freed by the caller.  Its contents
- * will be valid for the whole life of this TABDATFile object.
- *
- * Returns NULL if the Field definitions have not been initialized yet
- * or if the specified field does not exist.
- **********************************************************************/
-TABDATFieldDef *TABDATFile::GetFieldDef(int nFieldId)
-{
-    if (m_pasFieldDef == NULL || nFieldId < 0 || nFieldId >= m_numFields)
-        return NULL;
-
-    return (m_pasFieldDef + nFieldId);
-}
-#endif
 
 /**********************************************************************
  *                   TABDATFile::GetNumRecords()

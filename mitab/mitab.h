@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.24 1999-12-18 07:10:15 daniel Exp $
+ * $Id: mitab.h,v 1.25 1999-12-19 01:10:36 stephane Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.24  1999-12-18 07:10:15  daniel
+ * Revision 1.25  1999-12-19 01:10:36  stephane
+ * Remove the automatic pre parsing for the GetBounds and GetFeatureCount
+ *
+ * Revision 1.24  1999/12/18 07:10:15  daniel
  * Added GetNumrings()/GetRingRef() to TABRegion
  *
  * Revision 1.23  1999/12/17 02:05:00  daniel
@@ -471,7 +474,8 @@ class MIFFile: public IMapInfoFile
     OGRSpatialReference *m_poSpatialRef;
 
     TABFeature *m_poCurFeature;
-    int         m_nLastFeatureId;
+    int         m_nFeatureCount;
+    int         m_nWriteFeatureId;
     int         m_nAttribut;
 
     ///////////////
@@ -479,7 +483,7 @@ class MIFFile: public IMapInfoFile
     //
     int         ReadFeatureDefn();
     int         ParseMIFHeader();
-    int         CountNumberFeature();
+    void        PreParseFile();
     int         AddFields(const char *pszLine);
     int         GotoFeature(int nFeatureId);
     int         NextFeature();
@@ -488,6 +492,8 @@ class MIFFile: public IMapInfoFile
     // Private Write access specific stuff
     //
     GBool       m_bBoundsSet;
+    GBool       m_bPreParsed;
+    GBool       m_bHeaderWrote;
     
     int         WriteMIFHeader();
     void UpdateBounds(double dfX,double dfY);

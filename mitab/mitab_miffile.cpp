@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.16 2000-03-27 03:37:59 daniel Exp $
+ * $Id: mitab_miffile.cpp,v 1.17 2000-04-27 15:46:25 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.16  2000-03-27 03:37:59  daniel
+ * Revision 1.17  2000-04-27 15:46:25  daniel
+ * Make SetFeatureDefn() use AddFieldNative(), scan field names for invalid
+ * chars, and map field width=0 (variable length in OGR) to valid defaults
+ *
+ * Revision 1.16  2000/03/27 03:37:59  daniel
  * Handle bounds in CoordSys for read and write, + handle point SYMBOL line as
  * optional + fixed reading of bounds in PreParseFile()
  *
@@ -1335,8 +1339,8 @@ OGRFeatureDefn *MIFFile::GetLayerDefn()
  * All features that will be written to this dataset must share this same
  * OGRFeatureDefn.
  *
- * A reference to the OGRFeatureDefn will be kept and will be used to
- * build the .MID file, etc.
+ * This function will use poFeatureDefn to create a local copy that 
+ * will be used to build the .MID file, etc.
  *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
@@ -1344,6 +1348,7 @@ int MIFFile::SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
                          TABFieldType *paeMapInfoNativeFieldTypes /* =NULL */)
 {
     int numFields;
+    int nStatus = 0;
 
     /*-----------------------------------------------------------------
      * Check that call happens at the right time in dataset's life.
@@ -1357,59 +1362,52 @@ int MIFFile::SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
     }
 
     /*-----------------------------------------------------------------
-     * Keep a reference to the OGRFeatureDefn... we'll have to take the
-     * reference count into account when we are done with it.
+     * Delete current feature defn if there is already one.
+     * AddFieldNative() will take care of creating a new one for us.
      *----------------------------------------------------------------*/
     if (m_poDefn && m_poDefn->Dereference() == 0)
         delete m_poDefn;
-    m_poDefn = poFeatureDefn;
-    m_poDefn->Reference();
+    m_poDefn = NULL;
 
     /*-----------------------------------------------------------------
-     * Keep track of native field information
+     * Copy field information
      *----------------------------------------------------------------*/
-    numFields = m_poDefn->GetFieldCount();
-
-    m_paeFieldType = (TABFieldType *)CPLRealloc(m_paeFieldType,
-                                               numFields*sizeof(TABFieldType));
-    m_pabFieldIndexed = (GBool *)CPLRealloc(m_pabFieldIndexed,
-                                            numFields*sizeof(GBool));
-    m_pabFieldUnique  = (GBool *)CPLRealloc(m_pabFieldUnique,
-                                            numFields*sizeof(GBool));
-
+    numFields = poFeatureDefn->GetFieldCount();
 
     for(int iField=0; iField<numFields; iField++)
     {
+        TABFieldType eMapInfoType;
+        OGRFieldDefn *poFieldDefn = poFeatureDefn->GetFieldDefn(iField);
+
         if (paeMapInfoNativeFieldTypes)
         {
-            m_paeFieldType[iField] = paeMapInfoNativeFieldTypes[iField];
+            eMapInfoType = paeMapInfoNativeFieldTypes[iField];
         }
         else
         {
             /*---------------------------------------------------------
              * Map OGRFieldTypes to MapInfo native types
              *--------------------------------------------------------*/
-            OGRFieldDefn *poFieldDefn = m_poDefn->GetFieldDefn(iField);
-
             switch(poFieldDefn->GetType())
             {
               case OFTInteger:
-                m_paeFieldType[iField] = TABFInteger;
+                eMapInfoType = TABFInteger;
                 break;
               case OFTReal:
-                m_paeFieldType[iField] = TABFFloat;
+                eMapInfoType = TABFFloat;
                 break;
               case OFTString:
               default:
-                m_paeFieldType[iField] = TABFChar;
+                eMapInfoType = TABFChar;
             }
         }
 
-        m_pabFieldIndexed[iField] = FALSE;
-        m_pabFieldUnique[iField] = FALSE;
+        nStatus = AddFieldNative(poFieldDefn->GetNameRef(), eMapInfoType,
+                                 poFieldDefn->GetWidth(),
+                                 poFieldDefn->GetPrecision(), FALSE, FALSE);
     }
 
-    return 0;
+    return nStatus;
 }
 
 /**********************************************************************
@@ -1432,6 +1430,7 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                             GBool bIndexed /*=FALSE*/, GBool bUnique/*=FALSE*/)
 {
     OGRFieldDefn *poFieldDefn;
+    char *pszCleanName = NULL;
     int nStatus = 0;
 
     /*-----------------------------------------------------------------
@@ -1457,6 +1456,14 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
     }
 
     /*-----------------------------------------------------------------
+     * Map fields with width=0 (variable length in OGR) to a valid default
+     *----------------------------------------------------------------*/
+    if (eMapInfoType == TABFDecimal && nWidth == 0)
+        nWidth=20;
+    else if (nWidth == 0)
+        nWidth=254; /* char fields */
+
+    /*-----------------------------------------------------------------
      * Create new OGRFeatureDefn if not done yet...
      *----------------------------------------------------------------*/
     if (m_poDefn == NULL)
@@ -1469,6 +1476,12 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
     }
 
     /*-----------------------------------------------------------------
+     * Make sure field name is valid... check for special chars, etc.
+     * (pszCleanName will have to be freed.)
+     *----------------------------------------------------------------*/
+    pszCleanName = TABCleanFieldName(pszName);
+
+    /*-----------------------------------------------------------------
      * Map MapInfo native types to OGR types
      *----------------------------------------------------------------*/
     poFieldDefn = NULL;
@@ -1479,26 +1492,26 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         /*-------------------------------------------------
          * CHAR type
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszName, OFTString);
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(nWidth);
         break;
       case TABFInteger:
         /*-------------------------------------------------
          * INTEGER type
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszName, OFTInteger);
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTInteger);
         break;
       case TABFSmallInt:
         /*-------------------------------------------------
          * SMALLINT type
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszName, OFTInteger);
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTInteger);
         break;
       case TABFDecimal:
         /*-------------------------------------------------
          * DECIMAL type
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszName, OFTReal);
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTReal);
         poFieldDefn->SetWidth(nWidth);
         poFieldDefn->SetPrecision(nPrecision);
         break;
@@ -1506,20 +1519,20 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         /*-------------------------------------------------
          * FLOAT type
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszName, OFTReal);
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTReal);
         break;
       case TABFDate:
         /*-------------------------------------------------
          * DATE type (returned as a string: "DD/MM/YYYY")
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszName, OFTString);
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(10);
         break;
       case TABFLogical:
         /*-------------------------------------------------
          * LOGICAL type (value "T" or "F")
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszName, OFTString);
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(1);
         break;
       default:
@@ -1554,6 +1567,7 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
     m_pabFieldIndexed[m_poDefn->GetFieldCount()-1] = bIndexed;
     m_pabFieldUnique[m_poDefn->GetFieldCount()-1] = bUnique;
 
+    CPLFree(pszCleanName);
     return nStatus;
 }
 

@@ -1,0 +1,58 @@
+/**********************************************************************
+ * $Id: mitab_utils.h,v 1.1 1999-07-12 04:18:25 daniel Exp $
+ *
+ * Name:     mitab_utils.h
+ * Project:  MapInfo TAB Read/Write library
+ * Language: C++
+ * Purpose:  Header file containing definitions of misc. util functions.
+ * Author:   Daniel Morissette, danmo@videotron.ca
+ *
+ **********************************************************************
+ * Copyright (c) 1999, Daniel Morissette
+ *
+ * All rights reserved.  This software may be copied or reproduced, in
+ * all or in part, without the prior written consent of its author,
+ * Daniel Morissette (danmo@videotron.ca).  However, any material copied
+ * or reproduced must bear the original copyright notice (above), this 
+ * original paragraph, and the original disclaimer (below).
+ * 
+ * The entire risk as to the results and performance of the software,
+ * supporting text and other information contained in this file
+ * (collectively called the "Software") is with the user.  Although 
+ * considerable efforts have been used in preparing the Software, the 
+ * author does not warrant the accuracy or completeness of the Software.
+ * In no event will the author be liable for damages, including loss of
+ * profits or consequential damages, arising out of the use of the 
+ * Software.
+ * 
+ **********************************************************************
+ *
+ * $Log: mitab_utils.h,v $
+ * Revision 1.1  1999-07-12 04:18:25  daniel
+ * Initial checkin
+ *
+ **********************************************************************/
+
+#ifndef _MITAB_UTILS_H_INCLUDED_
+#define _MITAB_UTILS_H_INCLUDED_
+
+#include "ogr_geometry.h"
+
+#ifndef PI
+#define PI 3.14159265358979
+#endif
+
+
+/*=====================================================================
+                        Function prototypes
+ =====================================================================*/
+
+int TABGenerateArc(OGRLineString *poLine, int numPoints, 
+                   double dCenterX, double dCenterY,
+                   double dXRadius, double dYRadius,
+                   double dStartAngle, double dEndAngle);
+int TABCloseRing(OGRLineString *poRing);
+
+
+#endif /* _MITAB_UTILS_H_INCLUDED_ */
+

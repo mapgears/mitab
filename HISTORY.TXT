@@ -13,6 +13,12 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+ - mitab_tabfile.cpp: Several fixes for TABFile::Open() when loading the
+   tabfile fails. (provided by Stephen Cheesman). 
+
+ - mitab_mapfile.cpp: Fixed error return value in LoadNextMatchingObjectBlock()
+   per http://bugzilla.remotesensing.org/show_bug.cgi?id=615. NFW
+
 
 Version 1.3.0 (2004-07-07)
 --------------------------
@@ -55,12 +61,6 @@ Version 1.3.0 (2004-07-07)
 
  - mitab_ogr_datasource.cpp: Don't report single layer that hasn't been
    "created" yet via GetLayerCount().  Fixes up single file generation issues.
-
- - mitab_tabfile.cpp: Several fixes for TABFile::Open() when loading the
-   tabfile fails. (provided by Stephen Cheesman). 
-
- - mitab_mapfile.cpp: Fixed error return value in LoadNextMatchingObjectBlock()
-   per http://bugzilla.remotesensing.org/show_bug.cgi?id=615. NFW
 
 
 Version 1.2.4 (2003-07-23)
@@ -587,5 +587,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.125 2004-09-22 13:07:58 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.126 2004-10-11 20:00:49 dmorissette Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapindexblock.cpp,v 1.3 1999-09-29 04:23:51 daniel Exp $
+ * $Id: mitab_mapindexblock.cpp,v 1.4 1999-10-01 03:46:31 daniel Exp $
  *
  * Name:     mitab_mapindexblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapindexblock.cpp,v $
- * Revision 1.3  1999-09-29 04:23:51  daniel
+ * Revision 1.4  1999-10-01 03:46:31  daniel
+ * Added ReadAllEntries() and more complete Dump() for debugging files
+ *
+ * Revision 1.3  1999/09/29 04:23:51  daniel
  * Fixed typo in GetMBR()
  *
  * Revision 1.2  1999/09/26 14:59:37  daniel
@@ -274,6 +277,44 @@ int     TABMAPIndexBlock::ReadNextEntry(TABMAPIndexEntry *psEntry)
 }
 
 /**********************************************************************
+ *                   TABMAPIndexBlock::ReadAllEntries()
+ *
+ * Init the block by reading all entries from the data block.
+ *
+ * Returns 0 if succesful or -1 on error.
+ **********************************************************************/
+int     TABMAPIndexBlock::ReadAllEntries()
+{
+    if (m_papsEntries)
+        return -1;
+
+    if (m_numEntries == 0)
+        return 0;
+    
+    if (GotoByteInBlock( 0x004 ) != 0)
+        return -1;
+
+    /*-----------------------------------------------------------------
+     * Alloc array of index entries... and read all entries
+     *----------------------------------------------------------------*/
+    m_papsEntries = (TABMAPIndexEntry**)CPLCalloc(m_numEntries,
+                                                  sizeof(TABMAPIndexEntry*));
+
+    for(int i=0; i<m_numEntries; i++)
+    {
+        m_papsEntries[i]=
+                   (TABMAPIndexEntry*)CPLCalloc(1,sizeof(TABMAPIndexEntry));
+
+        if ( ReadNextEntry(m_papsEntries[i]) != 0)
+            return -1;
+
+        m_papsEntries[i]->poBlock = NULL;
+    }
+
+    return 0;
+}
+
+/**********************************************************************
  *                   TABMAPIndexBlock::WriteNextEntry()
  *
  * Write the sEntry index entry at current position in the block.
@@ -443,6 +484,24 @@ void TABMAPIndexBlock::Dump(FILE *fpOut /*=NULL*/)
         fprintf(fpOut,"Index Block (type %d) at offset %d.\n", 
                                                 m_nBlockType, m_nFileOffset);
         fprintf(fpOut,"  m_numEntries          = %d\n", m_numEntries);
+
+        /*-------------------------------------------------------------
+         * Loop through all entries, dumping each of them
+         *------------------------------------------------------------*/
+        if (m_numEntries > 0 && m_papsEntries == NULL)
+            ReadAllEntries();
+
+        for(int i=0; m_papsEntries && i<m_numEntries; i++)
+        {
+            if (m_papsEntries[i])
+            {
+                fprintf(fpOut, "    %6d -> (%d, %d) - (%d, %d)\n",
+                        m_papsEntries[i]->nBlockPtr,
+                        m_papsEntries[i]->XMin, m_papsEntries[i]->YMin,
+                        m_papsEntries[i]->XMax, m_papsEntries[i]->YMax );
+            }
+        }
+
     }
 
     fflush(fpOut);

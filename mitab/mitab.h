@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.4 1999-09-23 19:49:47 warmerda Exp $
+ * $Id: mitab.h,v 1.5 1999-09-24 20:23:09 warmerda Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.4  1999-09-23 19:49:47  warmerda
+ * Revision 1.5  1999-09-24 20:23:09  warmerda
+ * added GetProjInfo method
+ *
+ * Revision 1.4  1999/09/23 19:49:47  warmerda
  * Added setspatialref()
  *
  * Revision 1.3  1999/09/16 02:39:16  daniel
@@ -94,6 +97,10 @@ class TABFile
 
     OGRSpatialReference *GetSpatialRef();
     int		 SetSpatialRef( OGRSpatialReference * );
+
+    // semi-private.
+    int          GetProjInfo(TABProjInfo *poPI)
+	    { return m_poMAPFile->GetHeaderBlock()->GetProjInfo( poPI ); }
 
 #ifdef DEBUG
     void Dump(FILE *fpOut = NULL);

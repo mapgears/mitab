@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.11 1999-10-12 14:30:19 daniel Exp $
+ * $Id: mitab.h,v 1.12 1999-10-18 15:44:47 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.11  1999-10-12 14:30:19  daniel
+ * Revision 1.12  1999-10-18 15:44:47  daniel
+ * Several fixes/improvements mostly for writing of Arc/Ellipses/Text
+ * and also added more complete description for each TABFeature type
+ *
+ * Revision 1.11  1999/10/12 14:30:19  daniel
  * Added IMapInfoFile class to be used as a base for TABFile and MIFFile
  *
  * Revision 1.10  1999/10/06 13:13:47  daniel
@@ -289,12 +293,26 @@ typedef enum TABFontStyle_t     // Can be OR'ed
     TABFSShadow     = 0x0020,
     TABFSInverse    = 0x0040,
     TABFSBlink      = 0x0080,
-    TABFSBox        = 0x0100,
-    TABFSHalo       = 0x0200,   // ??? MIF uses 256, see MIF docs, App.A???
-    TABFSAllCaps    = 0x0400,   // ??? MIF uses 512???
-    TABFSExpanded   = 0x0800    // ??? MIF uses 1024???
+    TABFSBox        = 0x0100,   // See note about box vs halo below.
+    TABFSHalo       = 0x0200,   // MIF uses 256, see MIF docs, App.A
+    TABFSAllCaps    = 0x0400,   // MIF uses 512
+    TABFSExpanded   = 0x0800    // MIF uses 1024
 } TABFontStyle;
 
+/* TABFontStyle enum notes:
+ *
+ * The enumeration values above correspond to the values found in a .MAP
+ * file. However, they differ a little from what is found in a MIF file:
+ * Values 0x01 to 0x80 are the same in .MIF and .MAP files.
+ * Values 0x200 to 0x800 in .MAP are 0x100 to 0x400 in .MIF
+ *
+ * What about TABFSBox (0x100) ?
+ * TABFSBox is stored just like the other styles in .MAP files but it is not 
+ * explicitly stored in a MIF file.
+ * If a .MIF FONT() clause contains the optional BG color, then this implies
+ * that either Halo or Box was set.  Thus if TABFSHalo (value 256 in MIF) 
+ * is not set in the style, then this implies that TABFSBox should be set.
+ */
 
 typedef enum TABCustSymbStyle_t // Can be OR'ed
 { 
@@ -474,6 +492,9 @@ class TABFeature: public OGRFeature
  *
  * Feature geometry will be a OGRPoint
  *
+ * The symbol number is in the range [31..67], with 31=None and corresponds
+ * to one of the 35 predefined "Old MapInfo Symbols"
+ *
  * NOTE: This class is also used as a base class for the other point
  * symbol types TABFontPoint and TABCustomPoint.
  *--------------------------------------------------------------------*/
@@ -505,11 +526,14 @@ class TABPoint: public TABFeature,
  *     TAB_GEOM_FONTSYMBOL      0x29
  *
  * Feature geometry will be a OGRPoint
+ *
+ * The symbol number refers to a character code in the specified Windows
+ * Font (e.g. "Windings").
  *--------------------------------------------------------------------*/
 class TABFontPoint: public TABPoint, 
                     public ITABFeatureFont
 {
-  public:
+  protected:
     double      m_dAngle;
     GInt16      m_nFontStyle;           // Bold/shadow/halo/etc.
 
@@ -523,11 +547,16 @@ class TABFontPoint: public TABPoint,
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
 
     GBool       QueryFontStyle(TABFontStyle eStyleToQuery);
-
     void        ToggleFontStyle(TABFontStyle eStyleToToggle, GBool bStatus);
+
+    int         GetFontStyleMIFValue();
+    void        SetFontStyleMIFValue(int nStyle);
+    int         GetFontStyleTABValue()           {return m_nFontStyle;};
+    void        SetFontStyleTABValue(int nStyle){m_nFontStyle=(GInt16)nStyle;};
 
     // GetSymbolAngle(): Return angle in degrees counterclockwise
     double      GetSymbolAngle()        {return m_dAngle;};
+    void        SetSymbolAngle(double dAngle);
 };
 
 
@@ -540,6 +569,10 @@ class TABFontPoint: public TABPoint,
  *     TAB_GEOM_CUSTOMSYMBOL    0x2c
  *
  * Feature geometry will be a OGRPoint
+ *
+ * The symbol name is the name of a BMP file stored in the "CustSymb"
+ * directory (e.g. "arrow.BMP").  The symbol number has no meaning for 
+ * this symbol type.
  *--------------------------------------------------------------------*/
 class TABCustomPoint: public TABPoint, 
                       public ITABFeatureFont
@@ -558,6 +591,8 @@ class TABCustomPoint: public TABPoint,
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
 
     const char *GetSymbolNameRef()      { return GetFontNameRef(); };
+    void        SetSymbolName(const char *pszName) {SetFontName(pszName);};
+
 };
 
 
@@ -673,7 +708,17 @@ class TABRectangle: public TABFeature,
  *
  * An ellipse is defined by the coords of its 2 opposite corners (the MBR)
  *
- * Feature geometry will be OGRPolygon
+ * Feature geometry can be either an OGRPoint defining the center of the
+ * ellipse, or an OGRPolygon defining the ellipse itself.
+ *
+ * When an ellipse is read, the returned geometry is a OGRPolygon representing
+ * the ellipse with 2 degrees line segments.
+ *
+ * In the case of the OGRPoint, then the X/Y Radius MUST be set, but.  
+ * However with an OGRPolygon, if the X/Y radius are not set (== 0) then
+ * the MBR of the polygon will be used to define the ellipse parameters 
+ * and the center of the MBR is used as the center of the ellipse... 
+ * (i.e. the polygon vertices themselves will be ignored).
  *--------------------------------------------------------------------*/
 class TABEllipse: public TABFeature, 
                   public ITABFeaturePen, 
@@ -709,15 +754,24 @@ class TABEllipse: public TABFeature,
  *     TAB_GEOM_ARC_C      0x0a
  *     TAB_GEOM_ARC        0x0b
  *
- * An arc is defined by the coords of the 2 opposite corners of its 
+ * In MapInfo, an arc is defined by the coords of the MBR corners of its 
  * defining ellipse, which in this case is different from the arc's MBR,
  * and a start and end angle in degrees.
  *
- * Feature geometry will be OGRLineString
+ * Feature geometry can be either an OGRLineString or an OGRPoint.
+ *
+ * In any case, X/Y radius X/Y center, and start/end angle (in degrees 
+ * counterclockwise) MUST be set.
+ *
+ * When an arc is read, the returned geometry is an OGRLineString 
+ * representing the arc with 2 degrees line segments.
  *--------------------------------------------------------------------*/
 class TABArc: public TABFeature, 
               public ITABFeaturePen
 {
+  private:
+    double      m_dStartAngle;  // In degrees, counterclockwise, 
+    double      m_dEndAngle;    // starting at 3 o'clock
 
   public:
              TABArc(OGRFeatureDefn *poDefnIn);
@@ -730,11 +784,13 @@ class TABArc: public TABFeature,
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
 
+    double      GetStartAngle() { return m_dStartAngle; };
+    double      GetEndAngle()   { return m_dEndAngle; };
+    void        SetStartAngle(double dAngle);
+    void        SetEndAngle(double dAngle);
+
     // MapInfo-specific attributes... made available through public vars
     // for now.
-    double      m_dStartAngle;  // In degrees, counterclockwise, 
-    double      m_dEndAngle;    // starting at 3 o'clock
-
     double      m_dCenterX;
     double      m_dCenterY;
     double      m_dXRadius;
@@ -750,7 +806,12 @@ class TABArc: public TABFeature,
  *     TAB_GEOM_TEXT_C         0x10
  *     TAB_GEOM_TEXT           0x11
  *
- * Feature geometry will be a OGRPoint
+ * Feature geometry is an OGRPoint corresponding to the lower-left 
+ * corner of the text MBR BEFORE ROTATION.
+ * 
+ * Text string, and box height/width (box before rotation is applied)
+ * are required in a valid text feature and MUST be set.  
+ * Text angle and other styles are optional.
  *--------------------------------------------------------------------*/
 class TABText: public TABFeature, 
                public ITABFeatureFont,
@@ -761,12 +822,13 @@ class TABText: public TABFeature,
 
     double      m_dAngle;
     double      m_dHeight;
+    double      m_dWidth;
+    void        UpdateTextMBR();
 
     GInt32      m_rgbForeground;
     GInt32      m_rgbBackground;
 
     GInt16      m_nTextAlignment;       // Justification/Vert.Spacing/arrow
-  public:
     GInt16      m_nFontStyle;           // Bold/italic/underlined/shadow/...
 
   public:
@@ -782,7 +844,8 @@ class TABText: public TABFeature,
 
     const char *GetTextString();
     double      GetTextAngle();
-    double      GetTextHeight();
+    double      GetTextBoxHeight();
+    double      GetTextBoxWidth();
     GInt32      GetFontFGColor();
     GInt32      GetFontBGColor();
 
@@ -793,7 +856,8 @@ class TABText: public TABFeature,
 
     void        SetTextString(const char *pszStr);
     void        SetTextAngle(double dAngle);
-    void        SetTextHeight(double dHeight);
+    void        SetTextBoxHeight(double dHeight);
+    void        SetTextBoxWidth(double dWidth);
     void        SetFontFGColor(GInt32 rgbColor);
     void        SetFontBGColor(GInt32 rgbColor);
 
@@ -801,6 +865,13 @@ class TABText: public TABFeature,
     void        SetTextSpacing(TABTextSpacing eSpacing);
     void        SetTextLineType(TABTextLineType eLineType);
     void        ToggleFontStyle(TABFontStyle eStyleToToggle, GBool bStatus);
+
+    int         GetFontStyleMIFValue();
+    void        SetFontStyleMIFValue(int nStyle, GBool bBGColorSet=FALSE);
+    GBool       IsFontBGColorUsed();
+    int         GetFontStyleTABValue()           {return m_nFontStyle;};
+    void        SetFontStyleTABValue(int nStyle){m_nFontStyle=(GInt16)nStyle;};
+
 };
 
 

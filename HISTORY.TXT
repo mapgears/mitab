@@ -12,6 +12,10 @@ CHANGES - Current Version:
 
 - C API: Added mitab_c_get_text().
 
+- GetLabelStyleString(): take line spacing and num. of lines into account
+  when calculating text height.
+
+
 Version 1.1.2 - (2001-06-24)
 ----------------------------
 
@@ -296,5 +300,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.56 2001-07-02 20:03:28 daniel Exp $
+$Id: HISTORY.TXT,v 1.57 2001-07-03 03:15:09 daniel Exp $
 ------------

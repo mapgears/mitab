@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.2 1999-09-16 02:39:17 daniel Exp $
+ * $Id: mitab_priv.h,v 1.3 1999-09-23 19:50:12 warmerda Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.2  1999-09-16 02:39:17  daniel
+ * Revision 1.3  1999-09-23 19:50:12  warmerda
+ * added nMIDatumId
+ *
+ * Revision 1.2  1999/09/16 02:39:17  daniel
  * Completed read support for most feature types
  *
  * Revision 1.1  1999/07/12 04:18:25  daniel
@@ -154,6 +157,7 @@ typedef struct TABProjInfo_t
     GByte       nUnitsId;
     double      adProjParams[6];   // params in same order as in .MIF COORDSYS
 
+    int		nMIDatumId;
     double      dDatumShiftX;
     double      dDatumShiftY;
     double      dDatumShiftZ;

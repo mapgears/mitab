@@ -11,6 +11,11 @@ CHANGES - Current Version:
   (i.e. polygon).  By default, parts > 1 are treated as holes in the
   last island (polygon) that was created.
 
+- Added IsInteriorRing() function in the TABRegion class to validate if a ring 
+  in a polygon is an external or an internal ring. The function return true if 
+  the specified ring is an interior ring. The function 
+  mitab_c_region_isinteriorring() in mitab_capi.c have been created too to 
+  call IsInteriorRing() if the feature is a region.
 
 
 Version 1.2.1 - (2002-05-08)
@@ -434,5 +439,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.89 2002-05-21 14:52:33 daniel Exp $
+$Id: HISTORY.TXT,v 1.90 2002-06-17 15:00:30 julien Exp $
 ------------

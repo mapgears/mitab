@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.64 2002-05-08 20:02:29 daniel Exp $
+ * $Id: mitab.h,v 1.65 2002-06-17 15:00:30 julien Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.64  2002-05-08 20:02:29  daniel
+ * Revision 1.65  2002-06-17 15:00:30  julien
+ * Add IsInteriorRing() function in TABRegion to validate if a ring is internal
+ *
+ * Revision 1.64  2002/05/08 20:02:29  daniel
  * Version 1.2.1
  *
  * Revision 1.63  2002/05/08 15:10:48  julien
@@ -1341,6 +1344,7 @@ class TABRegion: public TABFeature,
      */
     int                 GetNumRings();
     OGRLinearRing      *GetRingRef(int nRequestedRingIndex);
+    GBool               IsInteriorRing(int nRequestedRingIndex);
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);

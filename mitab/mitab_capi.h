@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.18 2002-05-08 21:38:16 daniel Exp $
+ * $Id: mitab_capi.h,v 1.19 2002-06-17 15:00:30 julien Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.18  2002-05-08 21:38:16  daniel
+ * Revision 1.19  2002-06-17 15:00:30  julien
+ * Add IsInteriorRing() function in TABRegion to validate if a ring is internal
+ *
+ * Revision 1.18  2002/05/08 21:38:16  daniel
  * (Hopefully) fixed the STDCALL stuff.
  *
  * Revision 1.17  2002/05/08 20:27:07  daniel
@@ -286,6 +289,9 @@ int            MITAB_DLL MITAB_STDCALL mitab_c_set_projinfo( mitab_handle datase
                                                mitab_projinfo projinfo );
 const char MITAB_DLL * MITAB_STDCALL mitab_c_get_mif_coordsys( mitab_handle dataset);
 int MITAB_DLL MITAB_STDCALL mitab_c_get_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l);
+
+int MITAB_DLL MITAB_STDCALL 
+mitab_c_region_isinteriorring( mitab_feature feature, int requestedringindex );
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.25 2002-05-21 15:28:49 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.26 2002-06-17 15:00:30 julien Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.25  2002-05-21 15:28:49  daniel
+ * Revision 1.26  2002-06-17 15:00:30  julien
+ * Add IsInteriorRing() function in TABRegion to validate if a ring is internal
+ *
+ * Revision 1.25  2002/05/21 15:28:49  daniel
  * Updated mitab_c_set_points() docs about controlling island/holes
  *
  * Revision 1.24  2002/05/16 14:12:53  julien
@@ -1762,6 +1765,35 @@ mitab_c_get_parts( mitab_feature feature )
 
     return 0;
 }
+
+/************************************************************************/
+/*                   mitab_c_region_isinteriorring()                    */
+/************************************************************************/
+
+/**
+ * Return a false if te ring is the first of a polygon.
+ *
+ * @param feature the mitab_feature object.
+ * @param requestedringindex the requested ring index
+ *
+ * @return true or false depends on the part number of the ring in the polygon,
+ *         true if it's not the first part of a polygon. If the feature is not
+ *         a region the return value will be false.
+ */
+int MITAB_DLL MITAB_STDCALL 
+mitab_c_region_isinteriorring( mitab_feature feature, int requestedringindex )
+{
+    TABFeature  *poFeature = (TABFeature *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Region )
+    {
+        TABRegion *poRegion = (TABRegion *) poFeature;
+
+        return poRegion->IsInteriorRing( requestedringindex );
+    }
+    return 0;
+}
+
 
 /************************************************************************/
 /*                      mitab_c_get_vertex_count()                      */

@@ -5,6 +5,10 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+
+Version 1.1.1 - (2001-05-01)
+----------------------------
+
 - Added implementation for OGRLayer::GetExtent() that returns extents 
   of the data, which is differents from the bounds of the projection.
 
@@ -16,6 +20,16 @@ CHANGES - Current Version:
 - Fixed serious bug in TABFile::SetSpatialRef() (mitab_spatialref.cpp).  A
   core dump could occur for type 999 and 9999 datums.  Thanks to Stephen
   Cheesman of Geosoft for finding and pointing this out.  (NFW)
+
+- Modified TABINDFile/TABINDNode to support update (i.e. read/write) access
+  and created 'tabindex' program to test creation of indexes on existing
+  datasets.
+
+- Modified reading of TABRegion to maintain outside/inside ring relationship
+  when it's available in the source file.
+
+- Fixed default for BRUSH when brush index=0 in the source file.  It should
+  be BRUSH(1,0,16777215) and not BRUSH(2,16777215,16777215).
 
 
 Version 1.1.0 - (2001-03-08)
@@ -259,5 +273,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.51 2001-04-23 17:38:06 warmerda Exp $
+$Id: HISTORY.TXT,v 1.52 2001-05-01 18:36:10 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.7 1999-12-19 17:35:16 daniel Exp $
+ * $Id: mitab_coordsys.cpp,v 1.8 2000-01-14 14:53:32 warmerda Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.7  1999-12-19 17:35:16  daniel
+ * Revision 1.8  2000-01-14 14:53:32  warmerda
+ * fixed generation of MIF %d datum names
+ *
+ * Revision 1.7  1999/12/19 17:35:16  daniel
  * Fixed memory leaks
  *
  * Revision 1.6  1999/11/20 04:53:41  daniel
@@ -520,7 +523,8 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
                  adfDatumParm[6],
                  adfDatumParm[7] );
     }
-    else if( psDatumInfo->pszOGCDatumName != NULL )
+    else if( psDatumInfo->pszOGCDatumName != NULL
+             && strlen(psDatumInfo->pszOGCDatumName) > 0 )
     {
         strncpy( szDatumName, psDatumInfo->pszOGCDatumName,
                  sizeof(szDatumName) );

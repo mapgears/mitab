@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.37 2002-10-15 14:33:30 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.38 2002-12-12 20:12:18 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.37  2002-10-15 14:33:30  warmerda
+ * Revision 1.38  2002-12-12 20:12:18  warmerda
+ * fixed signs of rotational parameters for TOWGS84 in WKT
+ *
+ * Revision 1.37  2002/10/15 14:33:30  warmerda
  * Added untested support in mitab_spatialref.cpp, and mitab_coordsys.cpp for
  * projections Regional Mercator (26), Polyconic (27), Azimuthal Equidistant -
  * All origin latitudes (28), and Lambert Azimuthal Equal Area - any aspect (29).
@@ -920,9 +923,9 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         m_poSpatialRef->SetTOWGS84( psDatumInfo->dfShiftX, 
                                     psDatumInfo->dfShiftY,
                                     psDatumInfo->dfShiftZ,
-                                    psDatumInfo->dfDatumParm0, 
-                                    psDatumInfo->dfDatumParm1, 
-                                    psDatumInfo->dfDatumParm2, 
+                                    -psDatumInfo->dfDatumParm0, 
+                                    -psDatumInfo->dfDatumParm1, 
+                                    -psDatumInfo->dfDatumParm2, 
                                     psDatumInfo->dfDatumParm3 );
     }
 

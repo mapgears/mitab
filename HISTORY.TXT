@@ -13,6 +13,10 @@ CHANGES - Current Version:
     - Treat tabs (\t) as a blank space delimiter when reading coordinate 
       values in .mif file
 
+ - Fixed sign of rotation parameters in TOWGS84 parameters in WKT.  MapInfo
+   uses EPSG 9607's 7 parameter datum shift method, but TOWGS84 is defined
+   to hold EPSG 9606 style parameters.  Only the rotational signs differ. NFW
+
 
 Version 1.2.3 - (2002-10-15)
 ----------------------------
@@ -493,5 +497,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.103 2002-11-27 22:52:02 daniel Exp $
+$Id: HISTORY.TXT,v 1.104 2002-12-12 20:12:26 warmerda Exp $
 ------------

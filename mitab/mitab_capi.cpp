@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.16 2002-02-22 13:50:28 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.17 2002-02-22 14:10:33 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,12 +32,19 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.16  2002-02-22 13:50:28  daniel
+ * Revision 1.17  2002-02-22 14:10:33  daniel
+ * Restored mitab_c_set_arc() fix from v1.15 which had been overwritten.
+ * Added a note about VB, Pascal, MapBasic in Doxygen docs introduction.
+ *
+ * Revision 1.16  2002/02/22 13:50:28  daniel
  * (From Bo Thomsen) New VB interface functions
  *
- * Revision 1.15  2002/02/20 12:35:00  bvt
+ * Revision 1.16  2002/02/20 12:35:00  bvt
  * Added alternative functions to fetch various strings for VB compatibility.
  * Functions has suffix _vb.
+ *
+ * Revision 1.15  2001/12/17 16:05:19  warmerda
+ * set point geometry in mitab_c_set_arc() so validate will work
  *
  * Revision 1.14  2001/11/02 17:30:02  daniel
  * Added mitab_c_get/set_projinfo() and mitab_c_get_mif_coordsys().
@@ -100,6 +107,8 @@
  *
  * See also mitabc_test.cpp which for examples of use of the C API.
  *
+ * See contrib/README_VB.TXT in the MITAB source code distribution for
+ * informations on using the MITAB C API from VB, Pascal, or MapBasic.
  *
  */
 
@@ -695,6 +704,10 @@ mitab_c_set_arc( mitab_feature feature,
         poArc->m_dYRadius = y_radius;
         poArc->SetStartAngle(start_angle);
         poArc->SetEndAngle(end_angle);
+
+        // We also need a point geometry to make things legal.
+        OGRPoint      oPoint( center_x, center_y );
+        poArc->SetGeometry( &oPoint );
     }
     else if (poFeature->GetFeatureClass() == TABFC_Ellipse)
     {

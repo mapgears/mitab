@@ -42,8 +42,11 @@ ToDo - Open Questions:
    - Bizarre: arcs.tab is in quadrant 2, but byte 0x162 (FlipXAxis) = 0 !!!
 
 
-
 CHANGES - Current Version:
+--------------------------
+
+
+Version 0.2 - (1999-12-20)
 --------------------------
 
  - Added TABView class to support views on pairs of .TAB files (read-only)
@@ -99,5 +102,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.6 1999-12-20 19:02:41 daniel Exp $
+$Id: HISTORY.TXT,v 1.7 1999-12-20 19:06:10 daniel Exp $
 ------------

@@ -59,6 +59,10 @@ CHANGES - Current Version:
 - Maintain and/or compute values of regions and polyline center/label point
   (Used to always use the center of the MBR and this was not correct)
 
+- Set valid Scale/displacement when reading V100 .map header.
+  Use the m_nCoordPrecision field to define scale since scale in header is 0.
+
+
 Version 1.0.1 - (2000-04-21)
 ----------------------------
 
@@ -173,5 +177,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.21 2000-09-19 17:23:52 daniel Exp $
+$Id: HISTORY.TXT,v 1.22 2000-09-19 20:49:43 daniel Exp $
 ------------

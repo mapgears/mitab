@@ -46,6 +46,12 @@ ToDo - Open Questions:
 CHANGES - Current Version:
 --------------------------
 
+- Modified generation of .MAP spatial index to generate a balanced tree
+  instead of the old 'chained list of nodes' that exceeded the 255 levels
+  limit on the tree depth with files with > 100,000 objects.
+  There would still be room for improvement by implementing splitting of
+  object data blocks.
+
 
 Version 1.0.1 - (2000-04-21)
 ----------------------------
@@ -161,5 +167,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.17 2000-04-21 13:55:05 daniel Exp $
+$Id: HISTORY.TXT,v 1.18 2000-05-19 07:10:34 daniel Exp $
 ------------

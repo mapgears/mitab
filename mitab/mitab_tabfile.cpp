@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.1 1999-07-12 04:18:25 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.2 1999-07-14 05:20:42 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.1  1999-07-12 04:18:25  daniel
+ * Revision 1.2  1999-07-14 05:20:42  warmerda
+ * added first pass of projection creation
+ *
+ * Revision 1.1  1999/07/12 04:18:25  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -647,31 +650,358 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     }
 
     /*-----------------------------------------------------------------
-     * If projection params have not been processed yet then do it now.
+     * If projection params have already been processed, just use them.
      *----------------------------------------------------------------*/
-    if (m_poSpatialRef == NULL)
+    if (m_poSpatialRef != NULL)
+        return m_poSpatialRef;
+    
+
+    /*-----------------------------------------------------------------
+     * Fetch the parameters from the header.
+     *----------------------------------------------------------------*/
+    TABMAPHeaderBlock *poHeader;
+    TABProjInfo     sTABProj;
+
+    if ((poHeader = m_poMAPFile->GetHeaderBlock()) == NULL ||
+        poHeader->GetProjInfo( &sTABProj ) != 0)
     {
-        TABMAPHeaderBlock *poHeader;
-        TABProjInfo     sTABProj;
-
-        if ((poHeader = m_poMAPFile->GetHeaderBlock()) == NULL ||
-            poHeader->GetProjInfo( &sTABProj ) != 0)
-        {
-            CPLError(CE_Failure, CPLE_FileIO,
-                     "GetSpatialRef() failed reading projection parameters.");
-            return NULL;
-        }
-
-        /*-------------------------------------------------------------
-         * __TODO__ Create a OGRSpatialReference object and initialize
-         * it using the values converted from sTABProj
-         *------------------------------------------------------------*/
-        m_poSpatialRef = new OGRSpatialReference;
-
-
-
-
+        CPLError(CE_Failure, CPLE_FileIO,
+                 "GetSpatialRef() failed reading projection parameters.");
+        return NULL;
     }
+
+    /*-----------------------------------------------------------------
+     * Transform them into an OGRSpatialReference.
+     *----------------------------------------------------------------*/
+    m_poSpatialRef = new OGRSpatialReference;
+
+    /*-----------------------------------------------------------------
+     * Handle the PROJCS style projections, but add the datum later.
+     *----------------------------------------------------------------*/
+    switch( sTABProj.nProjId )
+    {
+      /*--------------------------------------------------------------
+       * lat/long .. just add the GEOGCS later.
+       *-------------------------------------------------------------*/
+      case 1:
+        break;
+
+      /*--------------------------------------------------------------
+       * Lambert Conic Conformal
+       *-------------------------------------------------------------*/
+      case 3:
+        m_poSpatialRef->SetLCC( sTABProj.adProjParams[2],
+                                sTABProj.adProjParams[3],
+                                sTABProj.adProjParams[1],
+                                sTABProj.adProjParams[0],
+                                sTABProj.adProjParams[4],
+                                sTABProj.adProjParams[5] );
+        break;
+
+      /*--------------------------------------------------------------
+       * Lambert Azimuthal Equal Area
+       *-------------------------------------------------------------*/
+      case 4:
+        m_poSpatialRef->SetLAEA( sTABProj.adProjParams[1],
+                                 sTABProj.adProjParams[0],
+                                 0.0, 0.0 );
+        break;
+
+      /*--------------------------------------------------------------
+       * Azimuthal Equidistant (Polar aspect only)
+       *-------------------------------------------------------------*/
+      case 5:
+        m_poSpatialRef->SetAE( sTABProj.adProjParams[1],
+                               sTABProj.adProjParams[0],
+                               0.0, 0.0 );
+        break;
+
+      /*--------------------------------------------------------------
+       * Equidistant Conic
+       *-------------------------------------------------------------*/
+      case 6:
+        m_poSpatialRef->SetEC( sTABProj.adProjParams[2],
+                               sTABProj.adProjParams[3],
+                               sTABProj.adProjParams[1],
+                               sTABProj.adProjParams[0],
+                               sTABProj.adProjParams[4],
+                               sTABProj.adProjParams[5] );
+        break;
+
+      /*--------------------------------------------------------------
+       * Hotine Oblique Mercator
+       *-------------------------------------------------------------*/
+      case 7:
+        m_poSpatialRef->SetHOM( sTABProj.adProjParams[1],
+                                sTABProj.adProjParams[0], 
+                                sTABProj.adProjParams[2],
+                                0.0, 
+                                sTABProj.adProjParams[3],
+                                sTABProj.adProjParams[4],
+                                sTABProj.adProjParams[5] );
+        break;
+
+      /*--------------------------------------------------------------
+       * Albers Conic Equal Area
+       *-------------------------------------------------------------*/
+      case 9:
+        m_poSpatialRef->SetACEA( sTABProj.adProjParams[2],
+                                 sTABProj.adProjParams[3],
+                                 sTABProj.adProjParams[1],
+                                 sTABProj.adProjParams[0],
+                                 sTABProj.adProjParams[4],
+                                 sTABProj.adProjParams[5] );
+        break;
+
+      /*--------------------------------------------------------------
+       * Mercator
+       *-------------------------------------------------------------*/
+      case 10:
+        m_poSpatialRef->SetMercator( 0.0, sTABProj.adProjParams[0],
+                                     1.0, 0.0, 0.0 );
+        break;
+
+      /*--------------------------------------------------------------
+       * Miller Cylindrical
+       *-------------------------------------------------------------*/
+      case 11:
+        m_poSpatialRef->SetMC( 0.0, sTABProj.adProjParams[0],
+                               0.0, 0.0 );
+        break;
+
+      /*--------------------------------------------------------------
+       * Robinson
+       *-------------------------------------------------------------*/
+      case 12:
+        m_poSpatialRef->SetRobinson( sTABProj.adProjParams[0],
+                                     0.0, 0.0 );
+        break;
+
+      /*--------------------------------------------------------------
+       * Sinusoidal
+       *-------------------------------------------------------------*/
+      case 16:
+        m_poSpatialRef->SetSinusoidal( sTABProj.adProjParams[0],
+                                       0.0, 0.0 );
+        break;
+
+      /*--------------------------------------------------------------
+       * Transverse Mercator
+       *-------------------------------------------------------------*/
+      case 8:
+      case 21:
+      case 22:
+      case 23:
+      case 24:
+        m_poSpatialRef->SetTM( sTABProj.adProjParams[1],
+                               sTABProj.adProjParams[0],
+                               sTABProj.adProjParams[2],
+                               sTABProj.adProjParams[3],
+                               sTABProj.adProjParams[4] );
+        break;
+
+      /*--------------------------------------------------------------
+       * New Zealand Map Grid
+       *-------------------------------------------------------------*/
+      case 18:
+        m_poSpatialRef->SetNZMG( sTABProj.adProjParams[1],
+                                 sTABProj.adProjParams[0],
+                                 sTABProj.adProjParams[2],
+                                 sTABProj.adProjParams[3] );
+        break;
+
+      /*--------------------------------------------------------------
+       * Lambert Conic Conformal (Belgium)
+       *-------------------------------------------------------------*/
+      case 19:
+        m_poSpatialRef->SetLCCB( sTABProj.adProjParams[2],
+                                 sTABProj.adProjParams[3],
+                                 sTABProj.adProjParams[1],
+                                 sTABProj.adProjParams[0],
+                                 sTABProj.adProjParams[4],
+                                 sTABProj.adProjParams[5] );
+        break;
+
+      /*--------------------------------------------------------------
+       * Stereographic
+       *-------------------------------------------------------------*/
+      case 20:
+        m_poSpatialRef->SetStereographic( 0.0, sTABProj.adProjParams[0], 
+                                          1.0,
+                                          sTABProj.adProjParams[1],
+                                          sTABProj.adProjParams[2] );
+        break;
+
+      /*--------------------------------------------------------------
+       * Cylindrical Equal Area
+       *-------------------------------------------------------------*/
+      case 2:
+
+      /*--------------------------------------------------------------
+       * Mollweide
+       *-------------------------------------------------------------*/
+      case 13:
+
+      /*--------------------------------------------------------------
+       * Eckert IV
+       *-------------------------------------------------------------*/
+      case 14:
+
+      /*--------------------------------------------------------------
+       * Eckert VI
+       *-------------------------------------------------------------*/
+      case 15:
+
+      /*--------------------------------------------------------------
+       * Gall
+       *-------------------------------------------------------------*/
+      case 17:
+
+      default:
+        break;
+    }
+
+    /*-----------------------------------------------------------------
+     * Collect units definition.
+     *----------------------------------------------------------------*/
+    if( sTABProj.nProjId != 1 && m_poSpatialRef->GetRoot() != NULL )
+    {
+        OGR_SRSNode	*poUnits = new OGR_SRSNode("UNIT");
+        
+        m_poSpatialRef->GetRoot()->AddChild(poUnits);
+
+        poUnits->AddChild( new OGR_SRSNode( SRS_UL_METER ) );
+        poUnits->AddChild( new OGR_SRSNode( "1.0" ) );
+       
+        switch( sTABProj.nUnitsId )
+        {
+          case 1:
+            poUnits->GetChild(0)->SetValue("Kilometer");
+            poUnits->GetChild(1)->SetValue("1000.0");
+            break;
+            
+          case 2:
+            poUnits->GetChild(0)->SetValue("Inch");
+            poUnits->GetChild(1)->SetValue("0.0254");
+            break;
+            
+          case 3:
+            poUnits->GetChild(0)->SetValue(SRS_UL_FOOT);
+            poUnits->GetChild(1)->SetValue(SRS_UL_FOOT_CONV);
+            break;
+            
+          case 4:
+            poUnits->GetChild(0)->SetValue("Yard");
+            poUnits->GetChild(1)->SetValue("0.9144");
+            break;
+            
+          case 5:
+            poUnits->GetChild(0)->SetValue("Millimeter");
+            poUnits->GetChild(1)->SetValue("0.001");
+            break;
+            
+          case 6:
+            poUnits->GetChild(0)->SetValue("Centimeter");
+            poUnits->GetChild(1)->SetValue("0.01");
+            break;
+            
+          case 7:
+            poUnits->GetChild(0)->SetValue(SRS_UL_METER);
+            poUnits->GetChild(1)->SetValue("1.0");
+            break;
+            
+          case 8:
+            poUnits->GetChild(0)->SetValue(SRS_UL_US_FOOT);
+            poUnits->GetChild(1)->SetValue(SRS_UL_US_FOOT_CONV);
+            break;
+            
+          case 9:
+            poUnits->GetChild(0)->SetValue(SRS_UL_NAUTICAL_MILE);
+            poUnits->GetChild(1)->SetValue(SRS_UL_NAUTICAL_MILE_CONV);
+            break;
+            
+          case 30:
+            poUnits->GetChild(0)->SetValue(SRS_UL_LINK);
+            poUnits->GetChild(1)->SetValue(SRS_UL_LINK_CONV);
+            break;
+            
+          case 31:
+            poUnits->GetChild(0)->SetValue(SRS_UL_CHAIN);
+            poUnits->GetChild(1)->SetValue(SRS_UL_CHAIN_CONV);
+            break;
+            
+          case 32:
+            poUnits->GetChild(0)->SetValue(SRS_UL_ROD);
+            poUnits->GetChild(1)->SetValue(SRS_UL_ROD_CONV);
+            break;
+            
+          default:
+            break;
+        }
+    }
+
+    /*-----------------------------------------------------------------
+     * Create a GEOGCS definition.
+     *----------------------------------------------------------------*/
+    OGR_SRSNode	*poGCS, *poDatum, *poSpheroid, *poPM;
+    char	szDatumName[128];
+
+    poGCS = new OGR_SRSNode("GEOGCS");
+
+    if( m_poSpatialRef->GetRoot() == NULL )
+        m_poSpatialRef->SetRoot( poGCS );
+    else
+        m_poSpatialRef->GetRoot()->AddChild( poGCS );
+
+    poGCS->AddChild( new OGR_SRSNode("unnamed") );
+
+    /*-----------------------------------------------------------------
+     * Set the datum.  We are only given the X, Y and Z shift for
+     * the datum, so for now we just synthesize a name from this.
+     * It would be better if we could lookup a name based on the shift.
+     *----------------------------------------------------------------*/
+    poGCS->AddChild( (poDatum = new OGR_SRSNode("DATUM")) );
+
+    sprintf( szDatumName, "MapInfo (%.4f,%.4f,%.4f)",
+             sTABProj.dDatumShiftX, 
+             sTABProj.dDatumShiftY, 
+             sTABProj.dDatumShiftZ );
+             
+    poDatum->AddChild( new OGR_SRSNode(szDatumName) );
+
+    /*-----------------------------------------------------------------
+     * Set the spheroid.
+     *----------------------------------------------------------------*/
+    poDatum->AddChild( (poSpheroid = new OGR_SRSNode("SPHEROID")) );
+
+    poSpheroid->AddChild( new OGR_SRSNode( "GRS_1980" ) );
+    poSpheroid->AddChild( new OGR_SRSNode( "6378137" ) );
+    poSpheroid->AddChild( new OGR_SRSNode( "298.257222101" ) );
+
+    /* 
+    switch( sTABProj.nEllipsoidId )
+    {
+    }
+    */
+
+    /*-----------------------------------------------------------------
+     * It seems that the prime meridian is always Greenwich for Mapinfo
+     *----------------------------------------------------------------*/
+    
+    poDatum->AddChild( (poPM = new OGR_SRSNode("PRIMEM")) );
+
+    poPM->AddChild( new OGR_SRSNode("Greenwich") );
+    poPM->AddChild( new OGR_SRSNode("0") );
+                    
+    /*-----------------------------------------------------------------
+     * GeogCS is always in degrees.
+     *----------------------------------------------------------------*/
+    OGR_SRSNode	*poUnit;
+
+    poDatum->AddChild( (poUnit = new OGR_SRSNode("UNIT")) );
+
+    poUnit->AddChild( new OGR_SRSNode(SRS_UA_DEGREE) );
+    poUnit->AddChild( new OGR_SRSNode(SRS_UA_DEGREE_CONV) );
 
     return m_poSpatialRef;
 }
@@ -702,9 +1032,18 @@ void TABFile::Dump(FILE *fpOut /*=NULL*/)
         fprintf(fpOut, "Associated .DAT file ...\n\n");
         m_poDATFile->Dump(fpOut);
         fprintf(fpOut, "... end of .DAT file dump.\n\n");
+        if( GetSpatialRef() != NULL )
+        {
+            char	*pszWKT;
+
+            GetSpatialRef()->exportToWkt( &pszWKT );
+            fprintf( fpOut, "SRS = %s\n", pszWKT );
+            OGRFree( pszWKT );						
+        }
         fprintf(fpOut, "Associated .MAP file ...\n\n");
         m_poMAPFile->Dump(fpOut);
         fprintf(fpOut, "... end of .MAP file dump.\n\n");
+
     }
 
     fflush(fpOut);

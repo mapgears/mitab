@@ -73,6 +73,9 @@ CHANGES - Current Version:
   Prior to MapInfo 5.0, this info was ignored, but now it has to be valid 
   otherwise some parts of a region won't be displayed properly in MI5.0
 
+- Added validation on field names (no special chars) on write and 
+  produce a warning if name had to be fixed.
+
 
 Version 0.2 - (1999-12-20)
 --------------------------
@@ -130,5 +133,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.11 2000-02-05 19:37:11 daniel Exp $
+$Id: HISTORY.TXT,v 1.12 2000-02-18 22:35:38 daniel Exp $
 ------------

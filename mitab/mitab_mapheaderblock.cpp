@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.14 2000-02-28 17:01:05 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.15 2000-03-13 05:59:25 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.14  2000-02-28 17:01:05  daniel
+ * Revision 1.15  2000-03-13 05:59:25  daniel
+ * Switch from V400 to V500 .MAP header (1024 bytes)
+ *
+ * Revision 1.14  2000/02/28 17:01:05  daniel
  * Use a #define for header version number
  *
  * Revision 1.13  2000/02/07 18:09:10  daniel
@@ -81,8 +84,8 @@
  * Set various constants used in generating the header block.
  *--------------------------------------------------------------------*/
 #define HDR_MAGIC_COOKIE        42424242
-#define HDR_VERSION_NUMBER      400
-#define HDR_BLOCK_SIZE          512
+#define HDR_VERSION_NUMBER      500
+#define HDR_DATA_BLOCK_SIZE     512
 
 #define HDR_DEF_ORG_QUADRANT    1       // N-E Quadrant
 #define HDR_DEF_REFLECTXAXIS    0
@@ -90,14 +93,15 @@
 /*---------------------------------------------------------------------
  * The header block starts with an array of map object lenght constants.
  *--------------------------------------------------------------------*/
-#define HDR_OBJ_LEN_ARRAY_SIZE   46
+#define HDR_OBJ_LEN_ARRAY_SIZE   52
 static GByte  gabyObjLenArray[ HDR_OBJ_LEN_ARRAY_SIZE  ] = {
             0x00,0x0a,0x0e,0x15,0x0e,0x16,0x1b,0xa2,
             0xa6,0xab,0x1a,0x2a,0x2f,0xa5,0xa9,0xb5,
             0xa7,0xb5,0xd9,0x0f,0x17,0x23,0x13,0x1f,
             0x2b,0x0f,0x17,0x23,0x4f,0x57,0x63,0x9c,
             0xa4,0xa9,0xa0,0xa8,0xad,0xa4,0xa8,0xad,
-            0x16,0x1a,0x39,0x0d,0x11,0x37  };
+            0x16,0x1a,0x39,0x0d,0x11,0x37,0xa5,0xa9,
+            0xb5,0xa4,0xa8,0xad };
 
 
 
@@ -120,7 +124,7 @@ TABMAPHeaderBlock::TABMAPHeaderBlock(TABAccess eAccessMode /*= TABRead*/):
      * Set acceptable default values for member vars.
      *----------------------------------------------------------------*/
     m_nMAPVersionNumber = HDR_VERSION_NUMBER;
-    m_nBlockSize = HDR_BLOCK_SIZE;
+    m_nBlockSize = HDR_DATA_BLOCK_SIZE;
 
     m_dCoordsys2DistUnits = 1.0;
     m_nXMin = -1000000000;
@@ -616,7 +620,7 @@ int     TABMAPHeaderBlock::CommitToFile()
 {
     int i, nStatus = 0;
 
-    if ( m_pabyBuf == NULL || m_nBlockSize != HDR_BLOCK_SIZE )
+    if ( m_pabyBuf == NULL || m_nBlockSize != HDR_DATA_BLOCK_SIZE )
     {
         CPLError(CE_Failure, CPLE_AssertionFailed, 
         "TABRawBinBlock::CommitToFile(): Block has not been initialized yet!");
@@ -633,7 +637,7 @@ int     TABMAPHeaderBlock::CommitToFile()
     GotoByteInBlock(0x100);
     WriteInt32(HDR_MAGIC_COOKIE);
     WriteInt16(m_nMAPVersionNumber);
-    WriteInt16(HDR_BLOCK_SIZE);
+    WriteInt16(HDR_DATA_BLOCK_SIZE);
 
     WriteDouble(m_dCoordsys2DistUnits);
     WriteInt32(m_nXMin);
@@ -724,7 +728,7 @@ int     TABMAPHeaderBlock::InitNewBlock(FILE *fpSrc, int nBlockSize,
      * Set acceptable default values for member vars.
      *----------------------------------------------------------------*/
     m_nMAPVersionNumber = HDR_VERSION_NUMBER;
-    m_nBlockSize = HDR_BLOCK_SIZE;
+    m_nBlockSize = HDR_DATA_BLOCK_SIZE;
 
     m_dCoordsys2DistUnits = 1.0;
     m_nXMin = -1000000000;

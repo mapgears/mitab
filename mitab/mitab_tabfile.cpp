@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.45 2001-09-14 19:14:43 warmerda Exp $
+ * $Id: mitab_tabfile.cpp,v 1.46 2001-09-19 21:39:31 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.45  2001-09-14 19:14:43  warmerda
+ * Revision 1.46  2001-09-19 21:39:31  warmerda
+ * improved capabilities logic
+ *
+ * Revision 1.45  2001/09/14 19:14:43  warmerda
  * added attribute query support
  *
  * Revision 1.44  2001/09/14 03:23:55  warmerda
@@ -2166,10 +2169,11 @@ int TABFile::TestCapability( const char * pszCap )
         return FALSE;
 
     else if( EQUAL(pszCap,OLCFastFeatureCount) )
-        return m_poFilterGeom == NULL;
+        return m_poFilterGeom == NULL
+            && m_poAttrQuery == NULL;
 
     else if( EQUAL(pszCap,OLCFastSpatialFilter) )
-        return FALSE;
+        return TRUE;
 
     else if( EQUAL(pszCap,OLCFastGetExtent) )
         return TRUE;

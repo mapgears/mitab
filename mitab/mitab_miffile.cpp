@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.24 2001-02-27 19:59:05 daniel Exp $
+ * $Id: mitab_miffile.cpp,v 1.25 2001-03-09 03:51:48 daniel Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.24  2001-02-27 19:59:05  daniel
+ * Revision 1.25  2001-03-09 03:51:48  daniel
+ * Fixed writing MIF header: missing break; for decimal fields
+ *
+ * Revision 1.24  2001/02/27 19:59:05  daniel
  * Enabled spatial filter in IMapInfoFile::GetNextFeature(), and avoid
  * unnecessary feature cloning in GetNextFeature() and GetFeature()
  *
@@ -919,6 +922,7 @@ int MIFFile::WriteMIFHeader()
                                    poFieldDefn->GetNameRef(),
                                    poFieldDefn->GetWidth(),
                                    poFieldDefn->GetPrecision());
+            break;
           case TABFLogical:
             m_poMIFFile->WriteLine("  %s Logical\n",
                                    poFieldDefn->GetNameRef());

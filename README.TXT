@@ -1,6 +1,5 @@
                          MITAB Library overview
                          ======================
-                        Last Update:  2000-01-15
 
 Note: until there is good complete documentation for the MITAB library,
 this README file is the only source of information for integrating the
@@ -204,5 +203,5 @@ the "\n" sequence in char attribute field values.
 
 
 ------------
-$Id: README.TXT,v 1.5 2000-10-03 22:05:23 daniel Exp $
+$Id: README.TXT,v 1.6 2000-10-03 22:15:40 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.10 1999-10-05 18:56:08 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.11 1999-10-19 16:27:50 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,11 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.10  1999-10-05 18:56:08  warmerda
+ * Revision 1.11  1999-10-19 16:27:50  warmerda
+ * Added support for Mile (units=0).  Also added support for nonearth
+ * projections.
+ *
+ * Revision 1.10  1999/10/05 18:56:08  warmerda
  * fixed lots of bugs with projection parameters
  *
  * Revision 1.9  1999/10/04 21:17:47  warmerda
@@ -260,6 +264,14 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     switch( sTABProj.nProjId )
     {
         /*--------------------------------------------------------------
+         * NonEarth ... we return with an empty SpatialRef.  Eventually
+         * we might want to include the units, but not for now.
+         *-------------------------------------------------------------*/
+      case 0:
+        return m_poSpatialRef;
+        break;
+
+        /*--------------------------------------------------------------
          * lat/long .. just add the GEOGCS later.
          *-------------------------------------------------------------*/
       case 1:
@@ -467,6 +479,11 @@ OGRSpatialReference *TABFile::GetSpatialRef()
        
         switch( sTABProj.nUnitsId )
         {
+          case 0:
+            poUnits->GetChild(0)->SetValue("Mile");
+            poUnits->GetChild(1)->SetValue("1609.35");
+            break;
+
           case 1:
             poUnits->GetChild(0)->SetValue("Kilometer");
             poUnits->GetChild(1)->SetValue("1000.0");
@@ -717,7 +734,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
 
     sTABProj.nProjId = 0;
     sTABProj.nEllipsoidId = 0; /* how will we set this? */
-    sTABProj.nUnitsId = 0;
+    sTABProj.nUnitsId = 7;
     sTABProj.adProjParams[0] = sTABProj.adProjParams[1] = 0.0;
     sTABProj.adProjParams[2] = sTABProj.adProjParams[3] = 0.0;
     sTABProj.adProjParams[4] = sTABProj.adProjParams[5] = 0.0;
@@ -1018,6 +1035,8 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         sTABProj.nUnitsId = 31;
     else if( EQUAL(pszLinearUnits,SRS_UL_ROD) )
         sTABProj.nUnitsId = 32;
+    else if( EQUAL(pszLinearUnits,"Mile") )
+        sTABProj.nUnitsId = 0;
     else
         sTABProj.nUnitsId = 7;
     

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.2 1999-10-01 03:43:36 daniel Exp $
+ * $Id: tab2tab.cpp,v 1.3 1999-10-06 13:25:25 daniel Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.2  1999-10-01 03:43:36  daniel
+ * Revision 1.3  1999-10-06 13:25:25  daniel
+ * Pass file bounds
+ *
+ * Revision 1.2  1999/10/01 03:43:36  daniel
  * Pass ProjInfo
  *
  * Revision 1.1  1999/09/26 14:59:38  daniel
@@ -82,6 +85,7 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
     TABFile  oSrcFile, oDstFile;
     int      nFeatureId;
     TABFeature *poFeature;
+    double dXMin, dYMin, dXMax, dYMax;
 
     /*---------------------------------------------------------------------
      * Try to open source file
@@ -101,8 +105,9 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
         return -1;
     }
 
-    // __TODO__ Set real bounds
-    oDstFile.SetBounds(-1000, -1000, 1000, 1000);
+    //  Set bounds
+    if (oSrcFile.GetBounds(dXMin, dYMin, dXMax, dYMax) == 0)
+        oDstFile.SetBounds(dXMin, dYMin, dXMax, dYMax);
 
     // Pass Proj. info directly
     TABProjInfo sProjInfo;

@@ -1,6 +1,58 @@
+/**********************************************************************
+ * $Id: mitab_ogr_driver.cpp,v 1.2 1999-11-12 02:44:36 stephane Exp $
+ *
+ * Name:     mitab_ogr_driver.cpp
+ * Project:  MapInfo Mid/Mif, Tab ogr support
+ * Language: C++
+ * Purpose:  Implementation of the MIDDATAFile class used to handle
+ *           reading/writing of the MID/MIF files
+ * Author:   Stephane Villeneuve, s.villeneuve@videotron.ca
+ *
+ **********************************************************************
+ * Copyright (c) 1999, Stephane Villeneuve
+ *
+ * All rights reserved.  This software may be copied or reproduced, in
+ * all or in part, without the prior written consent of its author,
+ * Daniel Morissette (danmo@videotron.ca).  However, any material copied
+ * or reproduced must bear the original copyright notice (above), this 
+ * original paragraph, and the original disclaimer (below).
+ * 
+ * The entire risk as to the results and performance of the software,
+ * supporting text and other information contained in this file
+ * (collectively called the "Software") is with the user.  Although 
+ * considerable efforts have been used in preparing the Software, the 
+ * author does not warrant the accuracy or completeness of the Software.
+ * In no event will the author be liable for damages, including loss of
+ * profits or consequential damages, arising out of the use of the 
+ * Software.
+ * 
+ **********************************************************************
+ *
+ * $Log: mitab_ogr_driver.cpp,v $
+ * Revision 1.2  1999-11-12 02:44:36  stephane
+ * added comment, change Register name.
+ *
+ * Revision 1.1  1999/11/08 21:05:51  svillene
+ * first revision
+ *
+ * Revision 1.1  1999/11/08 04:16:07  stephane
+ * First Revision
+ *
+ *
+ **********************************************************************/
+
 #include "mitab_ogr_driver.h"
 
 
+
+/*=======================================================================
+ *
+ *                 OGRTab Class
+ *=====================================================================*/
+
+/************************************************************************/
+/*                         OGRTABDataSource()                           */
+/************************************************************************/
 OGRTABDataSource::OGRTABDataSource( const char * pszNameIn,
                                         TABFile *poLayerIn )
 
@@ -9,6 +61,9 @@ OGRTABDataSource::OGRTABDataSource( const char * pszNameIn,
     m_poLayer = poLayerIn;
 }
 
+/************************************************************************/
+/*                         ~OGRTABDataSource()                          */
+/************************************************************************/
 OGRTABDataSource::~OGRTABDataSource()
 
 {
@@ -16,36 +71,17 @@ OGRTABDataSource::~OGRTABDataSource()
     delete m_poLayer;
 }
 
-OGRMIDDataSource::OGRMIDDataSource( const char * pszNameIn,
-                                        MIFFile *poLayerIn )
-
-{
-    m_pszName = CPLStrdup( pszNameIn );
-    m_poLayer = poLayerIn;
-}
 
 /************************************************************************/
-/*                        ~OGRShapeDataSource()                         */
+/*                          ~OGRTABDriver()                           */
 /************************************************************************/
-
-OGRMIDDataSource::~OGRMIDDataSource()
-
-{
-    CPLFree( m_pszName );
-    delete m_poLayer;
-}
-
-/************************************************************************/
-/*                          ~OGRShapeDriver()                           */
-/************************************************************************/
-
 OGRTABDriver::~OGRTABDriver()
 
 {
 }
 
 /************************************************************************/
-/*                              GetName()                               */
+/*                OGRTABDriver::GetName()                               */
 /************************************************************************/
 
 const char *OGRTABDriver::GetName()
@@ -55,7 +91,7 @@ const char *OGRTABDriver::GetName()
 }
 
 /************************************************************************/
-/*                                Open()                                */
+/*                  OGRTABDriver::Open()                                */
 /************************************************************************/
 
 OGRDataSource *OGRTABDriver::Open( const char * pszFilename,
@@ -83,6 +119,33 @@ OGRDataSource *OGRTABDriver::Open( const char * pszFilename,
     }
 }
 
+/*=======================================================================
+ *
+ *                 OGRMID Class
+ *=====================================================================*/
+
+
+/************************************************************************/
+/*                         OGRMIDDataSource()                           */
+/************************************************************************/
+OGRMIDDataSource::OGRMIDDataSource( const char * pszNameIn,
+                                        MIFFile *poLayerIn )
+
+{
+    m_pszName = CPLStrdup( pszNameIn );
+    m_poLayer = poLayerIn;
+}
+
+/************************************************************************/
+/*                        ~OGRMIDDataSource()                         */
+/************************************************************************/
+OGRMIDDataSource::~OGRMIDDataSource()
+
+{
+    CPLFree( m_pszName );
+    delete m_poLayer;
+}
+
 /************************************************************************/
 /*                          ~OGRMIDDriver()                           */
 /************************************************************************/
@@ -93,7 +156,7 @@ OGRMIDDriver::~OGRMIDDriver()
 }
 
 /************************************************************************/
-/*                              GetName()                               */
+/*                OGRMIDDriver::GetName()                               */
 /************************************************************************/
 
 const char *OGRMIDDriver::GetName()
@@ -103,7 +166,7 @@ const char *OGRMIDDriver::GetName()
 }
 
 /************************************************************************/
-/*                                Open()                                */
+/*                  OGRMIDDriver::Open()                                */
 /************************************************************************/
 
 OGRDataSource *OGRMIDDriver::Open( const char * pszFilename,
@@ -144,7 +207,7 @@ void RegisterOGRTAB()
     OGRSFDriverRegistrar::GetRegistrar()->RegisterDriver( new OGRTABDriver );
 }
 
-void RegisterOGRMID()
+void RegisterOGRMIF()
 
 {
     OGRSFDriverRegistrar::GetRegistrar()->RegisterDriver( new OGRMIDDriver );

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_middatafile.cpp,v 1.8 2002-04-22 13:49:09 julien Exp $
+ * $Id: mitab_middatafile.cpp,v 1.9 2002-04-24 18:37:39 daniel Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_middatafile.cpp,v $
- * Revision 1.8  2002-04-22 13:49:09  julien
+ * Revision 1.9  2002-04-24 18:37:39  daniel
+ * Added return statement at end of GetLastLine()
+ *
+ * Revision 1.8  2002/04/22 13:49:09  julien
  * Add EOF validation in MIDDATAFile::GetLastLine() (Bug 819)
  *
  * Revision 1.7  2001/09/19 14:49:49  warmerda
@@ -208,18 +211,15 @@ const char *MIDDATAFile::GetLastLine()
     {
         return NULL;
     }
-    else
+    else if (m_eAccessMode == TABRead)
     {
-        if (m_eAccessMode == TABRead)
-        {
-            // printf("%s\n",m_szLastRead);
-            return m_szLastRead;
-        }
-        else
-        {
-            return "";
-        }
+        // printf("%s\n",m_szLastRead);
+        return m_szLastRead;
     }
+
+    // We should never get here (Read/Write mode not implemented)
+    CPLAssert(FALSE);
+    return NULL;
 }
 
 void MIDDATAFile::WriteLine(const char *pszFormat,...)

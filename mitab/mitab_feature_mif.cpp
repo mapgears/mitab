@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.7 1999-12-18 23:23:23 stephane Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.8 1999-12-19 01:02:50 stephane Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.7  1999-12-18 23:23:23  stephane
+ * Revision 1.8  1999-12-19 01:02:50  stephane
+ * Add a test on the CENTER information
+ *
+ * Revision 1.7  1999/12/18 23:23:23  stephane
  * Change the format of the output double from %g to %.16g
  *
  * Revision 1.6  1999/12/18 08:22:57  daniel
@@ -835,7 +838,8 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 		    OGRPoint *poPoint  = new OGRPoint;
 		    poPoint->setX(fp->GetXTrans(atof(papszToken[1])));
 		    poPoint->setY(fp->GetYTrans(atof(papszToken[2])));
-		    poPolygon->Centroid(poPoint);
+		    if (poPolygon)
+		      poPolygon->Centroid(poPoint);
 		    m_bCentroid = TRUE;
 		    m_dfCentroidX = fp->GetXTrans(atof(papszToken[1]));
 		    m_dfCentroidY = fp->GetYTrans(atof(papszToken[2]));

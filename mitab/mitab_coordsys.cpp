@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.14 2000-09-28 16:39:44 warmerda Exp $
+ * $Id: mitab_coordsys.cpp,v 1.15 2000-10-12 22:01:01 daniel Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.14  2000-09-28 16:39:44  warmerda
+ * Revision 1.15  2000-10-12 22:01:01  daniel
+ * Fixed test on number of bound params in MITABExtractCoordSysBounds()
+ *
+ * Revision 1.14  2000/09/28 16:39:44  warmerda
  * avoid warnings for unused, and unitialized variables
  *
  * Revision 1.13  2000/08/29 22:30:45  daniel
@@ -1048,7 +1051,7 @@ GBool MITABExtractCoordSysBounds( const char * pszCoordSys,
 
     int iBounds = CSLFindString( papszFields, "Bounds" );
 
-    if (iBounds >= 0 && iBounds + 5 < CSLCount(papszFields))
+    if (iBounds >= 0 && iBounds + 4 < CSLCount(papszFields))
     {
         dXMin = atof(papszFields[++iBounds]);
         dYMin = atof(papszFields[++iBounds]);

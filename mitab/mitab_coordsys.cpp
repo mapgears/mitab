@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.3 1999-11-10 20:13:12 warmerda Exp $
+ * $Id: mitab_coordsys.cpp,v 1.4 1999-11-11 02:55:25 warmerda Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.3  1999-11-10 20:13:12  warmerda
+ * Revision 1.4  1999-11-11 02:55:25  warmerda
+ * fixed problems with stereographic and survey ft
+ *
+ * Revision 1.3  1999/11/10 20:13:12  warmerda
  * implement spheroid table
  *
  * Revision 1.2  1999/11/10 02:19:05  warmerda
@@ -359,10 +362,11 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
          * Stereographic
          *-------------------------------------------------------------*/
       case 20:
-        poSR->SetStereographic( 0.0, GetMIFParm( papszNextField, 0, 0.0 ),
-                                1.0,
-                                GetMIFParm( papszNextField, 1, 0.0 ),
-                                GetMIFParm( papszNextField, 2, 0.0 ) );
+        poSR->SetStereographic( GetMIFParm( papszNextField, 1, 0.0 ),
+                                GetMIFParm( papszNextField, 0, 0.0 ),
+                                GetMIFParm( papszNextField, 2, 1.0 ),
+                                GetMIFParm( papszNextField, 3, 0.0 ),
+                                GetMIFParm( papszNextField, 4, 0.0 ) );
         break;
 
       default:
@@ -669,9 +673,7 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
     {
         nProjection = 10;
         parms[0] = poSR->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
-        parms[1] = poSR->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
-        parms[2] = poSR->GetProjParm(SRS_PP_SCALE_FACTOR,1.0);
-        nParmCount = 3;
+        nParmCount = 1;
     }
 
     else if( EQUAL(pszProjection,SRS_PT_MILLER_CYLINDRICAL) )
@@ -847,7 +849,7 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
     else if( dfLinearConv == 1.0 )
         pszMIFUnits = "m";
     else if( EQUAL(pszLinearUnits,SRS_UL_US_FOOT) )
-        pszMIFUnits = "survey foot";
+        pszMIFUnits = "survey ft";
     else if( EQUAL(pszLinearUnits,SRS_UL_NAUTICAL_MILE) )
         pszMIFUnits = "nmi";
     else if( EQUAL(pszLinearUnits,SRS_UL_LINK) )

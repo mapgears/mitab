@@ -84,6 +84,9 @@ To compile the lib on Windows:
   This should automagically compile the 3 sub-directories and the test
   program (tab2tab.exe, tabdump.exe, mitabc_test.exe) in the MITAB directory.
 
+  If you plan to use MITAB from Visual Basic or non-C environments, then
+  have a look at contrib/README_VB.TXT
+
 To compile the library on Unix:
 
   The main directory contains a GNUmakefile whose default target will 
@@ -99,10 +102,26 @@ To compile the library on Unix:
 USING THE LIBRARY IN YOUR PROGRAMS:
 -----------------------------------
 
-Unfortunately there is no complete documentation for the library's API yet,
-but tab2tab.cpp is a good example that shows how to open TAB files for read
-and write.  Also, the main classes you will need to deal with live in
-the header MITAB.H.
+There are 2 interfaces to access the library:
+
+1- The C API.  The C API is a simplified interface which allows you to
+   build simple applications quickly but may not give you access to every
+   property of every object type.
+   See the C API documentation at:
+     http://pages.infinit.net/danmo/e00/mitab-docs/mitab_capi.cpp.html
+   There are also interface definition files for various environments
+   in the contrib directory (mainly VB, Pascal and MapBasic... thanks to
+   Bo Thomsen)
+
+2- The C++ API will give you full access to every feature of the MapInfo
+   data model.  Unfortunately there is no complete documentation for the 
+   library's C++ classes yet, but tab2tab.cpp is a good example that 
+   shows how to open TAB files for read and write.  Also, the main 
+   classes you will need to deal with live in the header MITAB.H.
+
+
+The rest of this file covers mostly the C++ API features but may also apply
+to the C API indirectly.
 
 
 TO READ FILES:
@@ -203,5 +222,5 @@ the "\n" sequence in char attribute field values.
 
 
 ------------
-$Id: README.TXT,v 1.6 2000-10-03 22:15:40 daniel Exp $
+$Id: README.TXT,v 1.7 2002-02-22 13:47:10 daniel Exp $
 ------------

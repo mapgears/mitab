@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.12 2000-01-18 23:13:41 daniel Exp $
+ * $Id: mitab_miffile.cpp,v 1.13 2000-01-24 19:51:33 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.12  2000-01-18 23:13:41  daniel
+ * Revision 1.13  2000-01-24 19:51:33  warmerda
+ * AddFieldNative should not fail for read-only datasets
+ *
+ * Revision 1.12  2000/01/18 23:13:41  daniel
  * Implemented AddFieldNative()
  *
  * Revision 1.11  2000/01/15 22:30:44  daniel
@@ -1225,17 +1228,10 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
     OGRFieldDefn *poFieldDefn;
     int nStatus = 0;
 
-    if (m_eAccessMode != TABWrite)
-    {
-        CPLError(CE_Failure, CPLE_NotSupported,
-                 "SetFeatureDefn() can be used only with Write access.");
-        return -1;
-    }
-
     /*-----------------------------------------------------------------
      * Check that call happens at the right time in dataset's life.
      *----------------------------------------------------------------*/
-    if (m_bHeaderWrote)
+    if ( m_eAccessMode == TABWrite && m_bHeaderWrote )
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
                  "AddFieldNative() must be called after opening a new "

@@ -13,6 +13,10 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+
+Version 1.4.0 (2005-03-23)
+--------------------------
+
  - Added initial version of .NET bindings, contributed by Graham Sims in
    mitab/contrib/dotnet directory (bug 992)
 
@@ -612,5 +616,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.134 2005-03-23 19:57:01 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.135 2005-03-23 20:36:09 dmorissette Exp $
 ------------

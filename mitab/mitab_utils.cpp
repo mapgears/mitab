@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.16 2001-01-23 21:23:42 daniel Exp $
+ * $Id: mitab_utils.cpp,v 1.17 2001-06-27 19:52:54 warmerda Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.16  2001-01-23 21:23:42  daniel
+ * Revision 1.17  2001-06-27 19:52:54  warmerda
+ * avoid multi byte support if _WIN32 and unix defined for cygwin support
+ *
+ * Revision 1.16  2001/01/23 21:23:42  daniel
  * Added projection bounds lookup table, called from TABFile::SetProjInfo()
  *
  * Revision 1.15  2001/01/19 06:06:18  daniel
@@ -88,7 +91,7 @@
 #include <math.h>       /* sin()/cos() */
 #include <ctype.h>      /* toupper()/tolower() */
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(unix)
 #  include <mbctype.h>  /* Multibyte chars stuff */
 #endif
 
@@ -596,7 +599,7 @@ char *TABCleanFieldName(const char *pszSrcName)
                  "'%s' will be used instead.", pszSrcName, pszNewName);
     }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(unix)
     /*-----------------------------------------------------------------
      * On Windows, check if we're using a double-byte codepage, and
      * if so then just keep the field name as is... 

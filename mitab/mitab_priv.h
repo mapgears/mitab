@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.23 2001-03-15 03:57:51 daniel Exp $
+ * $Id: mitab_priv.h,v 1.24 2001-05-01 03:39:51 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -8,7 +8,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, 2000, Daniel Morissette
+ * Copyright (c) 1999-2001, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.23  2001-03-15 03:57:51  daniel
+ * Revision 1.24  2001-05-01 03:39:51  daniel
+ * Added SetLastPtr() to TABBinBlockManager.
+ *
+ * Revision 1.23  2001/03/15 03:57:51  daniel
  * Added implementation for new OGRLayer::GetExtent(), returning data MBR.
  *
  * Revision 1.22  2000/11/23 21:11:07  daniel
@@ -399,6 +402,7 @@ class TABBinBlockManager
                                         m_nLastAllocatedBlock+=m_nBlockSize;
                                    return m_nLastAllocatedBlock; };
     void        Reset()  {m_nLastAllocatedBlock=-1; };
+    void        SetLastPtr(int nBlockPtr) {m_nLastAllocatedBlock=nBlockPtr; };
 };
 
 /*---------------------------------------------------------------------

@@ -10,6 +10,7 @@ CHANGES - Current Version:
 - mitab_utils.cpp: Don't use multi-byte support if _WIN32 and unix are
   defined to try and preserve cygwin support. NFW
 
+- C API: Added mitab_c_get_text().
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -295,5 +296,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.55 2001-06-27 19:51:57 warmerda Exp $
+$Id: HISTORY.TXT,v 1.56 2001-07-02 20:03:28 daniel Exp $
 ------------

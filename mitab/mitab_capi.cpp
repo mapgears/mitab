@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.11 2001-06-25 01:49:47 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.12 2001-07-02 20:03:28 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.11  2001-06-25 01:49:47  daniel
+ * Revision 1.12  2001-07-02 20:03:28  daniel
+ * Added mitab_c_get_text().
+ *
+ * Revision 1.11  2001/06/25 01:49:47  daniel
  * Added get methods for all pen, brush, font and symbol properties.
  *
  * Revision 1.10  2001/01/22 16:03:58  warmerda
@@ -700,6 +703,30 @@ mitab_c_set_text( mitab_feature feature, const char * text )
 }
 
 /************************************************************************/
+/*                          mitab_c_get_text()                          */
+/************************************************************************/
+
+/**
+ * Get the text string on a TABFC_Text object.
+ *
+ * @param feature the mitab_feature object.
+ * @return the text string in the object.
+ */
+
+const char MITAB_STDCALL *
+mitab_c_get_text( mitab_feature feature )
+
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+        return poFeature->GetTextString( );
+
+    return "";
+}
+
+
+/************************************************************************/
 /*                          mitab_c_set_text_display()                  */
 /************************************************************************/
 
@@ -979,7 +1006,7 @@ mitab_c_set_font( mitab_feature feature, const char * fontname )
  */
 
 const char MITAB_STDCALL *
-mitab_c_get_font( mitab_feature feature, const char * fontname )
+mitab_c_get_font( mitab_feature feature )
 
 {
     TABText     *poFeature = (TABText *) feature;

@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.5 2004-06-30 20:18:53 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.6 2004-07-05 18:45:24 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.5  2004-06-30 20:18:53  dmorissette
+ * Revision 1.6  2004-07-05 18:45:24  dmorissette
+ * Added mitab_c_load_coordsys_table defn (Uffe K.)
+ *
+ * Revision 1.5  2004/06/30 20:18:53  dmorissette
  * Update from Uffe K. for V1.3.0 release
  *
  * Revision 1.4  2003/08/07 03:24:30  dmorissette
@@ -185,6 +188,7 @@ type
   Tmitab_c_get_vertex_x           = function(feature: mitab_feature; part, vertex: longint): double; stdcall;
   Tmitab_c_get_vertex_y           = function(feature: mitab_feature; part, vertex: longint): double; stdcall;
   Tmitab_c_is_interior_ring       = function(feature: mitab_feature; requestedringindex: longint): longint; stdcall;
+  Tmitab_c_load_coordsys_table    = function(filename: pchar): longint; stdcall;
   Tmitab_c_next_feature_id        = function(handle: mitab_handle; last_feature_id: longint): longint; stdcall;
   Tmitab_c_open                   = function(filename: pchar): mitab_handle; stdcall;
   Tmitab_c_read_feature           = function(handle:  mitab_handle; feature_id: longint): mitab_feature; stdcall;
@@ -255,6 +259,7 @@ var
   mitab_c_get_vertex_x: Tmitab_c_get_vertex_x;
   mitab_c_get_vertex_y: Tmitab_c_get_vertex_y;
   mitab_c_is_interior_ring: Tmitab_c_is_interior_ring;
+  mitab_c_load_coordsys_table: Tmitab_c_load_coordsys_table;
   mitab_c_next_feature_id: Tmitab_c_next_feature_id;
   mitab_c_open: Tmitab_c_open;
   mitab_c_read_feature: Tmitab_c_read_feature;
@@ -350,6 +355,7 @@ begin
         @mitab_c_get_vertex_x:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_get_vertex_x@12');
         @mitab_c_get_vertex_y:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_get_vertex_y@12');
         @mitab_c_is_interior_ring:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_is_interior_ring@8');
+        @mitab_c_load_coordsys_table:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_load_coordsys_table@4');
         @mitab_c_next_feature_id:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_next_feature_id@8');
         @mitab_c_open:=                   GetProcAddress(MITABDLL_Handle,'_mitab_c_open@4');
         @mitab_c_read_feature:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_read_feature@8');

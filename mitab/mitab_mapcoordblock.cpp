@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapcoordblock.cpp,v 1.5 1999-10-06 15:19:11 daniel Exp $
+ * $Id: mitab_mapcoordblock.cpp,v 1.6 1999-11-08 04:29:31 daniel Exp $
  *
  * Name:     mitab_mapcoordblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapcoordblock.cpp,v $
- * Revision 1.5  1999-10-06 15:19:11  daniel
+ * Revision 1.6  1999-11-08 04:29:31  daniel
+ * Fixed problem with compressed coord. offset for regions and multiplines
+ *
+ * Revision 1.5  1999/10/06 15:19:11  daniel
  * Do not automatically init. curr. feature MBR when block is initialized
  *
  * Revision 1.4  1999/10/06 13:18:55  daniel
@@ -373,12 +376,17 @@ int     TABMAPCoordBlock::ReadCoordSecHdrs(GBool bCompressed, int numSections,
                                            TABMAPCoordSecHdr *pasHdrs,
                                            int    &numVerticesTotal)
 {
-    int i, nTotalHdrSize;
+    int i, nTotalHdrSizeUncompressed;
 
-    if (bCompressed)
-        nTotalHdrSize = 16 * numSections;
-    else
-        nTotalHdrSize = 24 * numSections;
+
+    /*-------------------------------------------------------------
+     * Note about header+vertices size vs compressed coordinates:
+     * The uncompressed header sections are actually 16 bytes, but the
+     * offset calculations are based on prior decompression of the 
+     * coordinates.  Our coordinate offset calculations have
+     * to take this fact into account.
+     *------------------------------------------------------------*/
+    nTotalHdrSizeUncompressed = 24 * numSections;
 
     numVerticesTotal = 0;
 
@@ -397,7 +405,10 @@ int     TABMAPCoordBlock::ReadCoordSecHdrs(GBool bCompressed, int numSections,
             return -1;
 
         numVerticesTotal += pasHdrs[i].numVertices;
-        pasHdrs[i].nVertexOffset = (pasHdrs[i].nDataOffset - nTotalHdrSize)/8;
+
+
+        pasHdrs[i].nVertexOffset = (pasHdrs[i].nDataOffset - 
+                                    nTotalHdrSizeUncompressed ) / 8;
 
     }
 

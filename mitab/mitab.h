@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.57 2001-11-02 17:27:21 daniel Exp $
+ * $Id: mitab.h,v 1.58 2001-11-17 21:54:05 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.57  2001-11-02 17:27:21  daniel
+ * Revision 1.58  2001-11-17 21:54:05  daniel
+ * Made several changes in order to support writing objects in 16 bits coordinate format.
+ * New TABMAPObjHdr-derived classes are used to hold object info in mem until block is full.
+ *
+ * Revision 1.57  2001/11/02 17:27:21  daniel
  * Version 1.1.3
  *
  * Revision 1.56  2001/09/19 21:39:15  warmerda
@@ -126,7 +130,7 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION "1.1.3 (2001-11-02)"
+#define MITAB_VERSION "1.1.3 (2001-11-16)"
 
 #ifndef PI
 #  define PI 3.14159265358979323846
@@ -1005,6 +1009,14 @@ class TABFeature: public OGRFeature
 
     void        CopyTABFeatureBase(TABFeature *poDestFeature);
 
+    // Compr. Origin is set for TAB files by ValidateCoordType()
+    GInt32      m_nXMin;
+    GInt32      m_nYMin;
+    GInt32      m_nXMax;
+    GInt32      m_nYMax;
+    GInt32      m_nComprOrgX;
+    GInt32      m_nComprOrgY;
+
   public:
              TABFeature(OGRFeatureDefn *poDefnIn );
     virtual ~TABFeature();
@@ -1012,7 +1024,8 @@ class TABFeature: public OGRFeature
     virtual TABFeature     *CloneTABFeature(OGRFeatureDefn *pNewDefn = NULL);
     virtual TABFeatureClass GetFeatureClass() { return TABFCNoGeomFeature; };
     virtual int             GetMapInfoType()  { return m_nMapInfoType; };
-    virtual int            ValidateMapInfoType(){m_nMapInfoType=TAB_GEOM_NONE;
+    virtual int            ValidateMapInfoType(TABMAPFile *poMapFile = NULL)
+                                                {m_nMapInfoType=TAB_GEOM_NONE;
                                                  return m_nMapInfoType;};
 
     GBool       IsRecordDeleted() { return m_bDeletedFlag; };
@@ -1023,11 +1036,12 @@ class TABFeature: public OGRFeature
      *----------------------------------------------------------------*/
 
     virtual int ReadRecordFromDATFile(TABDATFile *poDATFile);
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int WriteRecordToDATFile(TABDATFile *poDATFile,
                                      TABINDFile *poINDFile, int *panIndexNo);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    GBool       ValidateCoordType(TABMAPFile * poMapFile);
 
     /*-----------------------------------------------------------------
      * Mid/Mif Support
@@ -1080,15 +1094,15 @@ class TABPoint: public TABFeature,
     virtual ~TABPoint();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCPoint; };
-    virtual int             ValidateMapInfoType();
+    virtual int             ValidateMapInfoType(TABMAPFile *poMapFile = NULL);
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
     double      GetX();
     double      GetY();
 
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
@@ -1127,8 +1141,8 @@ class TABFontPoint: public TABPoint,
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
@@ -1180,8 +1194,8 @@ class TABCustomPoint: public TABPoint,
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
@@ -1224,7 +1238,7 @@ class TABPolyline: public TABFeature,
     virtual ~TABPolyline();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCPolyline; };
-    virtual int             ValidateMapInfoType();
+    virtual int             ValidateMapInfoType(TABMAPFile *poMapFile = NULL);
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
@@ -1233,8 +1247,8 @@ class TABPolyline: public TABFeature,
     int                 GetNumParts();
     OGRLineString      *GetPartRef(int nPartIndex);
 
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
@@ -1292,7 +1306,7 @@ class TABRegion: public TABFeature,
     virtual ~TABRegion();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCRegion; };
-    virtual int             ValidateMapInfoType();
+    virtual int             ValidateMapInfoType(TABMAPFile *poMapFile = NULL);
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
@@ -1302,8 +1316,8 @@ class TABRegion: public TABFeature,
     int                 GetNumRings();
     OGRLinearRing      *GetRingRef(int nRequestedRingIndex);
 
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
@@ -1342,12 +1356,12 @@ class TABRectangle: public TABFeature,
     virtual ~TABRectangle();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCRectangle; };
-    virtual int             ValidateMapInfoType();
+    virtual int             ValidateMapInfoType(TABMAPFile *poMapFile = NULL);
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
@@ -1397,12 +1411,12 @@ class TABEllipse: public TABFeature,
     virtual ~TABEllipse();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCEllipse; };
-    virtual int             ValidateMapInfoType();
+    virtual int             ValidateMapInfoType(TABMAPFile *poMapFile = NULL);
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
@@ -1453,12 +1467,12 @@ class TABArc: public TABFeature,
     virtual ~TABArc();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCArc; };
-    virtual int             ValidateMapInfoType();
+    virtual int             ValidateMapInfoType(TABMAPFile *poMapFile = NULL);
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
@@ -1524,12 +1538,12 @@ class TABText: public TABFeature,
     virtual ~TABText();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCText; };
-    virtual int             ValidateMapInfoType();
+    virtual int             ValidateMapInfoType(TABMAPFile *poMapFile = NULL);
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
@@ -1595,8 +1609,8 @@ class TABDebugFeature: public TABFeature
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCDebugFeature; };
 
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);

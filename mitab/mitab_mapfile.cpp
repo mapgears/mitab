@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.20 2001-09-18 20:33:52 warmerda Exp $
+ * $Id: mitab_mapfile.cpp,v 1.21 2001-11-17 21:54:06 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.20  2001-09-18 20:33:52  warmerda
+ * Revision 1.21  2001-11-17 21:54:06  daniel
+ * Made several changes in order to support writing objects in 16 bits coordinate format.
+ * New TABMAPObjHdr-derived classes are used to hold object info in mem until block is full.
+ *
+ * Revision 1.20  2001/09/18 20:33:52  warmerda
  * fixed case of spatial search on file with just one object block
  *
  * Revision 1.19  2001/09/14 03:23:55  warmerda
@@ -930,45 +934,14 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
     }
 
     /*-----------------------------------------------------------------
-     * Validate object type... for now, we do not support writing objects
-     * with compressed integer coordinates... we just remap them to their
-     * uncompressed equivalent.
-     *----------------------------------------------------------------*/
-    if (nObjType == TAB_GEOM_SYMBOL_C)
-        nObjType = TAB_GEOM_SYMBOL;
-    else if (nObjType == TAB_GEOM_LINE_C)
-        nObjType = TAB_GEOM_LINE;
-    else if (nObjType == TAB_GEOM_PLINE_C)
-        nObjType = TAB_GEOM_PLINE;
-    else if (nObjType == TAB_GEOM_ARC_C)
-        nObjType = TAB_GEOM_ARC;
-    else if (nObjType == TAB_GEOM_REGION_C)
-        nObjType = TAB_GEOM_REGION;
-    else if (nObjType == TAB_GEOM_TEXT_C)
-        nObjType = TAB_GEOM_TEXT;
-    else if (nObjType == TAB_GEOM_RECT_C)
-        nObjType = TAB_GEOM_RECT;
-    else if (nObjType == TAB_GEOM_ROUNDRECT_C)
-        nObjType = TAB_GEOM_ROUNDRECT;
-    else if (nObjType == TAB_GEOM_ELLIPSE_C)
-        nObjType = TAB_GEOM_ELLIPSE;
-    else if (nObjType == TAB_GEOM_MULTIPLINE_C)
-        nObjType = TAB_GEOM_MULTIPLINE;
-    else if (nObjType == TAB_GEOM_FONTSYMBOL_C)
-        nObjType = TAB_GEOM_FONTSYMBOL_C;
-    else if (nObjType == TAB_GEOM_CUSTOMSYMBOL_C)
-        nObjType = TAB_GEOM_CUSTOMSYMBOL;
-    else if (nObjType == TAB_GEOM_V450_REGION_C)
-        nObjType = TAB_GEOM_V450_REGION;
-    else if (nObjType == TAB_GEOM_V450_MULTIPLINE_C)
-        nObjType = TAB_GEOM_V450_MULTIPLINE;
-
-    /*-----------------------------------------------------------------
      * Update count of objects by type in the header block
      *----------------------------------------------------------------*/
     if (nObjType == TAB_GEOM_SYMBOL ||
         nObjType == TAB_GEOM_FONTSYMBOL ||
-        nObjType == TAB_GEOM_CUSTOMSYMBOL)
+        nObjType == TAB_GEOM_CUSTOMSYMBOL ||
+        nObjType == TAB_GEOM_SYMBOL_C ||
+        nObjType == TAB_GEOM_FONTSYMBOL_C ||
+        nObjType == TAB_GEOM_CUSTOMSYMBOL_C)
     {
         m_poHeader->m_numPointObjects++;
     }
@@ -976,7 +949,12 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
              nObjType == TAB_GEOM_PLINE ||
              nObjType == TAB_GEOM_MULTIPLINE ||
              nObjType == TAB_GEOM_V450_MULTIPLINE ||
-             nObjType == TAB_GEOM_ARC)
+             nObjType == TAB_GEOM_ARC ||
+             nObjType == TAB_GEOM_LINE_C ||
+             nObjType == TAB_GEOM_PLINE_C ||
+             nObjType == TAB_GEOM_MULTIPLINE_C ||
+             nObjType == TAB_GEOM_V450_MULTIPLINE_C ||
+             nObjType == TAB_GEOM_ARC_C)
     {
         m_poHeader->m_numLineObjects++;
     }
@@ -984,11 +962,17 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
              nObjType == TAB_GEOM_V450_REGION ||
              nObjType == TAB_GEOM_RECT ||
              nObjType == TAB_GEOM_ROUNDRECT ||
-             nObjType == TAB_GEOM_ELLIPSE)
+             nObjType == TAB_GEOM_ELLIPSE ||
+             nObjType == TAB_GEOM_REGION_C ||
+             nObjType == TAB_GEOM_V450_REGION_C ||
+             nObjType == TAB_GEOM_RECT_C ||
+             nObjType == TAB_GEOM_ROUNDRECT_C ||
+             nObjType == TAB_GEOM_ELLIPSE_C)
     {
         m_poHeader->m_numRegionObjects++;
     }
-    else if (nObjType == TAB_GEOM_TEXT)
+    else if (nObjType == TAB_GEOM_TEXT ||
+             nObjType == TAB_GEOM_TEXT_C)
     {
         m_poHeader->m_numTextObjects++;
     }
@@ -998,7 +982,9 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
      *----------------------------------------------------------------*/
     if (m_nMinTABVersion < 450 &&
         (nObjType == TAB_GEOM_V450_REGION ||
-         nObjType == TAB_GEOM_V450_MULTIPLINE ) )
+         nObjType == TAB_GEOM_V450_MULTIPLINE ||
+         nObjType == TAB_GEOM_V450_REGION_C ||
+         nObjType == TAB_GEOM_V450_MULTIPLINE_C) )
     {
         m_nMinTABVersion = 450;
     }
@@ -1054,6 +1040,11 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
 
     m_poCurObjBlock->WriteByte(m_nCurObjType);
     m_poCurObjBlock->WriteInt32(m_nCurObjId);
+
+    // Move write pointer to start location of next object (padding with zeros)
+    // Nothing will get written to the object block until CommitToFile()
+    // is called.
+    m_poCurObjBlock->WriteZeros(m_poHeader->GetMapObjectSize(nObjType) - 5);
 
     /*-----------------------------------------------------------------
      * Update .ID Index

@@ -59,8 +59,13 @@ CHANGES - Current Version:
 - Maintain and/or compute values of regions and polyline center/label point
   (Used to always use the center of the MBR and this was not correct)
 
-- Set valid Scale/displacement when reading V100 .map header.
-  Use the m_nCoordPrecision field to define scale since scale in header is 0.
+- Fixes for old Version 100 files:
+   - Set valid Scale/displacement when reading V100 .map header.
+     Use m_nCoordPrecision to define scale since scale in header is 0.
+   - Accept "FORMAT: DBF" in .tab header file.
+
+- Made all open() methods completely case-insensitive on filenames on Unix
+  (added TABAdjustCaseSensitiveFilename())
 
 
 Version 1.0.1 - (2000-04-21)
@@ -177,5 +182,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.22 2000-09-19 20:49:43 daniel Exp $
+$Id: HISTORY.TXT,v 1.23 2000-09-20 18:40:00 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.4 2000-01-15 22:30:45 daniel Exp $
+ * $Id: tabdump.cpp,v 1.5 2000-02-28 17:14:31 daniel Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.4  2000-01-15 22:30:45  daniel
+ * Revision 1.5  2000-02-28 17:14:31  daniel
+ * Report indexed fields
+ *
+ * Revision 1.4  2000/01/15 22:30:45  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.3  1999/12/14 02:24:41  daniel
@@ -279,6 +282,15 @@ static int DumpTabFile(const char *pszFname)
     }
 
     poFile->Dump();
+
+    /*---------------------------------------------------------------------
+     * Check for indexed fields
+     *--------------------------------------------------------------------*/
+    for(int iField=0; iField<poFile->GetLayerDefn()->GetFieldCount(); iField++)
+    {
+        if (poFile->IsFieldIndexed(iField))
+            printf("  Field %d is indexed\n", iField);
+    }
 
     /*---------------------------------------------------------------------
      * Read/Dump objects until EOF is reached

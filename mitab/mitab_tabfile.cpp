@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.8 1999-09-26 14:59:37 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.9 1999-09-28 13:32:51 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.8  1999-09-26 14:59:37  daniel
+ * Revision 1.9  1999-09-28 13:32:51  daniel
+ * Added AddFieldNative()
+ *
+ * Revision 1.8  1999/09/26 14:59:37  daniel
  * Implemented write support
  *
  * Revision 1.7  1999/09/23 19:51:43  warmerda
@@ -590,7 +593,7 @@ int TABFile::Close()
     if (m_poMAPFile == NULL)
         return 0;
 
-    //__TODO__ Commit the latest changes to the file...
+    // Commit the latest changes to the file...
     
     // In Write access, it's time to write the .TAB file.
     if (m_eAccessMode == TABWrite && m_poMAPFile)
@@ -1009,6 +1012,127 @@ int TABFile::SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
     return nStatus;
 }
 
+/**********************************************************************
+ *                   TABFile::AddFieldNative()
+ *
+ * Create a new field using a native mapinfo data type... this is an 
+ * alternative to defining fields through the OGR interface.
+ * This function should be called after creating a new dataset, but before 
+ * writing the first feature.
+ *
+ * This function will build/update the OGRFeatureDefn that will have to be
+ * used when writing features to this dataset.
+ *
+ * A reference to the OGRFeatureDefn can be obtained using GetFeatureDefn().
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
+                            int nWidth, int nPrecision /*=0*/)
+{
+    int           iField, numFields;
+    OGRFieldDefn *poFieldDefn;
+    int nStatus = 0;
+
+    if (m_eAccessMode != TABWrite)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "SetFeatureDefn() can be used only with Write access.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Check that call happens at the right time in dataset's life.
+     *----------------------------------------------------------------*/
+    if (m_eAccessMode != TABWrite || 
+        m_nLastFeatureId > 0 || m_poDATFile == NULL)
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "AddFieldNative() must be called after opening a new "
+                 "dataset, but before writing the first feature to it.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Create new OGRFeatureDefn if not done yet...
+     *----------------------------------------------------------------*/
+    if (m_poDefn== NULL)
+    {
+        m_poDefn = new OGRFeatureDefn("TABFeature");
+    }
+
+    /*-----------------------------------------------------------------
+     * Map MapInfo native types to OGR types
+     *----------------------------------------------------------------*/
+    poFieldDefn = NULL;
+
+    switch(eMapInfoType)
+    {
+      case TABFChar:
+        /*-------------------------------------------------
+         * CHAR type
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTString);
+        poFieldDefn->SetWidth(nWidth);
+        break;
+      case TABFInteger:
+        /*-------------------------------------------------
+         * INTEGER type
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTInteger);
+        break;
+      case TABFSmallInt:
+        /*-------------------------------------------------
+         * SMALLINT type
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTInteger);
+        break;
+      case TABFDecimal:
+        /*-------------------------------------------------
+         * DECIMAL type
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTReal);
+        poFieldDefn->SetWidth(nWidth);
+        poFieldDefn->SetPrecision(nPrecision);
+        break;
+      case TABFFloat:
+        /*-------------------------------------------------
+         * FLOAT type
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTReal);
+        break;
+      case TABFDate:
+        /*-------------------------------------------------
+         * DATE type (returned as a string: "DD/MM/YYYY")
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTString);
+        poFieldDefn->SetWidth(10);
+        break;
+      case TABFLogical:
+        /*-------------------------------------------------
+         * LOGICAL type (value "T" or "F")
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTString);
+        poFieldDefn->SetWidth(1);
+        break;
+      default:
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "Unsupported type for field %s", pszName);
+        return -1;
+    }
+
+    /*-----------------------------------------------------
+     * Add the FieldDefn to the FeatureDefn 
+     *----------------------------------------------------*/
+    m_poDefn->AddFieldDefn(poFieldDefn);
+
+    /*-----------------------------------------------------
+     * ... and pass field info to the .DAT file.
+     *----------------------------------------------------*/
+    nStatus = m_poDATFile->AddField(pszName, eMapInfoType, nWidth, nPrecision);
+ 
+    return nStatus;
+}
 
 
 /**********************************************************************

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.24 2002-05-16 14:12:53 julien Exp $
+ * $Id: mitab_capi.cpp,v 1.25 2002-05-21 15:28:49 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.24  2002-05-16 14:12:53  julien
+ * Revision 1.25  2002-05-21 15:28:49  daniel
+ * Updated mitab_c_set_points() docs about controlling island/holes
+ *
+ * Revision 1.24  2002/05/16 14:12:53  julien
  * Add support for MultiPolygon in mitab_c_setpoint
  *
  * Revision 1.23  2002/05/10 20:54:56  daniel
@@ -602,6 +605,10 @@ mitab_c_set_field( mitab_feature feature, int field_index,
  *        Note that it is only possible to add parts in a sequential order,
  *        and it is not possible to overwrite or modify existing parts using
  *        this function.
+ *        For regions with multiple islands and holes, passing a negative
+ *        part number will result in adding a new island (i.e. polygon).  
+ *        By default, parts > 1 are treated as holes in the last island 
+ *        (polygon) that was created.
  * @param vertex_count the number of points (pairs of x,y values).
  * @param x the array of 'vertex_count' X values.
  *        Note: for rectangle objects, the MBR of the array of points

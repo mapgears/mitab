@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.33 2000-11-23 21:11:07 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.34 2001-01-22 16:03:58 warmerda Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.33  2000-11-23 21:11:07  daniel
+ * Revision 1.34  2001-01-22 16:03:58  warmerda
+ * expanded tabs
+ *
+ * Revision 1.33  2000/11/23 21:11:07  daniel
  * OOpps... VC++ didn't like the way TABPenDef, etc. were initialized
  *
  * Revision 1.32  2000/11/23 20:47:45  daniel
@@ -396,14 +399,14 @@ int TABFeature::WriteGeometryToMAPFile(TABMAPFile * /* poMapFile*/)
  **********************************************************************/
 void TABFeature::DumpMID(FILE *fpOut /*=NULL*/)
 {
-    OGRFeatureDefn 	*poDefn = GetDefnRef();
+    OGRFeatureDefn      *poDefn = GetDefnRef();
 
     if (fpOut == NULL)
         fpOut = stdout;
 
     for( int iField = 0; iField < GetFieldCount(); iField++ )
     {
-        OGRFieldDefn	*poFDefn = poDefn->GetFieldDefn(iField);
+        OGRFieldDefn    *poFDefn = poDefn->GetFieldDefn(iField);
         
         fprintf( fpOut, "  %s (%s) = %s\n",
                  poFDefn->GetNameRef(),
@@ -5029,15 +5032,15 @@ const char *TABText::GetLabelStyleString()
     switch(GetTextJustification())
     {
       case TABTJCenter:
-	nJustification = 2;
-	break;
+        nJustification = 2;
+        break;
       case TABTJRight:
-	nJustification = 1;
-	break;
+        nJustification = 1;
+        break;
       case TABTJLeft:
       default:
-	nJustification =1;
-	break;
+        nJustification =1;
+        break;
     }
 
     
@@ -5359,119 +5362,119 @@ const char *ITABFeaturePen::GetPenStyleString()
     switch (GetPenPattern())
     {
       case 1:
-	nOGRStyle =1; 
-	break;
+        nOGRStyle =1; 
+        break;
       case 2:
-	nOGRStyle = 0;
-	break;
+        nOGRStyle = 0;
+        break;
       case 3:
-	nOGRStyle = 3; 
-	strcpy(szPattern,"1 1");
-	break;
+        nOGRStyle = 3; 
+        strcpy(szPattern,"1 1");
+        break;
       case 4:
-	nOGRStyle = 3;
-	strcpy(szPattern,"2 1");
-	break;
+        nOGRStyle = 3;
+        strcpy(szPattern,"2 1");
+        break;
       case 5:
-	nOGRStyle = 3;
-	strcpy(szPattern,"3 1");
-	break;
+        nOGRStyle = 3;
+        strcpy(szPattern,"3 1");
+        break;
       case 6:
-	nOGRStyle = 3;
-	strcpy(szPattern,"6 1");
-	break;
+        nOGRStyle = 3;
+        strcpy(szPattern,"6 1");
+        break;
       case 7:
-	nOGRStyle = 4;
-	strcpy(szPattern,"12 2");
-	break;
+        nOGRStyle = 4;
+        strcpy(szPattern,"12 2");
+        break;
       case 8:
-	nOGRStyle = 4;
-	strcpy(szPattern,"24 4");
-	break;
+        nOGRStyle = 4;
+        strcpy(szPattern,"24 4");
+        break;
       case 9:
-	nOGRStyle = 3;
-	strcpy(szPattern,"4 3");
-	break;
+        nOGRStyle = 3;
+        strcpy(szPattern,"4 3");
+        break;
       case 10:
-	nOGRStyle = 5;
-	strcpy(szPattern,"1 4");
-	break;
+        nOGRStyle = 5;
+        strcpy(szPattern,"1 4");
+        break;
       case 11:
-	nOGRStyle = 3;
-	strcpy(szPattern,"4 6");
-	break;
+        nOGRStyle = 3;
+        strcpy(szPattern,"4 6");
+        break;
       case 12:
-	nOGRStyle = 3;
-	strcpy(szPattern,"6 4");
-	break;
+        nOGRStyle = 3;
+        strcpy(szPattern,"6 4");
+        break;
       case 13:
-	nOGRStyle = 4;
-	strcpy(szPattern,"12 12");
-	break;
+        nOGRStyle = 4;
+        strcpy(szPattern,"12 12");
+        break;
       case 14:
-	nOGRStyle = 6;
-	strcpy(szPattern,"8 2 1 2");
-	break;
+        nOGRStyle = 6;
+        strcpy(szPattern,"8 2 1 2");
+        break;
       case 15:
-	nOGRStyle = 6;
-	strcpy(szPattern,"12 1 1 1");
-	break;
+        nOGRStyle = 6;
+        strcpy(szPattern,"12 1 1 1");
+        break;
       case 16:
-	nOGRStyle = 6;
-	strcpy(szPattern,"12 1 3 1");
-	break;
+        nOGRStyle = 6;
+        strcpy(szPattern,"12 1 3 1");
+        break;
       case 17:
-	nOGRStyle = 6;
-	strcpy(szPattern,"24 6 4 6");
-	break;
+        nOGRStyle = 6;
+        strcpy(szPattern,"24 6 4 6");
+        break;
       case 18:
-	nOGRStyle = 7;
-	strcpy(szPattern,"24 3 3 3 3 3");
-	break;
+        nOGRStyle = 7;
+        strcpy(szPattern,"24 3 3 3 3 3");
+        break;
       case 19:
-	nOGRStyle = 7;
-	strcpy(szPattern,"24 3 3 3 3 3 3 3");
-	break;
+        nOGRStyle = 7;
+        strcpy(szPattern,"24 3 3 3 3 3 3 3");
+        break;
       case 20:
-	nOGRStyle = 7;
-	strcpy(szPattern,"6 3 1 3 1 3");
-	break;
+        nOGRStyle = 7;
+        strcpy(szPattern,"6 3 1 3 1 3");
+        break;
       case 21:
-	nOGRStyle = 7;
-	strcpy(szPattern,"12 2 1 2 1 2");
-	break;
+        nOGRStyle = 7;
+        strcpy(szPattern,"12 2 1 2 1 2");
+        break;
       case 22:
-	nOGRStyle = 7;
-	strcpy(szPattern,"12 2 1 2 1 2 1 2");
-	break;
+        nOGRStyle = 7;
+        strcpy(szPattern,"12 2 1 2 1 2 1 2");
+        break;
       case 23:
-	nOGRStyle = 6;
-	strcpy(szPattern,"4 1 1 1");
-	break;
+        nOGRStyle = 6;
+        strcpy(szPattern,"4 1 1 1");
+        break;
       case 24:
-	nOGRStyle = 7;
-	strcpy(szPattern,"4 1 1 1 1");
-	break;
+        nOGRStyle = 7;
+        strcpy(szPattern,"4 1 1 1 1");
+        break;
       case 25:
-	nOGRStyle = 6;
-	strcpy(szPattern,"4 1 1 1 2 1 1 1");
-	break;
+        nOGRStyle = 6;
+        strcpy(szPattern,"4 1 1 1 2 1 1 1");
+        break;
 
-	default:
-	nOGRStyle = 0;
-	break;
+        default:
+        nOGRStyle = 0;
+        break;
     }
     
     if (strlen(szPattern) != 0)
       pszStyle =CPLSPrintf("PEN(w:%dpx,c:#%6.6x,id:\"mapinfo-pen-%d."
-			   "ogr-pen-%d\",p:\"%spx\")",
-			   GetPenWidthPixel(),
-			   m_sPenDef.rgbColor,GetPenPattern(),nOGRStyle,
-			   szPattern);
+                           "ogr-pen-%d\",p:\"%spx\")",
+                           GetPenWidthPixel(),
+                           m_sPenDef.rgbColor,GetPenPattern(),nOGRStyle,
+                           szPattern);
     else
       pszStyle =CPLSPrintf("PEN(w:%dpx,c:#%6.6x,id:\"mapinfo-pen-%d.ogr-pen-%d\")",
-			   GetPenWidthPixel(),
-			   m_sPenDef.rgbColor,GetPenPattern(),nOGRStyle);
+                           GetPenWidthPixel(),
+                           m_sPenDef.rgbColor,GetPenPattern(),nOGRStyle);
 
     return pszStyle;
 }
@@ -5543,11 +5546,11 @@ const char *ITABFeatureBrush::GetBrushStyleString()
       nOGRStyle = 6;
     else if (m_sBrushDef.nFillPattern == 8)
       nOGRStyle = 7;
-	  
+          
     pszStyle =CPLSPrintf("BRUSH(fc:#%6.6x,bc:#%6.6x,id:\"mapinfo-brush-%d.ogr-brush-%d\")",
-			 m_sBrushDef.rgbFGColor,
-			 m_sBrushDef.rgbBGColor,
-			 m_sBrushDef.nFillPattern,nOGRStyle);
+                         m_sBrushDef.rgbFGColor,
+                         m_sBrushDef.rgbBGColor,
+                         m_sBrushDef.nFillPattern,nOGRStyle);
      
      return pszStyle;
     
@@ -5651,8 +5654,8 @@ const char *ITABFeatureSymbol::GetSymbolStyleString(double dfAngle)
       nOGRStyle = 6;
     else if (m_sSymbolDef.nSymbolNo == 33)
     {
-	nAngle = 45;
-	nOGRStyle = 6;
+        nAngle = 45;
+        nOGRStyle = 6;
     }
     else if (m_sSymbolDef.nSymbolNo == 34)
       nOGRStyle = 4;
@@ -5662,15 +5665,15 @@ const char *ITABFeatureSymbol::GetSymbolStyleString(double dfAngle)
       nOGRStyle = 8;
     else if (m_sSymbolDef.nSymbolNo == 37)
     {
-	nAngle = 180;
-	nOGRStyle = 8;
+        nAngle = 180;
+        nOGRStyle = 8;
     }
     else if (m_sSymbolDef.nSymbolNo == 38)
       nOGRStyle = 5;
     else if (m_sSymbolDef.nSymbolNo == 39)
     {
-	nAngle = 45;
-	nOGRStyle = 5;
+        nAngle = 45;
+        nOGRStyle = 5;
     }
     else if (m_sSymbolDef.nSymbolNo == 40)
       nOGRStyle = 3;
@@ -5680,8 +5683,8 @@ const char *ITABFeatureSymbol::GetSymbolStyleString(double dfAngle)
       nOGRStyle = 7;
     else if (m_sSymbolDef.nSymbolNo == 43)
     {
-	nAngle = 180;
-	nOGRStyle = 7;
+        nAngle = 180;
+        nOGRStyle = 7;
     }
     else if (m_sSymbolDef.nSymbolNo == 44)
       nOGRStyle = 6;
@@ -5697,11 +5700,11 @@ const char *ITABFeatureSymbol::GetSymbolStyleString(double dfAngle)
     nAngle += (int)dfAngle;
     
     pszStyle=CPLSPrintf("SYMBOL(a:%d,c:#%6.6x,s:%dpt,id:\"mapinfo-sym-%d.ogr-sym-%d\")",
-			nAngle,
-			m_sSymbolDef.rgbColor,
-			m_sSymbolDef.nPointSize,
-			m_sSymbolDef.nSymbolNo,
-			nOGRStyle);
+                        nAngle,
+                        m_sSymbolDef.rgbColor,
+                        m_sSymbolDef.nPointSize,
+                        m_sSymbolDef.nSymbolNo,
+                        nOGRStyle);
      
     return pszStyle;
     

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.44 2000-11-23 20:47:45 daniel Exp $
+ * $Id: mitab.h,v 1.45 2001-01-22 16:03:59 warmerda Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.44  2000-11-23 20:47:45  daniel
+ * Revision 1.45  2001-01-22 16:03:59  warmerda
+ * expanded tabs
+ *
+ * Revision 1.44  2000/11/23 20:47:45  daniel
  * Use MI defaults for Pen, Brush, Font, Symbol instead of all zeros
  *
  * Revision 1.43  2000/11/22 04:04:04  daniel
@@ -124,7 +127,7 @@ class IMapInfoFile : public OGRLayer
   private:
 
   protected: 
-    OGRGeometry		*m_poFilterGeom;
+    OGRGeometry         *m_poFilterGeom;
     int                  m_nCurFeatureId;
  
 
@@ -148,9 +151,9 @@ class IMapInfoFile : public OGRLayer
 
     ///////////////
     //  OGR methods for read support
-    OGRGeometry *	GetSpatialFilter();
-    void		SetSpatialFilter( OGRGeometry * );
-    void		ResetReading() = 0;
+    OGRGeometry *       GetSpatialFilter();
+    void                SetSpatialFilter( OGRGeometry * );
+    void                ResetReading() = 0;
     int                 GetFeatureCount (int bForce) = 0;
     virtual OGRFeature *GetNextFeature();
     OGRFeature         *GetFeature(long nFeatureId);
@@ -262,7 +265,7 @@ class TABFile: public IMapInfoFile
     virtual const char *GetTableName()
                             {return m_poDefn?m_poDefn->GetName():"";};
 
-    void		ResetReading();
+    void                ResetReading();
     int                 TestCapability( const char * pszCap );
     int                 GetFeatureCount (int bForce);
     
@@ -308,9 +311,9 @@ class TABFile: public IMapInfoFile
     ///////////////
     // semi-private.
     virtual int  GetProjInfo(TABProjInfo *poPI)
-	    { return m_poMAPFile->GetHeaderBlock()->GetProjInfo( poPI ); }
+            { return m_poMAPFile->GetHeaderBlock()->GetProjInfo( poPI ); }
     virtual int  SetProjInfo(TABProjInfo *poPI)
-	    { return m_poMAPFile->GetHeaderBlock()->SetProjInfo( poPI ); }
+            { return m_poMAPFile->GetHeaderBlock()->SetProjInfo( poPI ); }
     virtual int  SetMIFCoordSys(const char *pszMIFCoordSys);
 
     int         GetFieldIndexNumber(int nFieldId);
@@ -384,7 +387,7 @@ class TABView: public IMapInfoFile
     virtual const char *GetTableName()
            {return m_poRelation?m_poRelation->GetFeatureDefn()->GetName():"";};
 
-    void		ResetReading();
+    void                ResetReading();
     int                 TestCapability( const char * pszCap );
     int                 GetFeatureCount (int bForce);
     
@@ -431,10 +434,10 @@ class TABView: public IMapInfoFile
     ///////////////
     // semi-private.
     virtual int  GetProjInfo(TABProjInfo *poPI)
-	    { return m_nMainTableIndex!=-1?
+            { return m_nMainTableIndex!=-1?
                      m_papoTABFiles[m_nMainTableIndex]->GetProjInfo(poPI):-1; }
     virtual int  SetProjInfo(TABProjInfo *poPI)
-	    { return m_nMainTableIndex!=-1?
+            { return m_nMainTableIndex!=-1?
                      m_papoTABFiles[m_nMainTableIndex]->SetProjInfo(poPI):-1; }
     virtual int  SetMIFCoordSys(const char * /*pszMIFCoordSys*/) {return -1;};
 
@@ -529,7 +532,7 @@ class MIFFile: public IMapInfoFile
 
     int                 TestCapability( const char * pszCap ) ;
     int                 GetFeatureCount (int bForce);
-    void		ResetReading();
+    void                ResetReading();
 
     ///////////////
     // Read access specific stuff
@@ -923,8 +926,8 @@ class TABPoint: public TABFeature,
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
-    double	GetX();
-    double	GetY();
+    double      GetX();
+    double      GetY();
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
@@ -1006,7 +1009,7 @@ class TABCustomPoint: public TABPoint,
                       public ITABFeatureFont
 {
   protected:
-    GByte       m_nCustomStyle;         // Show BG/Apply Color		       
+    GByte       m_nCustomStyle;         // Show BG/Apply Color                 
 
   public:
     GByte       m_nUnknown_;
@@ -1451,24 +1454,24 @@ GBool MITABExtractCoordSysBounds( const char * pszCoordSys,
                                   double &dXMax, double &dYMax );
 
 typedef struct {
-    int		nMapInfoDatumID;
+    int         nMapInfoDatumID;
     const char  *pszOGCDatumName;
-    int		nEllipsoid;
+    int         nEllipsoid;
     double      dfShiftX;
-    double	dfShiftY;
-    double	dfShiftZ;
-    double	dfDatumParm0; /* RotX */
-    double	dfDatumParm1; /* RotY */
-    double	dfDatumParm2; /* RotZ */
-    double	dfDatumParm3; /* Scale Factor */
-    double	dfDatumParm4; /* Prime Meridian */
+    double      dfShiftY;
+    double      dfShiftZ;
+    double      dfDatumParm0; /* RotX */
+    double      dfDatumParm1; /* RotY */
+    double      dfDatumParm2; /* RotZ */
+    double      dfDatumParm3; /* Scale Factor */
+    double      dfDatumParm4; /* Prime Meridian */
 } MapInfoDatumInfo;
 
 typedef struct
 {
-    int		nMapInfoId;
+    int         nMapInfoId;
     const char *pszMapinfoName;
-    double	dfA; /* semi major axis in meters */
+    double      dfA; /* semi major axis in meters */
     double      dfInvFlattening; /* Inverse flattening */
 } MapInfoSpheroidInfo;
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.39 2000-12-15 05:32:31 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.40 2001-01-22 16:03:58 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.39  2000-12-15 05:32:31  daniel
+ * Revision 1.40  2001-01-22 16:03:58  warmerda
+ * expanded tabs
+ *
+ * Revision 1.39  2000/12/15 05:32:31  daniel
  * Handle table type LINKED the same way as table type NATIVE.
  * Make sure max char field width is 254 in AddFieldNative().
  *
@@ -454,7 +457,7 @@ int TABFile::Open(const char *pszFname, const char *pszAccess,
             else
                 CPLErrorReset();
 
-	    CPLFree(pszTmpFname);
+            CPLFree(pszTmpFname);
             Close();
             return -1;
         }
@@ -1153,9 +1156,9 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
         m_poMAPFile->MoveToObjId(nFeatureId) != 0 ||
         m_poDATFile->GetRecordBlock(nFeatureId) == NULL )
     {
-	//     CPLError(CE_Failure, CPLE_IllegalArg,
-	//    "GetFeatureRef() failed: invalid feature id %d", 
-	//    nFeatureId);
+        //     CPLError(CE_Failure, CPLE_IllegalArg,
+        //    "GetFeatureRef() failed: invalid feature id %d", 
+        //    nFeatureId);
         return NULL;
     }
     
@@ -2098,11 +2101,11 @@ void TABFile::Dump(FILE *fpOut /*=NULL*/)
         fprintf(fpOut, "... end of TABLE file dump.\n\n");
         if( GetSpatialRef() != NULL )
         {
-            char	*pszWKT;
+            char        *pszWKT;
 
             GetSpatialRef()->exportToWkt( &pszWKT );
             fprintf( fpOut, "SRS = %s\n", pszWKT );
-            OGRFree( pszWKT );						
+            OGRFree( pszWKT );                                          
         }
         fprintf(fpOut, "Associated .MAP file ...\n\n");
         m_poMAPFile->Dump(fpOut);

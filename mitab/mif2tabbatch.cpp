@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mif2tabbatch.cpp,v 1.2 2000-01-15 22:30:43 daniel Exp $
+ * $Id: mif2tabbatch.cpp,v 1.3 2001-01-22 16:03:58 warmerda Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mif2tabbatch.cpp,v $
- * Revision 1.2  2000-01-15 22:30:43  daniel
+ * Revision 1.3  2001-01-22 16:03:58  warmerda
+ * expanded tabs
+ *
+ * Revision 1.2  2000/01/15 22:30:43  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.1  1999/11/12 00:05:26  stephane
@@ -74,22 +77,22 @@ int main(int argc, char *argv[])
     if (argc<2)
     {
         printf("This program is used to perform a big number of file in the
-		same time, all generated files will receive Cpy%s.tab name\n");
-	printf("%s", MIF2TAB_USAGE);
+                same time, all generated files will receive Cpy%s.tab name\n");
+        printf("%s", MIF2TAB_USAGE);
         return 1;
     }
     
     for (int i=1;i<argc;i++)
     {
-	nLength = strlen(argv[i]);
-	nLength -=4;
-	pszCopy = CPLStrdup(argv[i]);
-	pszCopy[nLength] = '\0';
-	printf("%s\n",pszCopy);
-	pszDstFname = CPLStrdup(CPLSPrintf("Cpy%s.tab",pszCopy));
-	Mif2Tab(argv[i], pszDstFname);
-	CPLFree(pszCopy);
-	CPLFree(pszDstFname);
+        nLength = strlen(argv[i]);
+        nLength -=4;
+        pszCopy = CPLStrdup(argv[i]);
+        pszCopy[nLength] = '\0';
+        printf("%s\n",pszCopy);
+        pszDstFname = CPLStrdup(CPLSPrintf("Cpy%s.tab",pszCopy));
+        Mif2Tab(argv[i], pszDstFname);
+        CPLFree(pszCopy);
+        CPLFree(pszDstFname);
     }
     return 0;
 }

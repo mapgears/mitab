@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.9 2000-10-16 21:44:50 warmerda Exp $
+ * $Id: mitab_capi.cpp,v 1.10 2001-01-22 16:03:58 warmerda Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.9  2000-10-16 21:44:50  warmerda
+ * Revision 1.10  2001-01-22 16:03:58  warmerda
+ * expanded tabs
+ *
+ * Revision 1.9  2000/10/16 21:44:50  warmerda
  * added nonearth support
  *
  * Revision 1.8  2000/10/03 20:43:36  daniel
@@ -187,11 +190,11 @@ void MITAB_STDCALL
 mitab_c_close( mitab_handle handle )
 
 {
-    IMapInfoFile	*poFile = (IMapInfoFile *) handle;
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
 
     poFile->Close();
 
-    delete poFile;	
+    delete poFile;      
 }
 
 /************************************************************************/
@@ -230,7 +233,7 @@ mitab_c_create( const char * filename,
                 double east, double west )
 
 {
-    IMapInfoFile	*poFile;
+    IMapInfoFile        *poFile;
     
     CPLSetErrorHandler( CPLQuietErrorHandler );
 
@@ -253,7 +256,7 @@ mitab_c_create( const char * filename,
 
     if( mif_projection != NULL && strlen(mif_projection) > 0 )
     {
-        OGRSpatialReference	*poSRS;
+        OGRSpatialReference     *poSRS;
 
         poSRS = MITABCoordSys2SpatialRef( mif_projection );
         if( poSRS != NULL )
@@ -296,7 +299,7 @@ mitab_c_add_field( mitab_handle dataset, const char *field_name,
                    int field_type, int width, int precision )
 
 {
-    IMapInfoFile	*poFile = (IMapInfoFile *) dataset;
+    IMapInfoFile        *poFile = (IMapInfoFile *) dataset;
 
     if( poFile->AddFieldNative( field_name, (TABFieldType) field_type,
                                 width, precision ) != -1 )
@@ -321,7 +324,7 @@ void MITAB_STDCALL
 mitab_c_destroy_feature( mitab_feature feature )
 
 {
-    TABFeature	*poFeature = (TABFeature *) feature;
+    TABFeature  *poFeature = (TABFeature *) feature;
 
     if (poFeature)
         delete poFeature;
@@ -350,7 +353,7 @@ int MITAB_STDCALL
 mitab_c_next_feature_id( mitab_handle handle, int last_feature_id )
 
 {
-    IMapInfoFile	*poFile = (IMapInfoFile *) handle;
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
 
     return poFile->GetNextFeatureId( last_feature_id );
 }
@@ -376,8 +379,8 @@ mitab_feature MITAB_STDCALL
 mitab_c_read_feature( mitab_handle handle, int feature_id )
 
 {
-    IMapInfoFile	*poFile = (IMapInfoFile *) handle;
-    TABFeature		*poFeature;
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+    TABFeature          *poFeature;
 
     poFeature = poFile->GetFeatureRef( feature_id );
     if( poFeature != NULL )
@@ -412,8 +415,8 @@ int MITAB_STDCALL
 mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
 
 {
-    IMapInfoFile	*poFile = (IMapInfoFile *) handle;
-    TABFeature		*poFeature = (TABFeature *) feature;
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+    TABFeature          *poFeature = (TABFeature *) feature;
 
     return poFile->SetFeature( poFeature ) != -1;
 }
@@ -441,8 +444,8 @@ mitab_c_create_feature( mitab_handle handle,
                         int feature_type )
 
 {
-    IMapInfoFile	*poFile = (IMapInfoFile *) handle;
-    TABFeature	*poFeature = NULL;
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+    TABFeature  *poFeature = NULL;
 
     if( poFile->GetLayerDefn() == NULL )
     {
@@ -453,7 +456,7 @@ mitab_c_create_feature( mitab_handle handle,
         poFeature = new TABPoint(poFile->GetLayerDefn());
     else if( feature_type == TABFC_Text )
     {
-        TABText		*poText = new TABText(poFile->GetLayerDefn());
+        TABText         *poText = new TABText(poFile->GetLayerDefn());
 
         poText->SetTextString( "Default Text" );
         poFeature = poText;
@@ -490,7 +493,7 @@ mitab_c_set_field( mitab_feature feature, int field_index,
                    const char *field_value )
 
 {
-    TABFeature	*poFeature = (TABFeature *) feature;
+    TABFeature  *poFeature = (TABFeature *) feature;
 
     poFeature->SetField( field_index, field_value );
 }
@@ -523,7 +526,7 @@ mitab_c_set_points( mitab_feature feature, int part,
                     int vertex_count, double * x, double * y )
 
 {
-    TABFeature	*poFeature = (TABFeature *) feature;
+    TABFeature  *poFeature = (TABFeature *) feature;
 
     if( poFeature->GetFeatureClass() == TABFC_Point
         || poFeature->GetFeatureClass() == TABFC_Text )
@@ -534,7 +537,7 @@ mitab_c_set_points( mitab_feature feature, int part,
 
     else if( poFeature->GetFeatureClass() == TABFC_Polyline )
     {
-        OGRLineString	*poLine = new OGRLineString();
+        OGRLineString   *poLine = new OGRLineString();
 
         poLine->setPoints( vertex_count, x, y );
 
@@ -569,8 +572,8 @@ mitab_c_set_points( mitab_feature feature, int part,
 
     else if( poFeature->GetFeatureClass() == TABFC_Region )
     {
-        OGRLinearRing	*poRing = new OGRLinearRing();
-        OGRPolygon	*poPolygon;
+        OGRLinearRing   *poRing = new OGRLinearRing();
+        OGRPolygon      *poPolygon;
 
         poRing->setPoints( vertex_count, x, y );
         if( poFeature->GetGeometryRef() != NULL && part > 0 )
@@ -633,7 +636,7 @@ mitab_c_set_arc( mitab_feature feature,
                  double start_angle, double end_angle)
 
 {
-    TABFeature	*poFeature = (TABFeature *) feature;
+    TABFeature  *poFeature = (TABFeature *) feature;
 
     if( poFeature->GetFeatureClass() == TABFC_Arc )
     {
@@ -687,7 +690,7 @@ void MITAB_STDCALL
 mitab_c_set_text( mitab_feature feature, const char * text )
 
 {
-    TABText	*poFeature = (TABText *) feature;
+    TABText     *poFeature = (TABText *) feature;
 
     if( poFeature->GetFeatureClass() == TABFC_Text )
         poFeature->SetTextString( text );
@@ -723,7 +726,7 @@ mitab_c_set_text_display( mitab_feature feature,
                           int justification, int spacing, int linetype )
     
 {
-    TABText	*poFeature = (TABText *) feature;
+    TABText     *poFeature = (TABText *) feature;
 
     if( poFeature->GetFeatureClass() == TABFC_Text )
     {
@@ -761,7 +764,7 @@ void MITAB_STDCALL
 mitab_c_set_font( mitab_feature feature, const char * fontname )
 
 {
-    TABText	*poFeature = (TABText *) feature;
+    TABText     *poFeature = (TABText *) feature;
 
     if( poFeature->GetFeatureClass() == TABFC_Text )
         poFeature->SetFontName( fontname );
@@ -791,7 +794,7 @@ mitab_c_set_brush( mitab_feature feature,
                    int fg_color, int bg_color, int pattern, int transparent )
 
 {
-    TABRegion	*poFeature = (TABRegion *) feature;
+    TABRegion   *poFeature = (TABRegion *) feature;
 
     if( poFeature->GetFeatureClass() == TABFC_Region ||
         poFeature->GetFeatureClass() == TABFC_Ellipse ||
@@ -827,8 +830,8 @@ mitab_c_set_pen( mitab_feature feature,
                  int width, int pattern, int color )
 
 {
-    TABFeature		*poFeature = (TABFeature *) feature;
-    ITABFeaturePen	*poPen = NULL;
+    TABFeature          *poFeature = (TABFeature *) feature;
+    ITABFeaturePen      *poPen = NULL;
 
     if( poFeature->GetFeatureClass() == TABFC_Polyline )
         poPen = ((TABPolyline *) poFeature);
@@ -877,7 +880,7 @@ mitab_c_set_symbol( mitab_feature feature, int symbol_no,
                     int symbol_size, int symbol_color )
 
 {
-    TABPoint	*poFeature = (TABPoint *) feature;
+    TABPoint    *poFeature = (TABPoint *) feature;
 
     if( poFeature->GetFeatureClass() == TABFC_Point )
     {
@@ -885,7 +888,7 @@ mitab_c_set_symbol( mitab_feature feature, int symbol_no,
         poFeature->SetSymbolSize( symbol_size );
         poFeature->SetSymbolColor( symbol_color );
     }
-}								
+}                                                               
 
 /************************************************************************/
 /*                          mitab_c_get_type()                          */
@@ -904,7 +907,7 @@ mitab_c_set_symbol( mitab_feature feature, int symbol_no,
 int MITAB_DLL 
 mitab_c_get_type( mitab_feature feature )
 {
-    TABFeature		*poFeature = (TABFeature *) feature;
+    TABFeature          *poFeature = (TABFeature *) feature;
 
     if (poFeature)
         return poFeature->GetFeatureClass();
@@ -1041,7 +1044,7 @@ mitab_c_get_vertex_y( mitab_feature feature, int part, int vertex )
 int MITAB_DLL 
 mitab_c_get_field_count( mitab_handle handle )
 {
-    IMapInfoFile	*poFile = (IMapInfoFile *) handle;
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
     OGRFeatureDefn      *poDefn;
 
     if (poFile && (poDefn = poFile->GetLayerDefn()) != NULL)
@@ -1068,7 +1071,7 @@ mitab_c_get_field_count( mitab_handle handle )
 int MITAB_DLL 
 mitab_c_get_field_type( mitab_handle handle, int field )
 {
-    IMapInfoFile	*poFile = (IMapInfoFile *) handle;
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
 
     if (poFile)
         return poFile->GetNativeFieldType(field);
@@ -1093,7 +1096,7 @@ mitab_c_get_field_type( mitab_handle handle, int field )
 const char MITAB_DLL *
 mitab_c_get_field_name( mitab_handle handle, int field )
 {
-    IMapInfoFile	*poFile = (IMapInfoFile *) handle;
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
     OGRFeatureDefn      *poDefn;
     OGRFieldDefn        *poFDefn;
 
@@ -1131,7 +1134,7 @@ mitab_c_get_field_name( mitab_handle handle, int field )
 const char MITAB_DLL *
 mitab_c_get_field_as_string( mitab_feature feature, int field )
 {
-    TABFeature		*poFeature = (TABFeature *) feature;
+    TABFeature          *poFeature = (TABFeature *) feature;
 
     if (poFeature)
         return poFeature->GetFieldAsString(field);
@@ -1154,7 +1157,7 @@ mitab_c_get_field_as_string( mitab_feature feature, int field )
 static int _mitab_c_get_feature_info( mitab_feature feature, int what_info, 
                                       int *part, int *point, double *vertex )
 {
-    TABFeature	*poFeature = (TABFeature *) feature;
+    TABFeature  *poFeature = (TABFeature *) feature;
     OGRGeometry *poGeom = NULL;
 
     if( poFeature->GetFeatureClass() == TABFC_Polyline )

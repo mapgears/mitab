@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.8 2000-10-03 20:43:36 daniel Exp $
+ * $Id: mitab_capi.h,v 1.9 2001-01-22 16:03:59 warmerda Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.8  2000-10-03 20:43:36  daniel
+ * Revision 1.9  2001-01-22 16:03:59  warmerda
+ * expanded tabs
+ *
+ * Revision 1.8  2000/10/03 20:43:36  daniel
  * Added support for writing arcs,ellipses and rectangles in C API
  *
  * Revision 1.7  2000/04/21 12:53:41  daniel
@@ -80,24 +83,24 @@ typedef void * mitab_feature;
 
 /* feature type values */
 #define TABFC_NoGeom    0
-#define TABFC_Point	1
+#define TABFC_Point     1
 #define TABFC_FontPoint 2
 #define TABFC_CustomPoint 3
-#define TABFC_Text	4
-#define TABFC_Polyline	5
+#define TABFC_Text      4
+#define TABFC_Polyline  5
 #define TABFC_Arc       6
 #define TABFC_Region    7
 #define TABFC_Rectangle 8
 #define TABFC_Ellipse   9
 
 /* field types */
-#define TABFT_Char	1
-#define TABFT_Integer	2
-#define TABFT_SmallInt	3
-#define TABFT_Decimal	4
-#define TABFT_Float	5
-#define TABFT_Date	6
-#define TABFT_Logical	7
+#define TABFT_Char      1
+#define TABFT_Integer   2
+#define TABFT_SmallInt  3
+#define TABFT_Decimal   4
+#define TABFT_Float     5
+#define TABFT_Date      6
+#define TABFT_Logical   7
 
 /* text justification */
 #define TABTJ_Left      0

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.21 2000-12-15 05:38:38 daniel Exp $
+ * $Id: mitab_miffile.cpp,v 1.22 2001-01-22 16:03:58 warmerda Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.21  2000-12-15 05:38:38  daniel
+ * Revision 1.22  2001-01-22 16:03:58  warmerda
+ * expanded tabs
+ *
+ * Revision 1.21  2000/12/15 05:38:38  daniel
  * Produce Warning instead of an error when nWidth>254 in AddFieldNative()
  *
  * Revision 1.20  2000/11/14 06:15:37  daniel
@@ -291,10 +294,10 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
         else
             CPLErrorReset();
 
-	CPLFree(pszTmpFname);
-	Close();
+        CPLFree(pszTmpFname);
+        Close();
 
-	return -1;
+        return -1;
     }
 
 
@@ -314,7 +317,7 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
         else
             CPLErrorReset();
 
-	return -1;
+        return -1;
     }
 
     /*-----------------------------------------------------------------
@@ -322,8 +325,8 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
      *----------------------------------------------------------------*/
     if (m_eAccessMode == TABWrite)
     {
-	m_pszVersion = CPLStrdup("300");
-	m_pszCharset = CPLStrdup("Neutral");
+        m_pszVersion = CPLStrdup("300");
+        m_pszCharset = CPLStrdup("Neutral");
     }
 
     /* Put the MID file at the correct location, on the first feature */
@@ -338,9 +341,9 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
     }
 
     m_poMIFFile->SetTranslation(m_dfXMultiplier,m_dfYMultiplier,
-				m_dfXDisplacement, m_dfYDisplacement);
+                                m_dfXDisplacement, m_dfYDisplacement);
     m_poMIDFile->SetTranslation(m_dfXMultiplier,m_dfYMultiplier,
-				m_dfXDisplacement, m_dfYDisplacement);
+                                m_dfXDisplacement, m_dfYDisplacement);
     m_poMIFFile->SetDelimiter(m_pszDelimiter);
     m_poMIDFile->SetDelimiter(m_pszDelimiter);
 
@@ -383,7 +386,7 @@ int MIFFile::ParseMIFHeader()
     int    nColumns = 0;
     GBool  bCoordSys = FALSE;
     char  *pszTmp;
-	    
+            
     
     const char *pszLine;
     char **papszToken;
@@ -407,61 +410,61 @@ int MIFFile::ParseMIFHeader()
      * Parse header until we find the "Data" line
      *----------------------------------------------------------------*/
     while (((pszLine = m_poMIFFile->GetLine()) != NULL) && 
-	   !(EQUALN(pszLine,"Data",4)))
+           !(EQUALN(pszLine,"Data",4)))
     {
         while(pszLine && *pszLine == ' ')
             pszLine++;  // skip leading spaces
 
-	if (EQUALN(pszLine,"VERSION",7))
-	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
-	    bColumns = FALSE; bCoordSys = FALSE;
-	    if (CSLCount(papszToken)  == 2)
-	      m_pszVersion = CPLStrdup(papszToken[1]);
-
-	    CSLDestroy(papszToken);
-	
-	}
-	else if (EQUALN(pszLine,"CHARSET",7))
-	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
-	     bColumns = FALSE; bCoordSys = FALSE;
-	  
-	    if (CSLCount(papszToken)  == 2)
-	      m_pszCharset = CPLStrdup(papszToken[1]);
-
-	    CSLDestroy(papszToken);
-	
-	}
-	else if (EQUALN(pszLine,"DELIMITER",9))
-	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
-	     bColumns = FALSE; bCoordSys = FALSE;
-	  
-	   if (CSLCount(papszToken)  == 2)
-	   {
-	       CPLFree(m_pszDelimiter);
-	       m_pszDelimiter = CPLStrdup(papszToken[1]);    
-	   }
-	  CSLDestroy(papszToken);
-	
-	}
-	else if (EQUALN(pszLine,"UNIQUE",6))
-	{
+        if (EQUALN(pszLine,"VERSION",7))
+        {
+            papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
             bColumns = FALSE; bCoordSys = FALSE;
-	  
+            if (CSLCount(papszToken)  == 2)
+              m_pszVersion = CPLStrdup(papszToken[1]);
+
+            CSLDestroy(papszToken);
+        
+        }
+        else if (EQUALN(pszLine,"CHARSET",7))
+        {
+            papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
+             bColumns = FALSE; bCoordSys = FALSE;
+          
+            if (CSLCount(papszToken)  == 2)
+              m_pszCharset = CPLStrdup(papszToken[1]);
+
+            CSLDestroy(papszToken);
+        
+        }
+        else if (EQUALN(pszLine,"DELIMITER",9))
+        {
+            papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
+             bColumns = FALSE; bCoordSys = FALSE;
+          
+           if (CSLCount(papszToken)  == 2)
+           {
+               CPLFree(m_pszDelimiter);
+               m_pszDelimiter = CPLStrdup(papszToken[1]);    
+           }
+          CSLDestroy(papszToken);
+        
+        }
+        else if (EQUALN(pszLine,"UNIQUE",6))
+        {
+            bColumns = FALSE; bCoordSys = FALSE;
+          
             m_pszUnique = CPLStrdup(pszLine + 6);
         }
-	else if (EQUALN(pszLine,"INDEX",5))
-	{
-            bColumns = FALSE; bCoordSys = FALSE;
-	  
-            m_pszIndex = CPLStrdup(pszLine + 5);
-	}
-	else if (EQUALN(pszLine,"COORDSYS",8) )
+        else if (EQUALN(pszLine,"INDEX",5))
         {
-	    bCoordSys = TRUE;
-	    m_pszCoordSys = CPLStrdup(pszLine + 9);
+            bColumns = FALSE; bCoordSys = FALSE;
+          
+            m_pszIndex = CPLStrdup(pszLine + 5);
+        }
+        else if (EQUALN(pszLine,"COORDSYS",8) )
+        {
+            bCoordSys = TRUE;
+            m_pszCoordSys = CPLStrdup(pszLine + 9);
 
             // Extract bounds if present
             char  **papszFields;
@@ -477,75 +480,75 @@ int MIFFile::ParseMIFHeader()
                 m_bBoundsSet = TRUE;
             }
         }
-	else if (EQUALN(pszLine,"TRANSFORM",9))
-	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," ,\t",TRUE,FALSE); 
+        else if (EQUALN(pszLine,"TRANSFORM",9))
+        {
+            papszToken = CSLTokenizeStringComplex(pszLine," ,\t",TRUE,FALSE); 
             bColumns = FALSE; bCoordSys = FALSE;
-	  
-	    if (CSLCount(papszToken) == 5)
-	    {
-		m_dfXMultiplier   = atof(papszToken[1]);
-		m_dfYMultiplier   = atof(papszToken[2]);
-		m_dfXDisplacement = atof(papszToken[3]);
-		m_dfYDisplacement = atof(papszToken[4]);
-		
-		if (m_dfXMultiplier == 0.0)
-		  m_dfXMultiplier = 1.0;
-		if (m_dfYMultiplier == 0.0)
-		  m_dfYMultiplier = 1.0;
-	    }
-	    CSLDestroy(papszToken);
-	}
-	else if (EQUALN(pszLine,"COLUMNS",7))
-	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
-	    bCoordSys = FALSE;
-	    bColumns = TRUE;
-	    if (CSLCount(papszToken) == 2)
-	    {
-		nColumns = atoi(papszToken[1]);
-		m_nAttribut = nColumns;
-	    }
-	    else
-	    {
-		bColumns = FALSE;
-		m_nAttribut = 0;
-	    }
-	    CSLDestroy(papszToken);
-	}
-	else if (bColumns == TRUE && nColumns >0)
-	{
-	    if (nColumns == 0)
-	    {
-		// Permit to 0 columns
-		bColumns = FALSE;
-	    }
-	    else if (AddFields(pszLine) == 0)
-	    {
-		nColumns--;
-		if (nColumns == 0)
-		  bColumns = FALSE;
-	    }
-	    else
-	    {
-		bColumns = FALSE;
-	    }
-	}
-	else if (bCoordSys == TRUE)
-	{
-	    pszTmp = m_pszCoordSys;
-	    m_pszCoordSys = CPLStrdup(CPLSPrintf("%s %s",m_pszCoordSys,
-						 pszLine));
-	    CPLFree(pszTmp);
-	    //printf("Reading CoordSys\n");
-	    // Reading CoordSys
-	}
+          
+            if (CSLCount(papszToken) == 5)
+            {
+                m_dfXMultiplier   = atof(papszToken[1]);
+                m_dfYMultiplier   = atof(papszToken[2]);
+                m_dfXDisplacement = atof(papszToken[3]);
+                m_dfYDisplacement = atof(papszToken[4]);
+                
+                if (m_dfXMultiplier == 0.0)
+                  m_dfXMultiplier = 1.0;
+                if (m_dfYMultiplier == 0.0)
+                  m_dfYMultiplier = 1.0;
+            }
+            CSLDestroy(papszToken);
+        }
+        else if (EQUALN(pszLine,"COLUMNS",7))
+        {
+            papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
+            bCoordSys = FALSE;
+            bColumns = TRUE;
+            if (CSLCount(papszToken) == 2)
+            {
+                nColumns = atoi(papszToken[1]);
+                m_nAttribut = nColumns;
+            }
+            else
+            {
+                bColumns = FALSE;
+                m_nAttribut = 0;
+            }
+            CSLDestroy(papszToken);
+        }
+        else if (bColumns == TRUE && nColumns >0)
+        {
+            if (nColumns == 0)
+            {
+                // Permit to 0 columns
+                bColumns = FALSE;
+            }
+            else if (AddFields(pszLine) == 0)
+            {
+                nColumns--;
+                if (nColumns == 0)
+                  bColumns = FALSE;
+            }
+            else
+            {
+                bColumns = FALSE;
+            }
+        }
+        else if (bCoordSys == TRUE)
+        {
+            pszTmp = m_pszCoordSys;
+            m_pszCoordSys = CPLStrdup(CPLSPrintf("%s %s",m_pszCoordSys,
+                                                 pszLine));
+            CPLFree(pszTmp);
+            //printf("Reading CoordSys\n");
+            // Reading CoordSys
+        }
 
     }
     
     if (EQUALN(m_poMIFFile->GetLastLine(),"DATA",4) == FALSE)
     {
-	CPLError(CE_Failure, CPLE_NotSupported,
+        CPLError(CE_Failure, CPLE_NotSupported,
                  "DATA keyword not found in %s.  File may be corrupt.",
                  m_pszFname);
         return -1;
@@ -555,7 +558,7 @@ int MIFFile::ParseMIFHeader()
      * Move pointer to first line of first object
      *----------------------------------------------------------------*/
     while (((pszLine = m_poMIFFile->GetLine()) != NULL) && 
-	   m_poMIFFile->IsValidFeature(pszLine) == FALSE)
+           m_poMIFFile->IsValidFeature(pszLine) == FALSE)
         ;
 
     /*-----------------------------------------------------------------
@@ -604,53 +607,53 @@ int  MIFFile::AddFields(const char *pszLine)
 
     if (numTok >= 3 && EQUAL(papszToken[1], "char"))
     {
-	/*-------------------------------------------------
-	 * CHAR type
-	 *------------------------------------------------*/
+        /*-------------------------------------------------
+         * CHAR type
+         *------------------------------------------------*/
         nStatus = AddFieldNative(papszToken[0], TABFChar,
                                  atoi(papszToken[2]));
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "integer"))
     {
-	/*-------------------------------------------------
-	 * INTEGER type
-	 *------------------------------------------------*/
+        /*-------------------------------------------------
+         * INTEGER type
+         *------------------------------------------------*/
         nStatus = AddFieldNative(papszToken[0], TABFInteger);
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "smallint"))
     {
-	/*-------------------------------------------------
-	 * SMALLINT type
-	 *------------------------------------------------*/
+        /*-------------------------------------------------
+         * SMALLINT type
+         *------------------------------------------------*/
         nStatus = AddFieldNative(papszToken[0], TABFSmallInt);
     }
     else if (numTok >= 4 && EQUAL(papszToken[1], "decimal"))
     {
-	/*-------------------------------------------------
-	 * DECIMAL type
-	 *------------------------------------------------*/
+        /*-------------------------------------------------
+         * DECIMAL type
+         *------------------------------------------------*/
         nStatus = AddFieldNative(papszToken[0], TABFDecimal,
                                  atoi(papszToken[2]), atoi(papszToken[3]));
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "float"))
     {
-	/*-------------------------------------------------
-	 * FLOAT type
-	 *------------------------------------------------*/
+        /*-------------------------------------------------
+         * FLOAT type
+         *------------------------------------------------*/
         nStatus = AddFieldNative(papszToken[0], TABFFloat);
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "date"))
     {
-	/*-------------------------------------------------
-	 * DATE type (returned as a string: "DD/MM/YYYY")
-	 *------------------------------------------------*/
+        /*-------------------------------------------------
+         * DATE type (returned as a string: "DD/MM/YYYY")
+         *------------------------------------------------*/
         nStatus = AddFieldNative(papszToken[0], TABFDate);
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "logical"))
     {
-	/*-------------------------------------------------
-	 * LOGICAL type (value "T" or "F")
-	 *------------------------------------------------*/
+        /*-------------------------------------------------
+         * LOGICAL type (value "T" or "F")
+         *------------------------------------------------*/
         nStatus = AddFieldNative(papszToken[0], TABFLogical);
     }
     else 
@@ -661,9 +664,9 @@ int  MIFFile::AddFields(const char *pszLine)
 
     if (nStatus != 0)
     {
-	CPLError(CE_Failure, CPLE_FileIO,
-		 "Failed to parse field definition in file %s", m_pszFname);
-	return -1;
+        CPLError(CE_Failure, CPLE_FileIO,
+                 "Failed to parse field definition in file %s", m_pszFname);
+        return -1;
     }
     
     return 0;
@@ -680,12 +683,12 @@ int MIFFile::GetFeatureCount (int bForce)
         return OGRLayer::GetFeatureCount( bForce );
     else
     {
-	if (bForce == TRUE)
-	    PreParseFile();
+        if (bForce == TRUE)
+            PreParseFile();
 
-	if (m_bPreParsed)
+        if (m_bPreParsed)
             return m_nFeatureCount;
-	else
+        else
             return -1;
     }
 }
@@ -703,12 +706,12 @@ void MIFFile::ResetReading()
 
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
       if (EQUALN(pszLine,"DATA",4))
-	break;
+        break;
 
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
     {
-	if (m_poMIFFile->IsValidFeature(pszLine))
-	  break;
+        if (m_poMIFFile->IsValidFeature(pszLine))
+          break;
     }
 
     m_poMIDFile->Rewind();
@@ -737,83 +740,83 @@ void MIFFile::PreParseFile()
 
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
       if (EQUALN(pszLine,"DATA",4))
-	break;
+        break;
 
     m_nPoints = m_nLines = m_nRegions = m_nTexts = 0;
 
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
     {
-	if (m_poMIFFile->IsValidFeature(pszLine))
-	{
-	    bPLine = FALSE;
-	    bText = FALSE;
-	    m_nFeatureCount++;
-	}
+        if (m_poMIFFile->IsValidFeature(pszLine))
+        {
+            bPLine = FALSE;
+            bText = FALSE;
+            m_nFeatureCount++;
+        }
 
         CSLDestroy(papszToken);
-	papszToken = CSLTokenizeString(pszLine);
+        papszToken = CSLTokenizeString(pszLine);
 
-	if (EQUALN(pszLine,"POINT",5))
-	{
+        if (EQUALN(pszLine,"POINT",5))
+        {
             m_nPoints++;
-	    if (CSLCount(papszToken) == 3)
-	    {
-		UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[1])),
-			     m_poMIFFile->GetYTrans(atof(papszToken[2])));
-	    }
-	      
-	}
-	else if (EQUALN(pszLine,"LINE",4) ||
-		 EQUALN(pszLine,"RECT",4) ||
-		 EQUALN(pszLine,"ROUNDRECT",9) ||
-		 EQUALN(pszLine,"ARC",3) ||
-		 EQUALN(pszLine,"ELLIPSE",7))
-	{
-	    if (CSLCount(papszToken) == 5)
-	    {
+            if (CSLCount(papszToken) == 3)
+            {
+                UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[1])),
+                             m_poMIFFile->GetYTrans(atof(papszToken[2])));
+            }
+              
+        }
+        else if (EQUALN(pszLine,"LINE",4) ||
+                 EQUALN(pszLine,"RECT",4) ||
+                 EQUALN(pszLine,"ROUNDRECT",9) ||
+                 EQUALN(pszLine,"ARC",3) ||
+                 EQUALN(pszLine,"ELLIPSE",7))
+        {
+            if (CSLCount(papszToken) == 5)
+            {
                 m_nLines++;
-		UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[1])), 
-			     m_poMIFFile->GetYTrans(atof(papszToken[2])));
-		UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[3])), 
-			     m_poMIFFile->GetYTrans(atof(papszToken[4])));
-	    }
-	}
-	else if (EQUALN(pszLine,"REGION",6) )
+                UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[1])), 
+                             m_poMIFFile->GetYTrans(atof(papszToken[2])));
+                UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[3])), 
+                             m_poMIFFile->GetYTrans(atof(papszToken[4])));
+            }
+        }
+        else if (EQUALN(pszLine,"REGION",6) )
         {
             m_nRegions++;
-	    bPLine = TRUE;
+            bPLine = TRUE;
         }
         else if( EQUALN(pszLine,"PLINE",5))
-	{
+        {
             m_nLines++;
-	    bPLine = TRUE;
-	}
-	else if (EQUALN(pszLine,"TEXT",4)) 
-	{
+            bPLine = TRUE;
+        }
+        else if (EQUALN(pszLine,"TEXT",4)) 
+        {
             m_nTexts++;
-	    bText = TRUE;
-	}
-	else if (bPLine == TRUE)
-	{
-	    if (CSLCount(papszToken) == 2 &&
+            bText = TRUE;
+        }
+        else if (bPLine == TRUE)
+        {
+            if (CSLCount(papszToken) == 2 &&
                 strchr("-.0123456789", papszToken[0][0]) != NULL)
-	    {
-		UpdateBounds( m_poMIFFile->GetXTrans(atof(papszToken[0])),
-			      m_poMIFFile->GetYTrans(atof(papszToken[1])));
-	    }
-	}
-	else if (bText == TRUE)
-	{
-	   if (CSLCount(papszToken) == 4 &&
+            {
+                UpdateBounds( m_poMIFFile->GetXTrans(atof(papszToken[0])),
+                              m_poMIFFile->GetYTrans(atof(papszToken[1])));
+            }
+        }
+        else if (bText == TRUE)
+        {
+           if (CSLCount(papszToken) == 4 &&
                 strchr("-.0123456789", papszToken[0][0]) != NULL)
-	    {
-		UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[0])),
-			     m_poMIFFile->GetYTrans(atof(papszToken[1])));
-		UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[2])),
-			     m_poMIFFile->GetYTrans(atof(papszToken[3])));
-	    } 
-	}
-	
+            {
+                UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[0])),
+                             m_poMIFFile->GetYTrans(atof(papszToken[1])));
+                UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[2])),
+                             m_poMIFFile->GetYTrans(atof(papszToken[3])));
+            } 
+        }
+        
       }
 
     CSLDestroy(papszToken);
@@ -822,12 +825,12 @@ void MIFFile::PreParseFile()
 
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
       if (EQUALN(pszLine,"DATA",4))
-	break;
+        break;
 
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
     {
-	if (m_poMIFFile->IsValidFeature(pszLine))
-	  break;
+        if (m_poMIFFile->IsValidFeature(pszLine))
+          break;
     }
 
     m_poMIDFile->Rewind();
@@ -858,10 +861,10 @@ int MIFFile::WriteMIFHeader()
 
     if (m_poDefn==NULL || m_poDefn->GetFieldCount() == 0)
     {
-	CPLError(CE_Failure, CPLE_NotSupported,
+        CPLError(CE_Failure, CPLE_NotSupported,
                  "File %s must contain at least 1 attribute field.",
                  m_pszFname);
-	return -1;
+        return -1;
     }
 
     /*-----------------------------------------------------------------
@@ -920,7 +923,7 @@ int MIFFile::WriteMIFHeader()
     CPLAssert(m_paeFieldType);
 
     m_poMIFFile->WriteLine("Columns %d\n", m_poDefn->GetFieldCount());
-	
+        
     for(iField=0; iField<m_poDefn->GetFieldCount(); iField++)
     {
         OGRFieldDefn *poFieldDefn;
@@ -1079,7 +1082,7 @@ int MIFFile::GotoFeature(int nFeatureId)
 
     if (nFeatureId == m_nCurFeatureId) // CorrectPosition
     {
-	return 0;
+        return 0;
     }
     else
     {
@@ -1088,13 +1091,13 @@ int MIFFile::GotoFeature(int nFeatureId)
 
         while(m_nCurFeatureId < nFeatureId)
         {
-	    if (NextFeature() == FALSE)
-	      return -1;
-	}
+            if (NextFeature() == FALSE)
+              return -1;
+        }
 
         CPLAssert(m_nCurFeatureId == nFeatureId);
 
-	return 0;
+        return 0;
     }
 }
 
@@ -1103,12 +1106,12 @@ GBool MIFFile::NextFeature()
     const char *pszLine;
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
     {
-	if (m_poMIFFile->IsValidFeature(pszLine))
-	{
-	    m_poMIDFile->GetLine();
+        if (m_poMIFFile->IsValidFeature(pszLine))
+        {
+            m_poMIDFile->GetLine();
             m_nCurFeatureId++;
-	    return TRUE;
-	}
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -1167,17 +1170,17 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
         delete m_poCurFeature;
         m_poCurFeature = NULL;
 
-	if (EQUALN(pszLine,"NONE",4))
-	{
-	    m_poCurFeature = new TABFeature(m_poDefn);
-	}
-	else if (EQUALN(pszLine,"POINT",5))
-	{
-	    // Special case, we need to know two lines to decide the type
+        if (EQUALN(pszLine,"NONE",4))
+        {
+            m_poCurFeature = new TABFeature(m_poDefn);
+        }
+        else if (EQUALN(pszLine,"POINT",5))
+        {
+            // Special case, we need to know two lines to decide the type
             char **papszToken;
-	    papszToken = CSLTokenizeString(pszLine);
-	    
-	    if (CSLCount(papszToken) !=3)
+            papszToken = CSLTokenizeString(pszLine);
+            
+            if (CSLCount(papszToken) !=3)
             {
                 CSLDestroy(papszToken);
                 CPLError(CE_Failure, CPLE_NotSupported,
@@ -1185,38 +1188,38 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
                          pszLine);
                 return NULL;
             }
-	    
-	    m_poMIFFile->SaveLine(pszLine);
+            
+            m_poMIFFile->SaveLine(pszLine);
 
-	    if ((pszLine = m_poMIFFile->GetLine()) != NULL)
-	    {
+            if ((pszLine = m_poMIFFile->GetLine()) != NULL)
+            {
                 CSLDestroy(papszToken);
-		papszToken = CSLTokenizeStringComplex(pszLine," ,()\t",
-						      TRUE,FALSE);
-		if (CSLCount(papszToken)> 0 &&EQUALN(papszToken[0],"SYMBOL",6))
-		{
-		    switch (CSLCount(papszToken))
-		    {
-		      case 4:
-			m_poCurFeature = new TABPoint(m_poDefn);
-			break;
-		      case 7:
-			m_poCurFeature = new TABFontPoint(m_poDefn);
-			break;
-		      case 5:
-			m_poCurFeature = new TABCustomPoint(m_poDefn);
-			break;
-		      default:
+                papszToken = CSLTokenizeStringComplex(pszLine," ,()\t",
+                                                      TRUE,FALSE);
+                if (CSLCount(papszToken)> 0 &&EQUALN(papszToken[0],"SYMBOL",6))
+                {
+                    switch (CSLCount(papszToken))
+                    {
+                      case 4:
+                        m_poCurFeature = new TABPoint(m_poDefn);
+                        break;
+                      case 7:
+                        m_poCurFeature = new TABFontPoint(m_poDefn);
+                        break;
+                      case 5:
+                        m_poCurFeature = new TABCustomPoint(m_poDefn);
+                        break;
+                      default:
                         CSLDestroy(papszToken);
                         CPLError(CE_Failure, CPLE_NotSupported,
                                  "GetFeatureRef() failed: invalid symbol "
                                  "line: '%s'", pszLine);
-			return NULL;
-			break;
-		    }
+                        return NULL;
+                        break;
+                    }
 
                 }
-	    }
+            }
             CSLDestroy(papszToken);
 
             if (m_poCurFeature == NULL)
@@ -1224,43 +1227,43 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
                 // No symbol clause... default to TABPoint
                 m_poCurFeature = new TABPoint(m_poDefn);
             }
-	}
-	else if (EQUALN(pszLine,"LINE",4) ||
-		 EQUALN(pszLine,"PLINE",5))
-	{
-	    m_poCurFeature = new TABPolyline(m_poDefn);
-	}
-	else if (EQUALN(pszLine,"REGION",6))
-	{
-	    m_poCurFeature = new TABRegion(m_poDefn);
-	}  
-	else if (EQUALN(pszLine,"ARC",3))
-	{ 
-	    m_poCurFeature = new TABArc(m_poDefn);
-	}
-	else if (EQUALN(pszLine,"TEXT",4))
-	{
-	    m_poCurFeature = new TABText(m_poDefn);
-	}
-	else if (EQUALN(pszLine,"RECT",4) ||
-		 EQUALN(pszLine,"ROUNDRECT",9))
-	{
-	    m_poCurFeature = new TABRectangle(m_poDefn);
-       	}
-	else if (EQUALN(pszLine,"ELLIPSE",7))
-	{
-	    m_poCurFeature = new TABEllipse(m_poDefn);       
-	}
-	else
-	{
-	    if (!EQUAL(pszLine,""))
-	       CPLError(CE_Failure, CPLE_NotSupported,
+        }
+        else if (EQUALN(pszLine,"LINE",4) ||
+                 EQUALN(pszLine,"PLINE",5))
+        {
+            m_poCurFeature = new TABPolyline(m_poDefn);
+        }
+        else if (EQUALN(pszLine,"REGION",6))
+        {
+            m_poCurFeature = new TABRegion(m_poDefn);
+        }  
+        else if (EQUALN(pszLine,"ARC",3))
+        { 
+            m_poCurFeature = new TABArc(m_poDefn);
+        }
+        else if (EQUALN(pszLine,"TEXT",4))
+        {
+            m_poCurFeature = new TABText(m_poDefn);
+        }
+        else if (EQUALN(pszLine,"RECT",4) ||
+                 EQUALN(pszLine,"ROUNDRECT",9))
+        {
+            m_poCurFeature = new TABRectangle(m_poDefn);
+        }
+        else if (EQUALN(pszLine,"ELLIPSE",7))
+        {
+            m_poCurFeature = new TABEllipse(m_poDefn);       
+        }
+        else
+        {
+            if (!EQUAL(pszLine,""))
+               CPLError(CE_Failure, CPLE_NotSupported,
                    "Error during reading, unknown type %s.",
-		     pszLine);
-	
-	    //m_poCurFeature = new TABDebugFeature(m_poDefn);
-	    return NULL;
-	}
+                     pszLine);
+        
+            //m_poCurFeature = new TABDebugFeature(m_poDefn);
+            return NULL;
+        }
     }
 
     CPLAssert(m_poCurFeature);
@@ -1273,9 +1276,9 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
      *----------------------------------------------------------------*/
     if (m_poCurFeature->ReadRecordFromMIDFile(m_poMIDFile) != 0)
     {
-	CPLError(CE_Failure, CPLE_NotSupported,
+        CPLError(CE_Failure, CPLE_NotSupported,
                  "Error during reading Record.");
-	
+        
         delete m_poCurFeature;
         m_poCurFeature = NULL;
         return NULL;
@@ -1287,12 +1290,12 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
      *----------------------------------------------------------------*/
     if (m_poCurFeature->ReadGeometryFromMIFFile(m_poMIFFile) != 0)
     {
-	CPLError(CE_Failure, CPLE_NotSupported,
+        CPLError(CE_Failure, CPLE_NotSupported,
                  "Error during reading Geometry.");
-	
-	delete m_poCurFeature;
-	m_poCurFeature = NULL;
-	return NULL;
+        
+        delete m_poCurFeature;
+        m_poCurFeature = NULL;
+        return NULL;
     }
    
     /* Update the Current Feature ID */
@@ -1350,8 +1353,8 @@ int MIFFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
         if (m_poDefn == NULL)
             SetFeatureDefn(poFeature->GetDefnRef(), NULL);
 
-	 WriteMIFHeader();     
-	 nFeatureId = 1;
+         WriteMIFHeader();     
+         nFeatureId = 1;
     }
     else
     {
@@ -1742,20 +1745,20 @@ void MIFFile::UpdateBounds(double dfX, double dfY)
 {
     if (m_bBoundsSet == FALSE)
     {
-	m_bBoundsSet = TRUE;
-	m_dXMin = m_dXMax = dfX;
-	m_dYMin = m_dYMax = dfY;
+        m_bBoundsSet = TRUE;
+        m_dXMin = m_dXMax = dfX;
+        m_dYMin = m_dYMax = dfY;
     }
     else
     {
-	if (dfX < m_dXMin)
-	  m_dXMin = dfX;
-	if (dfX > m_dXMax)
-	  m_dXMax = dfX;
-	if (dfY < m_dYMin)
-	  m_dYMin = dfY;
-	if (dfY > m_dYMax)
-	  m_dYMax = dfY;
+        if (dfX < m_dXMin)
+          m_dXMin = dfX;
+        if (dfX > m_dXMax)
+          m_dXMax = dfX;
+        if (dfY < m_dYMin)
+          m_dYMin = dfY;
+        if (dfY > m_dYMax)
+          m_dYMax = dfY;
     }
 
 }
@@ -1843,7 +1846,7 @@ int MIFFile::GetBounds(double &dXMin, double &dYMin,
     
     if (m_bBoundsSet == FALSE && bForce == FALSE)
     {
-	return -1;
+        return -1;
     }
     else if (m_bBoundsSet == FALSE)
     {
@@ -1852,7 +1855,7 @@ int MIFFile::GetBounds(double &dXMin, double &dYMin,
 
     if (m_bBoundsSet == FALSE)
     {
-	return -1;
+        return -1;
     }
 
     dXMin = m_dXMin;

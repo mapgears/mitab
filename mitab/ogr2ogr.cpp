@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr2ogr.cpp,v 1.1 2000-01-26 18:18:35 warmerda Exp $
+ * $Id: ogr2ogr.cpp,v 1.2 2001-01-22 16:03:59 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Simple client for translating between formats.
@@ -28,7 +28,10 @@
  ******************************************************************************
  *
  * $Log: ogr2ogr.cpp,v $
- * Revision 1.1  2000-01-26 18:18:35  warmerda
+ * Revision 1.2  2001-01-22 16:03:59  warmerda
+ * expanded tabs
+ *
+ * Revision 1.1  2000/01/26 18:18:35  warmerda
  * New
  *
  * Revision 1.2  1999/11/18 19:02:19  warmerda
@@ -50,7 +53,7 @@ static int TranslateLayer( OGRDataSource *poSrcDS,
                            OGRDataSource *poDstDS );
 
 CPL_C_START
-void	RegisterOGRTAB();
+void    RegisterOGRTAB();
 CPL_C_END
 
 /************************************************************************/

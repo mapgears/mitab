@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.36 2001-05-01 18:34:12 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.37 2001-06-25 01:04:21 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.36  2001-05-01 18:34:12  daniel
+ * Revision 1.37  2001-06-25 01:04:21  daniel
+ * StyleString fixes: include font name in text style string, and placed
+ * brush before pen in region style strings.
+ *
+ * Revision 1.36  2001/05/01 18:34:12  daniel
  * TABRegion: use outside/inside ring relationship to build geometry if
  * the information is available in the source file.
  *
@@ -2922,7 +2926,7 @@ const char *TABRegion::GetStyleString()
         char *pszPen = CPLStrdup(GetPenStyleString());
         char *pszBrush = CPLStrdup(GetBrushStyleString());
 
-        m_pszStyleString = CPLStrdup(CPLSPrintf("%s;%s", pszPen, pszBrush));
+        m_pszStyleString = CPLStrdup(CPLSPrintf("%s;%s", pszBrush, pszPen));
 
         CPLFree(pszPen);
         CPLFree(pszBrush);
@@ -3395,7 +3399,7 @@ const char *TABRectangle::GetStyleString()
         char *pszPen = CPLStrdup(GetPenStyleString());
         char *pszBrush = CPLStrdup(GetBrushStyleString());
 
-        m_pszStyleString = CPLStrdup(CPLSPrintf("%s;%s", pszPen, pszBrush));
+        m_pszStyleString = CPLStrdup(CPLSPrintf("%s;%s", pszBrush, pszPen));
 
         CPLFree(pszPen);
         CPLFree(pszBrush);
@@ -3754,7 +3758,7 @@ const char *TABEllipse::GetStyleString()
         char *pszPen = CPLStrdup(GetPenStyleString());
         char *pszBrush = CPLStrdup(GetBrushStyleString());
 
-        m_pszStyleString = CPLStrdup(CPLSPrintf("%s;%s", pszPen, pszBrush));
+        m_pszStyleString = CPLStrdup(CPLSPrintf("%s;%s", pszBrush, pszPen));
 
         CPLFree(pszPen);
         CPLFree(pszBrush);
@@ -5125,13 +5129,15 @@ const char *TABText::GetLabelStyleString()
 
     
     if (IsFontBGColorUsed())
-        pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%f,c:#%6.6x,b:#%6.6x,p:%d)",
+        pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%f,c:#%6.6x,b:#%6.6x,p:%d,f:\"%s\")",
                             GetTextString(),GetTextAngle(), GetTextBoxHeight(),
-                            GetFontFGColor(),GetFontBGColor(),nJustification);
+                            GetFontFGColor(),GetFontBGColor(),nJustification,
+                            GetFontNameRef());
     else
-        pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%f,c:#%6.6x,p:%d)",
+        pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%f,c:#%6.6x,p:%d,f:\"%s\")",
                             GetTextString(),GetTextAngle(), GetTextBoxHeight(),
-                            GetFontFGColor(),nJustification);
+                            GetFontFGColor(),nJustification,
+                            GetFontNameRef());
      
     return pszStyle;
     

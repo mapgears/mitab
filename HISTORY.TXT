@@ -14,8 +14,8 @@ CHANGES - Current Version:
 - Added IsInteriorRing() function in the TABRegion class to validate if a ring 
   in a polygon is an external or an internal ring. The function return true if 
   the specified ring is an interior ring. The function 
-  mitab_c_region_isinteriorring() in mitab_capi.c have been created too to 
-  call IsInteriorRing() if the feature is a region.
+  mitab_c_is_interior_ring() in mitab_capi.c have been created too to  call 
+  IsInteriorRing() if the feature is a region.
 
 
 Version 1.2.1 - (2002-05-08)
@@ -439,5 +439,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.90 2002-06-17 15:00:30 julien Exp $
+$Id: HISTORY.TXT,v 1.91 2002-06-18 14:31:07 julien Exp $
 ------------

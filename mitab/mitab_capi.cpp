@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.26 2002-06-17 15:00:30 julien Exp $
+ * $Id: mitab_capi.cpp,v 1.27 2002-06-18 14:31:07 julien Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.26  2002-06-17 15:00:30  julien
+ * Revision 1.27  2002-06-18 14:31:07  julien
+ * Change a function name to be consistent with other function in mitab_capi
+ * (mitab_c_region_isinteriorring become mitab_c_is_interior_ring)
+ *
+ * Revision 1.26  2002/06/17 15:00:30  julien
  * Add IsInteriorRing() function in TABRegion to validate if a ring is internal
  *
  * Revision 1.25  2002/05/21 15:28:49  daniel
@@ -1781,7 +1785,7 @@ mitab_c_get_parts( mitab_feature feature )
  *         a region the return value will be false.
  */
 int MITAB_DLL MITAB_STDCALL 
-mitab_c_region_isinteriorring( mitab_feature feature, int requestedringindex )
+mitab_c_is_interior_ring( mitab_feature feature, int requestedringindex )
 {
     TABFeature  *poFeature = (TABFeature *) feature;
 

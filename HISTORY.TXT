@@ -22,6 +22,8 @@ CHANGES - Current Version:
  - Fixed bug parsing ellipsoid out of CoordSys strings for coordinate
    systems with datum 999 or 9999. NFW
 
+ - Implement DeleteDataSource() method on the driver object. NFW
+
 
 Version 1.2.3 - (2002-10-15)
 ----------------------------
@@ -502,5 +504,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.106 2003-01-09 17:33:26 warmerda Exp $
+$Id: HISTORY.TXT,v 1.107 2003-03-20 16:08:00 warmerda Exp $
 ------------

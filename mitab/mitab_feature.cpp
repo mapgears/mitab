@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.10 1999-10-18 15:43:03 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.11 1999-10-19 06:13:38 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.10  1999-10-18 15:43:03  daniel
+ * Revision 1.11  1999-10-19 06:13:38  daniel
+ * Removed obsolete code and comments related to angles vs flipped axis
+ *
+ * Revision 1.10  1999/10/18 15:43:03  daniel
  * Several fixes/improvements mostly for writing of Arc/Ellipses/Text/Symbols
  *
  * Revision 1.9  1999/10/06 15:17:59  daniel
@@ -714,16 +717,11 @@ int TABFontPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         poObjBlock->ReadByte();         // ???
 
         /*-------------------------------------------------------------
-         * Symbol Angle
-         * Since the angles are specified for integer coordinates, and
-         * that these coordinates have the X axis reversed, we have to
-         * adjust the angle value for the change in the X axis
-         * direction.
+         * Symbol Angle, in thenths of degree.
+         * Contrary to arc start/end angles, no conversion based on 
+         * origin quadrant is required here
          *------------------------------------------------------------*/
         m_dAngle       = poObjBlock->ReadInt16()/10.0;
-        // __TODO__ For some reason, this adjustment does not seem to
-        // be necessary here?!?!!
-        //m_dAngle = (m_dAngle<180.0) ? (180.0-m_dAngle): (540.0-m_dAngle);
 
         poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
 
@@ -810,16 +808,11 @@ int TABFontPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
     poObjBlock->WriteByte( 0 );
     
     /*-------------------------------------------------------------
-     * Symbol Angle, (written in thenths of degrees)
-     * Since the angles are specified for integer coordinates, and
-     * that these coordinates have the X axis reversed, we have to
-     * adjust the angle value for the change in the X axis
-     * direction.
+     * Symbol Angle, in thenths of degree.
+     * Contrary to arc start/end angles, no conversion based on 
+     * origin quadrant is required here
      *------------------------------------------------------------*/
-    // __TODO__ For some reason, this adjustment does not seem to
-    // be necessary here?!?!!
-    //m_dAngle = (m_dAngle<180.0) ? (180.0-m_dAngle): (540.0-m_dAngle);
-    poObjBlock->WriteInt16((int)(m_dAngle * 10));
+   poObjBlock->WriteInt16((int)(m_dAngle * 10));
 
     poObjBlock->WriteIntCoord(nX, nY);
 
@@ -1852,9 +1845,6 @@ int TABRegion::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         /*-------------------------------------------------------------
          * Create an OGRPolygon with one OGRLinearRing geometry for
          * each coordinates section.  The first ring is the outer ring.
-         * __TODO__ MapInfo can probably specify islands inside holes,
-         *          but there is no such thing the way OGR works... 
-         *          we'll have to look into that later...
          *------------------------------------------------------------*/
         poGeometry = poPolygon = new OGRPolygon();
 
@@ -2881,15 +2871,17 @@ int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         /*-------------------------------------------------------------
          * Start/End angles
          * Since the angles are specified for integer coordinates, and
-         * that these coordinates have the X axis reversed, we have to
+         * that these coordinates can have the X axis reversed, we have to
          * adjust the angle values for the change in the X axis
          * direction.
          *
-         * __TODO__ This should be necessary only when X axis is flipped.
-         *          Also: check order of start/end values ???
+         * This should be necessary only when X axis is flipped.
+         * __TODO__ Why is order of start/end values reversed as well???
          *------------------------------------------------------------*/
-        if (poMapFile->GetHeaderBlock()->m_nReflectXAxisCoord)
+        if (poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==2 ||
+            poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3)
         {
+            // X axis direction is flipped... adjust angle
             m_dEndAngle = poObjBlock->ReadInt16()/10.0;
             m_dStartAngle = poObjBlock->ReadInt16()/10.0;
 
@@ -2902,6 +2894,16 @@ int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         {
             m_dStartAngle = poObjBlock->ReadInt16()/10.0;
             m_dEndAngle = poObjBlock->ReadInt16()/10.0;
+        }
+
+        if (poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
+            poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==4)
+        {
+            // Y axis direction is flipped... this reverses angle direction
+            // Unfortunately we never found any file that contains this case,
+            // but this should be the behavior to expect!!!
+            m_dStartAngle = 360.0 - m_dStartAngle;
+            m_dEndAngle = 360.0 - m_dEndAngle;
         }
 
         // An arc is defined by its defining ellipse's MBR:
@@ -3041,34 +3043,14 @@ int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
 
     /*-------------------------------------------------------------
      * Start/End angles
-     * Since the angles are specified for integer coordinates, and
-     * that these coordinates have the X axis reversed, we have to
-     * adjust the angle values for the change in the X axis
-     * direction.
-     *
-     * __TODO__ This should be necessary only when X axis is flipped.
-     *          Also: check order of start/end values when writing.
+     * Since we ALWAYS produce files in quadrant 1 then we can
+     * ignore the special angle conversion required by flipped axis.
      *------------------------------------------------------------*/
-    if (poMapFile->GetHeaderBlock()->m_nReflectXAxisCoord)
-    {
-        double dStartAngle, dEndAngle;
+    CPLAssert(poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant == 1);
 
-        dStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
-                                             (540.0-m_dStartAngle);
-        dEndAngle   = (m_dEndAngle<=180.0) ? (180.0-m_dEndAngle):
-                                               (540.0-m_dEndAngle);
-
-        // ??? Shouldn't order be Start angle followed by end angle???
-
-        poObjBlock->WriteInt16((int)(dEndAngle*10));
-        poObjBlock->WriteInt16((int)(dStartAngle*10));
-    }
-    else
-    {
-        poObjBlock->WriteInt16((int)(m_dStartAngle*10));
-        poObjBlock->WriteInt16((int)(m_dEndAngle*10));
-    }
-
+    poObjBlock->WriteInt16((int)(m_dStartAngle*10));
+    poObjBlock->WriteInt16((int)(m_dEndAngle*10));
+    
     // An arc is defined by its defining ellipse's MBR:
     poMapFile->Coordsys2Int(m_dCenterX-m_dXRadius, m_dCenterY-m_dYRadius,
                             nXMin, nYMin);
@@ -3278,16 +3260,11 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         m_nTextAlignment = poObjBlock->ReadInt16();  // just./spacing/arrow
 
         /*-------------------------------------------------------------
-         * Text Angle
-         * Since the angles are specified for integer coordinates, and
-         * that these coordinates have the X axis reversed, we have to
-         * adjust the angle value for the change in the X axis
-         * direction.
+         * Text Angle, in thenths of degree.
+         * Contrary to arc start/end angles, no conversion based on 
+         * origin quadrant is required here
          *------------------------------------------------------------*/
         m_dAngle       = poObjBlock->ReadInt16()/10.0;
-        // __TODO__ For some reason, this adjustment does not seem to
-        // be necessary here?!?!!
-        //m_dAngle = (m_dAngle<180.0) ? (180.0-m_dAngle): (540.0-m_dAngle);
 
         m_nFontStyle = poObjBlock->ReadInt16();          // Font style
 
@@ -3485,15 +3462,9 @@ int TABText::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
 
     /*-----------------------------------------------------------------
      * Text Angle, (written in thenths of degrees)
-     * Since the angles are specified for integer coordinates, and
-     * that these coordinates have the X axis reversed, we have to
-     * adjust the angle value for the change in the X axis
-     * direction.
+     * Contrary to arc start/end angles, no conversion based on 
+     * origin quadrant is required here
      *----------------------------------------------------------------*/
-    // __TODO__ For some reason, this adjustment does not seem to
-    // be necessary here?!?!!
-    // double dAngle = (m_dAngle<180.0) ? (180.0-m_dAngle): (540.0-m_dAngle);
-
     poObjBlock->WriteInt16((int)(m_dAngle*10));
 
     poObjBlock->WriteInt16(m_nFontStyle);          // Font style/effect
@@ -3995,7 +3966,7 @@ int TABDebugFeature::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
  **********************************************************************/
 int TABDebugFeature::WriteGeometryToMAPFile(TABMAPFile * /*poMapFile*/)
 {
-    // __TODO__
+    // Nothing to do here!
 
     CPLError(CE_Failure, CPLE_NotSupported,
              "TABDebugFeature::WriteGeometryToMAPFile() not implemented.\n");

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.11 2003-01-18 20:43:31 daniel Exp $
+ * $Id: mitabc_test.c,v 1.12 2003-01-18 21:44:33 daniel Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.11  2003-01-18 20:43:31  daniel
+ * Revision 1.12  2003-01-18 21:44:33  daniel
+ * Added 'indexed' and 'unique' parameters to mitab_c_add_field().
+ *
+ * Revision 1.11  2003/01/18 20:43:31  daniel
  * Added support for writing NONE geometries via the C API
  *
  * Revision 1.10  2002/05/16 14:13:44  julien
@@ -199,15 +202,16 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
 /*      Add a text, float and integer field.                            */
 /* -------------------------------------------------------------------- */
     field_index = mitab_c_add_field( dataset, "TestInt",
-                                     TABFT_Integer, 8, 0 );
+                                     TABFT_Integer, 8, 0, 
+                                     1, 0 ); /* Indexed */
     assert( field_index == 0 );
 
     field_index = mitab_c_add_field( dataset, "TestFloat", TABFT_Float,
-                                     12, 2 );
+                                     12, 2, 0, 0 );
     assert( field_index == 1 );
 
     field_index = mitab_c_add_field( dataset, "TestString", TABFT_Char,
-                                     10, 0 );
+                                     10, 0, 0, 0 );
     assert( field_index == 2 );
 
 /* -------------------------------------------------------------------- */

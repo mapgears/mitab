@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.28 2003-01-18 20:43:31 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.29 2003-01-18 21:44:33 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.28  2003-01-18 20:43:31  daniel
+ * Revision 1.29  2003-01-18 21:44:33  daniel
+ * Added 'indexed' and 'unique' parameters to mitab_c_add_field().
+ *
+ * Revision 1.28  2003/01/18 20:43:31  daniel
  * Added support for writing NONE geometries via the C API
  *
  * Revision 1.27  2002/06/18 14:31:07  julien
@@ -383,19 +386,24 @@ mitab_c_create( const char * filename,
  *        types.
  * @param precision the number of digits after the decimal point, applies only
  *        to the decimal field type.
+ * @param indexed TRUE (1) to create an indexed field (or FALSE (0) for no 
+ *        index)
+ * @param unique for indexed fields, set this to TRUE (1) if the field values
+ *        are guaranteed to be unique, or FALSE (0) otherwise.
  * @return the 0-based index of the new field, or -1 if the field could not
  *         be created.
  */
 
 int MITAB_STDCALL
 mitab_c_add_field( mitab_handle dataset, const char *field_name,
-                   int field_type, int width, int precision )
+                   int field_type, int width, int precision, 
+                   int indexed, int unique )
 
 {
     IMapInfoFile        *poFile = (IMapInfoFile *) dataset;
 
     if( poFile->AddFieldNative( field_name, (TABFieldType) field_type,
-                                width, precision ) != -1 )
+                                width, precision, indexed, unique ) != -1 )
     {
         return poFile->GetLayerDefn()->GetFieldCount() - 1;
     }

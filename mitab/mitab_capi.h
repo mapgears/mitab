@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.20 2002-06-18 14:31:07 julien Exp $
+ * $Id: mitab_capi.h,v 1.21 2003-01-18 21:44:33 daniel Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -10,7 +10,7 @@
  * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  **********************************************************************
- * Copyright (c) 2000-2002, Frank Warmerdam
+ * Copyright (c) 2000-2003, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.20  2002-06-18 14:31:07  julien
+ * Revision 1.21  2003-01-18 21:44:33  daniel
+ * Added 'indexed' and 'unique' parameters to mitab_c_add_field().
+ *
+ * Revision 1.20  2002/06/18 14:31:07  julien
  * Change a function name to be consistent with other function in mitab_capi
  * (mitab_c_region_isinteriorring become mitab_c_is_interior_ring)
  *
@@ -177,7 +180,8 @@ mitab_handle MITAB_DLL MITAB_STDCALL mitab_c_create( const char * filename,
                                        double east, double west );
 
 int MITAB_DLL MITAB_STDCALL mitab_c_add_field( mitab_handle handle, const char * field_name,
-                                 int field_type, int width, int precision );
+                                 int field_type, int width, int precision, 
+                                 int indexed, int unique );
 
 int MITAB_DLL MITAB_STDCALL
 mitab_c_write_feature( mitab_handle handle, mitab_feature feature );

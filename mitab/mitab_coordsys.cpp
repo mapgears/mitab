@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.1 1999-11-09 22:29:38 warmerda Exp $
+ * $Id: mitab_coordsys.cpp,v 1.2 1999-11-10 02:19:05 warmerda Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.1  1999-11-09 22:29:38  warmerda
+ * Revision 1.2  1999-11-10 02:19:05  warmerda
+ * fixed up datum support when reading MIF coord sys
+ *
+ * Revision 1.1  1999/11/09 22:29:38  warmerda
  * New
  *
  **********************************************************************/
@@ -113,7 +116,7 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
 /*      Fetch the datum information.                                    */
 /* -------------------------------------------------------------------- */
     int		nDatum = 0;
-    double	dfDatumParm[8];
+    double	adfDatumParm[8];
     int		nEllipsoid;
 
     if( nProjection != 0 && CSLCount(papszNextField) > 0 )
@@ -126,20 +129,20 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
         && CSLCount(papszNextField) >= 4 )
     {
         nEllipsoid = atoi(papszFields[0]);
-        dfDatumParm[0] = atof(papszNextField[1]);
-        dfDatumParm[1] = atof(papszNextField[2]);
-        dfDatumParm[2] = atof(papszNextField[3]);
+        adfDatumParm[0] = atof(papszNextField[1]);
+        adfDatumParm[1] = atof(papszNextField[2]);
+        adfDatumParm[2] = atof(papszNextField[3]);
         papszNextField += 4;
     }
 
     if( nDatum == 9999
         && CSLCount(papszNextField) >= 3 )
     {
-        dfDatumParm[3] = atof(papszNextField[0]);
-        dfDatumParm[4] = atof(papszNextField[1]);
-        dfDatumParm[5] = atof(papszNextField[2]);
-        dfDatumParm[6] = atof(papszNextField[3]);
-        dfDatumParm[7] = atof(papszNextField[4]);
+        adfDatumParm[3] = atof(papszNextField[0]);
+        adfDatumParm[4] = atof(papszNextField[1]);
+        adfDatumParm[5] = atof(papszNextField[2]);
+        adfDatumParm[6] = atof(papszNextField[3]);
+        adfDatumParm[7] = atof(papszNextField[4]);
         papszNextField += 5;
     }
 
@@ -410,7 +413,106 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
         
     else if( EQUAL(pszMIFUnits, "mi" ) )
         poSR->SetLinearUnits( "Mile", 1609.344 );
-        
+
+/* ==================================================================== */
+/*      Establish the GeogCS                                            */
+/* ==================================================================== */
+    const char *pszGeogName = "unnamed";
+    const char *pszSpheroidName = "GRS_1980";
+    double	dfSemiMajor = 6378137.0;
+    double	dfInvFlattening = 298.257222101;
+    const char *pszPrimeM = "Greenwich";
+    double	dfPMLongToGreenwich = 0.0;
+
+/* -------------------------------------------------------------------- */
+/*      Find the datum, and collect it's parameters if possible.        */
+/* -------------------------------------------------------------------- */
+    int		iDatum;
+    
+    for( iDatum = 0; asDatumInfoList[iDatum].nMapInfoDatumID != -1; iDatum++ )
+    {
+        if( asDatumInfoList[iDatum].nMapInfoDatumID == nDatum )
+        {
+            nEllipsoid = asDatumInfoList[iDatum].nEllipsoid;
+            adfDatumParm[0] =  asDatumInfoList[iDatum].dfShiftX;
+            adfDatumParm[1] = asDatumInfoList[iDatum].dfShiftY;
+            adfDatumParm[2] = asDatumInfoList[iDatum].dfShiftZ;
+            adfDatumParm[3] = asDatumInfoList[iDatum].dfDatumParm0;
+            adfDatumParm[4] = asDatumInfoList[iDatum].dfDatumParm1;
+            adfDatumParm[5] = asDatumInfoList[iDatum].dfDatumParm2;
+            adfDatumParm[6] = asDatumInfoList[iDatum].dfDatumParm3;
+            adfDatumParm[7] = asDatumInfoList[iDatum].dfDatumParm4;
+            break;
+        }
+    }
+
+    if( asDatumInfoList[iDatum].nMapInfoDatumID == -1
+        && nDatum != 999 && nDatum != 9999 )
+    {
+        /* use WGS84 */
+        nEllipsoid = asDatumInfoList[0].nEllipsoid;
+        adfDatumParm[0] = asDatumInfoList[0].dfShiftX;
+        adfDatumParm[1] = asDatumInfoList[0].dfShiftY;
+        adfDatumParm[2] = asDatumInfoList[0].dfShiftZ;
+        adfDatumParm[3] = asDatumInfoList[0].dfDatumParm0;
+        adfDatumParm[4] = asDatumInfoList[0].dfDatumParm1;
+        adfDatumParm[5] = asDatumInfoList[0].dfDatumParm2;
+        adfDatumParm[6] = asDatumInfoList[0].dfDatumParm3;
+        adfDatumParm[7] = asDatumInfoList[0].dfDatumParm4;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      apply datum parameters.                                         */
+/* -------------------------------------------------------------------- */
+    char	szDatumName[128];
+
+    if( nDatum == 999 )
+    {
+        sprintf( szDatumName,
+                 "MIF 9999,%d,%.15g,%.15g,%.15g",
+                 nEllipsoid,
+                 adfDatumParm[0],
+                 adfDatumParm[1],
+                 adfDatumParm[2] );
+    }
+    else if( nDatum == 9999 )
+    {
+        sprintf( szDatumName,
+                 "MIF 9999,%d,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g",
+                 nEllipsoid,
+                 adfDatumParm[0],
+                 adfDatumParm[1],
+                 adfDatumParm[2],
+                 adfDatumParm[3],
+                 adfDatumParm[4],
+                 adfDatumParm[5],
+                 adfDatumParm[6],
+                 adfDatumParm[7] );
+    }
+    else 
+    {
+        sprintf( szDatumName, "MIF %d", nDatum );
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Set prime meridian for 9999 datums.                             */
+/* -------------------------------------------------------------------- */
+    if( nDatum == 9999 )
+    {
+        pszPrimeM = "non-Greenwich";
+        dfPMLongToGreenwich = adfDatumParm[7];
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Set the GeogCS                                                  */
+/* -------------------------------------------------------------------- */
+    poSR->SetGeogCS( pszGeogName, szDatumName, pszSpheroidName,
+                     dfSemiMajor, dfInvFlattening,
+                     pszPrimeM, dfPMLongToGreenwich,
+                     SRS_UA_DEGREE,
+                     atof(SRS_UA_DEGREE_CONV) );
+
+    
 #ifdef DEBUG
     char	*pszWKT;
 
@@ -612,7 +714,7 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
      * Translate Datum and Ellipsoid
      * ============================================================== */
     int		nDatum = 0;
-    double	dfDatumParm[8];
+    double	adfDatumParm[8];
     int		nEllipsoid;
     
     const char *pszWKTDatum = poSR->GetAttrValue("DATUM");
@@ -652,18 +754,18 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
         if( CSLCount(papszFields) >= 5 )
         {
             nEllipsoid = atoi(papszFields[1]);
-            dfDatumParm[0] = atof(papszFields[2]);
-            dfDatumParm[1] = atof(papszFields[3]);
-            dfDatumParm[2] = atof(papszFields[4]);
+            adfDatumParm[0] = atof(papszFields[2]);
+            adfDatumParm[1] = atof(papszFields[3]);
+            adfDatumParm[2] = atof(papszFields[4]);
         }
 
         if( CSLCount(papszFields) >= 10 )
         {
-            dfDatumParm[3] = atof(papszFields[4]);
-            dfDatumParm[4] = atof(papszFields[5]);
-            dfDatumParm[5] = atof(papszFields[6]);
-            dfDatumParm[6] = atof(papszFields[7]);
-            dfDatumParm[7] = atof(papszFields[8]);
+            adfDatumParm[3] = atof(papszFields[4]);
+            adfDatumParm[4] = atof(papszFields[5]);
+            adfDatumParm[5] = atof(papszFields[6]);
+            adfDatumParm[6] = atof(papszFields[7]);
+            adfDatumParm[7] = atof(papszFields[8]);
         }
 
         CSLDestroy( papszFields );
@@ -764,15 +866,15 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
             sprintf( szCoordSys + strlen(szCoordSys),
                      ", %d, %.15g, %.15g, %.15g",
                      nEllipsoid,
-                     dfDatumParm[0], dfDatumParm[1], dfDatumParm[2] );
+                     adfDatumParm[0], adfDatumParm[1], adfDatumParm[2] );
         }
         
         if( nDatum == 9999 )
         {
             sprintf( szCoordSys + strlen(szCoordSys),
                      ", %.15g, %.15g, %.15g, %.15g, %.15g",
-                     dfDatumParm[3], dfDatumParm[4], dfDatumParm[5],
-                     dfDatumParm[6], dfDatumParm[7] );
+                     adfDatumParm[3], adfDatumParm[4], adfDatumParm[5],
+                     adfDatumParm[6], adfDatumParm[7] );
         }
     }
 

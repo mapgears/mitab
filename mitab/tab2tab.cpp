@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.6 2000-02-28 17:13:48 daniel Exp $
+ * $Id: tab2tab.cpp,v 1.7 2000-10-03 21:46:08 daniel Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.6  2000-02-28 17:13:48  daniel
+ * Revision 1.7  2000-10-03 21:46:08  daniel
+ * Support MIF output as well, based on output filename extension, making
+ * tab2mif.cpp obsolete.
+ *
+ * Revision 1.6  2000/02/28 17:13:48  daniel
  * Support for creating TABViews, and pass complete indexed field information
  *
  * Revision 1.5  2000/01/15 22:30:45  daniel
@@ -57,8 +61,6 @@
 static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname);
 
 
-#define TAB2TAB_USAGE "Usage: tab2tab <src_filename> <dst_filename>\n"
-
 /**********************************************************************
  *                          main()
  *
@@ -72,7 +74,12 @@ int main(int argc, char *argv[])
  *--------------------------------------------------------------------*/
     if (argc<3)
     {
-        printf("%s", TAB2TAB_USAGE);
+        printf("\nTAB2TAB Conversion Program - MITAB Version %s\n\n", MITAB_VERSION);
+        printf("Usage: tab2tab <src_filename> <dst_filename>\n");
+        printf("    Converts TAB or MIF file <src_filename> to TAB or MIF format.\n");
+        printf("    The extension of <dst_filename> (.tab or .mif) defines the output format.\n\n");
+        printf("For the latest version of this program and of the library, see: \n");
+        printf("    http://pages.infinit.net/danmo/e00/index-mitab.html\n\n");
         return 1;
     }
     else
@@ -110,20 +117,34 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
     OGRFeatureDefn *poDefn = poSrcFile->GetLayerDefn();
 
     /*---------------------------------------------------------------------
-     * Find out if the file contains at least 1 unique field... if so we will
-     * create a TABView insterad of a TABFile
+     * The extension of the output filename tells us if we should create
+     * a MIF or a TAB file for output.
      *--------------------------------------------------------------------*/
-    GBool    bFoundUniqueField = FALSE;
-    for(iField=0; iField< poDefn->GetFieldCount(); iField++)
+    if (EQUAL(".mif", pszDstFname + strlen(pszDstFname)-4) ||
+        EQUAL(".mid", pszDstFname + strlen(pszDstFname)-4) )
     {
-        if (poSrcFile->IsFieldUnique(iField))
-            bFoundUniqueField = TRUE;
+        // Create a MIF file
+        poDstFile = new MIFFile;
     }
-
-    if (bFoundUniqueField)
-        poDstFile = new TABView;
     else
-        poDstFile = new TABFile;
+    {
+        /*-----------------------------------------------------------------
+         * Create a TAB dataset.
+         * Find out if the file contains at least 1 unique field... if so we
+         * will create a TABView instead of a TABFile
+         *----------------------------------------------------------------*/
+        GBool    bFoundUniqueField = FALSE;
+        for(iField=0; iField< poDefn->GetFieldCount(); iField++)
+        {
+            if (poSrcFile->IsFieldUnique(iField))
+                bFoundUniqueField = TRUE;
+        }
+
+        if (bFoundUniqueField)
+            poDstFile = new TABView;
+        else
+            poDstFile = new TABFile;
+    }
 
     /*---------------------------------------------------------------------
      * Try to open destination file

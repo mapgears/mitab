@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.48 2001-02-27 19:59:05 daniel Exp $
+ * $Id: mitab.h,v 1.49 2001-02-28 07:15:08 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.48  2001-02-27 19:59:05  daniel
+ * Revision 1.49  2001-02-28 07:15:08  daniel
+ * Added support for text label line end point
+ *
+ * Revision 1.48  2001/02/27 19:59:05  daniel
  * Enabled spatial filter in IMapInfoFile::GetNextFeature(), and avoid
  * unnecessary feature cloning in GetNextFeature() and GetFeature()
  *
@@ -1355,8 +1358,9 @@ class TABText: public TABFeature,
     double      m_dAngle;
     double      m_dHeight;
     double      m_dWidth;
-    double      m_dfLineX;
-    double      m_dfLineY;
+    double      m_dfLineEndX;
+    double      m_dfLineEndY;
+    GBool       m_bLineEndSet;
     void        UpdateTextMBR();
 
     GInt32      m_rgbForeground;
@@ -1392,6 +1396,7 @@ class TABText: public TABFeature,
     double      GetTextBoxWidth();
     GInt32      GetFontFGColor();
     GInt32      GetFontBGColor();
+    void        GetTextLineEndPoint(double &dX, double &dY);
 
     TABTextJust GetTextJustification();
     TABTextSpacing  GetTextSpacing();
@@ -1404,6 +1409,7 @@ class TABText: public TABFeature,
     void        SetTextBoxWidth(double dWidth);
     void        SetFontFGColor(GInt32 rgbColor);
     void        SetFontBGColor(GInt32 rgbColor);
+    void        SetTextLineEndPoint(double dX, double dY);
 
     void        SetTextJustification(TABTextJust eJust);
     void        SetTextSpacing(TABTextSpacing eSpacing);

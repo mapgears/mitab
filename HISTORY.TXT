@@ -4,31 +4,25 @@ MITAB Library - Revision History
 ToDo - Open Questions:
 ----------------------
 
- - Support MetaData in .TAB header
+ - API Documentation
 
- - OGRTABDataSource: Need to be able to open all files from a directory
+ - MIF output: bounds are missing in Coordsys NonEarth
+
+ - ??? Produce a Warning when bounds not set on first SetFeature()
+
+ - Support MetaData in .TAB header
 
  - Can we do anything for optimized spatial searches in TAB files?
    (i.e. See SetSpatialFilter())
 
- - API Documentation
-
  - TABView support:
      - Complete and tested only for cases in which 2 tables
        are linked with a many-to-1 relation through an integer field.  
-       Still need to support encoding index key for float fields and to 
-       test with a bigger set of TABView files.
      - The merge operation involves 3 features in memory and cloning the
        geometry... this could perhaps be optimized but would require changes
        at the lower-level in the lib.
      - What is the proper behavior when no record in RelTable for a feature
        from MainTable?  For now we leave fields unset
-
- - TABINDNode:
-     - Need to find out the way float keys are encoded and to add support
-       for them.
-
- - ??? Produce a Warning when bounds not set on first SetFeature()
 
  - What to do about m_dCoordsys2DistUnits in both read and write.
 
@@ -43,16 +37,27 @@ ToDo - Open Questions:
 
  - Will we ever want to support Table Type ACCESS?
 
+ - When regions with multiple rings are read from MIF, the inside/outside
+   ring relationship is not reconstructed.  This may cause display problems
+   when MIF files containing regions are converted to TAB: it has been 
+   reported that some regions may not be filled properly when viewed in
+   MapInfo Versions 5.0 and up when the inside/outside ring relationship
+   is not properly written.
+
 
 CHANGES - Current Version:
 --------------------------
+
+
+Version 1.0 - (2000-03-26)
+--------------------------
+
+- Changed to use same MIT/X-Consortium license as other CPL + OGR libs.
 
 - Fixed problem opening datasets with 0 features in them.
 
 - Added support for reading TAB datasets with "Table Type DBF"... only 
   type "NATIVE" was supported until now.
-
-- Changed to use same MIT/X-Consortium license as other CPL + OGR libs.
 
 - Produce only a warning when unsupported feature types encountered in the 
   .MAP file, and return a valid feature with a NONE geometry.
@@ -88,6 +93,8 @@ CHANGES - Current Version:
 
 - Support for Version 450 objects forced creation of version 500 .MAP files
   with 1024 bytes header (.MAP version 400 were produced before).
+
+- MIF format now reads and writes bounds in coordsys (used to ignore them)
 
 
 Version 0.2 - (1999-12-20)
@@ -146,5 +153,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.14 2000-03-13 06:51:33 daniel Exp $
+$Id: HISTORY.TXT,v 1.15 2000-03-27 06:00:31 daniel Exp $
 ------------

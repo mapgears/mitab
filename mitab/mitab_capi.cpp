@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.12 2001-07-02 20:03:28 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.13 2001-08-10 19:32:38 warmerda Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.12  2001-07-02 20:03:28  daniel
+ * Revision 1.13  2001-08-10 19:32:38  warmerda
+ * check reference count before deleting spatial ref
+ *
+ * Revision 1.12  2001/07/02 20:03:28  daniel
  * Added mitab_c_get_text().
  *
  * Revision 1.11  2001/06/25 01:49:47  daniel
@@ -268,7 +271,8 @@ mitab_c_create( const char * filename,
         if( poSRS != NULL )
         {
             poFile->SetSpatialRef( poSRS );
-            delete poSRS;
+            if (poSRS->Dereference() == 0)
+                delete poSRS;
         }
     }
 

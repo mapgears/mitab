@@ -19,6 +19,11 @@ CHANGES - Current Version:
   (objects with NONE geometry would have caused a crash when a spatial 
    filter was set).
 
+- Fixed a few memory leaks in mitab_miffile.cpp.  NFW.
+
+- Fixed mitab_capi.c to not delete the spatial ref unless dereferencing it
+  drops the count to 0.  NFW.
+
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -304,5 +309,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.58 2001-07-03 23:12:37 daniel Exp $
+$Id: HISTORY.TXT,v 1.59 2001-08-10 19:32:38 warmerda Exp $
 ------------

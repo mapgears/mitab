@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.33 2004-06-30 20:05:34 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.34 2004-07-07 21:51:35 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.33  2004-06-30 20:05:34  dmorissette
+ * Revision 1.34  2004-07-07 21:51:35  dmorissette
+ * Added mitab_c_get_mif_coordsys_vb() (patch from BVT)
+ *
+ * Revision 1.33  2004/06/30 20:05:34  dmorissette
  * Added mitab_c_load_coordsys_table() to C API (bug 469)
  *
  * Revision 1.32  2003/08/12 20:58:27  dmorissette
@@ -2408,6 +2411,29 @@ mitab_c_get_extended_mif_coordsys( mitab_handle dataset)
 }
 
 #endif // __TO_BE_REVIEWED__
+
+/************************************************************************/
+/*                    mitab_c_get_extended_mif_coordsys_vb()            */
+/************************************************************************/
+
+/**
+ * Get the MIF CoordSys string from an opened dataset including the 
+ * affine transformation parameters if available.
+ *
+ * @param dataset the mitab_handle of the source dataset.
+ * @return a string with the dataset coordinate system definition in MIF
+ *    CoordSys format.  Returns NULL if the information could not be read.
+ *    The returned string is valid only until the next call to 
+ *    mitab_c_get_mif_coordsys().
+ */
+
+int MITAB_STDCALL
+mitab_c_get_extended_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l)
+{
+        strncpy( coordsys, mitab_c_get_extended_mif_coordsys(dataset), l );
+        return strlen(coordsys);
+}
+
 
 /************************************************************************/
 /*                        mitab_c_get_mif_coordsys_vb()                 */

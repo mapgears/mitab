@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.2 1999-07-14 05:20:42 warmerda Exp $
+ * $Id: mitab_tabfile.cpp,v 1.3 1999-09-01 17:50:28 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.2  1999-07-14 05:20:42  warmerda
+ * Revision 1.3  1999-09-01 17:50:28  daniel
+ * Added GetNativeFieldType() and GetFeatureDefn()
+ *
+ * Revision 1.2  1999/07/14 05:20:42  warmerda
  * added first pass of projection creation
  *
  * Revision 1.1  1999/07/12 04:18:25  daniel
@@ -626,6 +629,39 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
 
 
     return m_poCurFeature;
+}
+
+/**********************************************************************
+ *                   TABFile::GetFeatureDefn()
+ *
+ * Returns a reference to the OGRFeatureDefn that will be used to create
+ * features in this dataset.
+ *
+ * Returns a reference to an object that is maintained by this TABFile
+ * object (and thus should not be modified or freed by the caller) or
+ * NULL if the OGRFeatureDefn has not been initialized yet (i.e. no file
+ * opened yet)
+ **********************************************************************/
+OGRFeatureDefn *TABFile::GetFeatureDefn()
+{
+    return m_poDefn;
+}
+
+/**********************************************************************
+ *                   TABFile::GetNativeFieldType()
+ *
+ * Returns the native MapInfo field type for the specified field.
+ *
+ * Returns TABFUnknown if file is not opened, or if specified field index is
+ * invalid.
+ **********************************************************************/
+TABFieldType TABFile::GetNativeFieldType(int nFieldId)
+{
+    if (m_poDATFile)
+    {
+        return m_poDATFile->GetFieldType(nFieldId);
+    }
+    return TABFUnknown;
 }
 
 /**********************************************************************

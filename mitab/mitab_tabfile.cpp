@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.44 2001-09-14 03:23:55 warmerda Exp $
+ * $Id: mitab_tabfile.cpp,v 1.45 2001-09-14 19:14:43 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.44  2001-09-14 03:23:55  warmerda
+ * Revision 1.45  2001-09-14 19:14:43  warmerda
+ * added attribute query support
+ *
+ * Revision 1.44  2001/09/14 03:23:55  warmerda
  * Substantial upgrade to support spatial queries using spatial indexes
  *
  * Revision 1.43  2001/03/15 03:57:51  daniel
@@ -148,11 +151,10 @@ TABFile::~TABFile()
 int TABFile::GetFeatureCount (int bForce)
 {
     
-    if( m_poFilterGeom != NULL )
+    if( m_poFilterGeom != NULL || m_poAttrQuery != NULL )
         return OGRLayer::GetFeatureCount( bForce );
     else
         return m_nLastFeatureId;
-
 }
 
 /************************************************************************/

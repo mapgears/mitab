@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.28 2001-08-10 17:49:01 warmerda Exp $
+ * $Id: mitab_miffile.cpp,v 1.29 2001-09-14 19:14:43 warmerda Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.28  2001-08-10 17:49:01  warmerda
+ * Revision 1.29  2001-09-14 19:14:43  warmerda
+ * added attribute query support
+ *
+ * Revision 1.28  2001/08/10 17:49:01  warmerda
  * fixed a few memory leaks
  *
  * Revision 1.27  2001/03/15 03:57:51  daniel
@@ -663,7 +666,7 @@ int  MIFFile::AddFields(const char *pszLine)
 int MIFFile::GetFeatureCount (int bForce)
 {
     
-    if( m_poFilterGeom != NULL )
+    if( m_poFilterGeom != NULL || m_poAttrQuery != NULL )
         return OGRLayer::GetFeatureCount( bForce );
     else
     {

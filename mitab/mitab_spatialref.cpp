@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.3 1999-09-23 19:51:38 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.4 1999-09-24 04:01:28 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.3  1999-09-23 19:51:38  warmerda
+ * Revision 1.4  1999-09-24 04:01:28  warmerda
+ * remember nMIDatumId changes
+ *
+ * Revision 1.3  1999/09/23 19:51:38  warmerda
  * added datum mapping table support
  *
  * Revision 1.2  1999/09/22 23:04:59  daniel
@@ -537,7 +540,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     }
 
     poGCS->AddChild( (poDatum = new OGR_SRSNode("DATUM")) );
-    
+
     if( psDatumInfo == NULL )
     {
         sprintf( szDatumName, "(%.4f,%.4f,%.4f)",
@@ -548,11 +551,13 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         poDatum->AddChild( new OGR_SRSNode(szDatumName) );
 
         sTABProj.nMIDatumId = 999;
+        poHeader->SetProjInfo( &sTABProj );
     }
     else if( strlen(psDatumInfo->pszOGCDatumName) > 0 )
     {
         poDatum->AddChild( new OGR_SRSNode(psDatumInfo->pszOGCDatumName) );
         sTABProj.nMIDatumId = psDatumInfo->nMapInfoDatumID;
+        poHeader->SetProjInfo( &sTABProj );
     }
     else
     {
@@ -560,6 +565,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         
         poDatum->AddChild( new OGR_SRSNode(szDatumName) );
         sTABProj.nMIDatumId = psDatumInfo->nMapInfoDatumID;
+        poHeader->SetProjInfo( &sTABProj );
     }
 
     /*-----------------------------------------------------------------

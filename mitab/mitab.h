@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.41 2000-10-19 20:15:41 daniel Exp $
+ * $Id: mitab.h,v 1.42 2000-11-15 04:35:35 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.41  2000-10-19 20:15:41  daniel
+ * Revision 1.42  2000-11-15 04:35:35  daniel
+ * MITAB_VERSION 1.0.4
+ *
+ * Revision 1.41  2000/10/19 20:15:41  daniel
  * Update MITAB_VERSION to 1.0.3
  *
  * Revision 1.40  2000/10/03 22:11:43  daniel
@@ -60,96 +63,7 @@
  * Revision 1.32  2000/02/28 16:41:48  daniel
  * Added support for indexed, unique, and for new V450 object types
  *
- * Revision 1.31  2000/02/18 20:39:46  daniel
- * Added TAB_WarningInvalidFieldName definition
- *
- * Revision 1.30  2000/02/05 19:27:31  daniel
- * Added private methods to TABRegion for better handling of rings
- *
- * Revision 1.29  2000/01/26 18:17:35  warmerda
- * added CreateField method
- *
- * Revision 1.28  2000/01/18 23:12:18  daniel
- * Made AddFieldNative()'s width parameter optional
- *
- * Revision 1.27  2000/01/16 19:08:48  daniel
- * Added support for reading 'Table Type DBF' tables
- *
- * Revision 1.26  2000/01/15 22:30:43  daniel
- * Switch to MIT/X-Consortium OpenSource license
- *
- * Revision 1.25  1999/12/19 01:10:36  stephane
- * Remove the automatic pre parsing for the GetBounds and GetFeatureCount
- *
- * Revision 1.24  1999/12/18 07:10:15  daniel
- * Added GetNumrings()/GetRingRef() to TABRegion
- *
- * Revision 1.23  1999/12/17 02:05:00  daniel
- * OOOPS! My RCS log msg with a closing comment in it confused the compiler!
- *
- * Revision 1.22  1999/12/17 01:41:58  daniel
- * Avoid comment warning
- *
- * Revision 1.21  1999/12/15 16:13:43  warmerda
- * Avoid unused parameter warnings.
- *
- * Revision 1.20  1999/12/14 04:04:44  daniel
- * Added bforceFlags to GetBounds() and GetFeatureCountByType()
- *
- * Revision 1.19  1999/12/14 02:02:12  daniel
- * Added TABView class + several minor changes
- *
- * Revision 1.18  1999/11/14 04:42:19  daniel
- * Added ROUND_INT()
- *
- * Revision 1.17  1999/11/12 05:51:12  daniel
- * Added MITABExtractMIFCoordSysBounds()
- *
- * Revision 1.16  1999/11/10 20:13:12  warmerda
- * implement spheroid table
- *
- * Revision 1.15  1999/11/09 22:31:38  warmerda
- * initial implementation of MIF CoordSys support
- *
- * Revision 1.14  1999/11/09 07:33:04  daniel
- * Fixed compilation warning caused by MIFFile::SetSpatialRef()
- *
- * Revision 1.13  1999/11/08 04:34:55  stephane
- * mid/mif support
- *
- * Revision 1.12  1999/10/18 15:44:47  daniel
- * Several fixes/improvements mostly for writing of Arc/Ellipses/Text
- * and also added more complete description for each TABFeature type
- *
- * Revision 1.11  1999/10/12 14:30:19  daniel
- * Added IMapInfoFile class to be used as a base for TABFile and MIFFile
- *
- * Revision 1.10  1999/10/06 13:13:47  daniel
- * Added several Get/Set() methods to feature classes.
- *
- * Revision 1.9  1999/09/29 04:27:14  daniel
- * Changed some TABFeatureClass names
- *
- * Revision 1.8  1999/09/28 13:32:10  daniel
- * Added TABFile::AddFieldNative()
- *
- * Revision 1.7  1999/09/28 02:52:47  warmerda
- * Added SetProjInfo().
- *
- * Revision 1.6  1999/09/26 14:59:36  daniel
- * Implemented write support
- *
- * Revision 1.5  1999/09/24 20:23:09  warmerda
- * added GetProjInfo method
- *
- * Revision 1.4  1999/09/23 19:49:47  warmerda
- * Added setspatialref()
- *
- * Revision 1.3  1999/09/16 02:39:16  daniel
- * Completed read support for most feature types
- *
- * Revision 1.2  1999/09/01 17:46:49  daniel
- * Added GetNativeFieldType() and GetFeatureDefn() to TABFile
+ * ...
  *
  * Revision 1.1  1999/07/12 04:18:23  daniel
  * Initial checkin
@@ -166,7 +80,7 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION "1.0.3 (2000-10-19)"
+#define MITAB_VERSION "1.0.4 (2000-11-14)"
 
 #ifndef PI
 #  define PI 3.14159265358979323846

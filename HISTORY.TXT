@@ -6,6 +6,9 @@ CHANGES - Current Version:
 --------------------------
 
 
+Version 1.2.4 (2003-07-23)
+--------------------------
+
  - Added 'indexed' and 'unique' parameters to mitab_c_add_field().
    Applications written for older versions of the C API will have to 
    be updated to pass these two new parameters.
@@ -44,6 +47,8 @@ CHANGES - Current Version:
 
  - mitab_feature.cpp: fixed C++ style true/false where TRUE/FALSE required.
    As per GDAL bugzilla 311.  NFW
+
+ - Fixed problem scanning node in TABINDNode::FindNext() - bug 2176, FW
 
 
 Version 1.2.3 - (2002-10-15)
@@ -525,5 +530,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.110 2003-03-28 14:01:14 warmerda Exp $
+$Id: HISTORY.TXT,v 1.111 2003-07-24 02:48:05 daniel Exp $
 ------------

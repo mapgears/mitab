@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.1 1999-07-12 04:18:25 daniel Exp $
+ * $Id: mitab_utils.cpp,v 1.2 1999-07-12 05:44:59 daniel Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,12 +28,17 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.1  1999-07-12 04:18:25  daniel
+ * Revision 1.2  1999-07-12 05:44:59  daniel
+ * Added include math.h for VC++
+ *
+ * Revision 1.1  1999/07/12 04:18:25  daniel
  * Initial checkin
  *
  **********************************************************************/
 
 #include "mitab_utils.h"
+
+#include <math.h>       /* sin()/cos() */
 
 /**********************************************************************
  *                       TABGenerateArc()

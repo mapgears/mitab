@@ -14,6 +14,10 @@ CHANGES - Current Version:
   the last error type was CE_Failure and add a CPLErrorReset() at the 
   beginning of many affected sections.  NFW
 
+- Modified TABGetBasename() (in mitab_utils.cpp) to stop at the first
+  forward or backslash otherwise "C:/warmerda/mi\can_caps.tab" will result
+  in a basename of "mi\can_caps.tab".  
+
 
 Version 1.2.2 - (2002-07-06)
 ----------------------------
@@ -466,5 +470,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.95 2002-08-27 17:19:27 warmerda Exp $
+$Id: HISTORY.TXT,v 1.96 2002-08-28 14:19:22 warmerda Exp $
 ------------

@@ -73,8 +73,18 @@ CHANGES - Current Version:
   Prior to MapInfo 5.0, this info was ignored, but now it has to be valid 
   otherwise some parts of a region won't be displayed properly in MI5.0
 
+- Added support to write indexed fields and create joined tables (TABView).
+
 - Added validation on field names (no special chars) on write and 
   produce a warning if name had to be fixed.
+
+- Added support for V450 object types with num_points > 32767 and for
+  pen width in points.  
+  This also resulted in changes to the ITABFeaturePen methods, mainly the 
+  Get/SetPenStyle() method has been removed since this style value was 
+  actually a part of the point width value.  
+  Finally, the 'style' parameter was also removed in the 
+  mitab_c_set_pen() C API method.
 
 
 Version 0.2 - (1999-12-20)
@@ -133,5 +143,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.12 2000-02-18 22:35:38 daniel Exp $
+$Id: HISTORY.TXT,v 1.13 2000-03-01 01:04:03 daniel Exp $
 ------------

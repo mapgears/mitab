@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.7 1999-10-06 13:21:37 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.8 1999-10-19 06:05:35 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.7  1999-10-06 13:21:37  daniel
+ * Revision 1.8  1999-10-19 06:05:35  daniel
+ * Removed obsolete code segments in the coord. conversion functions.
+ *
+ * Revision 1.7  1999/10/06 13:21:37  daniel
  * Reworked int<->coordsys coords. conversion... hopefully it's OK this time!
  *
  * Revision 1.6  1999/10/01 03:47:38  daniel
@@ -278,19 +281,13 @@ int TABMAPHeaderBlock::Int2Coordsys(GInt32 nX, GInt32 nY,
     if (m_pabyBuf == NULL)
         return -1;
 
-    // For some obscure reason, the X axis values are arbitrarily 
-    // scaled by -1 !!!
-//    dX = -1.0 * (nX - m_XDispl) / m_XScale;
-//    dY = (nY - m_YDispl) / m_YScale;
+    // For some obscure reason, some guy decided that it would be 
+    // more fun to be able to define our own origin quadrant!
 
     if (m_nCoordOriginQuadrant==2 || m_nCoordOriginQuadrant==3)
         dX = -1.0 * (nX + m_XDispl) / m_XScale;
     else
         dX = (nX - m_XDispl) / m_XScale;
-
-
-//    if (m_nReflectXAxisCoord)
-//        dX *= -1.0;
 
     if (m_nCoordOriginQuadrant==3 || m_nCoordOriginQuadrant==4)
         dY = -1.0 * (nY + m_YDispl) / m_YScale;
@@ -319,10 +316,8 @@ int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY,
     if (m_pabyBuf == NULL)
         return -1;
 
-    // For some obscure reason, the X axis values are arbitrarily 
-    // scaled by -1 !!!
-//    nX = (GInt32)(-1.0*dX*m_XScale + m_XDispl);
-//    nY = (GInt32)(dY*m_YScale + m_YDispl);
+    // For some obscure reason, some guy decided that it would be 
+    // more fun to be able to define our own origin quadrant!
 
     if (m_nCoordOriginQuadrant==2 || m_nCoordOriginQuadrant==3)
         nX = (GInt32)(-1.0*dX*m_XScale - m_XDispl);
@@ -351,9 +346,6 @@ int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY,
  * Note that the false easting/northing and the conversion factor from
  * datum to coordsys units are not included in the calculation.
  *
- * __TODO__ Is this function really useful???? We could simply add the
- *          2 integer values and call Int2Coordsys()...
- *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
 int TABMAPHeaderBlock::ComprInt2Coordsys(GInt32 nCenterX, GInt32 nCenterY, 
@@ -364,24 +356,6 @@ int TABMAPHeaderBlock::ComprInt2Coordsys(GInt32 nCenterX, GInt32 nCenterY,
         return -1;
 
     return Int2Coordsys(nCenterX+nDeltaX, nCenterY+nDeltaY, dX, dY);
-
-#ifdef __TODO__DELETE__
-    // Compute the centroid coords
-//    dX = (nCenterX - m_XDispl) / m_XScale;
-//    dY = (nCenterY - m_YDispl) / m_YScale;
-
-    dX = (nCenterX + m_XDispl) / m_XScale;
-    dY = (nCenterY - m_YDispl) / m_YScale;
-
-    // Add scaled displacement
-    dX = dX + (nDeltaX / m_XScale);
-    dY = dY + (nDeltaY / m_YScale);
-
-    // For some obscure reason, the X axis values are arbitrarily 
-    // scaled by -1 !!!
-    dX *= -1.0;
-#endif
-    return 0;
 }
 
 
@@ -484,9 +458,6 @@ int TABMAPHeaderBlock::SetCoordsysBounds(double dXMin, double dYMin,
 
     m_XDispl = -1.0 * m_XScale * (dXMax + dXMin) / 2;
     m_YDispl = -1.0 * m_YScale * (dYMax + dYMin) / 2;
-
-//    m_XDispl = -1.0 * (dXMax + dXMin) / 2.0;
-//    m_YDispl = -1.0 * (dYMax + dYMin) / 2.0;
 
     m_nXMin = -1000000000;
     m_nYMin = -1000000000;

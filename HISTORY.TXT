@@ -24,6 +24,11 @@ CHANGES - Current Version:
 - Fix memory leak of m_pszIndex in mitab_miffile.cpp, the poSpatialRef
   in TABFile::SetMIFCoordSys(), and a leak in MITABExtractCoordSysBounds(). NFW
 
+- Added untested support in mitab_spatialref.cpp, and mitab_coordsys.cpp for 
+  projections Regional Mercator (26), Polyconic (27), Azimuthal Equidistant - 
+  All origin latitudes (28), and Lambert Azimuthal Equal Area - any aspect 
+  (29). NFW
+
 
 Version 1.2.2 - (2002-07-06)
 ----------------------------
@@ -476,5 +481,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.99 2002-09-23 13:16:39 warmerda Exp $
+$Id: HISTORY.TXT,v 1.100 2002-10-15 14:33:30 warmerda Exp $
 ------------

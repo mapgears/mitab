@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.36 2002-09-05 15:38:16 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.37 2002-10-15 14:33:30 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,12 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.36  2002-09-05 15:38:16  warmerda
+ * Revision 1.37  2002-10-15 14:33:30  warmerda
+ * Added untested support in mitab_spatialref.cpp, and mitab_coordsys.cpp for
+ * projections Regional Mercator (26), Polyconic (27), Azimuthal Equidistant -
+ * All origin latitudes (28), and Lambert Azimuthal Equal Area - any aspect (29).
+ *
+ * Revision 1.36  2002/09/05 15:38:16  warmerda
  * one more ogc datum name
  *
  * Revision 1.35  2002/09/05 15:23:22  warmerda
@@ -562,6 +567,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
          * Lambert Azimuthal Equal Area
          *-------------------------------------------------------------*/
       case 4:
+      case 29:
         m_poSpatialRef->SetLAEA( sTABProj.adProjParams[1],
                                  sTABProj.adProjParams[0],
                                  0.0, 0.0 );
@@ -571,6 +577,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
          * Azimuthal Equidistant (Polar aspect only)
          *-------------------------------------------------------------*/
       case 5:
+      case 28:
         m_poSpatialRef->SetAE( sTABProj.adProjParams[1],
                                sTABProj.adProjParams[0],
                                0.0, 0.0 );
@@ -599,6 +606,21 @@ OGRSpatialReference *TABFile::GetSpatialRef()
                                 sTABProj.adProjParams[3],
                                 sTABProj.adProjParams[4] * dfConv,
                                 sTABProj.adProjParams[5] * dfConv );
+        break;
+
+        /*--------------------------------------------------------------
+         * Transverse Mercator
+         *-------------------------------------------------------------*/
+      case 8:
+      case 21:
+      case 22:
+      case 23:
+      case 24:
+        m_poSpatialRef->SetTM( sTABProj.adProjParams[1],
+                               sTABProj.adProjParams[0],
+                               sTABProj.adProjParams[2],
+                               sTABProj.adProjParams[3] * dfConv,
+                               sTABProj.adProjParams[4] * dfConv );
         break;
 
         /*--------------------------------------------------------------
@@ -667,21 +689,6 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         break;
 
         /*--------------------------------------------------------------
-         * Transverse Mercator
-         *-------------------------------------------------------------*/
-      case 8:
-      case 21:
-      case 22:
-      case 23:
-      case 24:
-        m_poSpatialRef->SetTM( sTABProj.adProjParams[1],
-                               sTABProj.adProjParams[0],
-                               sTABProj.adProjParams[2],
-                               sTABProj.adProjParams[3] * dfConv,
-                               sTABProj.adProjParams[4] * dfConv );
-        break;
-
-        /*--------------------------------------------------------------
          * Gall Stereographic
          *-------------------------------------------------------------*/
       case 17:
@@ -714,6 +721,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
          * Stereographic
          *-------------------------------------------------------------*/
       case 20:
+      case 31: /* this is called Double Stereographic, whats the diff? */
         m_poSpatialRef->SetStereographic( sTABProj.adProjParams[1],
                                           sTABProj.adProjParams[0],
                                           sTABProj.adProjParams[2],
@@ -729,6 +737,25 @@ OGRSpatialReference *TABFile::GetSpatialRef()
                                 sTABProj.adProjParams[0],
                                 sTABProj.adProjParams[2] * dfConv,
                                 sTABProj.adProjParams[3] * dfConv );
+        break;
+
+        /*--------------------------------------------------------------
+         * Regional Mercator (regular mercator with a latitude).
+         *-------------------------------------------------------------*/
+      case 26:
+        m_poSpatialRef->SetMercator( sTABProj.adProjParams[1],
+                                     sTABProj.adProjParams[0],
+                                     1.0, 0.0, 0.0 );
+        break;
+
+        /*--------------------------------------------------------------
+         * Polyconic
+         *-------------------------------------------------------------*/
+      case 27:
+        m_poSpatialRef->SetPolyconic( sTABProj.adProjParams[1],
+                                      sTABProj.adProjParams[0],
+                                      sTABProj.adProjParams[2] * dfConv,
+                                      sTABProj.adProjParams[3] * dfConv );
         break;
 
         /*--------------------------------------------------------------
@@ -1008,6 +1035,9 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         parms[0] = poSpatialRef->GetProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0);
         parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_CENTER,0.0);
         parms[2] = 90.0;
+
+        if( ABS((ABS(parms[1]) - 90)) > 0.001 )
+            sTABProj.nProjId = 28;
     }
 
     else if( EQUAL(pszProjection,SRS_PT_CYLINDRICAL_EQUAL_AREA) )
@@ -1063,11 +1093,25 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         parms[0] = poSpatialRef->GetProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0);
         parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_CENTER,0.0);
         parms[2] = 90.0;
+
+        if( ABS((ABS(parms[1]) - 90)) > 0.001 )
+            sTABProj.nProjId = 28;
     }
 
     else if( EQUAL(pszProjection,SRS_PT_LAMBERT_CONFORMAL_CONIC_2SP) )
     {
         sTABProj.nProjId = 3;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[2] = poSpatialRef->GetProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0);
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_STANDARD_PARALLEL_2,0.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0) / dfLinearConv;
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0) / dfLinearConv;
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_LAMBERT_CONFORMAL_CONIC_2SP_BELGIUM) )
+    {
+        sTABProj.nProjId = 19;
         parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
         parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
         parms[2] = poSpatialRef->GetProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0);
@@ -1144,11 +1188,35 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         parms[2] = poSpatialRef->GetProjParm(SRS_PP_SCALE_FACTOR,1.0);
         parms[3] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0) / dfLinearConv;
         parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0) / dfLinearConv;
+        if( parms[1] != 0.0 )
+            sTABProj.nProjId = 26;
     }
 
     else if( EQUAL(pszProjection,SRS_PT_CASSINI_SOLDNER) )
     {
         sTABProj.nProjId = 30;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[2] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0) 
+            / dfLinearConv;
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0) 
+            / dfLinearConv;
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_NEW_ZEALAND_MAP_GRID) )
+    {
+        sTABProj.nProjId = 18;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[2] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0) 
+            / dfLinearConv;
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0) 
+            / dfLinearConv;
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_POLYCONIC) )
+    {
+        sTABProj.nProjId = 27;
         parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
         parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
         parms[2] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0) 

@@ -65,6 +65,8 @@ CHANGES - Current Version:
 - Accept "TABLE TYPE LINKED" and handle them the same way as type NATIVE
   i.e. the link to the RDBMS is simply ignored.
 
+- Added tentative (untested) support for Swiss Oblique Mercator. (NFW)
+
 
 Version 1.0.4 - (2000-11-14)
 ----------------------------
@@ -254,5 +256,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.39 2000-12-15 05:36:49 daniel Exp $
+$Id: HISTORY.TXT,v 1.40 2001-01-19 22:15:43 warmerda Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.3 1999-10-06 13:25:25 daniel Exp $
+ * $Id: tab2tab.cpp,v 1.4 1999-12-14 02:24:20 daniel Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.3  1999-10-06 13:25:25  daniel
+ * Revision 1.4  1999-12-14 02:24:20  daniel
+ * *** empty log message ***
+ *
+ * Revision 1.3  1999/10/06 13:25:25  daniel
  * Pass file bounds
  *
  * Revision 1.2  1999/10/01 03:43:36  daniel
@@ -82,7 +85,8 @@ int main(int argc, char *argv[])
  **********************************************************************/
 static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
 {
-    TABFile  oSrcFile, oDstFile;
+    IMapInfoFile *poSrcFile = NULL;
+    TABFile  oDstFile;
     int      nFeatureId;
     TABFeature *poFeature;
     double dXMin, dYMin, dXMax, dYMax;
@@ -90,7 +94,7 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
     /*---------------------------------------------------------------------
      * Try to open source file
      *--------------------------------------------------------------------*/
-    if (oSrcFile.Open(pszSrcFname, "rb") != 0)
+    if ((poSrcFile = IMapInfoFile::SmartOpen(pszSrcFname)) == NULL)
     {
         printf("Failed to open %s\n", pszSrcFname);
         return -1;
@@ -106,21 +110,29 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
     }
 
     //  Set bounds
-    if (oSrcFile.GetBounds(dXMin, dYMin, dXMax, dYMax) == 0)
+    if (poSrcFile->GetBounds(dXMin, dYMin, dXMax, dYMax) == 0)
         oDstFile.SetBounds(dXMin, dYMin, dXMax, dYMax);
 
     // Pass Proj. info directly
-    TABProjInfo sProjInfo;
-    if (oSrcFile.GetProjInfo(&sProjInfo) == 0)
-        oDstFile.SetProjInfo(&sProjInfo);
+    // TABProjInfo sProjInfo;
+    // if (poSrcFile->GetProjInfo(&sProjInfo) == 0)
+    //     oDstFile.SetProjInfo(&sProjInfo);
+
+    OGRSpatialReference *poSR;
+
+    poSR = poSrcFile->GetSpatialRef();
+    if( poSR != NULL )
+    {
+        oDstFile.SetSpatialRef( poSR );
+    }
 
     /*---------------------------------------------------------------------
      * Copy objects until EOF is reached
      *--------------------------------------------------------------------*/
     nFeatureId = -1;
-    while ( (nFeatureId = oSrcFile.GetNextFeatureId(nFeatureId)) != -1 )
+    while ( (nFeatureId = poSrcFile->GetNextFeatureId(nFeatureId)) != -1 )
     {
-        poFeature = oSrcFile.GetFeatureRef(nFeatureId);
+        poFeature = poSrcFile->GetFeatureRef(nFeatureId);
         if (poFeature)
         {
 //            poFeature->DumpReadable(stdout);
@@ -136,7 +148,8 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
      *--------------------------------------------------------------------*/
     oDstFile.Close();
 
-    oSrcFile.Close();
+    poSrcFile->Close();
+    delete poSrcFile;
 
     return 0;
 }

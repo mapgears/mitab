@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.3 1999-09-01 17:50:28 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.4 1999-09-16 02:39:17 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.3  1999-09-01 17:50:28  daniel
+ * Revision 1.4  1999-09-16 02:39:17  daniel
+ * Completed read support for most feature types
+ *
+ * Revision 1.3  1999/09/01 17:50:28  daniel
  * Added GetNativeFieldType() and GetFeatureDefn()
  *
  * Revision 1.2  1999/07/14 05:20:42  warmerda
@@ -42,6 +45,7 @@
  **********************************************************************/
 
 #include "mitab.h"
+#include "mitab_utils.h"
 
 
 /*=====================================================================
@@ -124,7 +128,7 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
     }
 
     /*-----------------------------------------------------------------
-     * Make sure filename has a .TAB extension... change it if necessary
+     * Make sure filename has a .TAB extension... 
      *----------------------------------------------------------------*/
     m_pszFname = CPLStrdup(pszFname);
     nFnameLen = strlen(m_pszFname);
@@ -147,6 +151,14 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
 
     pszTmpFname = CPLStrdup(m_pszFname);
 
+
+#ifndef _WIN32
+    /*-----------------------------------------------------------------
+     * On Unix, make sure extension uses the right cases
+     *----------------------------------------------------------------*/
+    TABAdjustFilenameExtension(m_pszFname);
+#endif
+
     /*-----------------------------------------------------------------
      * Open .TAB file... since it's a small text file, we will just load
      * it as a stringlist in memory.
@@ -167,6 +179,10 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
     else 
         strcpy(pszTmpFname+nFnameLen-4, ".map");
 
+#ifndef _WIN32
+    TABAdjustFilenameExtension(pszTmpFname);
+#endif
+
     m_poMAPFile = new TABMAPFile;
     m_poMAPFile->Open(pszTmpFname, pszAccess);
 
@@ -183,10 +199,14 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
     /*-----------------------------------------------------------------
      * Open .DAT file
      *----------------------------------------------------------------*/
-    if (nFnameLen > 4 && strcmp(pszTmpFname+nFnameLen-4, ".TAB")==0)
+    if (nFnameLen > 4 && strcmp(pszTmpFname+nFnameLen-4, ".MAP")==0)
         strcpy(pszTmpFname+nFnameLen-4, ".DAT");
     else 
         strcpy(pszTmpFname+nFnameLen-4, ".dat");
+
+#ifndef _WIN32
+    TABAdjustFilenameExtension(pszTmpFname);
+#endif
 
     m_poDATFile = new TABDATFile;
     m_poDATFile->Open(pszTmpFname, pszAccess);
@@ -557,13 +577,17 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
      *----------------------------------------------------------------*/
     switch(m_poMAPFile->GetCurObjType())
     {
-      case TAB_GEOM_OLDSYMBOL_C:
-      case TAB_GEOM_OLDSYMBOL:
-      case TAB_GEOM_FNTSYMBOL_C:
-      case TAB_GEOM_FNTSYMBOL:
-      case TAB_GEOM_BMPSYMBOL_C:
-      case TAB_GEOM_BMPSYMBOL:
+      case TAB_GEOM_SYMBOL_C:
+      case TAB_GEOM_SYMBOL:
         m_poCurFeature = new TABPoint(m_poDefn);
+        break;
+      case TAB_GEOM_FONTSYMBOL_C:
+      case TAB_GEOM_FONTSYMBOL:
+        m_poCurFeature = new TABFontPoint(m_poDefn);
+        break;
+      case TAB_GEOM_CUSTOMSYMBOL_C:
+      case TAB_GEOM_CUSTOMSYMBOL:
+        m_poCurFeature = new TABCustomPoint(m_poDefn);
         break;
       case TAB_GEOM_LINE_C:
       case TAB_GEOM_LINE:

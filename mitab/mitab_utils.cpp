@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.2 1999-07-12 05:44:59 daniel Exp $
+ * $Id: mitab_utils.cpp,v 1.3 1999-09-16 02:39:17 daniel Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.2  1999-07-12 05:44:59  daniel
+ * Revision 1.3  1999-09-16 02:39:17  daniel
+ * Completed read support for most feature types
+ *
+ * Revision 1.2  1999/07/12 05:44:59  daniel
  * Added include math.h for VC++
  *
  * Revision 1.1  1999/07/12 04:18:25  daniel
@@ -37,8 +40,10 @@
  **********************************************************************/
 
 #include "mitab_utils.h"
+#include "cpl_conv.h"
 
 #include <math.h>       /* sin()/cos() */
+#include <ctype.h>      /* toupper()/tolower() */
 
 /**********************************************************************
  *                       TABGenerateArc()
@@ -98,5 +103,70 @@ int TABCloseRing(OGRLineString *poRing)
 
     return 0;
 }
+
+
+/**********************************************************************
+ *                       TABAdjustFilenameExtension()
+ *
+ * Because Unix filenames are case sensitive and MapInfo datasets often have
+ * mixed cases filenames, we use this function to find the right filename
+ * to use ot open a specific file.
+ *
+ * This function works directly on the source string, so the filename it
+ * contains at the end of the call is the one that should be used.
+ *
+ * Returns TRUE if one of the extensions worked, and FALSE otherwise.
+ * If none of the extensions worked then the original extension will NOT be
+ * restored.
+ **********************************************************************/
+GBool TABAdjustFilenameExtension(char *pszFname)
+{
+    FILE        *fp;
+    int         i;
+    
+    /*-----------------------------------------------------------------
+     * First try using filename as provided
+     *----------------------------------------------------------------*/
+    if ((fp=VSIFOpen(pszFname, "r")) != NULL)
+    {
+        VSIFClose(fp);
+        return TRUE;
+    }     
+
+    /*-----------------------------------------------------------------
+     * Try using uppercase extension (we assume that fname contains a '.')
+     *----------------------------------------------------------------*/
+    for(i = strlen(pszFname)-1; i >= 0 && pszFname[i] != '.'; i--)
+    {
+        pszFname[i] = toupper(pszFname[i]);
+    }
+
+    if ((fp=VSIFOpen(pszFname, "r")) != NULL)
+    {
+        VSIFClose(fp);
+        return TRUE;
+    }     
+    
+    /*-----------------------------------------------------------------
+     * Try using lowercase extension
+     *----------------------------------------------------------------*/
+    for(i = strlen(pszFname)-1; i >= 0 && pszFname[i] != '.'; i--)
+    {
+        pszFname[i] = tolower(pszFname[i]);
+    }
+
+    if ((fp=VSIFOpen(pszFname, "r")) != NULL)
+    {
+        VSIFClose(fp);
+        return TRUE;
+    }     
+
+    /*-----------------------------------------------------------------
+     * None of the extensions worked!
+     *----------------------------------------------------------------*/
+
+    return FALSE;
+}
+
 
 

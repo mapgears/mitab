@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.1 1999-07-12 04:18:24 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.2 1999-09-16 02:39:16 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.1  1999-07-12 04:18:24  daniel
+ * Revision 1.2  1999-09-16 02:39:16  daniel
+ * Completed read support for most feature types
+ *
+ * Revision 1.1  1999/07/12 04:18:24  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -60,6 +63,7 @@ TABMAPFile::TABMAPFile()
     m_nCurObjType = -1;
     m_nCurObjId = -1;
     m_poCurCoordBlock = NULL;
+    m_poDrawingToolBlock = NULL;
 
 }
 
@@ -184,6 +188,21 @@ int TABMAPFile::Open(const char *pszFname, const char *pszAccess)
                                                 sizeof(TABMAPIndexBlock*));
     m_iCurSpIndex = -1;
 
+    /*-----------------------------------------------------------------
+     * Init the Drawing Tool block
+     *----------------------------------------------------------------*/
+    GetDrawingToolBlock();
+
+    /*-----------------------------------------------------------------
+     * Make sure all previous calls succeded.
+     *----------------------------------------------------------------*/
+    if (CPLGetLastErrorNo() != 0)
+    {
+        // Open Failed... an error has already been reported
+        Close();
+        return -1;
+    }
+
     return 0;
 }
 
@@ -239,6 +258,12 @@ int TABMAPFile::Close()
     {
         delete m_poCurCoordBlock;
         m_poCurCoordBlock = NULL;
+    }
+
+    if (m_poDrawingToolBlock)
+    {
+        delete m_poDrawingToolBlock;
+        m_poDrawingToolBlock = NULL;
     }
 
     // Close file
@@ -498,6 +523,155 @@ TABMAPHeaderBlock *TABMAPFile::GetHeaderBlock()
     return m_poHeader;
 }
 
+/**********************************************************************
+ *                   TABMAPFile::GetDrawingToolBlock()
+ *
+ * Return a TABMAPToolBlock object ready to read Drawing Tool definitions
+ * from it.
+ * The first drawing tool block will automatically be loaded, and the block
+ * will take care of maintaining the list of tool definitions in memory.
+ *
+ * Returns a reference to an object owned by this TABMAPFile object, or
+ * NULL on error.
+ **********************************************************************/
+TABMAPToolBlock *TABMAPFile::GetDrawingToolBlock()
+{
+    if (m_poHeader == NULL)
+        return NULL;    // File not opened yet!
+
+    if (m_poDrawingToolBlock == NULL)
+    {
+        m_poDrawingToolBlock = new TABMAPToolBlock;
+        m_poDrawingToolBlock->InitBlock(m_fp, 512);
+    
+        /*-------------------------------------------------------------
+         * Use GotoByteInFile() to go to the first block's location.  This will
+         * force loading the block if necessary and reading its header.
+         * Also make sure to move the read pointer past the 8 bytes header
+         * to be ready to read drawing tools data
+         *------------------------------------------------------------*/
+        if ( m_poDrawingToolBlock->GotoByteInFile(m_poHeader->
+                                                  m_nFirstToolBlock)!= 0)
+        {
+            // Failed... an error has already been reported.
+            delete m_poDrawingToolBlock;
+            m_poDrawingToolBlock = NULL;
+            return NULL;
+        }
+
+        m_poDrawingToolBlock->GotoByteInBlock(8);      // Skip Header
+    }
+
+    return m_poDrawingToolBlock;
+}
+
+/**********************************************************************
+ *                   TABMAPFile::ReadPenDef()
+ *
+ * Fill the TABPenDef structure with the definition of the specified pen
+ * index... (1-based pen index)
+ *
+ * If nPenIndex==0 or is invalid, then the structure is cleared.
+ *
+ * Returns 0 on success, -1 on error (i.e. Pen not found).
+ **********************************************************************/
+int   TABMAPFile::ReadPenDef(int nPenIndex, TABPenDef *psDef)
+{
+    TABPenDef *psTmp;
+
+    if (psDef && m_poDrawingToolBlock &&
+        (psTmp = m_poDrawingToolBlock->GetPenDefRef(nPenIndex)) != NULL)
+    {
+        *psDef = *psTmp;
+    }
+    else if (psDef)
+    {
+        memset(psDef, 0, sizeof(TABPenDef));
+        return -1;
+    }
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABMAPFile::ReadBrushDef()
+ *
+ * Fill the TABBrushDef structure with the definition of the specified Brush
+ * index... (1-based Brush index)
+ *
+ * If nBrushIndex==0 or is invalid, then the structure is cleared.
+ *
+ * Returns 0 on success, -1 on error (i.e. Brush not found).
+ **********************************************************************/
+int   TABMAPFile::ReadBrushDef(int nBrushIndex, TABBrushDef *psDef)
+{
+    TABBrushDef *psTmp;
+
+    if (psDef && m_poDrawingToolBlock &&
+        (psTmp = m_poDrawingToolBlock->GetBrushDefRef(nBrushIndex)) != NULL)
+    {
+        *psDef = *psTmp;
+    }
+    else if (psDef)
+    {
+        memset(psDef, 0, sizeof(TABBrushDef));
+        return -1;
+    }
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABMAPFile::ReadFontDef()
+ *
+ * Fill the TABFontDef structure with the definition of the specified Font
+ * index... (1-based Font index)
+ *
+ * If nFontIndex==0 or is invalid, then the structure is cleared.
+ *
+ * Returns 0 on success, -1 on error (i.e. Font not found).
+ **********************************************************************/
+int   TABMAPFile::ReadFontDef(int nFontIndex, TABFontDef *psDef)
+{
+    TABFontDef *psTmp;
+
+    if (psDef && m_poDrawingToolBlock &&
+        (psTmp = m_poDrawingToolBlock->GetFontDefRef(nFontIndex)) != NULL)
+    {
+        *psDef = *psTmp;
+    }
+    else if (psDef)
+    {
+        memset(psDef, 0, sizeof(TABFontDef));
+        return -1;
+    }
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABMAPFile::ReadSymbolDef()
+ *
+ * Fill the TABSymbolDef structure with the definition of the specified Symbol
+ * index... (1-based Symbol index)
+ *
+ * If nSymbolIndex==0 or is invalid, then the structure is cleared.
+ *
+ * Returns 0 on success, -1 on error (i.e. Symbol not found).
+ **********************************************************************/
+int   TABMAPFile::ReadSymbolDef(int nSymbolIndex, TABSymbolDef *psDef)
+{
+    TABSymbolDef *psTmp;
+
+    if (psDef && m_poDrawingToolBlock &&
+        (psTmp = m_poDrawingToolBlock->GetSymbolDefRef(nSymbolIndex)) != NULL)
+    {
+        *psDef = *psTmp;
+    }
+    else if (psDef)
+    {
+        memset(psDef, 0, sizeof(TABSymbolDef));
+        return -1;
+    }
+    return 0;
+}
 
 #ifdef __TODO__
 /**********************************************************************
@@ -545,12 +719,12 @@ TABGeometry *TABMAPFile::GetObjAtPtr(GInt32 nFileOffset)
 
     switch(m_poCurObjBlock->GetCurObjType())
     {
-      case TAB_GEOM_OLDSYMBOL_C:
-      case TAB_GEOM_OLDSYMBOL:
-      case TAB_GEOM_FNTSYMBOL_C:
-      case TAB_GEOM_FNTSYMBOL:
-      case TAB_GEOM_BMPSYMBOL_C:
-      case TAB_GEOM_BMPSYMBOL:
+      case TAB_GEOM_SYMBOL_C:
+      case TAB_GEOM_SYMBOL:
+      case TAB_GEOM_FONTSYMBOL_C:
+      case TAB_GEOM_FONTSYMBOL:
+      case TAB_GEOM_CUSTOMSYMBOL_C:
+      case TAB_GEOM_CUSTOMSYMBOL:
         poGeometry = new TABGSymbol;
         break;
       case TAB_GEOM_TEXT_C:

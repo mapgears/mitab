@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.1 1999-07-12 04:18:25 daniel Exp $
+ * $Id: mitab_priv.h,v 1.2 1999-09-16 02:39:17 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.1  1999-07-12 04:18:25  daniel
+ * Revision 1.2  1999-09-16 02:39:17  daniel
+ * Completed read support for most feature types
+ *
+ * Revision 1.1  1999/07/12 04:18:25  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -60,7 +63,7 @@ typedef enum
 #define TABMAP_OBJECT_BLOCK     2
 #define TABMAP_COORD_BLOCK      3
 #define TABMAP_GARB_BLOCK       4
-#define TABMAP_REND_BLOCK       5
+#define TABMAP_TOOL_BLOCK       5
 #define TABMAP_LAST_VALID_BLOCK_TYPE  5
 
 /*---------------------------------------------------------------------
@@ -95,7 +98,7 @@ typedef struct TABVertex_t
 } TABVertex;
 
 /*---------------------------------------------------------------------
- * TABFieldType - MapInfo attribute field types
+ * TABFieldType - Native MapInfo attribute field types
  *--------------------------------------------------------------------*/
 typedef enum
 {
@@ -157,6 +160,52 @@ typedef struct TABProjInfo_t
     double      adDatumParams[5];
 
 } TABProjInfo;
+
+
+/*---------------------------------------------------------------------
+ * TABPenDef - Pen definition information
+ *--------------------------------------------------------------------*/
+typedef struct TABPenDef_t
+{
+    GInt32      nRefCount;
+    GByte       nLineWidth;
+    GByte       nLinePattern;
+    GByte       nLineStyle;
+    GInt32      rgbColor;
+} TABPenDef;
+
+/*---------------------------------------------------------------------
+ * TABBrushDef - Brush definition information
+ *--------------------------------------------------------------------*/
+typedef struct TABBrushDef_t
+{
+    GInt32      nRefCount;
+    GByte       nFillPattern;
+    GByte       bTransparentFill; // 1 = Transparent
+    GInt32      rgbFGColor;
+    GInt32      rgbBGColor;
+} TABBrushDef;
+
+/*---------------------------------------------------------------------
+ * TABFontDef - Font Name information
+ *--------------------------------------------------------------------*/
+typedef struct TABFontDef_t
+{
+    GInt32      nRefCount;
+    char        szFontName[33];
+} TABFontDef;
+
+/*---------------------------------------------------------------------
+ * TABSymbolDef - Symbol definition information
+ *--------------------------------------------------------------------*/
+typedef struct TABSymbolDef_t
+{
+    GInt32      nRefCount;
+    GInt16      nSymbolNo;
+    GInt16      nPointSize;
+    GByte       _nUnknownValue_;// Style???
+    GInt32      rgbColor;
+} TABSymbolDef;
 
 
 /*=====================================================================
@@ -278,7 +327,7 @@ class TABMAPHeaderBlock: public TABRawBinBlock
     
     GInt32      m_nFirstIndexBlock;
     GInt32      m_nFirstGarbageBlock;
-    GInt32      m_nFirstRenditionBlock;
+    GInt32      m_nFirstToolBlock;
     GInt32      m_numPointObjects;
     GInt32      m_numLineObjects;
     GInt32      m_numRegionObjects;
@@ -399,6 +448,64 @@ class TABMAPCoordBlock: public TABRawBinBlock
 
 };
 
+/*---------------------------------------------------------------------
+ *                      class TABMAPToolBlock
+ *
+ * Class to handle Read/Write operation on .MAP Drawing Tool Blocks (Type 05)
+ *
+ * In addition to handling the I/O, this class also maintains the list 
+ * of Tool definitions in memory.
+ *--------------------------------------------------------------------*/
+
+class TABMAPToolBlock: public TABRawBinBlock
+{
+  protected:
+    int         m_numDataBytes; /* Excluding first 8 bytes header */
+    GInt32      m_nNextToolBlock;
+
+    TABPenDef   **m_papsPen;
+    int         m_numPen;
+    int         m_numAllocatedPen;
+    TABBrushDef **m_papsBrush;
+    int         m_numBrushes;
+    int         m_numAllocatedBrushes;
+    TABFontDef  **m_papsFont;
+    int         m_numFonts;
+    int         m_numAllocatedFonts;
+    TABSymbolDef **m_papsSymbol;
+    int         m_numSymbols;
+    int         m_numAllocatedSymbols;
+    GBool       m_bToolDefsInitialized;
+
+    int         ReadAllToolDefs();
+
+  public:
+    TABMAPToolBlock();
+    ~TABMAPToolBlock();
+
+    virtual int InitBlockData(GByte *pabyBuf, int nSize, 
+                              GBool bMakeCopy = TRUE,
+                              FILE *fpSrc = NULL, int nOffset = 0);
+
+    virtual int GetBlockClass() { return TABMAP_TOOL_BLOCK; };
+
+    virtual int ReadBytes(int numBytes, GByte *pabyDstBuf);
+
+    TABPenDef   *GetPenDefRef(int nIndex);
+    int         GetNumPen();
+    TABBrushDef *GetBrushDefRef(int nIndex);
+    int         GetNumBrushes();
+    TABFontDef  *GetFontDefRef(int nIndex);
+    int         GetNumFonts();
+    TABSymbolDef *GetSymbolDefRef(int nIndex);
+    int         GetNumSymbols();
+
+#ifdef DEBUG
+    virtual void Dump(FILE *fpOut = NULL);
+#endif
+
+};
+
 
 /*=====================================================================
        Classes to deal with .MAP files at the MapInfo object level
@@ -470,6 +577,10 @@ class TABMAPFile
     int         m_nCurObjId;
     TABMAPCoordBlock *m_poCurCoordBlock;
 
+    // Current Drawing Tool Def. block (takes care of all drawing tools 
+    // in memory)
+    TABMAPToolBlock *m_poDrawingToolBlock;
+
     // Coordinates filter... default is MBR of the whole file
     TABVertex   m_sMinFilter;
     TABVertex   m_sMaxFilter;
@@ -499,6 +610,12 @@ class TABMAPFile
     TABMAPObjectBlock *GetCurObjBlock();
     TABMAPCoordBlock  *GetCoordBlock(int nFileOffset);
     TABMAPHeaderBlock *GetHeaderBlock();
+    TABMAPToolBlock   *GetDrawingToolBlock();
+
+    int         ReadPenDef(int nPenIndex, TABPenDef *psDef);
+    int         ReadBrushDef(int nBrushIndex, TABBrushDef *psDef);
+    int         ReadFontDef(int nFontIndex, TABFontDef *psDef);
+    int         ReadSymbolDef(int nSymbolIndex, TABSymbolDef *psDef);
 
 #ifdef DEBUG
     void Dump(FILE *fpOut = NULL);

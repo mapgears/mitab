@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_idfile.cpp,v 1.1 1999-07-12 04:18:24 daniel Exp $
+ * $Id: mitab_idfile.cpp,v 1.2 1999-09-16 02:39:16 daniel Exp $
  *
  * Name:     mitab_idfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,12 +29,16 @@
  **********************************************************************
  *
  * $Log: mitab_idfile.cpp,v $
- * Revision 1.1  1999-07-12 04:18:24  daniel
+ * Revision 1.2  1999-09-16 02:39:16  daniel
+ * Completed read support for most feature types
+ *
+ * Revision 1.1  1999/07/12 04:18:24  daniel
  * Initial checkin
  *
  **********************************************************************/
 
 #include "mitab.h"
+#include "mitab_utils.h"
 
 /*=====================================================================
  *                      class TABIDFile
@@ -118,6 +122,13 @@ int TABIDFile::Open(const char *pszFname, const char *pszAccess)
         strcpy(m_pszFname+nLen-4, ".ID");
     else if (nLen > 4 && strcmp(m_pszFname+nLen-4, ".map")==0)
         strcpy(m_pszFname+nLen-4, ".id");
+
+    /*-----------------------------------------------------------------
+     * Change .MAP extension to .ID if necessary
+     *----------------------------------------------------------------*/
+#ifndef _WIN32
+    TABAdjustFilenameExtension(m_pszFname);
+#endif
 
     /*-----------------------------------------------------------------
      * Open file for reading

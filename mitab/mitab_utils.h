@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.h,v 1.1 1999-07-12 04:18:25 daniel Exp $
+ * $Id: mitab_utils.h,v 1.2 1999-09-16 02:39:17 daniel Exp $
  *
  * Name:     mitab_utils.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.h,v $
- * Revision 1.1  1999-07-12 04:18:25  daniel
+ * Revision 1.2  1999-09-16 02:39:17  daniel
+ * Completed read support for most feature types
+ *
+ * Revision 1.1  1999/07/12 04:18:25  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -54,5 +57,8 @@ int TABGenerateArc(OGRLineString *poLine, int numPoints,
 int TABCloseRing(OGRLineString *poRing);
 
 
+GBool TABAdjustFilenameExtension(char *pszFname);
+
 #endif /* _MITAB_UTILS_H_INCLUDED_ */
+
 

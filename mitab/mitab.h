@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.2 1999-09-01 17:46:49 daniel Exp $
+ * $Id: mitab.h,v 1.3 1999-09-16 02:39:16 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,8 +28,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.2  1999-09-01 17:46:49  daniel
- * Added GetNativeFieldType() and GetFeatureDefn() to TABFeature
+ * Revision 1.3  1999-09-16 02:39:16  daniel
+ * Completed read support for most feature types
+ *
+ * Revision 1.2  1999/09/01 17:46:49  daniel
+ * Added GetNativeFieldType() and GetFeatureDefn() to TABFile
  *
  * Revision 1.1  1999/07/12 04:18:23  daniel
  * Initial checkin
@@ -65,7 +68,7 @@ class TABFile
     OGRFeatureDefn *m_poDefn;
     OGRSpatialReference *m_poSpatialRef;
 
-    TABFeature  *m_poCurFeature;
+    TABFeature *m_poCurFeature;
     int         m_nCurFeatureId;
     int         m_nLastFeatureId;
 
@@ -97,8 +100,8 @@ class TABFile
  * Codes for the known MapInfo Geometry types
  *--------------------------------------------------------------------*/
 
-#define TAB_GEOM_OLDSYMBOL_C    0x01
-#define TAB_GEOM_OLDSYMBOL      0x02
+#define TAB_GEOM_SYMBOL_C       0x01
+#define TAB_GEOM_SYMBOL         0x02
 #define TAB_GEOM_LINE_C         0x04
 #define TAB_GEOM_LINE           0x05
 #define TAB_GEOM_PLINE_C        0x07
@@ -117,10 +120,10 @@ class TABFile
 #define TAB_GEOM_ELLIPSE        0x1a
 #define TAB_GEOM_MULTIPLINE_C   0x25
 #define TAB_GEOM_MULTIPLINE     0x26
-#define TAB_GEOM_FNTSYMBOL_C    0x28 
-#define TAB_GEOM_FNTSYMBOL      0x29
-#define TAB_GEOM_BMPSYMBOL_C    0x2b
-#define TAB_GEOM_BMPSYMBOL      0x2c
+#define TAB_GEOM_FONTSYMBOL_C   0x28 
+#define TAB_GEOM_FONTSYMBOL     0x29
+#define TAB_GEOM_CUSTOMSYMBOL_C 0x2b
+#define TAB_GEOM_CUSTOMSYMBOL   0x2c
 
 /*---------------------------------------------------------------------
  * Codes for the feature classes
@@ -129,6 +132,8 @@ typedef enum
 {
     TABFCBaseFeature,
     TABFCPoint,
+    TABFCFontPoint,
+    TABFCCustomPoint,
     TABFCText,
     TABFCPolyline,
     TABFCArc,
@@ -136,6 +141,124 @@ typedef enum
     TABFCRectangle,
     TABFCEllipse
 } TABFeatureClass;
+
+/*---------------------------------------------------------------------
+ * Definitions for text attributes
+ *--------------------------------------------------------------------*/
+typedef enum TABTextJust_t
+{
+    TABTJLeft,          // Default: Left Justification
+    TABTJCenter,
+    TABTJRight
+} TABTextJust;
+
+typedef enum TABTextSpacing_t
+{
+    TABTSSingle,        // Default: Single spacing
+    TABTS1_5,           // 1.5
+    TABTSDouble
+} TABTextSpacing;
+
+typedef enum TABTextLineType_t
+{
+    TABTLNoLine,        // Default: No line
+    TABTLSimple,
+    TABTLArrow
+} TABTextLineType;
+
+typedef enum TABFontStyle_t     // Can be OR'ed
+{                               // except box and halo are mutually exclusive
+    TABFSNone       = 0,
+    TABFSBold       = 0x0001,
+    TABFSItalic     = 0x0002,
+    TABFSUnderline  = 0x0004,
+    TABFSStrikeout  = 0x0008,
+    TABFSOutline    = 0x0010,
+    TABFSShadow     = 0x0020,
+    TABFSInverse    = 0x0040,
+    TABFSBlink      = 0x0080,
+    TABFSBox        = 0x0100,
+    TABFSHalo       = 0x0200,   // ??? MIF uses 256, see MIF docs, App.A???
+    TABFSAllCaps    = 0x0400,   // ??? MIF uses 512???
+    TABFSExpanded   = 0x0800    // ??? MIF uses 1024???
+} TABFontStyle;
+
+
+typedef enum TABCustSymbStyle_t // Can be OR'ed
+{ 
+    TABCSNone       = 0,        // Transparent BG, use default colors
+    TABCSBGOpaque   = 0x01,     // White pixels are opaque
+    TABCSApplyColor = 0x02,     // non-white pixels drawn using symbol color
+} TABCustSymbStyle;
+
+/*=====================================================================
+  Base classes to be used to add supported drawing tools to each feature type
+ =====================================================================*/
+
+class ITABFeaturePen
+{
+  protected:
+    int         m_nPenDefIndex;
+    TABPenDef   m_sPenDef;
+  public:
+    ITABFeaturePen() { m_nPenDefIndex=-1;
+                      memset(&m_sPenDef, 0, sizeof(TABPenDef)); };
+    ~ITABFeaturePen() {};
+    int         GetPenDefIndex() {return m_nPenDefIndex;};
+    TABPenDef  *GetPenDefRef() {return &m_sPenDef;};
+
+    void        DumpPenDef(FILE *fpOut = NULL);
+};
+
+class ITABFeatureBrush
+{
+  protected:
+    int         m_nBrushDefIndex;
+    TABBrushDef m_sBrushDef;
+  public:
+    ITABFeatureBrush() { m_nBrushDefIndex=-1;
+                        memset(&m_sBrushDef, 0, sizeof(TABBrushDef)); };
+    ~ITABFeatureBrush() {};
+    int         GetBrushDefIndex() {return m_nBrushDefIndex;};
+    TABBrushDef *GetBrushDefRef() {return &m_sBrushDef;};
+
+    void        DumpBrushDef(FILE *fpOut = NULL);
+};
+
+class ITABFeatureFont
+{
+  protected:
+    int         m_nFontDefIndex;
+    TABFontDef  m_sFontDef;
+  public:
+    ITABFeatureFont() { m_nFontDefIndex=-1;
+                       memset(&m_sFontDef, 0, sizeof(TABFontDef)); };
+    ~ITABFeatureFont() {};
+    int         GetFontDefIndex() {return m_nFontDefIndex;};
+    TABFontDef *GetFontDefRef() {return &m_sFontDef;};
+    const char *GetFontNameRef() {return m_sFontDef.szFontName;};
+
+    void        DumpFontDef(FILE *fpOut = NULL);
+};
+
+class ITABFeatureSymbol
+{
+  protected:
+    int         m_nSymbolDefIndex;
+    TABSymbolDef m_sSymbolDef;
+  public:
+    ITABFeatureSymbol() { m_nSymbolDefIndex=-1;
+                         memset(&m_sSymbolDef, 0, sizeof(TABSymbolDef)); };
+    ~ITABFeatureSymbol() {};
+    int         GetSymbolDefIndex() {return m_nSymbolDefIndex;};
+    TABSymbolDef *GetSymbolDefRef() {return &m_sSymbolDef;};
+
+    GInt16      GetSymbolNo()    {return m_sSymbolDef.nSymbolNo;};
+    GInt16      GetSymbolSize()  {return m_sSymbolDef.nPointSize;};
+    GInt32      GetSymbolColor() {return m_sSymbolDef.rgbColor;};
+
+    void        DumpSymbolDef(FILE *fpOut = NULL);
+};
 
 
 /*=====================================================================
@@ -186,18 +309,18 @@ class TABFeature: public OGRFeature
 /*---------------------------------------------------------------------
  *                      class TABPoint
  *
- * Feature class to handle the various MapInfo symbol types:
+ * Feature class to handle old style MapInfo point symbols:
  *
- *     TAB_GEOM_OLDSYMBOL_C    0x01
- *     TAB_GEOM_OLDSYMBOL      0x02
- *     TAB_GEOM_FNTSYMBOL_C    0x28 
- *     TAB_GEOM_FNTSYMBOL      0x29
- *     TAB_GEOM_BMPSYMBOL_C    0x2b
- *     TAB_GEOM_BMPSYMBOL      0x2c
+ *     TAB_GEOM_SYMBOL_C        0x01
+ *     TAB_GEOM_SYMBOL          0x02
  *
  * Feature geometry will be a OGRPoint
+ *
+ * NOTE: This class is also used as a base class for the other point
+ * symbol types TABFontPoint and TABCustomPoint.
  *--------------------------------------------------------------------*/
-class TABPoint: public TABFeature
+class TABPoint: public TABFeature, 
+                public ITABFeatureSymbol
 {
   public:
              TABPoint(OGRFeatureDefn *poDefnIn);
@@ -211,6 +334,70 @@ class TABPoint: public TABFeature
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
 };
+
+
+/*---------------------------------------------------------------------
+ *                      class TABFontPoint
+ *
+ * Feature class to handle MapInfo Font Point Symbol types:
+ *
+ *     TAB_GEOM_FONTSYMBOL_C    0x28 
+ *     TAB_GEOM_FONTSYMBOL      0x29
+ *
+ * Feature geometry will be a OGRPoint
+ *--------------------------------------------------------------------*/
+class TABFontPoint: public TABPoint, 
+                    public ITABFeatureFont
+{
+  protected:
+    double      m_dAngle;
+
+  public:
+    GInt16      m_nFontStyle;           // Bold/shadow/halo/etc.
+
+  public:
+             TABFontPoint(OGRFeatureDefn *poDefnIn);
+    virtual ~TABFontPoint();
+
+    virtual TABFeatureClass GetFeatureClass() { return TABFCFontPoint; };
+
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+
+    GBool       QueryFontStyle(TABFontStyle eStyleToQuery);
+
+    // GetSymbolAngle(): Return angle in degrees counterclockwise
+    double      GetSymbolAngle()        {return m_dAngle;};
+};
+
+
+/*---------------------------------------------------------------------
+ *                      class TABCustomPoint
+ *
+ * Feature class to handle MapInfo Custom Point Symbol (Bitmap) types:
+ *
+ *     TAB_GEOM_CUSTOMSYMBOL_C  0x2b
+ *     TAB_GEOM_CUSTOMSYMBOL    0x2c
+ *
+ * Feature geometry will be a OGRPoint
+ *--------------------------------------------------------------------*/
+class TABCustomPoint: public TABPoint, 
+                      public ITABFeatureFont
+{
+  public:
+    GByte       m_nUnknown_;
+    GByte       m_nCustomStyle;         // Show BG/Apply Color
+
+  public:
+             TABCustomPoint(OGRFeatureDefn *poDefnIn);
+    virtual ~TABCustomPoint();
+
+    virtual TABFeatureClass GetFeatureClass() { return TABFCCustomPoint; };
+
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+
+    const char *GetSymbolNameRef()      { return GetFontNameRef(); };
+};
+
 
 /*---------------------------------------------------------------------
  *                      class TABPolyline
@@ -226,9 +413,9 @@ class TABPoint: public TABFeature
  *
  * Feature geometry can be either a OGRLineString or a OGRMultiLineString
  *--------------------------------------------------------------------*/
-class TABPolyline: public TABFeature
+class TABPolyline: public TABFeature, 
+                   public ITABFeaturePen
 {
-    GBool       m_bSmooth;
   public:
              TABPolyline(OGRFeatureDefn *poDefnIn);
     virtual ~TABPolyline();
@@ -237,6 +424,11 @@ class TABPolyline: public TABFeature
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
+
+    // MapInfo-specific attributes... made available through public vars
+    // for now.
+    GBool       m_bSmooth;
+
 };
 
 /*---------------------------------------------------------------------
@@ -249,7 +441,9 @@ class TABPolyline: public TABFeature
  *
  * Feature geometry will be OGRPolygon
  *--------------------------------------------------------------------*/
-class TABRegion: public TABFeature
+class TABRegion: public TABFeature, 
+                 public ITABFeaturePen, 
+                 public ITABFeatureBrush
 {
     GBool       m_bSmooth;
   public:
@@ -279,13 +473,10 @@ class TABRegion: public TABFeature
  *
  * Feature geometry will be OGRPolygon
  *--------------------------------------------------------------------*/
-class TABRectangle: public TABFeature
+class TABRectangle: public TABFeature, 
+                    public ITABFeaturePen, 
+                    public ITABFeatureBrush
 {
-  protected:
-    GBool       m_bRoundCorners;
-    double      m_dRoundXRadius;
-    double      m_dRoundYRadius;
-
   public:
              TABRectangle(OGRFeatureDefn *poDefnIn);
     virtual ~TABRectangle();
@@ -294,6 +485,13 @@ class TABRectangle: public TABFeature
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
+
+    // MapInfo-specific attributes... made available through public vars
+    // for now.
+    GBool       m_bRoundCorners;
+    double      m_dRoundXRadius;
+    double      m_dRoundYRadius;
+
 };
 
 
@@ -309,9 +507,10 @@ class TABRectangle: public TABFeature
  *
  * Feature geometry will be OGRPolygon
  *--------------------------------------------------------------------*/
-class TABEllipse: public TABFeature
+class TABEllipse: public TABFeature, 
+                  public ITABFeaturePen, 
+                  public ITABFeatureBrush
 {
-  protected:
 
   public:
              TABEllipse(OGRFeatureDefn *poDefnIn);
@@ -321,6 +520,14 @@ class TABEllipse: public TABFeature
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
+
+    // MapInfo-specific attributes... made available through public vars
+    // for now.
+    double      m_dCenterX;
+    double      m_dCenterY;
+    double      m_dXRadius;
+    double      m_dYRadius;
+
 };
 
 
@@ -338,9 +545,21 @@ class TABEllipse: public TABFeature
  *
  * Feature geometry will be OGRLineString
  *--------------------------------------------------------------------*/
-class TABArc: public TABFeature
+class TABArc: public TABFeature, 
+              public ITABFeaturePen
 {
-  protected:
+
+  public:
+             TABArc(OGRFeatureDefn *poDefnIn);
+    virtual ~TABArc();
+
+    virtual TABFeatureClass GetFeatureClass() { return TABFCArc; };
+
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual void DumpMIF(FILE *fpOut = NULL);
+
+    // MapInfo-specific attributes... made available through public vars
+    // for now.
     double      m_dStartAngle;  // In degrees, counterclockwise, 
     double      m_dEndAngle;    // starting at 3 o'clock
 
@@ -348,15 +567,6 @@ class TABArc: public TABFeature
     double      m_dCenterY;
     double      m_dXRadius;
     double      m_dYRadius;
-
-  public:
-             TABArc(OGRFeatureDefn *poDefnIn);
-    virtual ~TABArc();
-
-    virtual TABFeatureClass GetFeatureClass() { return TABFCEllipse; };
-
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
-    virtual void DumpMIF(FILE *fpOut = NULL);
 };
 
 
@@ -370,7 +580,9 @@ class TABArc: public TABFeature
  *
  * Feature geometry will be a OGRPoint
  *--------------------------------------------------------------------*/
-class TABText: public TABFeature
+class TABText: public TABFeature, 
+               public ITABFeatureFont,
+               public ITABFeaturePen
 {
   protected:
     char        *m_pszString;
@@ -381,14 +593,30 @@ class TABText: public TABFeature
     GInt32      m_rgbForeground;
     GInt32      m_rgbBackground;
 
+    GInt16      m_nTextAlignment;       // Justification/Vert.Spacing/arrow
+  public:
+    GInt16      m_nFontStyle;           // Bold/italic/underlined/shadow/...
+
   public:
              TABText(OGRFeatureDefn *poDefnIn);
     virtual ~TABText();
 
-    virtual TABFeatureClass GetFeatureClass() { return TABFCPoint; };
+    virtual TABFeatureClass GetFeatureClass() { return TABFCText; };
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
+
+    const char *GetTextString();
+    void        SetTextString(const char *pszStr);
+    double      GetTextAngle();
+    double      GetTextHeight();
+    GInt32      GetFontFGColor();
+    GInt32      GetFontBGColor();
+
+    TABTextJust GetTextJustification();
+    TABTextSpacing  GetTextSpacing();
+    TABTextLineType GetTextLineType();
+    GBool       QueryFontStyle(TABFontStyle eStyleToQuery);
 };
 
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_rawbinblock.cpp,v 1.1 1999-07-12 04:18:25 daniel Exp $
+ * $Id: mitab_rawbinblock.cpp,v 1.2 1999-09-16 02:39:17 daniel Exp $
  *
  * Name:     mitab_rawbinblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_rawbinblock.cpp,v $
- * Revision 1.1  1999-07-12 04:18:25  daniel
+ * Revision 1.2  1999-09-16 02:39:17  daniel
+ * Completed read support for most feature types
+ *
+ * Revision 1.1  1999/07/12 04:18:25  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -717,8 +720,10 @@ TABRawBinBlock *TABCreateMAPBlockFromFile(FILE *fpSrc, int nOffset,
           case TABMAP_COORD_BLOCK:
             poBlock = new TABMAPCoordBlock;
             break;
+          case TABMAP_TOOL_BLOCK:
+            poBlock = new TABMAPToolBlock;
+            break;
           case TABMAP_GARB_BLOCK:
-          case TABMAP_REND_BLOCK:
           default:
             poBlock = new TABRawBinBlock(bHardBlockSize);
             break;

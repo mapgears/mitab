@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.1 1999-07-12 04:18:24 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.2 1999-09-16 02:39:16 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.1  1999-07-12 04:18:24  daniel
+ * Revision 1.2  1999-09-16 02:39:16  daniel
+ * Completed read support for most feature types
+ *
+ * Revision 1.1  1999/07/12 04:18:24  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -123,7 +126,7 @@ int     TABMAPHeaderBlock::InitBlockData(GByte *pabyBuf, int nSize,
     GotoByteInBlock(0x130);
     m_nFirstIndexBlock = ReadInt32();
     m_nFirstGarbageBlock = ReadInt32();
-    m_nFirstRenditionBlock = ReadInt32();
+    m_nFirstToolBlock = ReadInt32();
 
     m_numPointObjects = ReadInt32();
     m_numLineObjects = ReadInt32();
@@ -426,7 +429,7 @@ void TABMAPHeaderBlock::Dump(FILE *fpOut /*=NULL*/)
         fprintf(fpOut,"  m_nBlockSize          = %d\n", m_nBlockSize);
         fprintf(fpOut,"  m_nFirstIndexBlock    = %d\n", m_nFirstIndexBlock);
         fprintf(fpOut,"  m_nFirstGarbageBlock  = %d\n", m_nFirstGarbageBlock);
-        fprintf(fpOut,"  m_nFirstRenditionBlock= %d\n",m_nFirstRenditionBlock);
+        fprintf(fpOut,"  m_nFirstToolBlock     = %d\n", m_nFirstToolBlock);
         fprintf(fpOut,"  m_numPointObjects     = %d\n", m_numPointObjects);
         fprintf(fpOut,"  m_numLineObjects      = %d\n", m_numLineObjects);
         fprintf(fpOut,"  m_numRegionObjects    = %d\n", m_numRegionObjects);

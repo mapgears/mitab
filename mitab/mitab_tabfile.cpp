@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.29 2000-01-18 23:13:05 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.30 2000-01-26 18:18:01 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.29  2000-01-18 23:13:05  daniel
+ * Revision 1.30  2000-01-26 18:18:01  warmerda
+ * fixed capabilities test
+ *
+ * Revision 1.29  2000/01/18 23:13:05  daniel
  * Added missing m_poDefn->Reference()
  *
  * Revision 1.28  2000/01/18 22:14:36  daniel
@@ -1826,15 +1829,20 @@ int TABFile::TestCapability( const char * pszCap )
     if( EQUAL(pszCap,OLCRandomRead) )
         return TRUE;
 
-    else if( EQUAL(pszCap,OLCSequentialWrite) 
-             || EQUAL(pszCap,OLCRandomWrite) )
+    else if( EQUAL(pszCap,OLCSequentialWrite) )
+        return m_eAccessMode == TABWrite;
+
+    else if( EQUAL(pszCap,OLCRandomWrite) )
         return FALSE;
 
     else if( EQUAL(pszCap,OLCFastFeatureCount) )
         return m_poFilterGeom == NULL;
 
     else if( EQUAL(pszCap,OLCFastSpatialFilter) )
-        return FALSE;
+        return m_eAccessMode == TABWrite;
+
+    else if( EQUAL(pszCap,OLCCreateField) )
+        return TRUE;
 
     else 
         return FALSE;

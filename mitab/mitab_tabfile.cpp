@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.10 1999-10-01 02:12:17 warmerda Exp $
+ * $Id: mitab_tabfile.cpp,v 1.11 1999-10-01 03:50:00 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.10  1999-10-01 02:12:17  warmerda
+ * Revision 1.11  1999-10-01 03:50:00  daniel
+ * Increment RefCount for OGRFeatureDefn in ParseTABFile()
+ *
+ * Revision 1.10  1999/10/01 02:12:17  warmerda
  * fixed OGRFieldDefn leak
  *
  * Revision 1.9  1999/09/28 13:32:51  daniel
@@ -308,6 +311,8 @@ int TABFile::ParseTABFile()
     }
 
     m_poDefn = new OGRFeatureDefn("TABFeature");
+    // Ref count defaults to 0... set it to 1
+    m_poDefn->Reference();
 
     numLines = CSLCount(m_papszTABFile);
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.23 2002-04-01 19:49:24 warmerda Exp $
+ * $Id: mitab_coordsys.cpp,v 1.24 2002-09-23 13:16:04 warmerda Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.23  2002-04-01 19:49:24  warmerda
+ * Revision 1.24  2002-09-23 13:16:04  warmerda
+ * fixed leak in MITABExtractCoordSysBounds()
+ *
+ * Revision 1.23  2002/04/01 19:49:24  warmerda
  * added support for cassini/soldner - proj 30
  *
  * Revision 1.22  2002/03/01 19:00:15  warmerda
@@ -1168,9 +1171,11 @@ GBool MITABExtractCoordSysBounds( const char * pszCoordSys,
         dYMin = atof(papszFields[++iBounds]);
         dXMax = atof(papszFields[++iBounds]);
         dYMax = atof(papszFields[++iBounds]);
+        CSLDestroy( papszFields );
         return TRUE;
     }
 
+    CSLDestroy( papszFields );
     return FALSE;
 }
 

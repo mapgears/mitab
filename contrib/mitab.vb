@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.vb,v 1.6 2002-08-29 14:20:57 daniel Exp $
+' * $Id: mitab.vb,v 1.7 2002-09-07 17:57:01 daniel Exp $
 ' *
 ' * Name:     mitab.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,8 +32,11 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.vb,v $
-' * Revision 1.6  2002-08-29 14:20:57  daniel
-' * Added missing 'ByVal l As Long' to mitab_c_get_mif_coordsys_vb()
+' * Revision 1.7  2002-09-07 17:57:01  daniel
+' * Update for version 1.2.2 (from BVT)
+' *
+' * Revision 1.6  2002/09/07 13:59:38  daniel
+' * (Update From BVT) Numerous fixes in the declarations
 ' *
 ' * Revision 1.5  2002/08/01 13:59:38  daniel
 ' * (Update From BVT) Fixed mitab_c_get_vertex_x/y() declarations
@@ -63,7 +66,6 @@
 ' *
 ' *
 
-Option Compare Database
 Option Explicit
 Type mitab_projinfo
   ph(255) As Byte
@@ -120,7 +122,7 @@ Public Declare Function mitab_c_get_brush_bgcolor Lib "mitab.dll" Alias "_mitab_
 Public Declare Function mitab_c_get_brush_fgcolor Lib "mitab.dll" Alias "_mitab_c_get_brush_fgcolor@4" (ByVal feature As Long) As Long
 Public Declare Function mitab_c_get_brush_pattern Lib "mitab.dll" Alias "_mitab_c_get_brush_pattern@4" (ByVal feature As Long) As Long
 Public Declare Function mitab_c_get_brush_transparent Lib "mitab.dll" Alias "_mitab_c_get_brush_transparent@4" (ByVal feature As Long) As Long
-Public Declare Function mitab_c_get_field_as_string_vb Lib "mitab.dll" Alias "_mitab_c_get_field_as_string_vb@16" (ByVal feature As Long, ByVal field As Long, ByVal value As String, ByVal l as Long) As Long
+Public Declare Function mitab_c_get_field_as_string_vb Lib "mitab.dll" Alias "_mitab_c_get_field_as_string_vb@16" (ByVal feature As Long, ByVal field As Long, ByVal value As String, ByVal l As Long) As Long
 Public Declare Function mitab_c_get_field_count Lib "mitab.dll" Alias "_mitab_c_get_field_count@4" (ByVal handle As Long) As Long
 Public Declare Function mitab_c_get_field_name_vb Lib "mitab.dll" Alias "_mitab_c_get_field_name_vb@16" (ByVal handle As Long, ByVal field As Long, ByVal name As String, ByVal l As Long) As Long
 Public Declare Function mitab_c_get_field_type Lib "mitab.dll" Alias "_mitab_c_get_field_type@8" (ByVal handle As Long, ByVal field As Long) As Long
@@ -145,26 +147,24 @@ Public Declare Function mitab_c_get_text_spacing Lib "mitab.dll" Alias "_mitab_c
 Public Declare Function mitab_c_get_text_width Lib "mitab.dll" Alias "_mitab_c_get_text_width@4" (ByVal feature As Long) As Double
 Public Declare Function mitab_c_get_type Lib "mitab.dll" Alias "_mitab_c_get_type@4" (ByVal feature As Long) As Long
 Public Declare Function mitab_c_get_vertex_count Lib "mitab.dll" Alias "_mitab_c_get_vertex_count@8" (ByVal feature As Long, ByVal part As Long) As Long
-Public Declare Function mitab_c_get_vertex_x Lib "mitab.dll" Alias "_mitab_c_get_vertex_x@12" (ByVal feature As Long, ByVal part as Long, ByVal vertex As Long) As Double
-Public Declare Function mitab_c_get_vertex_y Lib "mitab.dll" Alias "_mitab_c_get_vertex_y@12" (ByVal feature As Long, ByVal part as Long, ByVal vertex As Long) As Double
+Public Declare Function mitab_c_get_vertex_x Lib "mitab.dll" Alias "_mitab_c_get_vertex_x@12" (ByVal feature As Long, ByVal part As Long, ByVal vertex As Long) As Double
+Public Declare Function mitab_c_get_vertex_y Lib "mitab.dll" Alias "_mitab_c_get_vertex_y@12" (ByVal feature As Long, ByVal part As Long, ByVal vertex As Long) As Double
 Public Declare Function mitab_c_getlasterrormsg_vb Lib "mitab.dll" Alias "_mitab_c_getlasterrormsg_vb@8" (ByVal errormsg As String, ByVal l As Long) As Long
 Public Declare Function mitab_c_getlasterrorno Lib "mitab.dll" Alias "_mitab_c_getlasterrorno@0" () As Long
 Public Declare Function mitab_c_next_feature_id Lib "mitab.dll" Alias "_mitab_c_next_feature_id@8" (ByVal handle As Long, ByVal last_feature_id As Long) As Long
 Public Declare Function mitab_c_open Lib "mitab.dll" Alias "_mitab_c_open@4" (ByVal filename As String) As Long
 Public Declare Function mitab_c_read_feature Lib "mitab.dll" Alias "_mitab_c_read_feature@8" (ByVal handle As Long, ByVal feature_id As Long) As Long
-Public Declare Sub mitab_c_set_arc Lib "mitab.dll" Alias "_mitab_c_set_arc@52" (ByVal feature As Long, ByVal center_x, ByVal center_y, ByVal x_radius, ByVal y_radius, ByVal start_angle, ByVal end_angle As Double)
-Public Declare Sub mitab_c_set_brush Lib "mitab.dll" Alias "_mitab_c_set_brush@20" (ByVal feature As Long, ByVal fg_color, ByVal bg_color, ByVal pattern, ByVal transparent As Long)
+Public Declare Sub mitab_c_set_arc Lib "mitab.dll" Alias "_mitab_c_set_arc@52" (ByVal feature As Long, ByVal center_x As Double, ByVal center_y As Double, ByVal x_radius As Double, ByVal y_radius As Double, ByVal start_angle As Double, ByVal end_angle As Double)
+Public Declare Sub mitab_c_set_brush Lib "mitab.dll" Alias "_mitab_c_set_brush@20" (ByVal feature As Long, ByVal fg_color As Long, ByVal bg_color As Long, ByVal pattern As Long, ByVal transparent As Long)
 Public Declare Sub mitab_c_set_field Lib "mitab.dll" Alias "_mitab_c_set_field@12" (ByVal feature As Long, ByVal field_index As Long, ByVal value As String)
 Public Declare Sub mitab_c_set_font Lib "mitab.dll" Alias "_mitab_c_set_font@8" (ByVal feature As Long, ByVal font_name As String)
 Public Declare Sub mitab_c_set_pen Lib "mitab.dll" Alias "_mitab_c_set_pen@16" (ByVal feature As Long, ByVal width As Long, ByVal pattern As Long, ByVal color As Long)
 Public Declare Sub mitab_c_set_points Lib "mitab.dll" Alias "_mitab_c_set_points@20" (ByVal feature As Long, ByVal part As Long, ByVal vertex_count As Long, x As Double, y As Double)
 Public Declare Function mitab_c_set_projinfo Lib "mitab.dll" Alias "_mitab_c_set_projinfo@8" (ByVal dataset As Long, ByVal projinfo As mitab_projinfo) As Long
-Public Declare Sub mitab_c_set_symbol Lib "mitab.dll" Alias "_mitab_c_set_symbol@16" (ByVal feature As Long, ByVal symbol_no, ByVal symbol_size, ByVal symbol_color As Long)
+Public Declare Sub mitab_c_set_symbol Lib "mitab.dll" Alias "_mitab_c_set_symbol@16" (ByVal feature As Long, ByVal symbol_no As Long, ByVal symbol_size As Long, ByVal symbol_color As Long)
 Public Declare Sub mitab_c_set_text Lib "mitab.dll" Alias "_mitab_c_set_text@8" (ByVal feature As Long, ByVal text As String)
-Public Declare Sub mitab_c_set_text_display Lib "mitab.dll" Alias "_mitab_c_set_text_display@48" (ByVal feature As Long, ByVal angle, ByVal height, ByVal width As Double, ByVal fg_color, ByVal bg_color, ByVal justification, ByVal spacing, ByVal linetype As Long)
+Public Declare Sub mitab_c_set_text_display Lib "mitab.dll" Alias "_mitab_c_set_text_display@48" (ByVal feature As Long, ByVal angle As Double, ByVal height As Double, ByVal width As Double, ByVal fg_color As Long, ByVal bg_color As Long, ByVal justification As Long, ByVal spacing As Long, ByVal linetype As Long)
 Public Declare Function mitab_c_write_feature Lib "mitab.dll" Alias "_mitab_c_write_feature@8" (ByVal handle As Long, ByVal feature As Long) As Long
-Public Declare Function mitab_c_get_field_width Lib "mitab.dll" Alias "_mitab_c_get_field_width@8" (ByVal handle  As Long, ByVal field  As Long)  As Long
-Public Declare Function mitab_c_get_field_precision Lib "mitab.dll" Alias "_mitab_c_get_field_precision@8" (ByVal handle  As Long, ByVal field As Long)  As Long
+Public Declare Function mitab_c_get_field_width Lib "mitab.dll" Alias "_mitab_c_get_field_width@8" (ByVal handle As Long, ByVal field As Long) As Long
+Public Declare Function mitab_c_get_field_precision Lib "mitab.dll" Alias "_mitab_c_get_field_precision@8" (ByVal handle As Long, ByVal field As Long) As Long
 Public Declare Function mitab_c_is_interior_ring Lib "mitab.dll" Alias "_mitab_c_is_interior_ring@8" (ByVal feature As Long, ByVal requestedringindex As Long) As Long
-
-

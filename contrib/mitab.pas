@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab.pas,v 1.1 2002-02-22 13:43:30 daniel Exp $
+ * $Id: mitab.pas,v 1.2 2002-05-08 20:23:53 daniel Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,17 @@
  **********************************************************************
  *
  * $Log: mitab.pas,v $
- * Revision 1.1  2002-02-22 13:43:30  daniel
+ * Revision 1.2  2002-05-08 20:23:53  daniel
+ * Update from Bo, and re-re-renamed mitab_vb.dll to mitab.dll (stdcall is default now)
+ *
+ * Revision 1.21  2002/05/07 13:43:30  bvt
+ * changed the dll name to mitab_vb.dll. Changed the pas file name
+ * to mitab_vb.pas to reflect the new name of the dll.
+ *
+ * Revision 1.2  2002/05/05 13:43:30  bvt
+ * Added mitab_c_get_field_width and mitab_c_get_field_precision to api.
+ *
+ * Revision 1.1  2002/02/22 13:43:30  daniel
  * Initial Revision from Bo Thomsen
  *
  * Revision 1.00  2002/02/20 12:35:00  bvt
@@ -151,6 +161,8 @@ procedure mitab_c_set_symbol             (feature: mitab_feature; symbol_no, sym
 procedure mitab_c_set_text               (feature: mitab_feature; text: pchar);                                                                                 stdcall; external DLL Name '_mitab_c_set_text@8'              ;
 procedure mitab_c_set_text_display       (feature: mitab_feature; angle, height, width: double; fg_color, bg_color, justification, spacing, linetype: longint); stdcall; external DLL Name '_mitab_c_set_text_display@48'     ;
 function  mitab_c_write_feature          (handle: mitab_handle; feature: mitab_feature): longint;                                                               stdcall; external DLL Name '_mitab_c_write_feature@8'         ;
+function  mitab_c_get_field_width        (handle: mitab_handle; field: longint): longint;                                                                       stdcall; external DLL Name '_mitab_c_get_field_width@8'       ;
+function  mitab_c_get_field_precision    (handle: mitab_handle; field: longint): longint;                                                                       stdcall; external DLL Name '_mitab_c_get_field_precision@8'   ;
 
 implementation
 end.

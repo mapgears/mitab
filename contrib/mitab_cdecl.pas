@@ -1,7 +1,7 @@
 {**********************************************************************
- * $Id: mitab_cdecl.pas,v 1.1 2002-02-22 13:43:30 daniel Exp $
+ * $Id: mitab_cdecl.pas,v 1.2 2002-05-08 20:23:53 daniel Exp $
  *
- * Name:     mitab_cdecl.pas
+ * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
  * Language: Pascal
  * Purpose:  Pascal interface unit for MITAB API prototypes using CDECL
@@ -32,7 +32,16 @@
  **********************************************************************
  *
  * $Log: mitab_cdecl.pas,v $
- * Revision 1.1  2002-02-22 13:43:30  daniel
+ * Revision 1.2  2002-05-08 20:23:53  daniel
+ * Update from Bo, and re-re-renamed mitab_vb.dll to mitab.dll (stdcall is default now)
+ *
+ * Revision 1.21  2002/05/07 13:43:30  bvt
+ * Changed the pas file name to mitab.pas to reflect the name of the dll.
+ *
+ * Revision 1.2  2002/05/05 13:43:30  bvt
+ * Added mitab_c_get_field_width and mitab_c_get_field_precision to api.
+ *
+ * Revision 1.1  2002/02/22 13:43:30  daniel
  * Initial Revision from Bo Thomsen
  *
  * Revision 1.00  2002/02/20 12:35:00  bvt
@@ -91,7 +100,7 @@ const
 
 const
 
-  DLL = 'mitab.dll';
+  DLL = 'mitab_cdecl.dll';
 
 function  mitab_c_add_field              (handle: mitab_handle; field_name: pchar;field_type, width, precision: longint): longint;                              cdecl; external DLL Name 'mitab_c_add_field'               ;
 procedure mitab_c_close                  (handle: mitab_handle);                                                                                                cdecl; external DLL Name 'mitab_c_close'                   ;
@@ -151,6 +160,8 @@ procedure mitab_c_set_symbol             (feature: mitab_feature; symbol_no, sym
 procedure mitab_c_set_text               (feature: mitab_feature; text: pchar);                                                                                 cdecl; external DLL Name 'mitab_c_set_text'                ;
 procedure mitab_c_set_text_display       (feature: mitab_feature; angle, height, width: double; fg_color, bg_color, justification, spacing, linetype: longint); cdecl; external DLL Name 'mitab_c_set_text_display'        ;
 function  mitab_c_write_feature          (handle: mitab_handle; feature: mitab_feature): longint;                                                               cdecl; external DLL Name 'mitab_c_write_feature'           ;
+function  mitab_c_get_field_width        (handle: mitab_handle; field: longint): longint;                                                                       cdecl; external DLL Name 'mitab_c_get_field_width'         ;              
+function  mitab_c_get_field_precision    (handle: mitab_handle; field: longint): longint;                                                                       cdecl; external DLL Name 'mitab_c_get_field_precision'     ;
 
 implementation
 end.

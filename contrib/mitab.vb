@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.vb,v 1.1 2002-02-22 13:43:30 daniel Exp $
+' * $Id: mitab.vb,v 1.2 2002-05-08 20:23:53 daniel Exp $
 ' *
 ' * Name:     mitab.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,17 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.vb,v $
-' * Revision 1.1  2002-02-22 13:43:30  daniel
+' * Revision 1.2  2002-05-08 20:23:53  daniel
+' * Update from Bo, and re-re-renamed mitab_vb.dll to mitab.dll (stdcall is default now)
+' *
+' * Revision 1.21  2002/05/07 13:43:30  bvt
+' * changed the dll name to mitab_vb.dll. Changed the vb file name
+' * to mitab_vb.vb to reflect the new name of the dll.
+' *
+' * Revision 1.2  2002/05/05 13:43:30  bvt
+' * Added mitab_c_get_field_width and mitab_c_get_field_precision to api.
+' *
+' * Revision 1.1  2002/02/22 13:43:30  daniel
 ' * Initial Revision from Bo Thomsen
 ' *
 ' * Revision 1.00  2002/02/20 12:35:00  bvt
@@ -140,5 +150,7 @@ Public Declare Sub mitab_c_set_symbol Lib "mitab.dll" Alias "_mitab_c_set_symbol
 Public Declare Sub mitab_c_set_text Lib "mitab.dll" Alias "_mitab_c_set_text@8" (ByVal feature As Long, ByVal text As String)
 Public Declare Sub mitab_c_set_text_display Lib "mitab.dll" Alias "_mitab_c_set_text_display@48" (ByVal feature As Long, ByVal angle, ByVal height, ByVal width As Double, ByVal fg_color, ByVal bg_color, ByVal justification, ByVal spacing, ByVal linetype As Long)
 Public Declare Function mitab_c_write_feature Lib "mitab.dll" Alias "_mitab_c_write_feature@8" (ByVal handle As Long, ByVal feature As Long) As Long
+Public Declare Function mitab_c_get_field_width Lib "mitab.dll" Alias "_mitab_c_get_field_width@8" (ByVal handle  As Long, ByVal field  As Long)  As Long
+Public Declare Function mitab_c_get_field_precision Lib "mitab.dll" Alias "_mitab_c_get_field_precision@8" (ByVal handle  As Long, ByVal field As Long)  As Long
 
 

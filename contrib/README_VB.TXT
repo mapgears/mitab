@@ -1,22 +1,26 @@
-VB, Pascal, and MapBasic interfaces contributed by Bo Thomsen:
-==============================================================
+VB, Pascal, and MapBasic interfaces to mitab.dll and mitab_cdecl.dll
+=================================================================
 
-Subject:   SV: Some modifications to MITAB c-api.
-   Date:   Fri, 22 Feb 2002 11:07:17 +0100
-   From:   BVT@sns.dk
-     To:   morissette@dmsolutions.ca
+The interface files consist of 4 files: 
 
-Hi Daniel - 
+mitab.pas: Pascal interface unit to mitab.dll.
 
-My calendar tells me that I should send you a message :) ...
+mitab_cdecl.pas: Pascal interface unit to mitab_cdecl.dll
 
-I've revised my original functions according to your wish about backwards
-compatibility and attached new versions of the files that's been edited.
+mitab.def: include file for MapBasic to mitab.dll.
 
-mitab_capi.cpp, mitab_capi.h :
+mitab.vb: include file for Visual Basic to Mitab.dll
 
-6 new functions which _supplements_ the existing functions returning "const
-char *" function results. 
+Delphi can use both mitab.dll, which use the "stdcall" calling convention and 
+mitab_cdecl.dll, which use the "cdecl" calling convention. Some text book indicate, that 
+stdcall (mitab.dll) should be sligtly faster than cdecl. My personal experience 
+is that the difference is insignificant.   
+
+MapBasic and Visual Basic can only use the stdcall calling convention (mitab.dll). 
+
+MB and VB is unable to use dll-functions that returns string as a function result.
+So 6 new functions which _supplements_ the existing functions returning "const
+char *" function results has been added to the mitab api. 
 
 The new function is named as the existing functions with the suffix "_vb",
 ex:
@@ -32,40 +36,11 @@ variable must be initialized with ex. 255 blanks before being used.
 
 The function itself returns the actual length of the result string.
 
-nmake.opt:
 
-The line 
-OPTFLAGS=       /Zi /nologo 
+Have fun 
 
-has been changed to 
-OPTFLAGS=       /Zi /nologo /Gz
-
-which makes the compiler use the stdcall calling convention instead of cdecl
-as a default. The best method is probably to make som kind of qualifier to
-the "nmake" command, so it's possible to switch between stdcall and cdecl.
-
-mitab.pas: Pascal interface unit using stdcall.
-mitab_cdecl.pas: Pascal interface unit using cdecl.
-mitab.def: include file for MapBasic to mitab using stdcall.
-mitab.vb: include file for Visual Basic to Mitab using stdcall
-
-I haven't done any extensive error hunt, but all of the above compiles
-cleanly. I don't have access to a unix or linux based pc, so I haven't tried
-to compile and link mitab with the GNU c compiler 
-
-Please check the header's in the files. I've tried to make changes with
-revision numbers and explanations, but you seem to use some kind of
-documentation generator I don't recognize.
-
-Drop me a mail, if you make any changes in the .h and .cpp files, and I'll
-edit the .pas .def and .vb files to reflect the changes.
-
-regards 
 Bo Thomsen
-GeoConsult I/S
-Denmark
 
 
-
-------------
-$Id: README_VB.TXT,v 1.1 2002-02-22 13:43:30 daniel Exp $
+--------
+$Id: README_VB.TXT,v 1.2 2002-05-08 20:23:53 daniel Exp $

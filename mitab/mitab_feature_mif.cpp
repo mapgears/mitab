@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.5 1999-12-18 07:21:30 daniel Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.6 1999-12-18 08:22:57 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.5  1999-12-18 07:21:30  daniel
+ * Revision 1.6  1999-12-18 08:22:57  daniel
+ * Removed stray break statement in PLINE MULTIPLE write code
+ *
+ * Revision 1.5  1999/12/18 07:21:30  daniel
  * Fixed test on geometry type when writing OGRMultiLineStrings
  *
  * Revision 1.4  1999/12/18 07:11:57  daniel
@@ -535,7 +538,14 @@ int TABPolyline::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	    {
 		poLine = new OGRLineString();
 		if (j != 0)
-		  nNumPoints = atoi(fp->GetLine());
+                    nNumPoints = atoi(fp->GetLine());
+                if (nNumPoints < 2)
+                {
+                    CPLError(CE_Failure, CPLE_FileIO,
+                             "Invalid number of vertices (%d) in PLINE "
+                             "MULTIPLE segment.", nNumPoints);
+                    return -1;
+                }
 		poLine->setNumPoints(nNumPoints);
 		for (i=0;i<nNumPoints;i++)
 		{
@@ -665,8 +675,6 @@ int TABPolyline::WriteGeometryToMIFFile(MIDDATAFile *fp)
 		{
 		    fp->WriteLine("%g %g\n",poLine->getX(i),poLine->getY(i));
 		}
-                
-		break;
             }
 	    else
 	    {

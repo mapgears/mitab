@@ -4,6 +4,8 @@ MITAB Library - Revision History
 ToDo - Open Questions:
 ----------------------
 
+ - Support MetaData in .TAB header
+
  - OGRTABDataSource: Need to be able to open all files from a directory
 
  - Can we do anything for optimized spatial searches in TAB files?
@@ -34,17 +36,22 @@ ToDo - Open Questions:
    optimize spatial index.  Files are still usable even without this kind 
    of optimization.
 
- - ARC angles: 
-   - When x axis is flipped, why do we have to read End before start angle?
-     (Actually, angle order always seem to be reversed no matter which 
-      quadrant the file is in.)
-   - What is the correct conversion for angles based on quadrant?
-   - Bizarre: arcs.tab is in quadrant 2, but byte 0x162 (FlipXAxis) = 0 !!!
-
 
 CHANGES - Current Version:
 --------------------------
 
+- Changed to use same MIT/X-Consortium license as other CPL + OGR libs.
+
+- Produce only a warning when unsupported feature types encountered in the 
+  .MAP file, and return a valid feature with a NONE geometry.
+
+- Done more tests (and required changes) to fix the way the quadrant
+  setting affects the way to read arc angles... hopefully it's right
+  this time!
+
+- TABText objects now return their text string with any "\n" escaped on
+  2 chars  (i.e. "\"+"n").  TABText::SetText() also expects newlines to
+  be escaped in the string it receives.
 
 Version 0.2 - (1999-12-20)
 --------------------------
@@ -102,5 +109,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.7 1999-12-20 19:06:10 daniel Exp $
+$Id: HISTORY.TXT,v 1.8 2000-01-15 23:20:42 daniel Exp $
 ------------

@@ -11,14 +11,14 @@ Please also visit the following URLs:
     http://mitab.maptools.org/
 
   - The OGR architecture documentation:
-    http://gdal.velocet.ca/projects/opengis/ogrhtml/ogr_arch.html
+    http://ogr.maptools.org/ogr_arch.html
 
 
 COPYRIGHT AND LICENSE TERMS:
 ----------------------------
 
 The most part of the MITAB library is 
-   Copyright (c) 1998-2004, Daniel Morissette (morissette@dmsolutions.ca)
+   Copyright (c) 1998-2005, Daniel Morissette (morissette@dmsolutions.ca)
 it also contains parts and uses support libraries that are
    Copyright (c) 1998-2004, Frank Warmerdam (warmerdam@pobox.com)
 and 
@@ -28,8 +28,8 @@ The MITAB library, and its supporting libraries (OGR and CPL) are freely
 available under the following OpenSource license terms:
 
  **********************************************************************
- * Copyright (c) 1998-2004, Daniel Morissette
- * Copyright (c) 1998-2004, Frank Warmerdam
+ * Copyright (c) 1998-2005, Daniel Morissette
+ * Copyright (c) 1998-2005, Frank Warmerdam
  * Copyright (c) 1999,2000, Stephane Villeneuve
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -221,5 +221,5 @@ the "\n" sequence in char attribute field values.
 
 
 ------------
-$Id: README.TXT,v 1.10 2004-06-30 20:22:31 dmorissette Exp $
+$Id: README.TXT,v 1.11 2005-04-01 16:58:37 dmorissette Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.11 1999-10-01 03:50:00 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.12 1999-10-06 13:16:50 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.11  1999-10-01 03:50:00  daniel
+ * Revision 1.12  1999-10-06 13:16:50  daniel
+ * Added GetBounds()
+ *
+ * Revision 1.11  1999/10/01 03:50:00  daniel
  * Increment RefCount for OGRFeatureDefn in ParseTABFile()
  *
  * Revision 1.10  1999/10/01 02:12:17  warmerda
@@ -1196,6 +1199,36 @@ int TABFile::SetBounds(double dXMin, double dYMin,
         CPLError(CE_Failure, CPLE_AssertionFailed,
                  "SetBounds() can be called only after dataset has been "
                  "created and before any feature is set.");
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/**********************************************************************
+ *                   TABFile::GetBounds()
+ *
+ * Fetch projection coordinates bounds of a dataset.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABFile::GetBounds(double &dXMin, double &dYMin, 
+                       double &dXMax, double &dYMax)
+{
+    TABMAPHeaderBlock *poHeader;
+
+    if (m_poMAPFile && (poHeader=m_poMAPFile->GetHeaderBlock()) != NULL)
+    {
+        m_poMAPFile->Int2Coordsys(poHeader->m_nXMin, poHeader->m_nYMin, 
+                                  dXMin, dYMin);
+        m_poMAPFile->Int2Coordsys(poHeader->m_nXMax, poHeader->m_nYMax, 
+                                  dXMax, dYMax);
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AppDefined,
+             "GetBounds() can be called only after dataset has been opened.");
         return -1;
     }
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.3 1999-09-16 02:39:17 daniel Exp $
+ * $Id: mitab_utils.cpp,v 1.4 1999-09-29 17:59:21 daniel Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.3  1999-09-16 02:39:17  daniel
+ * Revision 1.4  1999-09-29 17:59:21  daniel
+ * Definition for PI was gone on Windows
+ *
+ * Revision 1.3  1999/09/16 02:39:17  daniel
  * Completed read support for most feature types
  *
  * Revision 1.2  1999/07/12 05:44:59  daniel
@@ -39,6 +42,7 @@
  *
  **********************************************************************/
 
+#include "mitab.h"
 #include "mitab_utils.h"
 #include "cpl_conv.h"
 

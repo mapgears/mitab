@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.2 1999-11-11 01:22:05 stephane Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.3 1999-12-16 17:16:44 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,8 +29,13 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.2  1999-11-11 01:22:05  stephane
- * Remove DebugFeature call, Point Reading error, add IsValidFeature() to test correctly if we are on a feature
+ * Revision 1.3  1999-12-16 17:16:44  daniel
+ * Use addRing/GeometryDirectly() (prevents leak), and rounded rectangles
+ * always return real corner radius from file even if it is bigger than MBR
+ *
+ * Revision 1.2  1999/11/11 01:22:05  stephane
+ * Remove DebugFeature call, Point Reading error, add IsValidFeature() to 
+ * test correctly if we are on a feature
  *
  * Revision 1.1  1999/11/08 19:20:30  stephane
  * First version
@@ -510,13 +515,15 @@ int TABPolyline::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 		    poLine->setPoint(i,fp->GetXTrans(atof(papszToken[0])),
 				     fp->GetYTrans(atof(papszToken[1])));
 		}
-		poMultiLine->addGeometry(poLine);
+                if (poMultiLine->addGeometryDirectly(poLine) != OGRERR_NONE)
+                    CPLAssert(FALSE); // Just in case OGR is modified
 		
-	    } 
-	    SetGeometryDirectly(poMultiLine);
-	    poMultiLine->getEnvelope(&sEnvelope);
-	    SetMBR(sEnvelope.MinX, sEnvelope.MinY,
-		   sEnvelope.MaxX,sEnvelope.MaxY);
+            } 
+            if (SetGeometryDirectly(poMultiLine) != OGRERR_NONE)
+                CPLAssert(FALSE); // Just in case OGR is modified
+            poMultiLine->getEnvelope(&sEnvelope);
+            SetMBR(sEnvelope.MinX, sEnvelope.MinY,
+                   sEnvelope.MaxX,sEnvelope.MaxY);
 	}
 	else
 	{
@@ -711,7 +718,7 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 		CSLDestroy(papszToken);
 	    }	
 	}
-	poPolygon->addRing(poRing);
+	poPolygon->addRingDirectly(poRing);
 	poRing = NULL;
     }
   
@@ -906,25 +913,24 @@ int TABRectangle::ReadGeometryFromMIFFile(MIDDATAFile *fp)
          * segments for each corner.  We start with lower-left corner 
          * and proceed counterclockwise
          * We also have to make sure that rounding radius is not too
-         * large for the MBR
+         * large for the MBR however, we 
+         * always return the true X/Y radius (not adjusted) since this
+         * is the way MapInfo seems to do it when a radius bigger than
+         * the MBR is passed from TBA to MIF.
          *------------------------------------------------------------*/
-        m_dRoundXRadius = MIN(m_dRoundXRadius, (dXMax-dXMin)/2.0);
-        m_dRoundYRadius = MIN(m_dRoundYRadius, (dYMax-dYMin)/2.0);
+        double dXRadius = MIN(m_dRoundXRadius, (dXMax-dXMin)/2.0);
+        double dYRadius = MIN(m_dRoundYRadius, (dYMax-dYMin)/2.0);
         TABGenerateArc(poRing, 45, 
-                       dXMin + m_dRoundXRadius, dYMin + m_dRoundYRadius,
-                       m_dRoundXRadius, m_dRoundYRadius,
+                       dXMin + dXRadius, dYMin + dYRadius, dXRadius, dYRadius,
                        PI, 3.0*PI/2.0);
         TABGenerateArc(poRing, 45, 
-                       dXMax - m_dRoundXRadius, dYMin + m_dRoundYRadius,
-                       m_dRoundXRadius, m_dRoundYRadius,
+                       dXMax - dXRadius, dYMin + dYRadius, dXRadius, dYRadius,
                        3.0*PI/2.0, 2.0*PI);
         TABGenerateArc(poRing, 45, 
-                       dXMax - m_dRoundXRadius, dYMax - m_dRoundYRadius,
-                       m_dRoundXRadius, m_dRoundYRadius,
+                       dXMax - dXRadius, dYMax - dYRadius, dXRadius, dYRadius,
                        0.0, PI/2.0);
         TABGenerateArc(poRing, 45, 
-                       dXMin + m_dRoundXRadius, dYMax - m_dRoundYRadius,
-                       m_dRoundXRadius, m_dRoundYRadius,
+                       dXMin + dXRadius, dYMax - dYRadius, dXRadius, dYRadius,
                        PI/2.0, PI);
                        
         TABCloseRing(poRing);
@@ -938,19 +944,19 @@ int TABRectangle::ReadGeometryFromMIFFile(MIDDATAFile *fp)
         poRing->addPoint(dXMin, dYMin);
     }
 
-    poPolygon->addRing(poRing);
+    poPolygon->addRingDirectly(poRing);
     SetGeometryDirectly(poPolygon);
-    
+
 
    while (((pszLine = fp->GetLine()) != NULL) && 
-	  fp->IsValidFeature(pszLine) == FALSE)
+          fp->IsValidFeature(pszLine) == FALSE)
    {
        papszToken = CSLTokenizeStringComplex(pszLine,"() ,",
-					     TRUE,FALSE);
+                                             TRUE,FALSE);
 
        if (CSLCount(papszToken) > 1)
        {
-	   if (EQUALN(papszToken[0],"PEN",3))
+           if (EQUALN(papszToken[0],"PEN",3))
 	   {       
 	       if (CSLCount(papszToken) == 4)
 	       {   
@@ -1084,7 +1090,7 @@ int TABEllipse::ReadGeometryFromMIFFile(MIDDATAFile *fp)
                    0.0, 2.0*PI);
     TABCloseRing(poRing);
 
-    poPolygon->addRing(poRing);
+    poPolygon->addRingDirectly(poRing);
     SetGeometryDirectly(poPolygon);
 
     while (((pszLine = fp->GetLine()) != NULL) && 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.15 1999-12-14 02:04:54 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.16 1999-12-16 17:15:50 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.15  1999-12-14 02:04:54  daniel
+ * Revision 1.16  1999-12-16 17:15:50  daniel
+ * Use addRing/GeometryDirectly() (prevents leak), and rounded rectangles
+ * always return real corner radius from file even if it is bigger than MBR
+ *
+ * Revision 1.15  1999/12/14 02:04:54  daniel
  * Added CloneTABFeature() method
  *
  * Revision 1.14  1999/11/14 04:47:54  daniel
@@ -1562,7 +1566,8 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
                 pnXYPtr += 2;
             }
 
-            poMultiLine->addGeometry(poLine);
+            if (poMultiLine->addGeometryDirectly(poLine) != OGRERR_NONE)
+                CPLAssert(FALSE); // Just in case lower-level lib is modified
             poLine = NULL;
         }
 
@@ -2109,7 +2114,7 @@ int TABRegion::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
                 pnXYPtr += 2;
             }
 
-            poPolygon->addRing(poRing);
+            poPolygon->addRingDirectly(poRing);
             poRing = NULL;
         }
 
@@ -2564,25 +2569,24 @@ int TABRectangle::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
          * segments for each corner.  We start with lower-left corner 
          * and proceed counterclockwise
          * We also have to make sure that rounding radius is not too
-         * large for the MBR
+         * large for the MBR in the generated polygon... however, we 
+         * always return the true X/Y radius (not adjusted) since this
+         * is the way MapInfo seems to do it when a radius bigger than
+         * the MBR is passed from TBA to MIF.
          *------------------------------------------------------------*/
-        m_dRoundXRadius = MIN(m_dRoundXRadius, (dXMax-dXMin)/2.0);
-        m_dRoundYRadius = MIN(m_dRoundYRadius, (dYMax-dYMin)/2.0);
+        double dXRadius = MIN(m_dRoundXRadius, (dXMax-dXMin)/2.0);
+        double dYRadius = MIN(m_dRoundYRadius, (dYMax-dYMin)/2.0);
         TABGenerateArc(poRing, 45, 
-                       dXMin + m_dRoundXRadius, dYMin + m_dRoundYRadius,
-                       m_dRoundXRadius, m_dRoundYRadius,
+                       dXMin + dXRadius, dYMin + dYRadius, dXRadius, dYRadius,
                        PI, 3.0*PI/2.0);
         TABGenerateArc(poRing, 45, 
-                       dXMax - m_dRoundXRadius, dYMin + m_dRoundYRadius,
-                       m_dRoundXRadius, m_dRoundYRadius,
+                       dXMax - dXRadius, dYMin + dYRadius, dXRadius, dYRadius,
                        3.0*PI/2.0, 2.0*PI);
         TABGenerateArc(poRing, 45, 
-                       dXMax - m_dRoundXRadius, dYMax - m_dRoundYRadius,
-                       m_dRoundXRadius, m_dRoundYRadius,
+                       dXMax - dXRadius, dYMax - dYRadius, dXRadius, dYRadius,
                        0.0, PI/2.0);
         TABGenerateArc(poRing, 45, 
-                       dXMin + m_dRoundXRadius, dYMax - m_dRoundYRadius,
-                       m_dRoundXRadius, m_dRoundYRadius,
+                       dXMin + dXRadius, dYMax - dYRadius, dXRadius, dYRadius,
                        PI/2.0, PI);
                        
         TABCloseRing(poRing);
@@ -2596,9 +2600,8 @@ int TABRectangle::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         poRing->addPoint(dXMin, dYMin);
     }
 
-    poPolygon->addRing(poRing);
+    poPolygon->addRingDirectly(poRing);
     SetGeometryDirectly(poPolygon);
-
 
     return 0;
 }
@@ -2930,7 +2933,7 @@ int TABEllipse::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
                    0.0, 2.0*PI);
     TABCloseRing(poRing);
 
-    poPolygon->addRing(poRing);
+    poPolygon->addRingDirectly(poRing);
     SetGeometryDirectly(poPolygon);
 
     return 0;

@@ -1,0 +1,9 @@
+#
+# MapInfoBounds.db
+#
+# Use this file to define custom projection bounds for the MAPINFO writer
+# The format is one MIF CoordSys string per line, including a Bounds()()
+# clause
+#
+# e.g. CoordSys Earth Projection 8, 24, "m", -63, 0, 0.9996, 500000, 0 Bounds (-50000, -50000) (50000, 50000)
+#

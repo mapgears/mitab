@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrinfo.cpp,v 1.1 2000-01-26 18:18:35 warmerda Exp $
+ * $Id: ogrinfo.cpp,v 1.2 2000-06-28 00:32:22 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Simple client for viewing OGR driver data.
@@ -28,8 +28,11 @@
  ******************************************************************************
  *
  * $Log: ogrinfo.cpp,v $
- * Revision 1.1  2000-01-26 18:18:35  warmerda
- * New
+ * Revision 1.2  2000-06-28 00:32:22  warmerda
+ * updated to include report of geometry type
+ *
+ * Revision 1.7  2000/03/14 21:37:49  warmerda
+ * report layer geometry type
  *
  * Revision 1.6  1999/11/18 19:02:19  warmerda
  * expanded tabs
@@ -61,8 +64,9 @@ int     bVerbose = TRUE;
 static void Usage();
 
 static void ReportOnLayer( OGRLayer * );
+
 CPL_C_START
-void	RegisterOGRTAB();
+void RegisterOGRTAB();
 CPL_C_END
 
 /************************************************************************/
@@ -78,8 +82,8 @@ int main( int nArgc, char ** papszArgv )
 /* -------------------------------------------------------------------- */
 /*      Register format(s).                                             */
 /* -------------------------------------------------------------------- */
-	RegisterOGRTAB();
-
+    RegisterOGRTAB();
+    
 /* -------------------------------------------------------------------- */
 /*      Processing command line arguments.                              */
 /* -------------------------------------------------------------------- */
@@ -169,9 +173,15 @@ int main( int nArgc, char ** papszArgv )
 
         if( CSLCount(papszLayers) == 0 )
         {
-            printf( "%d: %s\n",
+            printf( "%d: %s",
                     iLayer+1,
                     poLayer->GetLayerDefn()->GetName() );
+            if( poLayer->GetLayerDefn()->GetGeomType() != wkbUnknown )
+                printf( " (%s)", 
+                        OGRGeometryTypeToName( 
+                            poLayer->GetLayerDefn()->GetGeomType() ) );
+
+            printf( "\n" );
         }
         else if( CSLFindString( papszLayers,
                                 poLayer->GetLayerDefn()->GetName() ) != -1 )
@@ -215,6 +225,9 @@ static void ReportOnLayer( OGRLayer * poLayer )
     printf( "\n" );
     
     printf( "Layer name: %s\n", poDefn->GetName() );
+
+    printf( "Geometry: %s\n", 
+            OGRGeometryTypeToName( poDefn->GetGeomType() ) );
 
     printf( "Feature Count: %d\n", poLayer->GetFeatureCount() );
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.53 2003-01-18 20:22:39 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.54 2004-05-20 13:49:46 fwarmerdam Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.53  2003-01-18 20:22:39  daniel
+ * Revision 1.54  2004-05-20 13:49:46  fwarmerdam
+ * Removed special bailout for m_poMAPFile == NULL in TABFile::Close().
+ * It is important to cleanup other used memory.
+ *
+ * Revision 1.53  2003/01/18 20:22:39  daniel
  * Fixed leak of TABMAPObjHdr when writing NONE geometries in SetFeature()
  *
  * Revision 1.52  2002/09/23 13:15:35  warmerda
@@ -1004,9 +1008,6 @@ int TABFile::WriteTABFile()
  **********************************************************************/
 int TABFile::Close()
 {
-    if (m_poMAPFile == NULL)
-        return 0;
-
     // Commit the latest changes to the file...
     
     // In Write access, it's time to write the .TAB file.
@@ -1065,7 +1066,6 @@ int TABFile::Close()
         delete m_poSpatialRef;
     m_poSpatialRef = NULL;
     
-
     CSLDestroy(m_papszTABFile);
     m_papszTABFile = NULL;
 

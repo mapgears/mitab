@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.28 2001-11-17 21:54:06 daniel Exp $
+ * $Id: mitab_priv.h,v 1.29 2001-11-19 15:07:54 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,9 +30,13 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.28  2001-11-17 21:54:06  daniel
- * Made several changes in order to support writing objects in 16 bits coordinate format.
- * New TABMAPObjHdr-derived classes are used to hold object info in mem until block is full.
+ * Revision 1.29  2001-11-19 15:07:54  daniel
+ * Added TABMAPObjNone to handle the case of TAB_GEOM_NONE
+ *
+ * Revision 1.28  2001/11/17 21:54:06  daniel
+ * Made several changes in order to support writing objects in 16 bits 
+ * coordinate format. New TABMAPObjHdr-derived classes are used to hold 
+ * object info in mem until block is full.
  *
  * Revision 1.27  2001/09/18 20:33:52  warmerda
  * fixed case of spatial search on file with just one object block
@@ -392,6 +396,20 @@ class TABMAPObjHdrWithCoord: public TABMAPObjHdr
 };
 
 
+class TABMAPObjNone: public TABMAPObjHdr
+{
+  public:
+
+    TABMAPObjNone() {};
+    virtual ~TABMAPObjNone() {};
+
+    virtual int WriteObj(TABMAPObjectBlock *) {return 0;};
+
+//  protected:
+    virtual int ReadObj(TABMAPObjectBlock *) {return 0;};
+};
+
+
 class TABMAPObjPoint: public TABMAPObjHdr
 {
   public:
@@ -721,6 +739,8 @@ class TABMAPHeaderBlock: public TABRawBinBlock
     GInt32      m_nYMin;
     GInt32      m_nXMax;
     GInt32      m_nYMax;
+    GBool       m_bIntBoundsOverflow;  // Set to TRUE if coordinates 
+                                       // outside of bounds were written
 
     GInt32      m_nFirstIndexBlock;
     GInt32      m_nFirstGarbageBlock;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.65 2002-06-17 15:00:30 julien Exp $
+ * $Id: mitab.h,v 1.66 2002-06-28 18:32:37 julien Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.65  2002-06-17 15:00:30  julien
+ * Revision 1.66  2002-06-28 18:32:37  julien
+ * Add SetSpatialFilter() in TABSeamless class (Bug 164, MapServer)
+ * Use double for comparison in Coordsys2Int() in mitab_mapheaderblock.cpp
+ *
+ * Revision 1.65  2002/06/17 15:00:30  julien
  * Add IsInteriorRing() function in TABRegion to validate if a ring is internal
  *
  * Revision 1.64  2002/05/08 20:02:29  daniel
@@ -564,6 +568,8 @@ class TABSeamless: public IMapInfoFile
 
     virtual const char *GetTableName()
            {return m_poFeatureDefnRef?m_poFeatureDefnRef->GetName():"";};
+
+    virtual void        SetSpatialFilter( OGRGeometry * );
 
     virtual void        ResetReading();
     virtual int         TestCapability( const char * pszCap );

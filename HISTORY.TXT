@@ -5,6 +5,15 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+- In mitab_mapheaderblock.cpp, the Coordsys2Int() function used integer value 
+  to check for overflow. However, in some case, integer was to small and bug
+  applications. So, this function now use double for comparison, but still 
+  return and receive integer.
+
+- Add SetSpatialFilter function in the TABSeamless class, to use seamless layer
+  in the right way. Now, the filter is apply on each data file and on the index
+  file. (Bug 164 (MapServer))
+
 - Treat Region as MultiPolygon in mitab_c_set_point() to support Regions
   with multiple islands and holes. Passing a part number <= 0 (second 
   parameter in mitab_c_set_point()) will result in adding a new island 
@@ -439,5 +448,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.91 2002-06-18 14:31:07 julien Exp $
+$Id: HISTORY.TXT,v 1.92 2002-06-28 18:32:37 julien Exp $
 ------------

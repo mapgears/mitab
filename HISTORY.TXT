@@ -50,6 +50,8 @@ CHANGES - Current Version:
   is translated to 254 characters, instead of 255 so it will actually be
   a legal field width in TAB.  (NFW)
 
+- Make default and max char field with 254 chars in TABFile::AddFieldNative()
+
 - Added a warning (TAB_WarningBoundsOverflow) on close of .MAP file if any 
   object was written with coordinates outside of the file's predefined 
   bounds.  (Causing an overflow of the +/-1e9 integer coord. range)
@@ -59,6 +61,10 @@ CHANGES - Current Version:
   everything to zero which was inconsistent with MI's behavior)
   New defaults are: PEN(1,2,0), BRUSH(2,16777215,16777215), 
   FONT("Arial",0,0,0), SYMBOL(35,0,12)
+
+- Accept "TABLE TYPE LINKED" and handle them the same way as type NATIVE
+  i.e. the link to the RDBMS is simply ignored.
+
 
 Version 1.0.4 - (2000-11-14)
 ----------------------------
@@ -248,5 +254,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.38 2000-11-30 20:27:56 warmerda Exp $
+$Id: HISTORY.TXT,v 1.39 2000-12-15 05:36:49 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.18 1999-12-19 17:36:30 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.19 2000-01-14 23:51:06 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -8,7 +8,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, Daniel Morissette
+ * Copyright (c) 1999, 2000, Daniel Morissette
  *
  * All rights reserved.  This software may be copied or reproduced, in
  * all or in part, without the prior written consent of its author,
@@ -28,7 +28,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.18  1999-12-19 17:36:30  daniel
+ * Revision 1.19  2000-01-14 23:51:06  daniel
+ * Fixed handling of "\n" in TABText strings... now the external interface
+ * of the lib returns and expects escaped "\"+"n" as described in MIF specs
+ *
+ * Revision 1.18  1999/12/19 17:36:30  daniel
  * Fixed a problem with TABRegion::GetRingRef()
  *
  * Revision 1.17  1999/12/18 07:11:36  daniel
@@ -3877,14 +3881,15 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
 
         /*-------------------------------------------------------------
          * Read text string from the coord. block
+         * Note that the string may contain binary '\n' and '\\' chars
+         * that we have to convert to an escaped form internally.
          *------------------------------------------------------------*/
-        CPLFree(m_pszString);
-        m_pszString = (char*)CPLMalloc((nStringLen+1)*sizeof(char));
+        char *pszTmpString = (char*)CPLMalloc((nStringLen+1)*sizeof(char));
         poCoordBlock = poMapFile->GetCoordBlock(nCoordBlockPtr);
 
         if (nStringLen > 0 && 
             (poCoordBlock == NULL ||
-             poCoordBlock->ReadBytes(nStringLen, (GByte*)m_pszString) != 0))
+             poCoordBlock->ReadBytes(nStringLen, (GByte*)pszTmpString) != 0))
         {
             CPLError(CE_Failure, CPLE_FileIO,
                      "Failed reading text string at offset %d", 
@@ -3892,8 +3897,12 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
             return -1;
         }
 
-        m_pszString[nStringLen] = '\0';
+        pszTmpString[nStringLen] = '\0';
 
+        CPLFree(m_pszString);
+        m_pszString = TABEscapeString(pszTmpString);
+        if (pszTmpString != m_pszString)
+            CPLFree(pszTmpString);
     }
     else
     {
@@ -4019,21 +4028,30 @@ int TABText::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
 
     /*-----------------------------------------------------------------
      * Write string to a coord block first...
+     * Note that the string may contain escaped "\"+"n" and "\"+"\"
+     * sequences that we have to convert to binary chars '\n' and '\\'
+     * for the MAP file.
      *----------------------------------------------------------------*/
     poCoordBlock = poMapFile->GetCurCoordBlock();
     poCoordBlock->StartNewFeature();
     nCoordBlockPtr = poCoordBlock->GetCurAddress();
 
-    nStringLen = strlen(m_pszString);
+    char *pszTmpString = TABUnEscapeString(m_pszString, TRUE);
+
+    nStringLen = strlen(pszTmpString);
 
     if (nStringLen > 0)
     {
-        poCoordBlock->WriteBytes(nStringLen, (GByte *)m_pszString);
+        poCoordBlock->WriteBytes(nStringLen, (GByte *)pszTmpString);
     }
     else
     {
         nCoordBlockPtr = 0;
     }
+
+    if (pszTmpString != m_pszString)
+        CPLFree(pszTmpString);
+    pszTmpString = NULL;
 
     /*-----------------------------------------------------------------
      * Write object information
@@ -4121,6 +4139,10 @@ const char *TABText::GetTextString()
  *                   TABText::SetTextString()
  *
  * Set new text string value.
+ *
+ * Note: The text string may contain "\n" chars or "\\" chars
+ * and we expect to receive them in a 2 chars escaped form as 
+ * described in the MIF format specs.
  **********************************************************************/
 void TABText::SetTextString(const char *pszNewStr)
 {

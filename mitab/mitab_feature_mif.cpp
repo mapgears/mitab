@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.9 1999-12-19 17:37:14 daniel Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.10 2000-01-14 23:51:37 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -9,7 +9,7 @@
  * Author:   Stephane Villeneuve, s.villeneuve@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, Daniel Morissette
+ * Copyright (c) 1999, 2000, Daniel Morissette
  *
  * All rights reserved.  This software may be copied or reproduced, in
  * all or in part, without the prior written consent of its author,
@@ -29,7 +29,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.9  1999-12-19 17:37:14  daniel
+ * Revision 1.10  2000-01-14 23:51:37  daniel
+ * Fixed handling of "\n" in TABText strings... now the external interface
+ * of the lib returns and expects escaped "\"+"n" as described in MIF specs
+ *
+ * Revision 1.9  1999/12/19 17:37:14  daniel
  * Fixed memory leaks
  *
  * Revision 1.8  1999/12/19 01:02:50  stephane
@@ -1427,63 +1431,6 @@ int TABArc::WriteGeometryToMIFFile(MIDDATAFile *fp)
 /**********************************************************************
  *
  **********************************************************************/
-static char *GetStringWithCR(const char *pszString)
-{
-    char *pszNewString = (char *)CPLCalloc(1,sizeof(char) * 
-					   (strlen(pszString) +1));
-    int i =0;
-    int j =0;
-
-    while (pszString[i])
-    {
-	if (pszString[i] =='\\' && 
-	    pszString[i+1] == 'n')
-	{
-	    pszNewString[j++] = '\n';
-	    i++;
-	    i++;
-	}
-	else
-	{
-	    pszNewString[j++] = pszString[i++];
-	}
-    }
-   
-    return pszNewString;
-}
-
-/**********************************************************************
- *
- **********************************************************************/
-static char *GetStringWithoutCR(const char *pszString)
-{
-    char *pszNewString = (char *)CPLCalloc(2,sizeof(char) * 
-					   (strlen(pszString) +1));
-
-    int i =0;
-    int j =0;
-
-    while (pszString[i])
-    {
-	if (pszString[i] =='\n')
-	{
-	    pszNewString[j++] = '\\';
-	    pszNewString[j++] = 'n';
-	    i++;
-	}
-	else
-	{
-	    pszNewString[j++] = pszString[i++];
-	}
-    }
-
-    return pszNewString;
-    
-}
-
-/**********************************************************************
- *
- **********************************************************************/
 int TABText::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 { 
     double               dXMin, dYMin, dXMax, dYMax;
@@ -1516,8 +1463,11 @@ int TABText::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	return -1;
     }
 
-    CPLFree(m_pszString);
-    m_pszString = GetStringWithCR(pszString);
+    /*-------------------------------------------------------------
+     * Note: The text string may contain escaped "\n" chars, and we
+     * return them in their escaped form.
+     *------------------------------------------------------------*/
+    m_pszString = CPLStrdup(pszString);
 
     CSLDestroy(papszToken);
     papszToken = CSLTokenizeString(fp->GetLine());
@@ -1735,12 +1685,14 @@ int TABText::ReadGeometryFromMIFFile(MIDDATAFile *fp)
  **********************************************************************/
 int TABText::WriteGeometryToMIFFile(MIDDATAFile *fp)
 {
-    char *pszString;
     double dXMin,dYMin,dXMax,dYMax;
-    pszString = GetStringWithoutCR(GetTextString());
-    
-    fp->WriteLine("Text \"%s\"\n", pszString );
-    CPLFree(pszString);
+
+    /*-------------------------------------------------------------
+     * Note: The text string may contain "\n" chars or "\\" chars
+     * and we expect to receive them in an escaped form.
+     *------------------------------------------------------------*/
+    fp->WriteLine("Text \"%s\"\n", GetTextString() );
+
     //    UpdateTextMBR();
     GetMBR(dXMin, dYMin, dXMax, dYMax);
     fp->WriteLine("    %.16g %.16g %.16g %.16g\n",dXMin, dYMin,dXMax, dYMax); 

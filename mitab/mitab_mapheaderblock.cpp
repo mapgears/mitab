@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.13 2000-02-07 18:09:10 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.14 2000-02-28 17:01:05 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.13  2000-02-07 18:09:10  daniel
+ * Revision 1.14  2000-02-28 17:01:05  daniel
+ * Use a #define for header version number
+ *
+ * Revision 1.13  2000/02/07 18:09:10  daniel
  * OOpppps ... test on version number was reversed!
  *
  * Revision 1.12  2000/02/07 17:41:02  daniel
@@ -116,7 +119,7 @@ TABMAPHeaderBlock::TABMAPHeaderBlock(TABAccess eAccessMode /*= TABRead*/):
     /*-----------------------------------------------------------------
      * Set acceptable default values for member vars.
      *----------------------------------------------------------------*/
-    m_nVersionNumber = 0;
+    m_nMAPVersionNumber = HDR_VERSION_NUMBER;
     m_nBlockSize = HDR_BLOCK_SIZE;
 
     m_dCoordsys2DistUnits = 1.0;
@@ -226,7 +229,7 @@ int     TABMAPHeaderBlock::InitBlockFromData(GByte *pabyBuf, int nSize,
      * For this reason, this class should be used with care.
      *----------------------------------------------------------------*/
     GotoByteInBlock(0x104);
-    m_nVersionNumber = ReadInt16();
+    m_nMAPVersionNumber = ReadInt16();
     m_nBlockSize = ReadInt16();
 
     m_dCoordsys2DistUnits = ReadDouble();
@@ -284,7 +287,7 @@ int     TABMAPHeaderBlock::InitBlockFromData(GByte *pabyBuf, int nSize,
          * to 0 for the rest of the lib to be happy.
          */
         m_sProj.adDatumParams[i] = ReadDouble();
-        if (m_nVersionNumber <= 200)
+        if (m_nMAPVersionNumber <= 200)
             m_sProj.adDatumParams[i] = 0.0;
     }
 
@@ -629,7 +632,7 @@ int     TABMAPHeaderBlock::CommitToFile()
 
     GotoByteInBlock(0x100);
     WriteInt32(HDR_MAGIC_COOKIE);
-    WriteInt16(HDR_VERSION_NUMBER);
+    WriteInt16(m_nMAPVersionNumber);
     WriteInt16(HDR_BLOCK_SIZE);
 
     WriteDouble(m_dCoordsys2DistUnits);
@@ -720,7 +723,7 @@ int     TABMAPHeaderBlock::InitNewBlock(FILE *fpSrc, int nBlockSize,
     /*-----------------------------------------------------------------
      * Set acceptable default values for member vars.
      *----------------------------------------------------------------*/
-    m_nVersionNumber = 0;
+    m_nMAPVersionNumber = HDR_VERSION_NUMBER;
     m_nBlockSize = HDR_BLOCK_SIZE;
 
     m_dCoordsys2DistUnits = 1.0;
@@ -806,7 +809,7 @@ void TABMAPHeaderBlock::Dump(FILE *fpOut /*=NULL*/)
     }
     else
     {
-        fprintf(fpOut,"Version %d header block.\n", m_nVersionNumber);
+        fprintf(fpOut,"Version %d header block.\n", m_nMAPVersionNumber);
         fprintf(fpOut,"  m_nBlockSize          = %d\n", m_nBlockSize);
         fprintf(fpOut,"  m_nFirstIndexBlock    = %d\n", m_nFirstIndexBlock);
         fprintf(fpOut,"  m_nFirstGarbageBlock  = %d\n", m_nFirstGarbageBlock);

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.63 2002-05-08 15:10:48 julien Exp $
+ * $Id: mitab.h,v 1.64 2002-05-08 20:02:29 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.63  2002-05-08 15:10:48  julien
+ * Revision 1.64  2002-05-08 20:02:29  daniel
+ * Version 1.2.1
+ *
+ * Revision 1.63  2002/05/08 15:10:48  julien
  * Implement MIFFile::SetMIFCoordSys in mitab_capi.cpp (Bug 984)
  *
  * Revision 1.62  2002/05/03 15:09:41  daniel
@@ -146,7 +149,7 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION "1.2.0 (2002-05-03)"
+#define MITAB_VERSION "1.2.1 (2002-05-08)"
 
 #ifndef PI
 #  define PI 3.14159265358979323846

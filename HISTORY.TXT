@@ -5,9 +5,21 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
-- Implement SetMIFCoordSys in mitab_capi.cpp in the MIFFile class. The coordsys
-  was not written in mitab_c_create because SetMIFCoordSys always return -1
-  (Bug 984).
+
+
+Version 1.2.1 - (2002-05-08)
+----------------------------
+
+- Implement SetMIFCoordSys in the MIFFile class. The coordsys was not 
+  written when calling mitab_c_create for MIF files because 
+  MIFFile::SetMIFCoordSys always returned -1 (Bug 984).
+
+- Made mitab_c_set_font() and mitab_c_get_font() work for TABFC_FontPoint 
+  and TABFC_CustomPoint.
+
+- mitab_capi.h: Use stdcall by default for all public mitab.dll functions
+  instead of cdecl.  Should still work fine for C/C++ users, and will
+  allow VB/Delphi users to use the same DLL with Bo T.'s interface files.
 
 
 Version 1.2.0 - (2002-05-03)
@@ -415,5 +427,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.85 2002-05-08 15:10:48 julien Exp $
+$Id: HISTORY.TXT,v 1.86 2002-05-08 20:02:29 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.55 2001-09-19 14:31:22 warmerda Exp $
+ * $Id: mitab.h,v 1.56 2001-09-19 21:39:15 warmerda Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.55  2001-09-19 14:31:22  warmerda
+ * Revision 1.56  2001-09-19 21:39:15  warmerda
+ * get extents efficiently
+ *
+ * Revision 1.55  2001/09/19 14:31:22  warmerda
  * added m_nPreloadedId to keep track of preloaded line
  *
  * Revision 1.54  2001/09/14 03:23:55  warmerda
@@ -623,10 +626,15 @@ class MIFFile: public IMapInfoFile
     double       m_dfXDisplacement;
     double       m_dfYDisplacement;
 
+    /* these are the projection bounds, possibly much broader than extents */
     double      m_dXMin;
     double      m_dYMin;
     double      m_dXMax;
     double      m_dYMax;
+
+    /* extents, as cached by MIFFile::PreParseFile() */
+    int         m_bExtentsSet;
+    OGREnvelope m_sExtents;
 
     int         m_nPoints;
     int         m_nLines;
@@ -661,7 +669,7 @@ class MIFFile: public IMapInfoFile
     GBool       m_bHeaderWrote;
     
     int         WriteMIFHeader();
-    void UpdateBounds(double dfX,double dfY);
+    void UpdateExtents(double dfX,double dfY);
 
   public:
     MIFFile();

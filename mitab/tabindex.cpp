@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabindex.cpp,v 1.2 2001-05-01 04:34:19 daniel Exp $
+ * $Id: tabindex.cpp,v 1.3 2004-06-04 19:09:12 dmorissette Exp $
  *
  * Name:     tabindex.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabindex.cpp,v $
- * Revision 1.2  2001-05-01 04:34:19  daniel
+ * Revision 1.3  2004-06-04 19:09:12  dmorissette
+ * Updated ref to lib's homepage in usage instructions
+ *
+ * Revision 1.2  2001/05/01 04:34:19  daniel
  * Fixed usage message.
  *
  * Revision 1.1  2001/05/01 03:40:25  daniel
@@ -62,7 +65,7 @@ int main(int argc, char *argv[])
         printf("Usage: tabindex <tab_filename> <field_to_index>\n");
         printf("    Create index for specified field in an existing TAB dataset.\n\n");
         printf("For the latest version of this program and of the library, see: \n");
-        printf("    http://pages.infinit.net/danmo/e00/index-mitab.html\n\n");
+        printf("    http://mitab.maptools.org/\n\n");
         return 1;
     }
     else

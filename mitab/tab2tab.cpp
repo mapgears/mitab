@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.10 2002-04-22 13:49:09 julien Exp $
+ * $Id: tab2tab.cpp,v 1.11 2004-06-04 19:08:35 dmorissette Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.10  2002-04-22 13:49:09  julien
+ * Revision 1.11  2004-06-04 19:08:35  dmorissette
+ * Updated ref to lib's homepage in usage instructions
+ *
+ * Revision 1.10  2002/04/22 13:49:09  julien
  * Add EOF validation in MIDDATAFile::GetLastLine() (Bug 819)
  *
  * Revision 1.9  2001/03/09 03:53:30  daniel
@@ -88,7 +91,7 @@ int main(int argc, char *argv[])
         printf("    Converts TAB or MIF file <src_filename> to TAB or MIF format.\n");
         printf("    The extension of <dst_filename> (.tab or .mif) defines the output format.\n\n");
         printf("For the latest version of this program and of the library, see: \n");
-        printf("    http://pages.infinit.net/danmo/e00/index-mitab.html\n\n");
+        printf("    http://mitab.maptools.org/\n\n");
         return 1;
     }
     else

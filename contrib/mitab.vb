@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.vb,v 1.4 2002-08-01 13:53:11 daniel Exp $
+' * $Id: mitab.vb,v 1.5 2002-08-01 13:59:38 daniel Exp $
 ' *
 ' * Name:     mitab.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,8 +32,8 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.vb,v $
-' * Revision 1.4  2002-08-01 13:53:11  daniel
-' * Update for v1.2.2 from BVT
+' * Revision 1.5  2002-08-01 13:59:38  daniel
+' * (Update From BVT) Fixed mitab_c_get_vertex_x/y() declarations
 ' *
 ' * Revision 1.4  2002/07/07 22:04:22  bvt
 ' * Added declaration for mitab_c_is_interior_ring
@@ -142,8 +142,8 @@ Public Declare Function mitab_c_get_text_spacing Lib "mitab.dll" Alias "_mitab_c
 Public Declare Function mitab_c_get_text_width Lib "mitab.dll" Alias "_mitab_c_get_text_width@4" (ByVal feature As Long) As Double
 Public Declare Function mitab_c_get_type Lib "mitab.dll" Alias "_mitab_c_get_type@4" (ByVal feature As Long) As Long
 Public Declare Function mitab_c_get_vertex_count Lib "mitab.dll" Alias "_mitab_c_get_vertex_count@8" (ByVal feature As Long, ByVal part As Long) As Long
-Public Declare Function mitab_c_get_vertex_x Lib "mitab.dll" Alias "_mitab_c_get_vertex_x@12" (ByVal feature As Long, ByVal part, ByVal vertex As Long) As Double
-Public Declare Function mitab_c_get_vertex_y Lib "mitab.dll" Alias "_mitab_c_get_vertex_y@12" (ByVal feature As Long, ByVal part, ByVal vertex As Long) As Double
+Public Declare Function mitab_c_get_vertex_x Lib "mitab.dll" Alias "_mitab_c_get_vertex_x@12" (ByVal feature As Long, ByVal part as Long, ByVal vertex As Long) As Double
+Public Declare Function mitab_c_get_vertex_y Lib "mitab.dll" Alias "_mitab_c_get_vertex_y@12" (ByVal feature As Long, ByVal part as Long, ByVal vertex As Long) As Double
 Public Declare Function mitab_c_getlasterrormsg_vb Lib "mitab.dll" Alias "_mitab_c_getlasterrormsg_vb@8" (ByVal errormsg As String, ByVal l As Long) As Long
 Public Declare Function mitab_c_getlasterrorno Lib "mitab.dll" Alias "_mitab_c_getlasterrorno@0" () As Long
 Public Declare Function mitab_c_next_feature_id Lib "mitab.dll" Alias "_mitab_c_next_feature_id@8" (ByVal handle As Long, ByVal last_feature_id As Long) As Long

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.5 1999-11-08 04:30:59 stephane Exp $
+ * $Id: mitab_utils.cpp,v 1.6 1999-12-14 02:08:37 daniel Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.5  1999-11-08 04:30:59  stephane
+ * Revision 1.6  1999-12-14 02:08:37  daniel
+ * Added TABGetBasename() + TAB_CSLLoad()
+ *
+ * Revision 1.5  1999/11/08 04:30:59  stephane
  * Modify TABGenerateArc()
  *
  * Revision 1.4  1999/09/29 17:59:21  daniel
@@ -185,3 +188,76 @@ GBool TABAdjustFilenameExtension(char *pszFname)
 
 
 
+/**********************************************************************
+ *                       TABGetBasename()
+ *
+ * Extract the basename part of a complete file path.
+ *
+ * Returns a newly allocated string without the leading path (dirs) and
+ * the extenstion.  The returned string should be freed using CPLFree().
+ **********************************************************************/
+char *TABGetBasename(const char *pszFname)
+{
+    const char *pszTmp = NULL;
+
+    /*-----------------------------------------------------------------
+     * Skip leading path
+     *----------------------------------------------------------------*/
+    if ((pszTmp = strrchr(pszFname, '/')) == NULL &&
+        (pszTmp = strrchr(pszFname, '\\')) == NULL)
+    {
+        pszTmp = pszFname;
+    }
+
+    /*-----------------------------------------------------------------
+     * Now allocate our own copy and remove extension
+     *----------------------------------------------------------------*/
+    char *pszBasename = CPLStrdup(pszTmp);
+    int i;
+    for(i=0; pszBasename[i] != '\0'; i++)
+    {
+        if (pszBasename[i] == '.')
+        {
+            pszBasename[i] = '\0';
+            break;
+        }
+    }
+
+    return pszBasename;
+}
+
+
+
+/**********************************************************************
+ *                       TAB_CSLLoad()
+ *
+ * Same as CSLLoad(), but does not produce an error if it fails... it
+ * just returns NULL silently instead.
+ *
+ * Load a test file into a stringlist.
+ *
+ * Lines are limited in length by the size fo the CPLReadLine() buffer.
+ **********************************************************************/
+char **TAB_CSLLoad(const char *pszFname)
+{
+    FILE        *fp;
+    const char  *pszLine;
+    char        **papszStrList=NULL;
+
+    fp = VSIFOpen(pszFname, "rt");
+
+    if (fp)
+    {
+        while(!VSIFEof(fp))
+        {
+            if ( (pszLine = CPLReadLine(fp)) != NULL )
+            {
+                papszStrList = CSLAddString(papszStrList, pszLine);
+            }
+        }
+
+        VSIFClose(fp);
+    }
+
+    return papszStrList;
+}

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.13 2004-06-30 20:29:04 dmorissette Exp $
+ * $Id: tabdump.cpp,v 1.14 2005-03-22 23:24:54 dmorissette Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.13  2004-06-30 20:29:04  dmorissette
+ * Revision 1.14  2005-03-22 23:24:54  dmorissette
+ * Added support for datum id in .MAP header (bug 910)
+ *
+ * Revision 1.13  2004/06/30 20:29:04  dmorissette
  * Fixed refs to old address danmo@videotron.ca
  *
  * Revision 1.12  2001/11/16 20:55:00  daniel
@@ -634,7 +637,7 @@ static int DumpCoordsysStruct(const char *pszFname)
     {
         printf("{{%d, %d, %d, "
                "{%.15g,%.15g,%.15g,%.15g,%.15g,%.15g}, "
-               "%.15g,%.15g,%.15g, "
+               "%d,%.15g,%.15g,%.15g, "
                "{%.15g,%.15g,%.15g,%.15g,%.15g}}, ", 
                sProjInfo.nProjId,
                sProjInfo.nEllipsoidId,
@@ -645,6 +648,7 @@ static int DumpCoordsysStruct(const char *pszFname)
                sProjInfo.adProjParams[3],
                sProjInfo.adProjParams[4],
                sProjInfo.adProjParams[5],
+               sProjInfo.nDatumId,
                sProjInfo.dDatumShiftX,
                sProjInfo.dDatumShiftY,
                sProjInfo.dDatumShiftZ,

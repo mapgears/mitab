@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.28 2004-12-15 22:52:49 dmorissette Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.29 2005-03-22 23:24:54 dmorissette Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.28  2004-12-15 22:52:49  dmorissette
+ * Revision 1.29  2005-03-22 23:24:54  dmorissette
+ * Added support for datum id in .MAP header (bug 910)
+ *
+ * Revision 1.28  2004/12/15 22:52:49  dmorissette
  * Revert back to using doubles for range check in CoordSys2Int(). Hopefully
  * I got it right this time. (bug 894)
  *
@@ -313,8 +316,17 @@ int     TABMAPHeaderBlock::InitBlockFromData(GByte *pabyBuf, int nSize,
     m_numFontDefs = ReadByte();
     m_numMapToolBlocks = ReadInt16();
 
-    GotoByteInBlock(0x16d);     // Skip 3 unknown bytes
-
+    /* DatumId was never set (always 0) until MapInfo 7.8. See bug 910
+     * MAP Version Number is 500 in this case.
+     */
+    if (m_nMAPVersionNumber >= 500)
+        m_sProj.nDatumId  = ReadInt16();
+    else
+    {
+        ReadInt16();    // Skip.
+        m_sProj.nDatumId = 0;
+    }
+    ReadByte();         // Skip unknown byte
     m_sProj.nProjId  = ReadByte();
     m_sProj.nEllipsoidId = ReadByte();
     m_sProj.nUnitsId = ReadByte();
@@ -800,7 +812,8 @@ int     TABMAPHeaderBlock::CommitToFile()
     WriteByte(m_numFontDefs);
     WriteInt16(m_numMapToolBlocks);
 
-    WriteZeros(3);      // ???
+    WriteInt16(m_sProj.nDatumId);
+    WriteZeros(1);      // ???
 
     WriteByte(m_sProj.nProjId);
     WriteByte(m_sProj.nEllipsoidId);
@@ -978,6 +991,7 @@ void TABMAPHeaderBlock::Dump(FILE *fpOut /*=NULL*/)
         fprintf(fpOut,"  m_numMapToolBlocks    = %d\n", m_numMapToolBlocks);
 
         fprintf(fpOut,"\n");
+        fprintf(fpOut,"  m_sProj.nDatumId      = %d\n", m_sProj.nDatumId);
         fprintf(fpOut,"  m_sProj.nProjId       = %d\n", (int)m_sProj.nProjId);
         fprintf(fpOut,"  m_sProj.nEllipsoidId  = %d\n", 
                                                     (int)m_sProj.nEllipsoidId);

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.41 2004-10-11 20:50:04 dmorissette Exp $
+ * $Id: mitab_spatialref.cpp,v 1.42 2005-03-22 23:24:54 dmorissette Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.41  2004-10-11 20:50:04  dmorissette
+ * Revision 1.42  2005-03-22 23:24:54  dmorissette
+ * Added support for datum id in .MAP header (bug 910)
+ *
+ * Revision 1.41  2004/10/11 20:50:04  dmorissette
  * 7 new datum defns, 1 fixed and list of ellipsoids updated (Bug 608,Uffe K.)
  *
  * Revision 1.40  2003/03/21 14:20:42  warmerda
@@ -836,15 +839,18 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     {
         psDatumInfo = asDatumInfoList + iDatumInfo;
         
-        if( TAB_EQUAL(psDatumInfo->nEllipsoid, sTABProj.nEllipsoidId)
-            && TAB_EQUAL(psDatumInfo->dfShiftX, sTABProj.dDatumShiftX)
-            && TAB_EQUAL(psDatumInfo->dfShiftY, sTABProj.dDatumShiftY)
-            && TAB_EQUAL(psDatumInfo->dfShiftZ, sTABProj.dDatumShiftZ)
-            && TAB_EQUAL(psDatumInfo->dfDatumParm0,sTABProj.adDatumParams[0])
-            && TAB_EQUAL(psDatumInfo->dfDatumParm1,sTABProj.adDatumParams[1])
-            && TAB_EQUAL(psDatumInfo->dfDatumParm2,sTABProj.adDatumParams[2])
-            && TAB_EQUAL(psDatumInfo->dfDatumParm3,sTABProj.adDatumParams[3])
-            && TAB_EQUAL(psDatumInfo->dfDatumParm4,sTABProj.adDatumParams[4]))
+        if( TAB_EQUAL(psDatumInfo->nEllipsoid, sTABProj.nEllipsoidId) &&
+            ((sTABProj.nDatumId > 0 && 
+              sTABProj.nDatumId == psDatumInfo->nMapInfoDatumID) ||
+             (sTABProj.nDatumId <= 0
+              && TAB_EQUAL(psDatumInfo->dfShiftX, sTABProj.dDatumShiftX)
+              && TAB_EQUAL(psDatumInfo->dfShiftY, sTABProj.dDatumShiftY)
+              && TAB_EQUAL(psDatumInfo->dfShiftZ, sTABProj.dDatumShiftZ)
+              && TAB_EQUAL(psDatumInfo->dfDatumParm0,sTABProj.adDatumParams[0])
+              && TAB_EQUAL(psDatumInfo->dfDatumParm1,sTABProj.adDatumParams[1])
+              && TAB_EQUAL(psDatumInfo->dfDatumParm2,sTABProj.adDatumParams[2])
+              && TAB_EQUAL(psDatumInfo->dfDatumParm3,sTABProj.adDatumParams[3])
+              && TAB_EQUAL(psDatumInfo->dfDatumParm4,sTABProj.adDatumParams[4]))))
             break;
 
         psDatumInfo = NULL;
@@ -1006,6 +1012,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     sTABProj.adProjParams[2] = sTABProj.adProjParams[3] = 0.0;
     sTABProj.adProjParams[4] = sTABProj.adProjParams[5] = 0.0;
     
+    sTABProj.nDatumId = 0;
     sTABProj.dDatumShiftX = 0.0;
     sTABProj.dDatumShiftY = 0.0;
     sTABProj.dDatumShiftZ = 0.0;
@@ -1345,6 +1352,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     if( psDatumInfo != NULL )
     {
         sTABProj.nEllipsoidId = psDatumInfo->nEllipsoid;
+        sTABProj.nDatumId = psDatumInfo->nMapInfoDatumID;
         sTABProj.dDatumShiftX = psDatumInfo->dfShiftX;
         sTABProj.dDatumShiftY = psDatumInfo->dfShiftY;
         sTABProj.dDatumShiftZ = psDatumInfo->dfShiftZ;

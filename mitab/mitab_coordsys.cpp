@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.29 2004-06-03 19:36:53 fwarmerdam Exp $
+ * $Id: mitab_coordsys.cpp,v 1.30 2005-03-22 23:24:54 dmorissette Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.29  2004-06-03 19:36:53  fwarmerdam
+ * Revision 1.30  2005-03-22 23:24:54  dmorissette
+ * Added support for datum id in .MAP header (bug 910)
+ *
+ * Revision 1.29  2004/06/03 19:36:53  fwarmerdam
  * fixed memory leak processing non-earth coordsys
  *
  * Revision 1.28  2003/03/21 14:20:42  warmerda
@@ -1391,6 +1394,7 @@ int MITABCoordSys2TABProjInfo(const char * pszCoordSys, TABProjInfo *psProj)
         if( psDatumInfo != NULL )
         {
             psProj->nEllipsoidId = psDatumInfo->nEllipsoid;
+            psProj->nDatumId = psDatumInfo->nMapInfoDatumID;
             psProj->dDatumShiftX = psDatumInfo->dfShiftX;
             psProj->dDatumShiftY = psDatumInfo->dfShiftY;
             psProj->dDatumShiftZ = psDatumInfo->dfShiftZ;

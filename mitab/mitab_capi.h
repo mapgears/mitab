@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.23 2003-08-12 20:20:49 dmorissette Exp $
+ * $Id: mitab_capi.h,v 1.24 2004-06-03 23:10:11 dmorissette Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.23  2003-08-12 20:20:49  dmorissette
+ * Revision 1.24  2004-06-03 23:10:11  dmorissette
+ * Added missing MITAB_DLL for mitab_c_get_extended_mif_coordsys()
+ *
+ * Revision 1.23  2003/08/12 20:20:49  dmorissette
  * Changes from Anthony Dunk, Encom:
  * - Added ability to create a feature of type TABFC_NoGeom
  * - Added mitab_c_get_feature_count(), mitab_c_get_field_as_double() and
@@ -311,7 +314,7 @@ mitab_projinfo MITAB_DLL MITAB_STDCALL mitab_c_get_projinfo( mitab_handle datase
 int            MITAB_DLL MITAB_STDCALL mitab_c_set_projinfo( mitab_handle dataset, 
                                                mitab_projinfo projinfo );
 const char MITAB_DLL * MITAB_STDCALL mitab_c_get_mif_coordsys( mitab_handle dataset);
-const char * MITAB_STDCALL mitab_c_get_extended_mif_coordsys( mitab_handle dataset);
+const char MITAB_DLL * MITAB_STDCALL mitab_c_get_extended_mif_coordsys( mitab_handle dataset);
 
 int MITAB_DLL MITAB_STDCALL mitab_c_get_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l);
 

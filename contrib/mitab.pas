@@ -1,5 +1,6 @@
 {**********************************************************************
- * $Id: mitab.pas,v 1.6 2003-08-07 18:51:00 dmorissette Exp $
+ * $Id: mitab.pas,v 1.7 2004-07-07 22:10:32 dmorissette Exp $
+ * 
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +33,18 @@
  **********************************************************************
  *
  * $Log: mitab.pas,v $
- * Revision 1.6  2003-08-07 18:51:00  dmorissette
+ * Revision 1.7  2004-07-07 22:10:32  dmorissette
+ * Update for 1.3.0 release by BVT
+ *
+ * Revision 1.7  2004/07/06 18:51:00  bvt
+ * Added declaration for:
+ * mitab_c_load_coordsys_table
+ * mitab_c_get_extended_mif_coordsys
+ * mitab_c_get_extended_mif_coordsys_vb
+ * mitab_c_get_feature_count
+ * mitab_c_get_field_as_double
+ *
+ * Revision 1.6  2003/08/07 18:51:00  dmorissette
  * Added mitab_c_getlibversion declaration (BVT - Bug 21)
  *
  * Revision 1.5  2003/07/29 14:39:26  dmorissette
@@ -132,13 +144,14 @@ function  mitab_c_get_brush_transparent  (feature: mitab_feature): longint;     
 function  mitab_c_get_field_as_string_vb (feature: mitab_feature; field: longint; value: pchar; l: longint): longint;                                           stdcall; external DLL Name '_mitab_c_get_field_as_string_vb@16';
 function  mitab_c_get_field_as_string    (feature: mitab_feature; field: longint): pchar;                                                                       stdcall; external DLL Name '_mitab_c_get_field_as_string@8'   ;
 function  mitab_c_get_field_count        (handle: mitab_handle): longint;                                                                                       stdcall; external DLL Name '_mitab_c_get_field_count@4'       ;
-function  mitab_c_get_field_name_vb      (handle: mitab_handle; field: longint; name: pchar; l: longint): longint;						stdcall; external DLL Name '_mitab_c_get_field_name_vb@16'    ;
+function  mitab_c_get_field_name_vb      (handle: mitab_handle; field: longint; name: pchar; l: longint): longint;						                                  stdcall; external DLL Name '_mitab_c_get_field_name_vb@16'    ;
 function  mitab_c_get_field_name         (handle: mitab_handle; field: longint): pchar;                                                                         stdcall; external DLL Name '_mitab_c_get_field_name@8'        ;
 function  mitab_c_get_field_type         (handle: mitab_handle; field: longint): longint;                                                                       stdcall; external DLL Name '_mitab_c_get_field_type@8'        ;
 function  mitab_c_get_font_vb            (feature: mitab_feature; font: pchar; l: longint): longint;                                                            stdcall; external DLL Name '_mitab_c_get_font_vb@12'          ;
 function  mitab_c_get_font               (feature: mitab_feature): pchar;                                                                                       stdcall; external DLL Name '_mitab_c_get_font@4'              ;
 function  mitab_c_getlibversion          (): longint;                                                                                                           stdcall; external DLL Name '_mitab_c_getlibversion@0'         ;
-function  mitab_c_get_mif_coordsys_vb    (dataset: mitab_handle; coordsys: pchar; l: longint): longint;								stdcall; external DLL Name '_mitab_c_get_mif_coordsys_vb@12'  ;
+function  mitab_c_get_mif_coordsys_vb    (dataset: mitab_handle; coordsys: pchar; l: longint): longint;	                                          							stdcall; external DLL Name '_mitab_c_get_mif_coordsys_vb@12'  ;
+function  mitab_c_get_extended_mif_coordsys_vb (dataset: mitab_handle; coordsys: pchar; l: longint): longint;                                    								stdcall; external DLL Name '_mitab_c_get_extended_mif_coordsys_vb@12'  ;
 function  mitab_c_get_mif_coordsys       (dataset: mitab_handle): pchar;                                                                                        stdcall; external DLL Name '_mitab_c_get_mif_coordsys@4'      ;
 function  mitab_c_get_parts              (feature: mitab_feature): longint;                                                                                     stdcall; external DLL Name '_mitab_c_get_parts@4'             ;
 function  mitab_c_get_pen_color          (feature: mitab_feature): longint;                                                                                     stdcall; external DLL Name '_mitab_c_get_pen_color@4'         ;
@@ -182,6 +195,10 @@ function  mitab_c_write_feature          (handle: mitab_handle; feature: mitab_f
 function  mitab_c_get_field_width        (handle: mitab_handle; field: longint): longint;                                                                       stdcall; external DLL Name '_mitab_c_get_field_width@8'       ;
 function  mitab_c_get_field_precision    (handle: mitab_handle; field: longint): longint;                                                                       stdcall; external DLL Name '_mitab_c_get_field_precision@8'   ;
 function  mitab_c_is_interior_ring       (feature: mitab_feature; requestedringindex: longint): longint;                                                        stdcall; external DLL Name '_mitab_c_is_interior_ring@8'      ;
+function  mitab_c_load_coordsys_table    (filename: pchar): longint;                                                                                            stdcall; external DLL Name '_mitab_c_load_coordsys_table@4'   ;
+function  mitab_c_get_extended_mif_coordsys (dataset: mitab_handle): pchar;                                                                                     stdcall; external DLL Name '_mitab_c_get_extended_mif_coordsys@4';
+function  mitab_c_get_feature_count      (handle: mitab_handle): longint;                                                                                       stdcall; external DLL Name '_mitab_c_get_feature_count@4'     ;
+function  mitab_c_get_field_as_double    (feature: mitab_feature; field: longint): double;                                                                      stdcall; external DLL Name '_mitab_c_get_field_as_double@8'   ;
 
 implementation
 end.

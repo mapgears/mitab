@@ -19,7 +19,7 @@ is that the difference is insignificant.
 MapBasic and Visual Basic can only use the stdcall calling convention (mitab.dll). 
 
 MB and VB is unable to use dll-functions that returns string as a function result.
-So 6 new functions which _supplements_ the existing functions returning "const
+So 7 new functions which _supplements_ the existing functions returning "const
 char *" function results has been added to the mitab api. 
 
 The new function is named as the existing functions with the suffix "_vb",
@@ -43,4 +43,4 @@ Bo Thomsen
 
 
 --------
-$Id: README_VB.TXT,v 1.2 2002-05-08 20:23:53 daniel Exp $
+$Id: README_VB.TXT,v 1.3 2004-07-07 22:10:32 dmorissette Exp $

@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.vb,v 1.9 2003-08-07 18:51:00 dmorissette Exp $
+' * $Id: mitab.vb,v 1.10 2004-07-07 22:10:32 dmorissette Exp $
 ' *
 ' * Name:     mitab.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,17 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.vb,v $
-' * Revision 1.9  2003-08-07 18:51:00  dmorissette
+' * Revision 1.10  2004-07-07 22:10:32  dmorissette
+' * Update for 1.3.0 release by BVT
+' *
+' * Revision 1.10  2004/07/06 18:51:00  bvt
+' * Added declaration for:
+' * mitab_c_load_coordsys_table
+' * mitab_c_get_extended_mif_coordsys_vb
+' * mitab_c_get_feature_count
+' * mitab_c_get_field_as_double
+' *
+' * Revision 1.9  2003/08/07 18:51:00  dmorissette
 ' * Added mitab_c_getlibversion declaration (BVT - Bug 21)
 ' *
 ' * Revision 1.8  2003/07/29 14:39:26  dmorissette
@@ -124,7 +134,7 @@ Public Const TABTL_Arrow = 2
 
 Rem version 
 
-Public Const Libversion = 1002004
+Public Const Libversion = 1003000
 
 
 Public Declare Function mitab_c_add_field Lib "mitab.dll" Alias "_mitab_c_add_field@28" (ByVal handle As Long, ByVal field_name As String, ByVal field_type As Long, ByVal width As Long, ByVal precision As Long, ByVal indexed As Long, ByVal unique As Long) As Long
@@ -143,6 +153,7 @@ Public Declare Function mitab_c_get_field_type Lib "mitab.dll" Alias "_mitab_c_g
 Public Declare Function mitab_c_get_font_vb Lib "mitab.dll" Alias "_mitab_c_get_font_vb@12" (ByVal feature As Long, ByVal font As String, ByVal l As Long) As Long
 Public Declare Function mitab_c_getlibversion  Lib "mitab.dll" Alias "_mitab_c_getlibversion@0"  () As Long
 Public Declare Function mitab_c_get_mif_coordsys_vb Lib "mitab.dll" Alias "_mitab_c_get_mif_coordsys_vb@12" (ByVal dataset As Long, ByVal coordsys As String, ByVal l As Long) As Long
+Public Declare Function mitab_c_get_extended_mif_coordsys_vb Lib "mitab.dll" Alias "_mitab_c_get_extended_mif_coordsys_vb@12" (ByVal dataset As Long, ByVal coordsys As String, ByVal l As Long) As Long
 Public Declare Function mitab_c_get_parts Lib "mitab.dll" Alias "_mitab_c_get_parts@4" (ByVal feature As Long) As Long
 Public Declare Function mitab_c_get_pen_color Lib "mitab.dll" Alias "_mitab_c_get_pen_color@4" (ByVal feature As Long) As Long
 Public Declare Function mitab_c_get_pen_pattern Lib "mitab.dll" Alias "_mitab_c_get_pen_pattern@4" (ByVal feature As Long) As Long
@@ -183,3 +194,6 @@ Public Declare Function mitab_c_write_feature Lib "mitab.dll" Alias "_mitab_c_wr
 Public Declare Function mitab_c_get_field_width Lib "mitab.dll" Alias "_mitab_c_get_field_width@8" (ByVal handle As Long, ByVal field As Long) As Long
 Public Declare Function mitab_c_get_field_precision Lib "mitab.dll" Alias "_mitab_c_get_field_precision@8" (ByVal handle As Long, ByVal field As Long) As Long
 Public Declare Function mitab_c_is_interior_ring Lib "mitab.dll" Alias "_mitab_c_is_interior_ring@8" (ByVal feature As Long, ByVal requestedringindex As Long) As Long
+Public Declare Function mitab_c_load_coordsys_table Lib "mitab.dll" Alias "_mitab_c_load_coordsys_table@4" (ByVal filename As String) As Long
+Public Declare Function mitab_c_get_feature_count Lib "mitab.dll" Alias "_mitab_c_get_feature_count@4" (ByVal handle As Long) As Long
+Public Declare Function mitab_c_get_field_as_double Lib "mitab.dll" Alias "_mitab_c_get_field_as_double_vb@8" (ByVal feature As Long, ByVal field As Long) As Double

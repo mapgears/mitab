@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.9 1999-09-28 13:32:51 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.10 1999-10-01 02:12:17 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.9  1999-09-28 13:32:51  daniel
+ * Revision 1.10  1999-10-01 02:12:17  warmerda
+ * fixed OGRFieldDefn leak
+ *
+ * Revision 1.9  1999/09/28 13:32:51  daniel
  * Added AddFieldNative()
  *
  * Revision 1.8  1999/09/26 14:59:37  daniel
@@ -1125,6 +1128,7 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
      * Add the FieldDefn to the FeatureDefn 
      *----------------------------------------------------*/
     m_poDefn->AddFieldDefn(poFieldDefn);
+    delete poFieldDefn;
 
     /*-----------------------------------------------------
      * ... and pass field info to the .DAT file.

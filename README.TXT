@@ -194,5 +194,5 @@ the "\n" sequence in char attribute field values.
 
 
 ------------
-$Id: README.TXT,v 1.3 2000-01-15 23:18:36 daniel Exp $
+$Id: README.TXT,v 1.4 2000-02-28 08:11:36 daniel Exp $
 ------------

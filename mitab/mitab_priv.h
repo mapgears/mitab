@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.16 2000-02-28 16:53:23 daniel Exp $
+ * $Id: mitab_priv.h,v 1.17 2000-03-01 00:30:03 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.16  2000-02-28 16:53:23  daniel
+ * Revision 1.17  2000-03-01 00:30:03  daniel
+ * Completed support for joined tables
+ *
+ * Revision 1.16  2000/02/28 16:53:23  daniel
  * Added support for indexed, unique, and for new V450 object types
  *
  * Revision 1.15  2000/01/16 19:08:49  daniel
@@ -920,7 +923,9 @@ class TABINDNode
     GInt32      ReadIndexEntry(int nEntryNo, GByte *pKeyValue);
     int         IndexKeyCmp(GByte *pKeyValue, int nEntryNo);
 
-    int         InsertEntry(GByte *pKeyValue, GInt32 nRecordNo);
+    int         InsertEntry(GByte *pKeyValue, GInt32 nRecordNo,
+                            GBool bInsertAfterCurChild=FALSE,
+                            GBool bMakeNewEntryCurChild=FALSE);
     int         SetNodeBufferDirectly(int numEntries, GByte *pBuf,
                                       int nCurIndexEntry=0, 
                                       TABINDNode *poCurChild=NULL);
@@ -953,11 +958,19 @@ class TABINDNode
     int         CommitToFile();
 
     int         AddEntry(GByte *pKeyValue, GInt32 nRecordNo,
-                         GBool bAddInThisNodeOnly=FALSE);
+                         GBool bAddInThisNodeOnly=FALSE,
+                         GBool bInsertAfterCurChild=FALSE,
+                         GBool bMakeNewEntryCurChild=FALSE);
     int         SplitNode();
     int         SplitRootNode();
     GByte*      GetNodeKey();
-    int         UpdateCurEntry(GByte *pKeyValue, GInt32 nRecordNo);
+    int         UpdateSplitChild(GByte *pKeyValue1, GInt32 nRecordNo1,
+                                 GByte *pKeyValue2, GInt32 nRecordNo2,
+                                 int nNewCurChildNo /* 1 or 2 */);
+
+    int         SetNodeBlockPtr(GInt32 nThisNodePtr);
+    int         SetPrevNodePtr(GInt32 nPrevNodePtr);
+    int         SetNextNodePtr(GInt32 nNextNodePtr);
 
 #ifdef DEBUG
     void Dump(FILE *fpOut = NULL);

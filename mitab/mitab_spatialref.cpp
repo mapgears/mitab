@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.1 1999-09-21 19:39:22 daniel Exp $
+ * $Id: mitab_spatialref.cpp,v 1.2 1999-09-22 23:04:59 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.1  1999-09-21 19:39:22  daniel
+ * Revision 1.2  1999-09-22 23:04:59  daniel
+ * Handle reference count on OGRSpatialReference properly
+ *
+ * Revision 1.1  1999/09/21 19:39:22  daniel
  * Moved Get/SetSpatialRef() to a separate file
  *
  **********************************************************************/
@@ -424,10 +427,10 @@ OGRSpatialReference *TABFile::GetSpatialRef()
 
 
 /**********************************************************************
- *                   TABFile::GetSpatialRef()
+ *                   TABFile::SetSpatialRef()
  *
  * Set the OGRSpatialReference for this dataset.
- * A copy of the OGRSpatialReference will be kept, and it will also
+ * A reference to the OGRSpatialReference will be kept, and it will also
  * be converted into a TABProjInfo to be stored in the .MAP header.
  *
  * Returns 0 on success, and -1 on error.
@@ -450,10 +453,13 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
 
     /*-----------------------------------------------------------------
      * Keep a copy of the OGRSpatialReference...
+     * Note: we have to take the reference count into account...
      *----------------------------------------------------------------*/
-    if (m_poSpatialRef == NULL)
-        m_poSpatialRef = new OGRSpatialReference;
-    *m_poSpatialRef = *poSpatialRef;
+    if (m_poSpatialRef && m_poSpatialRef->Dereference() == 0)
+        delete m_poSpatialRef;
+    
+    m_poSpatialRef = poSpatialRef;
+    m_poSpatialRef->Reference();
 
     /*-----------------------------------------------------------------
      * ... and transform it into a TABProjInfo

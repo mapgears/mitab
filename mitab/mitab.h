@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.59 2002-03-26 01:48:40 daniel Exp $
+ * $Id: mitab.h,v 1.60 2002-03-26 03:17:13 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.59  2002-03-26 01:48:40  daniel
+ * Revision 1.60  2002-03-26 03:17:13  daniel
+ * Added Get/SetCenter() to MultiPoint
+ *
+ * Revision 1.59  2002/03/26 01:48:40  daniel
  * Added Multipoint object type (V650)
  *
  * Revision 1.58  2001/11/17 21:54:05  daniel
@@ -1614,6 +1617,12 @@ class TABText: public TABFeature,
 class TABMultiPoint: public TABFeature, 
                      public ITABFeatureSymbol
 {
+  private:
+    // We call it center, but it's more like a label point
+    // Its value default to be the location of the first point
+    GBool       m_bCenterIsSet;
+    double      m_dCenterX, m_dCenterY;
+
   public:
              TABMultiPoint(OGRFeatureDefn *poDefnIn);
     virtual ~TABMultiPoint();
@@ -1625,6 +1634,9 @@ class TABMultiPoint: public TABFeature,
 
     int         GetXY(int i, double &dX, double &dY);
     int         GetNumPoints();
+
+    int         GetCenter(double &dX, double &dY);
+    void        SetCenter(double dX, double dY);
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);

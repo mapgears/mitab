@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.45 2002-03-26 01:48:40 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.46 2002-03-26 03:17:13 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.45  2002-03-26 01:48:40  daniel
+ * Revision 1.46  2002-03-26 03:17:13  daniel
+ * Added Get/SetCenter() to MultiPoint
+ *
+ * Revision 1.45  2002/03/26 01:48:40  daniel
  * Added Multipoint object type (V650)
  *
  * Revision 1.44  2002/01/23 20:29:56  daniel
@@ -5443,6 +5446,7 @@ void TABText::DumpMIF(FILE *fpOut /*=NULL*/)
 TABMultiPoint::TABMultiPoint(OGRFeatureDefn *poDefnIn):
               TABFeature(poDefnIn)
 {
+    m_bCenterIsSet = FALSE;
 }
 
 /**********************************************************************
@@ -5476,6 +5480,10 @@ TABFeature *TABMultiPoint::CloneTABFeature(OGRFeatureDefn *poNewDefn /*=NULL*/)
      *----------------------------------------------------------------*/
     // ITABFeatureSymbol
     *(poNew->GetSymbolDefRef()) = *GetSymbolDefRef();
+
+    poNew->m_bCenterIsSet = m_bCenterIsSet;
+    poNew->m_dCenterX = m_dCenterX;
+    poNew->m_dCenterY = m_dCenterY;
 
     return poNew;
 }
@@ -5564,6 +5572,11 @@ int TABMultiPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
 
         m_nSymbolDefIndex = poMPointHdr->m_nSymbolId;   // Symbol index
         poMapFile->ReadSymbolDef(m_nSymbolDefIndex, &m_sSymbolDef);
+
+        // Centroid/label point
+        poMapFile->Int2Coordsys(poMPointHdr->m_nLabelX, poMPointHdr->m_nLabelY,
+                                dX, dY);
+        SetCenter(dX, dY);
 
         /*-------------------------------------------------------------
          * Read Point Coordinates
@@ -5675,6 +5688,7 @@ int TABMultiPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
             poMapFile->Coordsys2Int(poPoint->getX(), poPoint->getY(), nX, nY);
             if (iPoint == 0)
             {
+                // Default to the first point, we may use explicit value below
                 poMPointHdr->m_nLabelX = nX;
                 poMPointHdr->m_nLabelY = nY;
             }
@@ -5705,6 +5719,14 @@ int TABMultiPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
 
     poMPointHdr->m_nCoordDataSize = poCoordBlock->GetFeatureDataSize();
     poMPointHdr->SetMBR(m_nXMin, m_nYMin, m_nXMax, m_nYMax);
+
+    // Center/label point (default value already set above)
+    double dX, dY;
+    if (GetCenter(dX, dY) != -1)
+    {
+        poMapFile->Coordsys2Int(dX, dY, poMPointHdr->m_nLabelX, 
+                                poMPointHdr->m_nLabelY);
+    }
 
     m_nSymbolDefIndex = poMapFile->WriteSymbolDef(&m_sSymbolDef);
     poMPointHdr->m_nSymbolId = m_nSymbolDefIndex;      // Symbol index
@@ -5801,6 +5823,47 @@ const char *TABMultiPoint::GetStyleString()
     return m_pszStyleString;
 }
 
+/**********************************************************************
+ *                   TABMultiPoint::GetCenter()
+ *
+ * Returns the center point (or label point?) of the object.  Compute one 
+ * if it was not explicitly set:
+ *
+ * The default seems to be to use the first point in the collection as
+ * the center.. so we'll use that.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABMultiPoint::GetCenter(double &dX, double &dY)
+{
+    if (!m_bCenterIsSet && GetNumPoints() > 0)
+    {
+        // The default seems to be to use the first point in the collection
+        // as the center... so we'll use that.
+        if (GetXY(0, m_dCenterX, m_dCenterY) == 0)
+            m_bCenterIsSet = TRUE;
+    }
+
+    if (!m_bCenterIsSet)
+        return -1;
+
+    dX = m_dCenterX;
+    dY = m_dCenterY;
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABMultiPoint::SetCenter()
+ *
+ * Set the X,Y coordinates to use as center point (or label point?)
+ **********************************************************************/
+void TABMultiPoint::SetCenter(double dX, double dY)
+{
+    m_dCenterX = dX;
+    m_dCenterY = dY;
+    m_bCenterIsSet = TRUE;
+}
+
 
 /**********************************************************************
  *                   TABMultiPoint::DumpMIF()
@@ -5852,6 +5915,8 @@ void TABMultiPoint::DumpMIF(FILE *fpOut /*=NULL*/)
 
     DumpSymbolDef(fpOut);
 
+    if (m_bCenterIsSet)
+        fprintf(fpOut, "Center %g %g\n", m_dCenterX, m_dCenterY);
 
     fflush(fpOut);
 }

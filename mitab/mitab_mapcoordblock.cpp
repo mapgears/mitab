@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapcoordblock.cpp,v 1.2 1999-09-26 14:59:36 daniel Exp $
+ * $Id: mitab_mapcoordblock.cpp,v 1.3 1999-09-29 04:25:42 daniel Exp $
  *
  * Name:     mitab_mapcoordblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapcoordblock.cpp,v $
- * Revision 1.2  1999-09-26 14:59:36  daniel
+ * Revision 1.3  1999-09-29 04:25:42  daniel
+ * Fixed typo in GetFeatureMBR()
+ *
+ * Revision 1.2  1999/09/26 14:59:36  daniel
  * Implemented write support
  *
  * Revision 1.1  1999/07/12 04:18:24  daniel
@@ -620,8 +623,8 @@ void TABMAPCoordBlock::GetFeatureMBR(GInt32 &nXMin, GInt32 &nYMin,
                                      GInt32 &nXMax, GInt32 &nYMax)
 {
     nXMin = m_nFeatureXMin;
-    nYMin = m_nFeatureXMax;
-    nXMax = m_nFeatureYMax;
+    nYMin = m_nFeatureYMin;
+    nXMax = m_nFeatureXMax;
     nYMax = m_nFeatureYMax; 
 }
 

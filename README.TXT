@@ -18,9 +18,9 @@ COPYRIGHT AND LICENSE TERMS:
 ----------------------------
 
 The most part of the MITAB library is 
-   Copyright (c) 1998-2003, Daniel Morissette (morissette@dmsolutions.ca)
+   Copyright (c) 1998-2004, Daniel Morissette (morissette@dmsolutions.ca)
 it also contains parts and uses support libraries that are
-   Copyright (c) 1998-2003, Frank Warmerdam (warmerdam@pobox.com)
+   Copyright (c) 1998-2004, Frank Warmerdam (warmerdam@pobox.com)
 and 
    Copyright (c) 1999, 2000, Stephane Villeneuve (stephane.v@videotron.ca)
 
@@ -28,8 +28,8 @@ The MITAB library, and its supporting libraries (OGR and CPL) are freely
 available under the following OpenSource license terms:
 
  **********************************************************************
- * Copyright (c) 1998-2003, Daniel Morissette
- * Copyright (c) 1998-2003, Frank Warmerdam
+ * Copyright (c) 1998-2004, Daniel Morissette
+ * Copyright (c) 1998-2004, Frank Warmerdam
  * Copyright (c) 1999,2000, Stephane Villeneuve
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -221,5 +221,5 @@ the "\n" sequence in char attribute field values.
 
 
 ------------
-$Id: README.TXT,v 1.9 2004-06-04 19:07:16 dmorissette Exp $
+$Id: README.TXT,v 1.10 2004-06-30 20:22:31 dmorissette Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapobjectblock.cpp,v 1.9 2001-11-17 21:54:06 daniel Exp $
+ * $Id: mitab_mapobjectblock.cpp,v 1.10 2001-11-19 15:07:06 daniel Exp $
  *
  * Name:     mitab_mapobjectblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -9,7 +9,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, 2000, Daniel Morissette
+ * Copyright (c) 1999-2001, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,9 +31,13 @@
  **********************************************************************
  *
  * $Log: mitab_mapobjectblock.cpp,v $
- * Revision 1.9  2001-11-17 21:54:06  daniel
- * Made several changes in order to support writing objects in 16 bits coordinate format.
- * New TABMAPObjHdr-derived classes are used to hold object info in mem until block is full.
+ * Revision 1.10  2001-11-19 15:07:06  daniel
+ * Handle the case of TAB_GEOM_NONE with the new TABMAPObjHdr classes.
+ *
+ * Revision 1.9  2001/11/17 21:54:06  daniel
+ * Made several changes in order to support writing objects in 16 bits 
+ * coordinate format. New TABMAPObjHdr-derived classes are used to hold 
+ * object info in mem until block is full.
  *
  * Revision 1.8  2001/09/19 19:19:11  warmerda
  * modified AdvanceToNextObject() to skip deleted objects
@@ -511,6 +515,13 @@ void TABMAPObjectBlock::GetMBR(GInt32 &nXMin, GInt32 &nYMin,
  **********************************************************************/
 int     TABMAPObjectBlock::AddObject(TABMAPObjHdr *poObjHdr)
 {
+    // We do not store NONE objects
+    if (poObjHdr->m_nType == TAB_GEOM_NONE)
+    {
+        delete poObjHdr;
+        return 0;
+    }
+
     if (m_papoObjHdr == NULL || m_numObjects%10 == 0)
     {
         // Realloc the array... by steps of 10
@@ -614,7 +625,8 @@ void TABMAPObjectBlock::Dump(FILE *fpOut, GBool bDetails)
 /**********************************************************************
  *                    TABMAPObjHdr::NewObj()
  *
- * Alloc a new object of specified type or NULL if type is not supported.
+ * Alloc a new object of specified type or NULL for NONE types or if type 
+ * is not supported.
  **********************************************************************/
 TABMAPObjHdr *TABMAPObjHdr::NewObj(GByte nNewObjType, GInt32 nId /*=0*/)
 {
@@ -622,6 +634,9 @@ TABMAPObjHdr *TABMAPObjHdr::NewObj(GByte nNewObjType, GInt32 nId /*=0*/)
 
     switch(nNewObjType)
     {
+      case TAB_GEOM_NONE:
+        poObj = new TABMAPObjNone;
+        break;
       case TAB_GEOM_SYMBOL_C:
       case TAB_GEOM_SYMBOL:
         poObj = new TABMAPObjPoint;

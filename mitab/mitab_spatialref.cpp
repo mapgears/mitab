@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.8 1999-10-04 19:46:42 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.9 1999-10-04 21:17:47 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,12 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.8  1999-10-04 19:46:42  warmerda
+ * Revision 1.9  1999-10-04 21:17:47  warmerda
+ * Make sure that asDatumInfoList comparisons include the ellipsoid code.
+ * Don't include OGC name for local NAD27 values.  Put NAD83 ahead of GRS80
+ * so it will be used in preference even though they are identical parms.
+ *
+ * Revision 1.8  1999/10/04 19:46:42  warmerda
  * assorted changes, including rework of units
  *
  * Revision 1.7  1999/09/28 04:52:17  daniel
@@ -74,6 +79,7 @@ typedef struct {
 static MapInfoDatumInfo asDatumInfoList[] =
 {
 {104, "WGS_1984", 28, 0, 0, 0, 0, 0, 0, 0, 0},
+{74, "North_American_Datum_1983", 0, 0, 0, 0, 0, 0, 0, 0, 0},
 {1, "Adindan", 6, -162, -12, 206, 0, 0, 0, 0, 0},
 {2, "Afgooye", 3, -43, -163, 45, 0, 0, 0, 0, 0},
 {3, "Ain_el_Abd_1970", 4, -150, -251, -2, 0, 0, 0, 0, 0},
@@ -136,18 +142,17 @@ static MapInfoDatumInfo asDatumInfoList[] =
 {60, "", 6, -231, -196, 482, 0, 0, 0, 0, 0},
 {61, "Naparima_1972", 4, -2, 374, 172, 0, 0, 0, 0, 0},
 {62, "North_American_Datum_1927", 7, -8, 160, 176, 0, 0, 0, 0, 0},
-{63, "North_American_Datum_1927", 7, -5, 135, 172, 0, 0, 0, 0, 0},
-{64, "North_American_Datum_1927", 7, -4, 154, 178, 0, 0, 0, 0, 0},
-{65, "North_American_Datum_1927", 7, 1, 140, 165, 0, 0, 0, 0, 0},
-{66, "North_American_Datum_1927", 7, -10, 158, 187, 0, 0, 0, 0, 0},
-{67, "North_American_Datum_1927", 7, 0, 125, 201, 0, 0, 0, 0, 0},
-{68, "North_American_Datum_1927", 7, -7, 152, 178, 0, 0, 0, 0, 0},
-{69, "North_American_Datum_1927", 7, 0, 125, 194, 0, 0, 0, 0, 0},
-{70, "North_American_Datum_1927", 7, -9, 152, 178, 0, 0, 0, 0, 0},
-{71, "North_American_Datum_1927", 7, 11, 114, 195, 0, 0, 0, 0, 0},
-{72, "North_American_Datum_1927", 7, -12, 130, 190, 0, 0, 0, 0, 0},
+{63, "", 7, -5, 135, 172, 0, 0, 0, 0, 0},
+{64, "", 7, -4, 154, 178, 0, 0, 0, 0, 0},
+{65, "", 7, 1, 140, 165, 0, 0, 0, 0, 0},
+{66, "", 7, -10, 158, 187, 0, 0, 0, 0, 0},
+{67, "", 7, 0, 125, 201, 0, 0, 0, 0, 0},
+{68, "", 7, -7, 152, 178, 0, 0, 0, 0, 0},
+{69, "", 7, 0, 125, 194, 0, 0, 0, 0, 0},
+{70, "", 7, -9, 152, 178, 0, 0, 0, 0, 0},
+{71, "", 7, 11, 114, 195, 0, 0, 0, 0, 0},
+{72, "", 7, -12, 130, 190, 0, 0, 0, 0, 0},
 {73, "NAD_Michigan", 8, -8, 160, 176, 0, 0, 0, 0, 0},
-{74, "North_American_Datum_1983", 0, 0, 0, 0, 0, 0, 0, 0, 0},
 {75, "", 4, -425, -169, 81, 0, 0, 0, 0, 0},
 {76, "", 22, -130, 110, -13, 0, 0, 0, 0, 0},
 {77, "", 7, 61, -285, -181, 0, 0, 0, 0, 0},
@@ -553,7 +558,8 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     {
         psDatumInfo = asDatumInfoList + iDatumInfo;
         
-        if( psDatumInfo->dfShiftX == sTABProj.dDatumShiftX
+        if( psDatumInfo->nEllipsoid == sTABProj.nEllipsoidId
+            && psDatumInfo->dfShiftX == sTABProj.dDatumShiftX
             && psDatumInfo->dfShiftY == sTABProj.dDatumShiftY
             && psDatumInfo->dfShiftZ == sTABProj.dDatumShiftZ
             && psDatumInfo->dfDatumParm0 == sTABProj.adDatumParams[0]
@@ -597,7 +603,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
                      sTABProj.adDatumParams[3],
                      sTABProj.adDatumParams[4] );
         }
-        
+
         poDatum->AddChild( new OGR_SRSNode(szDatumName) );
 
         poHeader->SetProjInfo( &sTABProj );

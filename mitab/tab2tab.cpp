@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.5 2000-01-15 22:30:45 daniel Exp $
+ * $Id: tab2tab.cpp,v 1.6 2000-02-28 17:13:48 daniel Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.5  2000-01-15 22:30:45  daniel
+ * Revision 1.6  2000-02-28 17:13:48  daniel
+ * Support for creating TABViews, and pass complete indexed field information
+ *
+ * Revision 1.5  2000/01/15 22:30:45  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.4  1999/12/14 02:24:20  daniel
@@ -90,9 +93,8 @@ int main(int argc, char *argv[])
  **********************************************************************/
 static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
 {
-    IMapInfoFile *poSrcFile = NULL;
-    TABFile  oDstFile;
-    int      nFeatureId;
+    IMapInfoFile *poSrcFile = NULL, *poDstFile = NULL;
+    int      nFeatureId, iField;
     TABFeature *poFeature;
     double dXMin, dYMin, dXMax, dYMax;
 
@@ -105,10 +107,28 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
         return -1;
     }
 
+    OGRFeatureDefn *poDefn = poSrcFile->GetLayerDefn();
+
+    /*---------------------------------------------------------------------
+     * Find out if the file contains at least 1 unique field... if so we will
+     * create a TABView insterad of a TABFile
+     *--------------------------------------------------------------------*/
+    GBool    bFoundUniqueField = FALSE;
+    for(iField=0; iField< poDefn->GetFieldCount(); iField++)
+    {
+        if (poSrcFile->IsFieldUnique(iField))
+            bFoundUniqueField = TRUE;
+    }
+
+    if (bFoundUniqueField)
+        poDstFile = new TABView;
+    else
+        poDstFile = new TABFile;
+
     /*---------------------------------------------------------------------
      * Try to open destination file
      *--------------------------------------------------------------------*/
-    if (oDstFile.Open(pszDstFname, "wb") != 0)
+    if (poDstFile->Open(pszDstFname, "wb") != 0)
     {
         printf("Failed to open %s\n", pszDstFname);
         return -1;
@@ -116,19 +136,34 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
 
     //  Set bounds
     if (poSrcFile->GetBounds(dXMin, dYMin, dXMax, dYMax) == 0)
-        oDstFile.SetBounds(dXMin, dYMin, dXMax, dYMax);
+        poDstFile->SetBounds(dXMin, dYMin, dXMax, dYMax);
 
     // Pass Proj. info directly
     // TABProjInfo sProjInfo;
     // if (poSrcFile->GetProjInfo(&sProjInfo) == 0)
-    //     oDstFile.SetProjInfo(&sProjInfo);
+    //     poDstFile->SetProjInfo(&sProjInfo);
 
     OGRSpatialReference *poSR;
 
     poSR = poSrcFile->GetSpatialRef();
     if( poSR != NULL )
     {
-        oDstFile.SetSpatialRef( poSR );
+        poDstFile->SetSpatialRef( poSR );
+    }
+
+    /*---------------------------------------------------------------------
+     * Pass compplete fields information
+     *--------------------------------------------------------------------*/
+    for(iField=0; iField< poDefn->GetFieldCount(); iField++)
+    {
+        OGRFieldDefn *poFieldDefn = poDefn->GetFieldDefn(iField);
+
+        poDstFile->AddFieldNative(poFieldDefn->GetNameRef(),
+                                  poSrcFile->GetNativeFieldType(iField),
+                                  poFieldDefn->GetWidth(),
+                                  poFieldDefn->GetPrecision(),
+                                  poSrcFile->IsFieldIndexed(iField),
+                                  poSrcFile->IsFieldUnique(iField));
     }
 
     /*---------------------------------------------------------------------
@@ -142,7 +177,7 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
         {
 //            poFeature->DumpReadable(stdout);
 //            poFeature->DumpMIF();
-            oDstFile.SetFeature(poFeature);
+            poDstFile->SetFeature(poFeature);
         }
         else
             break;      // GetFeatureRef() failed: Abort the loop
@@ -151,7 +186,7 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
     /*---------------------------------------------------------------------
      * Cleanup and exit.
      *--------------------------------------------------------------------*/
-    oDstFile.Close();
+    poDstFile->Close();
 
     poSrcFile->Close();
     delete poSrcFile;

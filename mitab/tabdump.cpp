@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.11 2001-09-19 14:33:19 warmerda Exp $
+ * $Id: tabdump.cpp,v 1.12 2001-11-16 20:55:00 daniel Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.11  2001-09-19 14:33:19  warmerda
+ * Revision 1.12  2001-11-16 20:55:00  daniel
+ * Added -d option: DumpMapFileBlockDetails()
+ *
+ * Revision 1.11  2001/09/19 14:33:19  warmerda
  * support mif files for dumping with -all
  *
  * Revision 1.10  2001/09/17 19:52:50  daniel
@@ -72,6 +75,7 @@
 
 static int DumpMapFileBlocks(const char *pszFname);
 static int DumpMapFileObjects(const char *pszFname);
+static int DumpMapFileBlockDetails(const char *pszFname, int nOffset);
 
 static int DumpIndFileObjects(const char *pszFname);
 
@@ -88,6 +92,7 @@ static int DumpViaSpatialIndex(const char *pszFname,
 #define TABTEST_USAGE \
   "Usage: tabdump -a|-all     <filename>\n" \
   "       tabdump -b|-blocks  <filename>\n" \
+  "       tabdump -d|-details <filename> <block_offset>\n" \
   "       tabdump -o|-objects <filename>\n" \
   "       tabdump -i|-index   <filename> <indexno> <val>\n" \
   "       tabdump -e|-envelope <filename> <xmin> <ymin> <ymax> <ymax>\n"
@@ -131,6 +136,23 @@ int main(int argc, char *argv[])
                  strstr(pszFname, ".IND") != NULL)
         {
             DumpIndFileObjects(pszFname);
+        }
+        else if (strstr(pszFname, ".otherextension") != NULL)
+        {
+            ;
+        }
+    }
+/*---------------------------------------------------------------------
+ *      With option -blocks <filename>
+ *      Open file, and dump each block sequentially.
+ *--------------------------------------------------------------------*/
+    else if (EQUALN(argv[1], "-details", 2) && argc >= 4)
+    {
+
+        if (strstr(pszFname, ".map") != NULL ||
+            strstr(pszFname, ".MAP") != NULL)
+        {
+            DumpMapFileBlockDetails(pszFname, atoi(argv[3]));
         }
         else if (strstr(pszFname, ".otherextension") != NULL)
         {
@@ -339,6 +361,56 @@ static int DumpMapFileObjects(const char *pszFname)
 
     return 0;
 }
+
+/**********************************************************************
+ *                          DumpMapFileBlockDetails()
+ *
+ * Read and dump specified map file block.
+ **********************************************************************/
+static int DumpMapFileBlockDetails(const char *pszFname, int nOffset)
+{
+    FILE        *fp;
+    TABRawBinBlock *poBlock;
+
+    /*---------------------------------------------------------------------
+     * Try to open source file
+     * Note: we use stat() to fetch the file size.
+     *--------------------------------------------------------------------*/
+    fp = fopen(pszFname, "rb");
+    if (fp == NULL)
+    {
+        printf("Failed to open %s\n", pszFname);
+        return -1;
+    }
+
+    /*---------------------------------------------------------------------
+     * Read/Dump blocks until EOF is reached
+     *--------------------------------------------------------------------*/
+    poBlock = TABCreateMAPBlockFromFile(fp, nOffset, 512);
+
+    if (poBlock)
+    {
+        switch(poBlock->GetBlockClass())
+        {
+          case TABMAP_OBJECT_BLOCK:
+            ((TABMAPObjectBlock*)poBlock)->Dump(NULL, TRUE);
+            break;
+          default:
+            poBlock->Dump(NULL);
+        }
+
+        printf("\n");
+        delete poBlock;
+    }
+
+    /*---------------------------------------------------------------------
+     * Cleanup and exit.
+     *--------------------------------------------------------------------*/
+    fclose(fp);
+
+    return 0;
+}
+
 
 /**********************************************************************
  *                          DumpTabFile()

@@ -15,6 +15,10 @@ CHANGES - Current Version:
 - GetLabelStyleString(): take line spacing and num. of lines into account
   when calculating text height.
 
+- Test for NULL geometries if spatial filter enabled in GetNextFeature()
+  (objects with NONE geometry would have caused a crash when a spatial 
+   filter was set).
+
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -300,5 +304,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.57 2001-07-03 03:15:09 daniel Exp $
+$Id: HISTORY.TXT,v 1.58 2001-07-03 23:12:37 daniel Exp $
 ------------

@@ -1,0 +1,73 @@
+#
+# makefile.vc - MapInfo TAB Read/Write library makefile
+#
+# To use the makefile:
+#  - Open a DOS prompt window
+#  - Run the VCVARS32.BAT script to initialize the VC++ environment variables
+#  - Start the build with:  nmake /f makefile.vc
+#
+# $Id: makefile.vc,v 1.1 2003-07-24 03:32:28 dmorissette Exp $
+#
+
+TABLIB  =	mitab.lib
+TAB_OBJS = 	mitab_rawbinblock.obj mitab_mapheaderblock.obj \
+		mitab_mapindexblock.obj \
+	  	mitab_mapobjectblock.obj mitab_mapcoordblock.obj \
+		mitab_feature.obj mitab_feature_mif.obj \
+	  	mitab_mapfile.obj mitab_idfile.obj mitab_datfile.obj \
+		mitab_tabfile.obj mitab_miffile.obj \
+	  	mitab_utils.obj mitab_imapinfofile.obj mitab_middatafile.obj \
+		mitab_maptoolblock.obj mitab_coordsys.obj \
+		mitab_tooldef.obj mitab_spatialref.obj \
+		mitab_indfile.obj mitab_tabview.obj mitab_geometry.obj \
+		mitab_bounds.obj mitab_tabseamless.obj \
+		mitab_capi.obj
+
+OGRTAB_OBJS = mitab_ogr_driver.obj mitab_ogr_datasource.obj
+
+EXTRAFLAGS = -I.. 
+GDAL_ROOT  =  ..
+!INCLUDE $(GDAL_ROOT)\nmake.opt
+
+!ifdef MITAB_CDECL
+MITAB_DLL = mitab_cdecl.dll
+OPTFLAGS = $(OPTFLAGS) -DMITAB_CDECL
+!else
+MITAB_DLL = mitab.dll
+!endif
+
+LIBS	=	$(TABLIB) ../ogr/ogr.lib ../cpl/cpl.lib
+
+default:    $(TABLIB) tab2tab.exe ogrinfo.exe mitabc_test.exe $(MITAB_DLL)
+
+$(TABLIB):	$(TAB_OBJS)
+	lib /out:$(TABLIB) $(TAB_OBJS)
+
+tab2tab.exe:	tab2tab.cpp $(LIBS)
+	$(CC) $(CFLAGS) tab2tab.cpp $(LIBS)
+
+mitabc_test.exe:	mitabc_test.c $(LIBS)
+	$(CC) $(CFLAGS) mitabc_test.c $(LIBS)
+
+ogr2ogr.exe:	ogr2ogr.cpp $(OGRTAB_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) ogr2ogr.cpp $(OGRTAB_OBJS) $(LIBS)
+
+ogrinfo.exe:	ogrinfo.cpp $(OGRTAB_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) ogrinfo.cpp $(OGRTAB_OBJS) $(LIBS)
+
+tabindex.exe:	tabindex.cpp $(LIBS)
+	$(CC) $(CFLAGS) tabindex.cpp $(LIBS)
+
+$(MITAB_DLL): $(LIBS) $(TAB_OBJS)
+	link /dll /out:$(MITAB_DLL) /implib:mitab_i.lib  $(TAB_OBJS) $(LIBS)
+
+clean:  
+	del *.obj
+ 	del *.pdb
+	del *.lib
+	del *.exe
+	del *.exp
+	del *.ilk
+	del mitab.dll
+	del mitab_cdecl.dll
+	del mitab_i.dll

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.3 2000-01-14 17:30:39 warmerda Exp $
+ * $Id: mitab_capi.h,v 1.4 2000-01-14 21:58:40 warmerda Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.3  2000-01-14 17:30:39  warmerda
+ * Revision 1.4  2000-01-14 21:58:40  warmerda
+ * added error handling
+ *
+ * Revision 1.3  2000/01/14 17:30:39  warmerda
  * added capi dll support
  *
  * Revision 1.2  2000/01/14 16:33:24  warmerda
@@ -49,10 +52,13 @@ extern "C" {
 #endif
 
 #ifdef _WIN32
-#define MITAB_DLL __declspec(dllexport)
+#define MITAB_DLL __declspec(dllexport) /* __stdcall */
+#define MITAB_STDCALL /* __stdcall */
 #else
 #define MITAB_DLL
+#define MITAB_STDCALL
 #endif
+    
 
 typedef void * mitab_handle;
 typedef void * mitab_feature;
@@ -68,6 +74,9 @@ typedef void * mitab_feature;
 #define TABFT_Integer	2
 #define TABFT_Float	5
 
+const char MITAB_DLL *mitab_c_getlasterrormsg();
+int MITAB_DLL mitab_c_getlasterrorno();
+    
 mitab_handle MITAB_DLL mitab_c_open( const char * filename );
 void MITAB_DLL mitab_c_close( mitab_handle handle );
 

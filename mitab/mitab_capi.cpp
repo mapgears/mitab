@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.2 2000-01-14 16:33:24 warmerda Exp $
+ * $Id: mitab_capi.cpp,v 1.3 2000-01-14 21:58:40 warmerda Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.2  2000-01-14 16:33:24  warmerda
+ * Revision 1.3  2000-01-14 21:58:40  warmerda
+ * added error handling
+ *
+ * Revision 1.2  2000/01/14 16:33:24  warmerda
  * initial implementation complete
  *
  * Revision 1.1  2000/01/14 14:53:59  warmerda
@@ -42,14 +45,43 @@
 #include "mitab_capi.h"
 
 /************************************************************************/
+/*                       mitab_c_getlasterrorno()                       */
+/************************************************************************/
+
+int MITAB_STDCALL
+mitab_c_getlasterrorno()
+
+{
+    return CPLGetLastErrorNo();
+}
+
+/************************************************************************/
+/*                      mitab_c_getlasterrormsg()                       */
+/************************************************************************/
+
+const char MITAB_STDCALL *
+mitab_c_getlasterrormsg()
+
+{
+    const char      *pszLastMessage = CPLGetLastErrorMsg();
+
+    if( pszLastMessage == NULL )
+        return "";
+    else
+        return pszLastMessage;
+}
+
+/************************************************************************/
 /*                            mitab_c_open()                            */
 /*                                                                      */
 /*      Open an existing tab file for read access.                      */
 /************************************************************************/
 
-mitab_handle mitab_c_open( const char * pszFilename )
+mitab_handle MITAB_STDCALL
+mitab_c_open( const char * pszFilename )
 
 {
+    CPLSetErrorHandler( CPLQuietErrorHandler );
     return (mitab_handle) IMapInfoFile::SmartOpen( pszFilename );
 }
 
@@ -57,7 +89,8 @@ mitab_handle mitab_c_open( const char * pszFilename )
 /*                           mitab_c_close()                            */
 /************************************************************************/
 
-void mitab_c_close( mitab_handle handle )
+void MITAB_STDCALL
+mitab_c_close( mitab_handle handle )
 
 {
     IMapInfoFile	*poFile = (IMapInfoFile *) handle;
@@ -73,15 +106,18 @@ void mitab_c_close( mitab_handle handle )
 /*      Create a new TAB file.                                          */
 /************************************************************************/
 
-mitab_handle mitab_c_create( const char * filename,
-                             const char * mif_or_tab,
-                             const char * mif_projection,
-                             double north, double south,
-                             double east, double west )
+mitab_handle MITAB_STDCALL
+mitab_c_create( const char * filename,
+                const char * mif_or_tab,
+                const char * mif_projection,
+                double north, double south,
+                double east, double west )
 
 {
     IMapInfoFile	*poFile;
     
+    CPLSetErrorHandler( CPLQuietErrorHandler );
+
     if( mif_or_tab == NULL || !EQUAL(mif_or_tab,"mif") )
     {
         poFile = new TABFile;
@@ -117,8 +153,9 @@ mitab_handle mitab_c_create( const char * filename,
 /*      Add a new field to the schema.  Return the field id.            */
 /************************************************************************/
 
-int mitab_c_add_field( mitab_handle dataset, const char *field_name,
-                       int field_type, int width, int precision )
+int MITAB_STDCALL
+mitab_c_add_field( mitab_handle dataset, const char *field_name,
+                   int field_type, int width, int precision )
 
 {
     IMapInfoFile	*poFile = (IMapInfoFile *) dataset;
@@ -136,7 +173,8 @@ int mitab_c_add_field( mitab_handle dataset, const char *field_name,
 /*                      mitab_c_destroy_feature()                       */
 /************************************************************************/
 
-void mitab_c_destroy_feature( mitab_feature feature )
+void MITAB_STDCALL
+mitab_c_destroy_feature( mitab_feature feature )
 
 {
     TABFeature	*poFeature = (TABFeature *) feature;
@@ -152,7 +190,8 @@ void mitab_c_destroy_feature( mitab_feature feature )
 /*      feature ids.                                                    */
 /************************************************************************/
 
-int mitab_c_next_feature_id( mitab_handle handle, int last_feature_id )
+int MITAB_STDCALL
+mitab_c_next_feature_id( mitab_handle handle, int last_feature_id )
 
 {
     IMapInfoFile	*poFile = (IMapInfoFile *) handle;
@@ -164,7 +203,8 @@ int mitab_c_next_feature_id( mitab_handle handle, int last_feature_id )
 /*                        mitab_c_read_feature()                        */
 /************************************************************************/
 
-mitab_feature mitab_c_read_feature( mitab_handle handle, int feature_id )
+mitab_feature MITAB_STDCALL
+mitab_c_read_feature( mitab_handle handle, int feature_id )
 
 {
     IMapInfoFile	*poFile = (IMapInfoFile *) handle;
@@ -181,7 +221,8 @@ mitab_feature mitab_c_read_feature( mitab_handle handle, int feature_id )
 /*                       mitab_c_write_feature()                        */
 /************************************************************************/
 
-int mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
+int MITAB_STDCALL
+mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
 
 {
     IMapInfoFile	*poFile = (IMapInfoFile *) handle;
@@ -194,8 +235,9 @@ int mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
 /*                       mitab_c_create_feature()                       */
 /************************************************************************/
 
-mitab_feature mitab_c_create_feature( mitab_handle handle,
-                                      int feature_type )
+mitab_feature MITAB_STDCALL
+mitab_c_create_feature( mitab_handle handle,
+                        int feature_type )
 
 {
     IMapInfoFile	*poFile = (IMapInfoFile *) handle;
@@ -227,8 +269,9 @@ mitab_feature mitab_c_create_feature( mitab_handle handle,
 /*                         mitab_c_set_field()                          */
 /************************************************************************/
 
-void mitab_c_set_field( mitab_feature feature, int field_index,
-                        const char *field_value )
+void MITAB_STDCALL
+mitab_c_set_field( mitab_feature feature, int field_index,
+                   const char *field_value )
 
 {
     TABFeature	*poFeature = (TABFeature *) feature;
@@ -240,8 +283,9 @@ void mitab_c_set_field( mitab_feature feature, int field_index,
 /*                         mitab_c_set_points()                         */
 /************************************************************************/
 
-void mitab_c_set_points( mitab_feature feature, int part,
-                         int vertex_count, double * x, double * y )
+void MITAB_STDCALL
+mitab_c_set_points( mitab_feature feature, int part,
+                    int vertex_count, double * x, double * y )
 
 {
     TABFeature	*poFeature = (TABFeature *) feature;
@@ -291,7 +335,8 @@ void mitab_c_set_points( mitab_feature feature, int part,
 /*                          mitab_c_set_text()                          */
 /************************************************************************/
 
-void mitab_c_set_text( mitab_feature feature, const char * text )
+void MITAB_STDCALL
+mitab_c_set_text( mitab_feature feature, const char * text )
 
 {
     TABText	*poFeature = (TABText *) feature;
@@ -304,11 +349,12 @@ void mitab_c_set_text( mitab_feature feature, const char * text )
 /*                          mitab_c_set_text()                          */
 /************************************************************************/
 
-void mitab_c_set_text_display( mitab_feature feature,
-                               double angle, double height, double width,
-                               int fg_color, int bg_color,
-                               int justification, int spacing, int linetype )
-
+void MITAB_STDCALL
+mitab_c_set_text_display( mitab_feature feature,
+                          double angle, double height, double width,
+                          int fg_color, int bg_color,
+                          int justification, int spacing, int linetype )
+    
 {
     TABText	*poFeature = (TABText *) feature;
 
@@ -337,7 +383,8 @@ void mitab_c_set_text_display( mitab_feature feature,
 /*                          mitab_c_set_font()                          */
 /************************************************************************/
 
-void mitab_c_set_font( mitab_feature feature, const char * fontname )
+void MITAB_STDCALL
+mitab_c_set_font( mitab_feature feature, const char * fontname )
 
 {
     TABText	*poFeature = (TABText *) feature;
@@ -350,8 +397,9 @@ void mitab_c_set_font( mitab_feature feature, const char * fontname )
 /*                         mitab_c_set_brush()                          */
 /************************************************************************/
 
-void mitab_c_set_brush( mitab_feature feature,
-                     int fg_color, int bg_color, int pattern, int transparent )
+void MITAB_STDCALL
+mitab_c_set_brush( mitab_feature feature,
+                   int fg_color, int bg_color, int pattern, int transparent )
 
 {
     TABRegion	*poFeature = (TABRegion *) feature;
@@ -369,8 +417,9 @@ void mitab_c_set_brush( mitab_feature feature,
 /*                          mitab_c_set_pen()                           */
 /************************************************************************/
 
-void mitab_c_set_pen( mitab_feature feature,
-                      int width, int pattern, int style, int color )
+void MITAB_STDCALL
+mitab_c_set_pen( mitab_feature feature,
+                 int width, int pattern, int style, int color )
 
 {
     TABFeature		*poFeature = (TABFeature *) feature;
@@ -398,8 +447,9 @@ void mitab_c_set_pen( mitab_feature feature,
 /*                         mitab_c_set_symbol()                         */
 /************************************************************************/
 
-void mitab_c_set_symbol( mitab_feature feature, int symbol_no,
-                         int symbol_size, int symbol_color )
+void MITAB_STDCALL
+mitab_c_set_symbol( mitab_feature feature, int symbol_no,
+                    int symbol_size, int symbol_color )
 
 {
     TABPoint	*poFeature = (TABPoint *) feature;

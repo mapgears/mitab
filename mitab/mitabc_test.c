@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.3 2000-01-14 17:12:20 warmerda Exp $
+ * $Id: mitabc_test.c,v 1.4 2000-01-14 21:58:40 warmerda Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.3  2000-01-14 17:12:20  warmerda
+ * Revision 1.4  2000-01-14 21:58:40  warmerda
+ * added error handling
+ *
+ * Revision 1.3  2000/01/14 17:12:20  warmerda
  * Added some include files.
  *
  * Revision 1.2  2000/01/14 16:33:24  warmerda
@@ -63,7 +66,8 @@ static void ReportFile( const char * pszFilename )
 
     if( dataset == NULL )
     {
-        printf( "mitab_c_open(%s) failed.\n", pszFilename );
+        printf( "mitab_c_open(%s) failed.\n%s\n",
+                pszFilename, mitab_c_getlasterrormsg() );
         exit( 1 );
     }
 
@@ -76,7 +80,8 @@ static void ReportFile( const char * pszFilename )
         feature = mitab_c_read_feature( dataset, feature_id );
         if( feature == NULL )
         {
-            printf( "Failed to read feature %d.\n", feature_id );
+            printf( "Failed to read feature %d.\n%s\n",
+                    feature_id, mitab_c_getlasterrormsg() );
             exit( 1 );
         }
 
@@ -115,7 +120,8 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
 
     if( dataset == NULL )
     {
-        printf( "Failed to create %s file %s.\n", pszMifOrTab, pszDest );
+        printf( "Failed to create %s file %s.\n%s\n",
+                pszMifOrTab, pszDest, mitab_c_getlasterrormsg() );
         return;
     }
 

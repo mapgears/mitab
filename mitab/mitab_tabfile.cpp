@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.27 2000-01-16 19:08:49 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.28 2000-01-18 22:14:36 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.27  2000-01-16 19:08:49  daniel
+ * Revision 1.28  2000-01-18 22:14:36  daniel
+ * Fixed compile warnings
+ *
+ * Revision 1.27  2000/01/16 19:08:49  daniel
  * Added support for reading 'Table Type DBF' tables
  *
  * Revision 1.26  2000/01/15 21:40:03  daniel
@@ -459,7 +462,7 @@ int TABFile::Open(const char *pszFname, const char *pszAccess,
  **********************************************************************/
 int TABFile::ParseTABFileFirstPass(GBool bTestOpenNoError)
 {
-    int         iLine, numLines, numTok, nStatus, numFields = 0;
+    int         iLine, numLines, numFields = 0;
     char        **papszTok=NULL;
     GBool       bInsideTableDef = FALSE, bFoundTableFields=FALSE;
 

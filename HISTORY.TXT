@@ -13,6 +13,9 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+ - Support pen width bigger than 7. Note that any pen bigger than 10 are 
+   considered as point, not pixel. (bug 683)
+
  - Updated list of datum parameters from data made available by Bill Wemple
    from MapInfo on directionsmag.com: 7 new datum defns and 1 fixed.
    List of ellipsoids also updated (Bug 608, patch by Uffe K.)
@@ -598,5 +601,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.129 2004-10-15 01:52:30 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.130 2004-10-19 14:21:11 jlacroix Exp $
 ------------

@@ -14,7 +14,7 @@ CHANGES - Current Version:
 --------------------------
 
 
-Version 1.3.0 (2004-06-30)
+Version 1.3.0 (2004-07-07)
 --------------------------
 
  - Use tab as default delimiter (if none is explicitly specified) when 
@@ -581,5 +581,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.122 2004-07-07 15:42:46 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.123 2004-07-07 22:18:02 dmorissette Exp $
 ------------

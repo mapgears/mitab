@@ -34,6 +34,8 @@ CHANGES - Current Version:
 - Substantial additions to lots of files adding support for efficient
   spatial queries by utilizing the spatial indexes when reading.  NFW.
 
+- TABText should not produce an error if reading a 0-length text.
+
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -319,5 +321,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.62 2001-09-14 03:23:55 warmerda Exp $
+$Id: HISTORY.TXT,v 1.63 2001-09-17 21:34:36 daniel Exp $
 ------------

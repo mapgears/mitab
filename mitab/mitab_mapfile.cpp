@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.11 2000-02-28 17:00:00 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.12 2000-03-13 05:58:01 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.11  2000-02-28 17:00:00  daniel
+ * Revision 1.12  2000-03-13 05:58:01  daniel
+ * Create 1024 bytes V500 .MAP header + limit m_nMaxCoordBufSize for V450 obj.
+ *
+ * Revision 1.11  2000/02/28 17:00:00  daniel
  * Added V450 object types
  *
  * Revision 1.10  2000/01/15 22:30:44  daniel
@@ -191,9 +194,15 @@ int TABMAPFile::Open(const char *pszFname, const char *pszAccess,
     {
         /*-----------------------------------------------------------------
          * Write access: create a new header block
+         * .MAP files of Version 500 and up appear to have a 1024 bytes
+         * header.  The last 512 bytes are usually all zeros.
          *----------------------------------------------------------------*/
         poBlock = new TABMAPHeaderBlock(m_eAccessMode);
-        poBlock->InitNewBlock(fp, 512, m_oBlockManager.AllocNewBlock() );
+        poBlock->InitNewBlock(fp, 1024, m_oBlockManager.AllocNewBlock() );
+
+        // Alloc a second 512 bytes of space since oBlockManager deals 
+        // with 512 bytes blocks.
+        m_oBlockManager.AllocNewBlock(); 
     }
     else if (bNoErrorMsg)
     {
@@ -333,7 +342,20 @@ int TABMAPFile::Close()
 
         // __TODO__ We probably need to update some header fields first.
         if (m_poHeader)
+        {
+            // OK, with V450 files, objects are not limited to 32k nodes
+            // any more, and this means that m_nMaxCoordBufSize can become
+            // huge, and actually more huge than can be held in memory.
+            // MapInfo counts m_nMaxCoordBufSize=0 for V450 objects, but 
+            // until this is cleanly implented, we will just prevent 
+            // m_nMaxCoordBufSizefrom going beyond 512k in V450 files.
+            if (m_nMinTABVersion >= 450)
+            {
+                m_poHeader->m_nMaxCoordBufSize = 
+                                 MIN(m_poHeader->m_nMaxCoordBufSize, 512*1024);
+            }
             m_poHeader->CommitToFile();
+        }
     }
     
     // Delete all structures 

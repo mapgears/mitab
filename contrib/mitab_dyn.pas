@@ -1,0 +1,339 @@
+{**********************************************************************
+ * $Id: mitab_dyn.pas,v 1.1 2002-08-01 13:56:01 daniel Exp $
+ *
+ * Name:     mitab.pas
+ * Project:  MapInfo TAB Read/Write library
+ * Language: Pascal
+ * Purpose:  Pascal interface unit for MITAB API prototypes using STDCALL
+ *           calling convention. Used with MITAB dll compiled with
+ *           the /Gz qualifier.
+ * Author:   Bo Thomsen, bvt@sns.dk
+ *
+ **********************************************************************
+ * Copyright (c) 2002, Bo Thomsen
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ **********************************************************************
+ *
+ * $Log: mitab_dyn.pas,v $
+ * Revision 1.1  2002-08-01 13:56:01  daniel
+ * Contributed by Uffe K. - header for dynamic loading of mitab.dll in Delphi
+ *
+ * Revision 1.22  2002/07/07 11:20:00  uffe
+ * Updated to version 1.22 (mitab_c_is_interior_ring)
+ * 
+ * Revision 1.21  2002/05/09  9:36:00  uffe
+ * Changed to allow dynamic loading of DLL
+ * Added subrange type definitions for constants
+ *
+ * Revision 1.21  2002/05/08 20:23:53  daniel
+ * Update from Bo, and re-re-renamed mitab_vb.dll to mitab.dll (stdcall is default now)
+ *
+ * Revision 1.21  2002/05/07 13:43:30  bvt
+ * changed the dll name to mitab_vb.dll. Changed the pas file name
+ * to mitab_vb.pas to reflect the new name of the dll.
+ *
+ * Revision 1.2  2002/05/05 13:43:30  bvt
+ * Added mitab_c_get_field_width and mitab_c_get_field_precision to api.
+ *
+ * Revision 1.1  2002/02/22 13:43:30  daniel
+ * Initial Revision from Bo Thomsen
+ *
+ * Revision 1.00  2002/02/20 12:35:00  bvt
+ * New - used in conjunction with mitab_capi.cpp,v 1.15 compiled with
+ * /Gz (stdcall calling convention)
+ *
+ *}
+
+unit mitab;
+
+interface
+
+Type
+  mitab_handle = Longword;
+  mitab_feature = Longword;
+  mitab_projinfo = Longword;
+  TABFC = 0..10;
+  TABFT = 1..7;
+  TABTJ = 0..2;
+  TABTS = 0..2;
+  TABTL = 0..2;
+
+const
+// feature type values
+  TABFC_NoGeom      = 0;
+  TABFC_Point       = 1;
+  TABFC_FontPoint   = 2;
+  TABFC_CustomPoint = 3;
+  TABFC_Text        = 4;
+  TABFC_Polyline    = 5;
+  TABFC_Arc         = 6;
+  TABFC_Region      = 7;
+  TABFC_Rectangle   = 8;
+  TABFC_Ellipse     = 9;
+  TABFC_Multipoint  = 10 ; //1.2.0
+
+// field types
+  TABFT_Char        = 1;
+  TABFT_Integer     = 2;
+  TABFT_SmallInt    = 3;
+  TABFT_Decimal     = 4;
+  TABFT_Float       = 5;
+  TABFT_Date        = 6;
+  TABFT_Logical     = 7;
+
+// text justification
+  TABTJ_Left        = 0;
+  TABTJ_Center      = 1;
+  TABTJ_Right       = 2;
+
+// text spacing
+  TABTS_Single      = 0;
+  TABTS_1_5         = 1;
+  TABTS_Double      = 2;
+
+// test linetype
+  TABTL_NoLine      = 0;
+  TABTL_Simple      = 1;
+  TABTL_Arrow       = 2;
+
+type
+  Tmitab_c_add_field              = function(handle: mitab_handle; field_name: pchar;field_type, width, precision: longint): longint; stdcall;
+  Tmitab_c_close                  = procedure(handle: mitab_handle); stdcall;
+  Tmitab_c_create                 = function(filename, mif_or_tab, mif_projectiondef: pchar; north, south, east, west: double): mitab_handle; stdcall;
+  Tmitab_c_create_feature         = function(handle: mitab_handle; feature_type: longint): mitab_feature; stdcall;
+  Tmitab_c_destroy_feature        = procedure(feature: mitab_feature); stdcall;
+  Tmitab_c_get_brush_bgcolor      = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_brush_fgcolor      = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_brush_pattern      = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_brush_transparent  = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_field_as_string_vb = function(feature: mitab_feature; field: longint; value: pchar; l: longint): longint; stdcall;
+  Tmitab_c_get_field_as_string    = function(feature: mitab_feature; field: longint): pchar; stdcall;
+  Tmitab_c_get_field_count        = function(handle: mitab_handle): longint; stdcall;
+  Tmitab_c_get_field_name_vb      = function(handle: mitab_handle; field: longint; name: pchar; l: longint): longint; stdcall;
+  Tmitab_c_get_field_name         = function(handle: mitab_handle; field: longint): pchar; stdcall;
+  Tmitab_c_get_field_type         = function(handle: mitab_handle; field: longint): longint; stdcall;
+  Tmitab_c_get_field_width        = function(handle: mitab_handle; field: longint): longint; stdcall;
+  Tmitab_c_get_field_precision    = function(handle: mitab_handle; field: longint): longint; stdcall;
+  Tmitab_c_get_font_vb            = function(feature: mitab_feature; font: pchar; l: longint): longint; stdcall;
+  Tmitab_c_get_font               = function(feature: mitab_feature): pchar; stdcall;
+  Tmitab_c_get_mif_coordsys_vb    = function(dataset: mitab_handle; coordsys: pchar; l: longint): longint; stdcall;
+  Tmitab_c_get_mif_coordsys       = function(dataset: mitab_handle): pchar; stdcall;
+  Tmitab_c_get_parts              = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_pen_color          = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_pen_pattern        = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_pen_width          = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_projinfo           = function(dataset: mitab_handle): mitab_projinfo; stdcall;
+  Tmitab_c_get_symbol_color       = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_symbol_no          = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_symbol_size        = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_text_vb            = function(feature: mitab_feature; text: pchar; l: longint): longint; stdcall;
+  Tmitab_c_get_text               = function(feature: mitab_feature): pchar; stdcall;
+  Tmitab_c_get_text_angle         = function(feature: mitab_feature): double; stdcall;
+  Tmitab_c_get_text_bgcolor       = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_text_fgcolor       = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_text_height        = function(feature: mitab_feature): double; stdcall;
+  Tmitab_c_get_text_justification = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_text_linetype      = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_text_spacing       = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_text_width         = function(feature: mitab_feature): double; stdcall;
+  Tmitab_c_get_type               = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_vertex_count       = function(feature: mitab_feature; part: longint): longint; stdcall;
+  Tmitab_c_get_vertex_x           = function(feature: mitab_feature; part, vertex: longint): double; stdcall;
+  Tmitab_c_get_vertex_y           = function(feature: mitab_feature; part, vertex: longint): double; stdcall;
+  Tmitab_c_getlasterrormsg_vb     = function(errormsg: pchar; l: longint): longint; stdcall;
+  Tmitab_c_getlasterrormsg        = function(): pchar; stdcall;
+  Tmitab_c_getlasterrorno         = function(): longint; stdcall;
+  Tmitab_c_next_feature_id        = function(handle: mitab_handle; last_feature_id: longint): longint; stdcall;
+  Tmitab_c_open                   = function(filename: pchar): mitab_handle; stdcall;
+  Tmitab_c_read_feature           = function(handle:  mitab_handle; feature_id: longint): mitab_feature; stdcall;
+  Tmitab_c_set_arc                = procedure(feature: mitab_feature; center_x, center_y, x_radius, y_radius, start_angle, end_angle: double); stdcall;
+  Tmitab_c_set_brush              = procedure(feature: mitab_feature; fg_color, bg_color, pattern, transparent: longint); stdcall;
+  Tmitab_c_set_field              = procedure(feature: mitab_feature; field_index: longint; value: pchar); stdcall;
+  Tmitab_c_set_font               = procedure(feature: mitab_feature; font_name: pchar); stdcall;
+  Tmitab_c_set_pen                = procedure(feature: mitab_feature; width, pattern, color: longint); stdcall;
+  Tmitab_c_set_points             = procedure(feature: mitab_feature; part, vertex_count: longint; var x,y: double); stdcall;
+  Tmitab_c_set_projinfo           = function(dataset: mitab_handle; projinfo: mitab_projinfo): longint; stdcall;
+  Tmitab_c_set_symbol             = procedure(feature: mitab_feature; symbol_no, symbol_size, symbol_color: longint); stdcall;
+  Tmitab_c_set_text               = procedure(feature: mitab_feature; text: pchar); stdcall;
+  Tmitab_c_set_text_display       = procedure(feature: mitab_feature; angle, height, width: double; fg_color, bg_color, justification, spacing, linetype: longint); stdcall;
+  Tmitab_c_write_feature          = function(handle: mitab_handle; feature: mitab_feature): longint; stdcall;
+  Tmitab_c_is_interior_ring       = function(feature: mitab_feature; requestedringindex: longint): longint; stdcall;
+  
+var
+  MITAB_LibOK: boolean;   // false if DLL isn't loaded, true if loaded OK
+  LibPath: string;        // Full path to the MITAB DLL, default value is just 'mitab.dll'
+
+  mitab_c_add_field: Tmitab_c_add_field;
+  mitab_c_close: Tmitab_c_close;
+  mitab_c_create: Tmitab_c_create;
+  mitab_c_create_feature: Tmitab_c_create_feature;
+  mitab_c_destroy_feature: Tmitab_c_destroy_feature;
+  mitab_c_get_brush_bgcolor: Tmitab_c_get_brush_bgcolor;
+  mitab_c_get_brush_fgcolor: Tmitab_c_get_brush_fgcolor;
+  mitab_c_get_brush_pattern: Tmitab_c_get_brush_pattern;
+  mitab_c_get_brush_transparent: Tmitab_c_get_brush_transparent;
+  mitab_c_get_field_as_string_vb: Tmitab_c_get_field_as_string_vb;
+  mitab_c_get_field_as_string: Tmitab_c_get_field_as_string;
+  mitab_c_get_field_count: Tmitab_c_get_field_count;
+  mitab_c_get_field_name_vb: Tmitab_c_get_field_name_vb;
+  mitab_c_get_field_name: Tmitab_c_get_field_name;
+  mitab_c_get_field_type: Tmitab_c_get_field_type;
+  mitab_c_get_field_width: Tmitab_c_get_field_width;
+  mitab_c_get_field_precision: Tmitab_c_get_field_precision;
+  mitab_c_get_font_vb: Tmitab_c_get_font_vb;
+  mitab_c_get_font: Tmitab_c_get_font;
+  mitab_c_get_mif_coordsys_vb: Tmitab_c_get_mif_coordsys_vb;
+  mitab_c_get_mif_coordsys: Tmitab_c_get_mif_coordsys;
+  mitab_c_get_parts: Tmitab_c_get_parts;
+  mitab_c_get_pen_color: Tmitab_c_get_pen_color;
+  mitab_c_get_pen_pattern: Tmitab_c_get_pen_pattern;
+  mitab_c_get_pen_width: Tmitab_c_get_pen_width;
+  mitab_c_get_projinfo: Tmitab_c_get_projinfo;
+  mitab_c_get_symbol_color: Tmitab_c_get_symbol_color;
+  mitab_c_get_symbol_no: Tmitab_c_get_symbol_no;
+  mitab_c_get_symbol_size: Tmitab_c_get_symbol_size;
+  mitab_c_get_text_vb: Tmitab_c_get_text_vb;
+  mitab_c_get_text: Tmitab_c_get_text;
+  mitab_c_get_text_angle: Tmitab_c_get_text_angle;
+  mitab_c_get_text_bgcolor: Tmitab_c_get_text_bgcolor;
+  mitab_c_get_text_fgcolor: Tmitab_c_get_text_fgcolor;
+  mitab_c_get_text_height: Tmitab_c_get_text_height;
+  mitab_c_get_text_justification: Tmitab_c_get_text_justification;
+  mitab_c_get_text_linetype: Tmitab_c_get_text_linetype;
+  mitab_c_get_text_spacing: Tmitab_c_get_text_spacing;
+  mitab_c_get_text_width: Tmitab_c_get_text_width;
+  mitab_c_get_type: Tmitab_c_get_type;
+  mitab_c_get_vertex_count: Tmitab_c_get_vertex_count;
+  mitab_c_get_vertex_x: Tmitab_c_get_vertex_x;
+  mitab_c_get_vertex_y: Tmitab_c_get_vertex_y;
+  mitab_c_getlasterrormsg_vb: Tmitab_c_getlasterrormsg_vb;
+  mitab_c_getlasterrormsg: Tmitab_c_getlasterrormsg;
+  mitab_c_getlasterrorno: Tmitab_c_getlasterrorno;
+  mitab_c_next_feature_id: Tmitab_c_next_feature_id;
+  mitab_c_open: Tmitab_c_open;
+  mitab_c_read_feature: Tmitab_c_read_feature;
+  mitab_c_set_arc: Tmitab_c_set_arc;
+  mitab_c_set_brush: Tmitab_c_set_brush;
+  mitab_c_set_field: Tmitab_c_set_field;
+  mitab_c_set_font: Tmitab_c_set_font;
+  mitab_c_set_pen: Tmitab_c_set_pen;
+  mitab_c_set_points: Tmitab_c_set_points;
+  mitab_c_set_projinfo: Tmitab_c_set_projinfo;
+  mitab_c_set_symbol: Tmitab_c_set_symbol;
+  mitab_c_set_text: Tmitab_c_set_text;
+  mitab_c_set_text_display: Tmitab_c_set_text_display;
+  mitab_c_write_feature: Tmitab_c_write_feature;
+  mitab_c_is_interior_ring: Tmitab_c_is_interior_ring;
+
+// This allows compilation with Kylix. Later there may be a "mitab.so" ? 
+// On Kylix MITAB_LibOK will always be false and MITAB_load does nothing
+
+procedure MITAB_load;
+
+implementation
+
+{$IFDEF MSwindows}
+uses
+  windows;
+
+var
+  MITABDLL_Handle: THandle;
+{$ENDIF}
+
+// To test if a function was found in the DLL before using it, do like this:
+// if @mitab_c_create<>nil then mitab_c_create(.....)
+
+procedure MITAB_load;
+begin
+  {$IFDEF MSwindows}
+  MITABDLL_Handle:= LoadLibrary(pchar(LibPath));
+  if MITABDLL_Handle<>0 then
+  begin
+    MITAB_LibOK:= true;
+    @mitab_c_add_field:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_add_field@20');
+    @mitab_c_close:=                  GetProcAddress(MITABDLL_Handle,'_mitab_c_close@4');
+    @mitab_c_create:=                 GetProcAddress(MITABDLL_Handle,'_mitab_c_create@44');
+    @mitab_c_create_feature:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_create_feature@8');
+    @mitab_c_destroy_feature:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_destroy_feature@4');
+    @mitab_c_get_brush_bgcolor:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_bgcolor@4');
+    @mitab_c_get_brush_fgcolor:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_fgcolor@4');
+    @mitab_c_get_brush_pattern:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_pattern@4');
+    @mitab_c_get_brush_transparent:=  GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_transparent@4');
+    @mitab_c_get_field_as_string_vb:= GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_as_string_vb@16');
+    @mitab_c_get_field_as_string:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_as_string@8');
+    @mitab_c_get_field_count:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_count@4');
+    @mitab_c_get_field_name_vb:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_name_vb@16');
+    @mitab_c_get_field_name:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_name@8');
+    @mitab_c_get_field_type:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_type@8');
+    @mitab_c_get_field_width:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_width@8');
+    @mitab_c_get_field_precision:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_precision@8');
+    @mitab_c_get_font_vb:=            GetProcAddress(MITABDLL_Handle,'_mitab_c_get_font_vb@12');
+    @mitab_c_get_font:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_get_font@4');
+    @mitab_c_get_mif_coordsys_vb:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_get_mif_coordsys_vb@12');
+    @mitab_c_get_mif_coordsys:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_mif_coordsys@4');
+    @mitab_c_get_parts:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_get_parts@4');
+    @mitab_c_get_pen_color:=          GetProcAddress(MITABDLL_Handle,'_mitab_c_get_pen_color@4');
+    @mitab_c_get_pen_pattern:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_pen_pattern@4');
+    @mitab_c_get_pen_width:=          GetProcAddress(MITABDLL_Handle,'_mitab_c_get_pen_width@4');
+    @mitab_c_get_projinfo:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_get_projinfo@4');
+    @mitab_c_get_symbol_color:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_symbol_color@4');
+    @mitab_c_get_symbol_no:=          GetProcAddress(MITABDLL_Handle,'_mitab_c_get_symbol_no@4');
+    @mitab_c_get_symbol_size:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_symbol_size@4');
+    @mitab_c_get_text_vb:=            GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_vb@12');
+    @mitab_c_get_text:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text@4');
+    @mitab_c_get_text_angle:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_angle@4');
+    @mitab_c_get_text_bgcolor:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_bgcolor@4');
+    @mitab_c_get_text_fgcolor:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_fgcolor@4');
+    @mitab_c_get_text_height:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_height@4');
+    @mitab_c_get_text_justification:= GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_justification@4');
+    @mitab_c_get_text_linetype:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_linetype@4');
+    @mitab_c_get_text_spacing:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_spacing@4');
+    @mitab_c_get_text_width:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_width@4');
+    @mitab_c_get_type:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_get_type@4');
+    @mitab_c_get_vertex_count:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_vertex_count@8');
+    @mitab_c_get_vertex_x:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_get_vertex_x@12');
+    @mitab_c_get_vertex_y:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_get_vertex_y@12');
+    @mitab_c_getlasterrormsg_vb:=     GetProcAddress(MITABDLL_Handle,'_mitab_c_getlasterrormsg_vb@8');
+    @mitab_c_getlasterrormsg:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_getlasterrormsg@0');
+    @mitab_c_getlasterrorno:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_getlasterrorno@0');
+    @mitab_c_next_feature_id:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_next_feature_id@8');
+    @mitab_c_open:=                   GetProcAddress(MITABDLL_Handle,'_mitab_c_open@4');
+    @mitab_c_read_feature:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_read_feature@8');
+    @mitab_c_set_arc:=                GetProcAddress(MITABDLL_Handle,'_mitab_c_set_arc@52');
+    @mitab_c_set_brush:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_set_brush@20');
+    @mitab_c_set_field:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_set_field@12');
+    @mitab_c_set_font:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_set_font@8');
+    @mitab_c_set_pen:=                GetProcAddress(MITABDLL_Handle,'_mitab_c_set_pen@16');
+    @mitab_c_set_points:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_set_points@20');
+    @mitab_c_set_projinfo:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_set_projinfo@8');
+    @mitab_c_set_symbol:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_set_symbol@16');
+    @mitab_c_set_text:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_set_text@8');
+    @mitab_c_set_text_display:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_set_text_display@48');
+    @mitab_c_write_feature:=          GetProcAddress(MITABDLL_Handle,'_mitab_c_write_feature@8');
+    @mitab_c_is_interior_ring:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_is_interior_ring@8');
+  end;
+  {$ENDIF}
+end;
+
+initialization
+  MITAB_libOK:= false;
+  LibPath:= 'mitab.dll';
+
+end.

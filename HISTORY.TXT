@@ -4,6 +4,18 @@ MITAB Library - Revision History
 ToDo - Known problems:
 ----------------------
 
+ - OGRTABDataSource: Need to be able to open all files from a directory
+
+ - Can we do anything for optimized spatial searches in TAB files?
+   (i.e. See SetSpatialFilter())
+
+ - Support for bForceFlag incomplete in GetBounds(), GetFeatureCount()
+   and GetFeatureCountByType() in MIFFile.
+
+ - Since we are not guaranteed that MapInfo REGIONs are topologically 
+   correct polygons with one outer ring and a set of inner rings, should
+   we return REGIONs as OGRMultiPolygons instead?
+
  - API Documentation
 
  - TABView support:
@@ -40,6 +52,8 @@ Current Version:
  - OGRMIDDataSource/OGRMIDDriver were removed.  Now all file types
    handled by MITAB go through the OGRTABDataSource/OGRTABDriver interface
 
+ - Fixed problem reading/writing dates (bytes were reversed)
+
 Version 0.1 - (1999-12-04)
 --------------------------
 
@@ -49,5 +63,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.1 1999-12-14 02:21:14 daniel Exp $
+$Id: HISTORY.TXT,v 1.2 1999-12-14 06:15:07 daniel Exp $
 ------------

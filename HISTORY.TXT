@@ -5,6 +5,11 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+- Made changes in TABRelation to avoid an infinite loop. The m_poCurFeature
+  object have been deleted and the function GetFeatureRef() have been replace
+  by GetFeature(). This new function return a TABFeature object that must be 
+  control by the calling method. (bug 706)
+
 - Made important changes in order to support writing objects in 16 bits 
   coordinate format. New TABMAPObjHdr-derived classes are used to hold 
   object info in memory until block is full. 
@@ -382,5 +387,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.76 2002-02-20 14:22:05 daniel Exp $
+$Id: HISTORY.TXT,v 1.77 2002-02-25 13:08:15 julien Exp $
 ------------

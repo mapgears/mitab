@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_middatafile.cpp,v 1.3 1999-11-14 17:43:32 stephane Exp $
+ * $Id: mitab_middatafile.cpp,v 1.4 1999-12-19 17:41:29 daniel Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_middatafile.cpp,v $
- * Revision 1.3  1999-11-14 17:43:32  stephane
+ * Revision 1.4  1999-12-19 17:41:29  daniel
+ * Fixed a memory leak
+ *
+ * Revision 1.3  1999/11/14 17:43:32  stephane
  * Add ifdef to remove CPLError if OGR is define
  *
  * Revision 1.2  1999/11/11 01:22:05  stephane
@@ -255,6 +258,7 @@ GBool MIDDATAFile::IsValidFeature(const char *pszString)
 	return TRUE;
     }
 
+    CSLDestroy(papszToken);
     return FALSE;
 
 }

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.1 2000-01-14 14:53:59 warmerda Exp $
+ * $Id: mitabc_test.c,v 1.2 2000-01-14 16:33:24 warmerda Exp $
  *
  * Name:     mitabcrep.c
  * Project:  MapInfo TAB Read/Write library
@@ -28,12 +28,16 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.1  2000-01-14 14:53:59  warmerda
+ * Revision 1.2  2000-01-14 16:33:24  warmerda
+ * initial implementation complete
+ *
+ * Revision 1.1  2000/01/14 14:53:59  warmerda
  * New
  *
  */
 
 #include <stdio.h>
+#include <assert.h>
 #include "mitab_capi.h"
 
 #ifndef NULL
@@ -98,6 +102,7 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     mitab_handle	dataset;
     mitab_feature	feature;
     double		x[100], y[100];
+    int			field_index;
     
     dataset = mitab_c_create( pszDest, pszMifOrTab,
                               "CoordSys Earth Projection 1, 0",
@@ -110,16 +115,102 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     }
 
 /* -------------------------------------------------------------------- */
+/*      Add a text, float and integer field.                            */
+/* -------------------------------------------------------------------- */
+    field_index = mitab_c_add_field( dataset, "TestInt",
+                                     TABFT_Integer, 8, 0 );
+    assert( field_index == 0 );
+
+    field_index = mitab_c_add_field( dataset, "TestFloat", TABFT_Float,
+                                     12, 2 );
+    assert( field_index == 1 );
+
+    field_index = mitab_c_add_field( dataset, "TestString", TABFT_Char,
+                                     10, 0 );
+    assert( field_index == 2 );
+
+/* -------------------------------------------------------------------- */
 /*      Write a point.                                                  */
 /* -------------------------------------------------------------------- */
     feature = mitab_c_create_feature( dataset, TABFC_Point );
 
     x[0] = 100;
     y[0] = 50;
+    
     mitab_c_set_points( feature, 0, 1, x, y );
+    mitab_c_set_symbol( feature, 1, 2, 255*256 );
+    mitab_c_set_field( feature, 0, "100" );
+    mitab_c_set_field( feature, 1, "100.5" );
+    mitab_c_set_field( feature, 2, "12345678901234567890" );
     mitab_c_write_feature( dataset, feature );
     mitab_c_destroy_feature( feature );
 
+/* -------------------------------------------------------------------- */
+/*      Write a line.                                                   */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_Polyline );
+
+    x[0] = 100;
+    y[0] = 50;
+    x[1] = 101;
+    y[1] = 42;
+    
+    mitab_c_set_points( feature, 0, 2, x, y );
+    mitab_c_set_pen( feature, 1, 2, 3, 65535 );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+
+/* -------------------------------------------------------------------- */
+/*      Write text.                                                     */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_Text );
+
+    x[0] = 101;
+    y[0] = 51;
+    
+    mitab_c_set_points( feature, 0, 1, x, y );
+    mitab_c_set_text( feature, "My text" );
+    mitab_c_set_font( feature, "Arial" );
+    mitab_c_set_pen( feature, 1, 2, 3, 65535 );
+    mitab_c_set_text_display( feature, 0.0, 0.0, 0.0, 255*65536, 0,
+                              -1, -1, -1 );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+    
+/* -------------------------------------------------------------------- */
+/*      Write region (polygon).                                         */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_Region );
+
+    x[0] = 101;
+    y[0] = 51;
+    x[1] = 100;
+    y[1] = 51;
+    x[2] = 100;
+    y[2] = 50;
+    x[3] = 101;
+    y[3] = 50;
+    x[4] = 101;
+    y[4] = 51;
+    
+    mitab_c_set_points( feature, 0, 5, x, y );
+    
+    x[0] = 100.5;
+    y[0] = 50.5;
+    x[1] = 100.7;
+    y[1] = 50.7;
+    x[2] = 100.7;
+    y[2] = 50.7;
+    x[3] = 100.5;
+    y[3] = 50.5;
+    
+    mitab_c_set_points( feature, 1, 4, x, y );
+
+    mitab_c_set_brush( feature, 255, 0, 1, 0 );
+    mitab_c_set_pen( feature, 1, 2, 3, 65535 );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+    
 /* -------------------------------------------------------------------- */
 /*      Cleanup                                                         */
 /* -------------------------------------------------------------------- */

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.1 2000-01-14 14:53:59 warmerda Exp $
+ * $Id: mitab_capi.cpp,v 1.2 2000-01-14 16:33:24 warmerda Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.1  2000-01-14 14:53:59  warmerda
+ * Revision 1.2  2000-01-14 16:33:24  warmerda
+ * initial implementation complete
+ *
+ * Revision 1.1  2000/01/14 14:53:59  warmerda
  * New
  *
  */
@@ -106,6 +109,27 @@ mitab_handle mitab_c_create( const char * filename,
     }
 
     return (mitab_handle) poFile;
+}
+
+/************************************************************************/
+/*                         mitab_c_add_field()                          */
+/*                                                                      */
+/*      Add a new field to the schema.  Return the field id.            */
+/************************************************************************/
+
+int mitab_c_add_field( mitab_handle dataset, const char *field_name,
+                       int field_type, int width, int precision )
+
+{
+    IMapInfoFile	*poFile = (IMapInfoFile *) dataset;
+
+    if( poFile->AddFieldNative( field_name, (TABFieldType) field_type,
+                                width, precision ) != -1 )
+    {
+        return poFile->GetLayerDefn()->GetFieldCount() - 1;
+    }
+    else
+        return -1;
 }
 
 /************************************************************************/
@@ -185,13 +209,31 @@ mitab_feature mitab_c_create_feature( mitab_handle handle,
     if( feature_type == TABFC_Point )
         poFeature = new TABPoint(poFile->GetLayerDefn());
     else if( feature_type == TABFC_Text )
-        poFeature = new TABText(poFile->GetLayerDefn());
+    {
+        TABText		*poText = new TABText(poFile->GetLayerDefn());
+
+        poText->SetTextString( "Default Text" );
+        poFeature = poText;
+    }
     else if( feature_type == TABFC_Polyline )
         poFeature = new TABPolyline(poFile->GetLayerDefn());
     else if( feature_type == TABFC_Region )
         poFeature = new TABRegion(poFile->GetLayerDefn());
 
     return poFeature;
+}
+
+/************************************************************************/
+/*                         mitab_c_set_field()                          */
+/************************************************************************/
+
+void mitab_c_set_field( mitab_feature feature, int field_index,
+                        const char *field_value )
+
+{
+    TABFeature	*poFeature = (TABFeature *) feature;
+
+    poFeature->SetField( field_index, field_value );
 }
 
 /************************************************************************/
@@ -244,3 +286,129 @@ void mitab_c_set_points( mitab_feature feature, int part,
         }
     }
 }
+
+/************************************************************************/
+/*                          mitab_c_set_text()                          */
+/************************************************************************/
+
+void mitab_c_set_text( mitab_feature feature, const char * text )
+
+{
+    TABText	*poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+        poFeature->SetTextString( text );
+}
+
+/************************************************************************/
+/*                          mitab_c_set_text()                          */
+/************************************************************************/
+
+void mitab_c_set_text_display( mitab_feature feature,
+                               double angle, double height, double width,
+                               int fg_color, int bg_color,
+                               int justification, int spacing, int linetype )
+
+{
+    TABText	*poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        poFeature->SetTextAngle( angle );
+        if( height > 0 )
+            poFeature->SetTextBoxHeight( height );
+        if( width > 0 )
+            poFeature->SetTextBoxWidth( width );
+        if( fg_color != -1 )
+            poFeature->SetFontFGColor( fg_color );
+        if( bg_color != -1 )
+            poFeature->SetFontBGColor( bg_color );
+
+        if( justification != -1 )
+            poFeature->SetTextJustification( (TABTextJust) justification );
+        if( spacing != -1 )
+            poFeature->SetTextSpacing( (TABTextSpacing) justification );
+        if( linetype != -1 )
+            poFeature->SetTextLineType( (TABTextLineType) linetype );
+    }
+}
+
+/************************************************************************/
+/*                          mitab_c_set_font()                          */
+/************************************************************************/
+
+void mitab_c_set_font( mitab_feature feature, const char * fontname )
+
+{
+    TABText	*poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+        poFeature->SetFontName( fontname );
+}
+
+/************************************************************************/
+/*                         mitab_c_set_brush()                          */
+/************************************************************************/
+
+void mitab_c_set_brush( mitab_feature feature,
+                     int fg_color, int bg_color, int pattern, int transparent )
+
+{
+    TABRegion	*poFeature = (TABRegion *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Region )
+    {
+        poFeature->SetBrushFGColor( fg_color );
+        poFeature->SetBrushBGColor( bg_color );
+        poFeature->SetBrushPattern( pattern );
+        poFeature->SetBrushTransparent( transparent );
+    }
+}
+
+/************************************************************************/
+/*                          mitab_c_set_pen()                           */
+/************************************************************************/
+
+void mitab_c_set_pen( mitab_feature feature,
+                      int width, int pattern, int style, int color )
+
+{
+    TABFeature		*poFeature = (TABFeature *) feature;
+    ITABFeaturePen	*poPen = NULL;
+
+    if( poFeature->GetFeatureClass() == TABFC_Polyline )
+        poPen = ((TABPolyline *) poFeature);
+    
+    if( poFeature->GetFeatureClass() == TABFC_Region )
+        poPen = ((TABRegion *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+        poPen = ((TABText *) poFeature);
+
+    if( poPen != NULL )
+    {
+        poPen->SetPenWidth( width );
+        poPen->SetPenPattern( pattern );
+        poPen->SetPenStyle( style );
+        poPen->SetPenColor( color );
+    }
+}
+
+/************************************************************************/
+/*                         mitab_c_set_symbol()                         */
+/************************************************************************/
+
+void mitab_c_set_symbol( mitab_feature feature, int symbol_no,
+                         int symbol_size, int symbol_color )
+
+{
+    TABPoint	*poFeature = (TABPoint *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Point )
+    {
+        poFeature->SetSymbolNo( symbol_no );
+        poFeature->SetSymbolSize( symbol_size );
+        poFeature->SetSymbolColor( symbol_color );
+    }
+}								
+

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.1 2000-01-14 14:53:59 warmerda Exp $
+ * $Id: mitab_capi.h,v 1.2 2000-01-14 16:33:24 warmerda Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.1  2000-01-14 14:53:59  warmerda
+ * Revision 1.2  2000-01-14 16:33:24  warmerda
+ * initial implementation complete
+ *
+ * Revision 1.1  2000/01/14 14:53:59  warmerda
  * New
  *
  */
@@ -66,7 +69,7 @@ mitab_handle mitab_c_create( const char * filename,
                              double east, double west );
 
 int mitab_c_add_field( mitab_handle handle, const char * field_name,
-                       int field_type );
+                       int field_type, int width, int precision );
 
 int mitab_c_write_feature( mitab_handle handle, mitab_feature feature );
 
@@ -81,7 +84,11 @@ mitab_feature mitab_c_create_feature( mitab_handle, int feature_type );
 
 void mitab_c_set_field( mitab_feature, int field_index, const char * value );
 
-void mitab_c_set_text( mitab_feature, const char * text );
+void mitab_c_set_text( mitab_feature feature, const char * text );
+void mitab_c_set_text_display( mitab_feature feature,
+                               double angle, double height, double width,
+                               int fg_color, int bg_color,
+                               int justification, int spacing, int linetype );
 
 void mitab_c_set_pen( mitab_feature feature,
                       int width, int pattern, int style, int color );
@@ -97,6 +104,9 @@ void mitab_c_set_symbol( mitab_feature feature, int symbol_no,
 void mitab_c_set_points( mitab_feature feature, int part,
                          int vertex_count, double * x, double * y );
 
+/* -------------------------------------------------------------------- */
+/*      Not implemented                                                 */
+/* -------------------------------------------------------------------- */
 int mitab_c_get_type( mitab_feature feature );
 int mitab_c_get_parts( mitab_feature feature );
 int mitab_c_get_vertex_count( mitab_feature feature, int part );

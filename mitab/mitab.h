@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.6 1999-09-26 14:59:36 daniel Exp $
+ * $Id: mitab.h,v 1.7 1999-09-28 02:52:47 warmerda Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.6  1999-09-26 14:59:36  daniel
+ * Revision 1.7  1999-09-28 02:52:47  warmerda
+ * Added SetProjInfo().
+ *
+ * Revision 1.6  1999/09/26 14:59:36  daniel
  * Implemented write support
  *
  * Revision 1.5  1999/09/24 20:23:09  warmerda
@@ -127,6 +130,8 @@ class TABFile
     // semi-private.
     int          GetProjInfo(TABProjInfo *poPI)
 	    { return m_poMAPFile->GetHeaderBlock()->GetProjInfo( poPI ); }
+    int          SetProjInfo(TABProjInfo *poPI)
+	    { return m_poMAPFile->GetHeaderBlock()->SetProjInfo( poPI ); }
 
 #ifdef DEBUG
     void Dump(FILE *fpOut = NULL);

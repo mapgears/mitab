@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.5 1999-09-29 04:25:03 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.6 1999-10-01 03:47:38 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.5  1999-09-29 04:25:03  daniel
+ * Revision 1.6  1999-10-01 03:47:38  daniel
+ * Better defaults for header fields, and more complete Dump() for debugging
+ *
+ * Revision 1.5  1999/09/29 04:25:03  daniel
  * Set default scale so that default coord range is +/-1000000.000
  *
  * Revision 1.4  1999/09/26 14:59:36  daniel
@@ -108,10 +111,10 @@ TABMAPHeaderBlock::TABMAPHeaderBlock(TABAccess eAccessMode /*= TABRead*/):
 
     m_nDistUnitsCode = 7;       // Meters
     m_nMaxSpIndexDepth = 0;
-    m_nCoordPrecision = 0;      // ???
-    m_nCoordOriginQuadrant = 0; // ???
-    m_nReflectXAxisCoord = 0;
-    m_nObjLenArraySize = HDR_OBJ_LEN_ARRAY_SIZE;  // See gabyObjLenArray[]
+    m_nCoordPrecision = 3;      // ??? 3 Digits of precision
+    m_nCoordOriginQuadrant = 2; // ???
+    m_nReflectXAxisCoord = 1;
+    m_nMaxObjLenArrayId = HDR_OBJ_LEN_ARRAY_SIZE-1;  // See gabyObjLenArray[]
     m_numPenDefs = 0;
     m_numBrushDefs = 0;
     m_numSymbolDefs = 0;
@@ -218,14 +221,14 @@ int     TABMAPHeaderBlock::InitBlockFromData(GByte *pabyBuf, int nSize,
     m_numTextObjects = ReadInt32();
     m_nMaxCoordBufSize = ReadInt32();
 
-    GotoByteInBlock(0x15f);     // Skip 14 unknown bytes
+    GotoByteInBlock(0x15e);     // Skip 14 unknown bytes
 
     m_nDistUnitsCode = ReadByte();
     m_nMaxSpIndexDepth = ReadByte();
     m_nCoordPrecision = ReadByte();
     m_nCoordOriginQuadrant = ReadByte();
     m_nReflectXAxisCoord = ReadByte();
-    m_nObjLenArraySize = ReadByte();    // See gabyObjLenArray[]
+    m_nMaxObjLenArrayId = ReadByte();    // See gabyObjLenArray[]
     m_numPenDefs = ReadByte();
     m_numBrushDefs = ReadByte();
     m_numSymbolDefs = ReadByte();
@@ -563,7 +566,7 @@ int     TABMAPHeaderBlock::CommitToFile()
      *----------------------------------------------------------------*/
     GotoByteInBlock(0x000);
     WriteBytes(HDR_OBJ_LEN_ARRAY_SIZE, gabyObjLenArray);
-    m_nObjLenArraySize = HDR_OBJ_LEN_ARRAY_SIZE;
+    m_nMaxObjLenArrayId = HDR_OBJ_LEN_ARRAY_SIZE-1;
 
     GotoByteInBlock(0x100);
     WriteInt32(HDR_MAGIC_COOKIE);
@@ -595,7 +598,7 @@ int     TABMAPHeaderBlock::CommitToFile()
     WriteByte(m_nCoordPrecision);
     WriteByte(m_nCoordOriginQuadrant);
     WriteByte(m_nReflectXAxisCoord);
-    WriteByte(m_nObjLenArraySize);    // See gabyObjLenArray[]
+    WriteByte(m_nMaxObjLenArrayId);    // See gabyObjLenArray[]
     WriteByte(m_numPenDefs);
     WriteByte(m_numBrushDefs);
     WriteByte(m_numSymbolDefs);
@@ -679,10 +682,10 @@ int     TABMAPHeaderBlock::InitNewBlock(FILE *fpSrc, int nBlockSize,
 
     m_nDistUnitsCode = 7;       // Meters
     m_nMaxSpIndexDepth = 0;
-    m_nCoordPrecision = 0;      // ???
-    m_nCoordOriginQuadrant = 0; // ???
-    m_nReflectXAxisCoord = 0;
-    m_nObjLenArraySize = HDR_OBJ_LEN_ARRAY_SIZE;  // See gabyObjLenArray[]
+    m_nCoordPrecision = 3;      // ??? 3 digits of precision
+    m_nCoordOriginQuadrant = 2; // ??? N-E quadrant
+    m_nReflectXAxisCoord = 1;
+    m_nMaxObjLenArrayId = HDR_OBJ_LEN_ARRAY_SIZE-1;  // See gabyObjLenArray[]
     m_numPenDefs = 0;
     m_numBrushDefs = 0;
     m_numSymbolDefs = 0;
@@ -753,6 +756,7 @@ void TABMAPHeaderBlock::Dump(FILE *fpOut /*=NULL*/)
         fprintf(fpOut,"  m_numLineObjects      = %d\n", m_numLineObjects);
         fprintf(fpOut,"  m_numRegionObjects    = %d\n", m_numRegionObjects);
         fprintf(fpOut,"  m_numTextObjects      = %d\n", m_numTextObjects);
+        fprintf(fpOut,"  m_nMaxCoordBufSize    = %d\n", m_nMaxCoordBufSize);
 
         fprintf(fpOut,"\n");
         fprintf(fpOut,"  m_dCoordsys2DistUnits = %g\n", m_dCoordsys2DistUnits);
@@ -764,6 +768,19 @@ void TABMAPHeaderBlock::Dump(FILE *fpOut /*=NULL*/)
         fprintf(fpOut,"  m_YScale              = %g\n", m_YScale);
         fprintf(fpOut,"  m_XDispl              = %g\n", m_XDispl);
         fprintf(fpOut,"  m_YDispl              = %g\n", m_YDispl);
+
+        fprintf(fpOut,"\n");
+        fprintf(fpOut,"  m_nDistUnistCode      = %d\n", m_nDistUnitsCode);
+        fprintf(fpOut,"  m_nMaxSpIndexDepth    = %d\n", m_nMaxSpIndexDepth);
+        fprintf(fpOut,"  m_nCoordPrecision     = %d\n", m_nCoordPrecision);
+        fprintf(fpOut,"  m_nCoordOriginQuadrant= %d\n",m_nCoordOriginQuadrant);
+        fprintf(fpOut,"  m_nReflecXAxisCoord   = %d\n", m_nReflectXAxisCoord);
+        fprintf(fpOut,"  m_nMaxObjLenArrayId   = %d\n", m_nMaxObjLenArrayId);
+        fprintf(fpOut,"  m_numPenDefs          = %d\n", m_numPenDefs);
+        fprintf(fpOut,"  m_numBrushDefs        = %d\n", m_numBrushDefs);
+        fprintf(fpOut,"  m_numSymbolDefs       = %d\n", m_numSymbolDefs);
+        fprintf(fpOut,"  m_numFontDefs         = %d\n", m_numFontDefs);
+        fprintf(fpOut,"  m_numMapToolBlocks    = %d\n", m_numMapToolBlocks);
 
         fprintf(fpOut,"\n");
         fprintf(fpOut,"  m_sProj.nProjId       = %d\n", (int)m_sProj.nProjId);

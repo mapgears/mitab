@@ -57,6 +57,9 @@ CHANGES - Current Version:
 
 - Initialize m_dWidth to 0 in TABText constructor. (NFW)
 
+- Made TABFile::GetBounds() return bounds corresponding to the +/- 1e9 
+  integer coordinate limits instead of using min/max int. coord. from header
+
 
 Version 1.0.2 - (2000-10-03)
 ----------------------------
@@ -211,5 +214,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.30 2000-10-18 03:23:38 warmerda Exp $
+$Id: HISTORY.TXT,v 1.31 2000-10-18 03:59:15 daniel Exp $
 ------------

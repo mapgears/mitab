@@ -36,6 +36,11 @@ CHANGES - Current Version:
 
 - TABText should not produce an error if reading a 0-length text.
 
+- Modified mitab_miffile.cpp to keep track of the feature id of the 
+  preloaded text line in m_nPreloadedId instead of m_nCurFeatureId to fix
+  serious problems with access through IMapInfo::GetNextFeature() - this
+  affects applications using the pure OGRLayer API to access mif files. NFW
+
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -321,5 +326,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.63 2001-09-17 21:34:36 daniel Exp $
+$Id: HISTORY.TXT,v 1.64 2001-09-19 14:34:06 warmerda Exp $
 ------------

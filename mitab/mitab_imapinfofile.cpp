@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.10 2001-01-22 16:03:58 warmerda Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.11 2001-01-23 21:23:42 daniel Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -9,7 +9,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, 2000, Daniel Morissette
+ * Copyright (c) 1999-2001, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.10  2001-01-22 16:03:58  warmerda
+ * Revision 1.11  2001-01-23 21:23:42  daniel
+ * Added projection bounds lookup table, called from TABFile::SetProjInfo()
+ *
+ * Revision 1.10  2001/01/22 16:03:58  warmerda
  * expanded tabs
  *
  * Revision 1.9  2000/11/30 20:27:56  warmerda
@@ -76,6 +79,8 @@
 IMapInfoFile::IMapInfoFile()
 {
     m_poFilterGeom = NULL;    
+    m_nCurFeatureId = 0;
+    m_bBoundsSet = FALSE;
 }
 
 

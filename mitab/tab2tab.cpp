@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.7 2000-10-03 21:46:08 daniel Exp $
+ * $Id: tab2tab.cpp,v 1.8 2001-01-23 21:23:42 daniel Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.7  2000-10-03 21:46:08  daniel
+ * Revision 1.8  2001-01-23 21:23:42  daniel
+ * Added projection bounds lookup table, called from TABFile::SetProjInfo()
+ *
+ * Revision 1.7  2000/10/03 21:46:08  daniel
  * Support MIF output as well, based on output filename extension, making
  * tab2mif.cpp obsolete.
  *
@@ -104,6 +107,11 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
     int      nFeatureId, iField;
     TABFeature *poFeature;
     double dXMin, dYMin, dXMax, dYMax;
+
+    /*---------------------------------------------------------------------
+     * If there is a "micdsys.txt" in current directory then load it
+     *--------------------------------------------------------------------*/
+    MITABLoadCoordSysTable("micdsys.txt");
 
     /*---------------------------------------------------------------------
      * Try to open source file
@@ -211,6 +219,8 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
 
     poSrcFile->Close();
     delete poSrcFile;
+
+    MITABFreeCoordSysTable();
 
     return 0;
 }

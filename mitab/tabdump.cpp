@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.7 2000-11-13 22:05:45 daniel Exp $
+ * $Id: tabdump.cpp,v 1.8 2001-01-23 21:23:42 daniel Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -8,7 +8,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, 2000, Daniel Morissette
+ * Copyright (c) 1999-2001, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.7  2000-11-13 22:05:45  daniel
+ * Revision 1.8  2001-01-23 21:23:42  daniel
+ * Added projection bounds lookup table, called from TABFile::SetProjInfo()
+ *
+ * Revision 1.7  2000/11/13 22:05:45  daniel
  * Added SearchIndex() - For string indexes only
  *
  * Revision 1.6  2000/10/18 03:57:55  daniel
@@ -55,6 +58,7 @@
 
 
 #include "mitab.h"
+#include "mitab_utils.h"
 #include <ctype.h>
 
 static int DumpMapFileBlocks(const char *pszFname);
@@ -64,6 +68,7 @@ static int DumpIndFileObjects(const char *pszFname);
 
 static int DumpTabFile(const char *pszFname);
 static int DumpCoordsys(const char *pszFname);
+static int DumpCoordsysStruct(const char *pszFname);
 
 static int SearchIndex(const char *pszFname, int nIndexNo, const char *pszVal);
 
@@ -164,6 +169,19 @@ int main(int argc, char *argv[])
             strstr(pszFname, ".TAB") != NULL)
         {
             DumpCoordsys(pszFname);
+        }
+    }
+/*---------------------------------------------------------------------
+ *      With option -s <filename>
+ *      Dump the dataset's coordsys and bounds info in a C struct format
+ *--------------------------------------------------------------------*/
+    else if (EQUALN(argv[1], "-s", 2))
+    {
+
+        if (strstr(pszFname, ".tab") != NULL ||
+            strstr(pszFname, ".TAB") != NULL)
+        {
+            DumpCoordsysStruct(pszFname);
         }
     }
 /*---------------------------------------------------------------------
@@ -461,6 +479,83 @@ static int DumpCoordsys(const char *pszFname)
     return 0;
 }
 
+/**********************************************************************
+ *                          DumpCoordsysStruct()
+ *
+ * Open a .TAB file and dump coordsys info in a format usable to build
+ * C array of MapInfoBoundsInfo[]
+ **********************************************************************/
+static int DumpCoordsysStruct(const char *pszFname)
+{
+    IMapInfoFile  *poFile;
+    double dXMin, dYMin, dXMax, dYMax;
+
+    /*---------------------------------------------------------------------
+     * Try to open source file
+     *--------------------------------------------------------------------*/
+    if ((poFile = IMapInfoFile::SmartOpen(pszFname)) == NULL)
+    {
+        printf("Failed to open %s\n", pszFname);
+        return -1;
+    }
+
+    TABProjInfo sProjInfo;
+
+    if (poFile->GetProjInfo(&sProjInfo) != 0)
+    {
+        printf("Cannot fetch TABProjInfo from %s\n", pszFname);
+        return -1;
+    }
+
+    if (sProjInfo.nProjId == 0)
+    {
+        printf("Nonearth coordsys in %s\n", pszFname);
+        return 0;
+    }
+
+    if (poFile->GetBounds(dXMin, dYMin, dXMax, dYMax) == 0)
+    {
+        printf("{{%d, %d, %d, "
+               "{%.15g,%.15g,%.15g,%.15g,%.15g,%.15g}, "
+               "%.15g,%.15g,%.15g, "
+               "{%.15g,%.15g,%.15g,%.15g,%.15g}}, ", 
+               sProjInfo.nProjId,
+               sProjInfo.nEllipsoidId,
+               sProjInfo.nUnitsId,
+               sProjInfo.adProjParams[0],
+               sProjInfo.adProjParams[1],
+               sProjInfo.adProjParams[2],
+               sProjInfo.adProjParams[3],
+               sProjInfo.adProjParams[4],
+               sProjInfo.adProjParams[5],
+               sProjInfo.dDatumShiftX,
+               sProjInfo.dDatumShiftY,
+               sProjInfo.dDatumShiftZ,
+               sProjInfo.adDatumParams[0],
+               sProjInfo.adDatumParams[1],
+               sProjInfo.adDatumParams[2],
+               sProjInfo.adDatumParams[3],
+               sProjInfo.adDatumParams[4] );
+        
+
+        printf(" %.15g, %.15g, %.15g, %.15g},\n", dXMin, dYMin, dXMax, dYMax);
+
+    }
+    else
+    {
+        printf("  Bounds struct cannot be generated!\n");
+    }
+
+
+    /*---------------------------------------------------------------------
+     * Cleanup and exit.
+     *--------------------------------------------------------------------*/
+    poFile->Close();
+
+    delete poFile;
+
+    return 0;
+}
 
 /**********************************************************************
  *                          SearchIndex()
@@ -522,3 +617,4 @@ static int SearchIndex(const char *pszFname, int nIndexNo, const char *pszVal)
     return 0;
 
 }
+

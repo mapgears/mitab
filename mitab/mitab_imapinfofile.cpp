@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.15 2001-07-03 23:11:21 daniel Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.16 2001-09-14 03:23:55 warmerda Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.15  2001-07-03 23:11:21  daniel
+ * Revision 1.16  2001-09-14 03:23:55  warmerda
+ * Substantial upgrade to support spatial queries using spatial indexes
+ *
+ * Revision 1.15  2001/07/03 23:11:21  daniel
  * Test for NULL geometries if spatial filter enabled in GetNextFeature().
  *
  * Revision 1.14  2001/03/09 04:16:02  daniel
@@ -382,6 +385,8 @@ void IMapInfoFile::SetSpatialFilter (OGRGeometry * poGeomIn )
 
     if( poGeomIn != NULL )
         m_poFilterGeom = poGeomIn->clone();
+
+    ResetReading();
 }
 
 /************************************************************************/

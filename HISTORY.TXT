@@ -31,6 +31,9 @@ CHANGES - Current Version:
 
 - TABPolyline::ValidateMapInfoType(): return TAB_GEOM_NONE if numpoints < 2
 
+- Substantial additions to lots of files adding support for efficient
+  spatial queries by utilizing the spatial indexes when reading.  NFW.
+
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -316,5 +319,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.61 2001-09-05 13:37:42 daniel Exp $
+$Id: HISTORY.TXT,v 1.62 2001-09-14 03:23:55 warmerda Exp $
 ------------

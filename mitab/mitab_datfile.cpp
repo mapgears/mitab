@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_datfile.cpp,v 1.3 1999-09-26 14:59:36 daniel Exp $
+ * $Id: mitab_datfile.cpp,v 1.4 1999-10-01 02:02:36 warmerda Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_datfile.cpp,v $
- * Revision 1.3  1999-09-26 14:59:36  daniel
+ * Revision 1.4  1999-10-01 02:02:36  warmerda
+ * Added assertions to try and track TABRawBinBlock leak.
+ *
+ * Revision 1.3  1999/09/26 14:59:36  daniel
  * Implemented write support
  *
  * Revision 1.2  1999/09/20 18:43:20  daniel
@@ -193,6 +196,7 @@ int TABDATFile::Open(const char *pszFname, const char *pszAccess)
         m_nBlockSize = ((1024/m_nRecordSize)+1)*m_nRecordSize;
         m_nBlockSize = MIN(m_nBlockSize, (m_numRecords*m_nRecordSize));
 
+        CPLAssert( m_poRecordBlock == NULL );
         m_poRecordBlock = new TABRawBinBlock(m_eAccessMode, FALSE);
         m_poRecordBlock->InitNewBlock(m_fp, m_nBlockSize);
         m_poRecordBlock->SetFirstBlockPtr(m_nFirstRecordPtr);
@@ -309,6 +313,7 @@ int  TABDATFile::InitWriteHeader()
      *------------------------------------------------------------*/
     m_nBlockSize = m_nRecordSize;
 
+    CPLAssert( m_poRecordBlock == NULL );
     m_poRecordBlock = new TABRawBinBlock(m_eAccessMode, FALSE);
     m_poRecordBlock->InitNewBlock(m_fp, m_nBlockSize);
     m_poRecordBlock->SetFirstBlockPtr(m_nFirstRecordPtr);

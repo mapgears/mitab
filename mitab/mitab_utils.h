@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.h,v 1.2 1999-09-16 02:39:17 daniel Exp $
+ * $Id: mitab_utils.h,v 1.3 1999-09-26 14:59:38 daniel Exp $
  *
  * Name:     mitab_utils.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.h,v $
- * Revision 1.2  1999-09-16 02:39:17  daniel
+ * Revision 1.3  1999-09-26 14:59:38  daniel
+ * Implemented write support
+ *
+ * Revision 1.2  1999/09/16 02:39:17  daniel
  * Completed read support for most feature types
  *
  * Revision 1.1  1999/07/12 04:18:25  daniel
@@ -45,6 +48,9 @@
 #define PI 3.14159265358979
 #endif
 
+#define COLOR_R(color) ((color&0xff0000)/0x10000)
+#define COLOR_G(color) ((color&0xff00)/0x100)
+#define COLOR_B(color) (color&0xff)
 
 /*=====================================================================
                         Function prototypes

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_maptoolblock.cpp,v 1.1 1999-09-16 02:39:17 daniel Exp $
+ * $Id: mitab_maptoolblock.cpp,v 1.2 1999-09-26 14:59:37 daniel Exp $
  *
  * Name:     mitab_maptoollock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_maptoolblock.cpp,v $
- * Revision 1.1  1999-09-16 02:39:17  daniel
+ * Revision 1.2  1999-09-26 14:59:37  daniel
+ * Implemented write support
+ *
+ * Revision 1.1  1999/09/16 02:39:17  daniel
  * Completed read support for most feature types
  *
  **********************************************************************/
@@ -47,26 +50,14 @@
  *
  * Constructor.
  **********************************************************************/
-TABMAPToolBlock::TABMAPToolBlock():
-    TABRawBinBlock(TRUE)
+TABMAPToolBlock::TABMAPToolBlock(TABAccess eAccessMode /*= TABRead*/):
+    TABRawBinBlock(eAccessMode, TRUE)
 {
     m_nNextToolBlock = m_numDataBytes = 0;
+
+    m_numBlocksInChain = 1;  // Current block counts as 1
  
-    m_papsPen = NULL;
-    m_papsBrush = NULL;
-    m_papsFont = NULL;
-    m_papsSymbol = NULL;
-    m_numPen = 0;
-    m_numBrushes = 0;
-    m_numFonts = 0;
-    m_numSymbols = 0;
-    m_numAllocatedPen = 0;
-    m_numAllocatedBrushes = 0;
-    m_numAllocatedFonts = 0;
-    m_numAllocatedSymbols = 0;
-
-    m_bToolDefsInitialized = FALSE;
-
+    m_poBlockManagerRef = NULL;
 }
 
 /**********************************************************************
@@ -76,30 +67,31 @@ TABMAPToolBlock::TABMAPToolBlock():
  **********************************************************************/
 TABMAPToolBlock::~TABMAPToolBlock()
 {
-    int i;
-
-    for(i=0; m_papsPen && i < m_numPen; i++)
-        CPLFree(m_papsPen[i]);
-    CPLFree(m_papsPen);
-
-    for(i=0; m_papsBrush && i < m_numBrushes; i++)
-        CPLFree(m_papsBrush[i]);
-    CPLFree(m_papsBrush);
-
-    for(i=0; m_papsFont && i < m_numFonts; i++)
-        CPLFree(m_papsFont[i]);
-    CPLFree(m_papsFont);
-
-    for(i=0; m_papsSymbol && i < m_numSymbols; i++)
-        CPLFree(m_papsSymbol[i]);
-    CPLFree(m_papsSymbol);
-
    
 }
 
 
 /**********************************************************************
- *                   TABMAPToolBlock::InitBlockData()
+ *                   TABMAPToolBlock::EndOfChain()
+ *
+ * Return TRUE if we reached the end of the last block in the chain
+ * TABMAPToolBlocks, or FALSE if there is still data to be read from 
+ * this chain.
+ **********************************************************************/
+GBool TABMAPToolBlock::EndOfChain()
+{
+   if (m_pabyBuf && 
+       (m_nCurPos < (m_numDataBytes+MAP_TOOL_HEADER_SIZE) || 
+        m_nNextToolBlock > 0 ) )
+   {
+       return FALSE;  // There is still data to be read.
+   }
+
+   return TRUE;
+}
+
+/**********************************************************************
+ *                   TABMAPToolBlock::InitBlockFromData()
  *
  * Perform some initialization on the block after its binary data has
  * been set or changed (or loaded from a file).
@@ -107,7 +99,7 @@ TABMAPToolBlock::~TABMAPToolBlock()
  * Returns 0 if succesful or -1 if an error happened, in which case 
  * CPLError() will have been called.
  **********************************************************************/
-int     TABMAPToolBlock::InitBlockData(GByte *pabyBuf, int nSize, 
+int     TABMAPToolBlock::InitBlockFromData(GByte *pabyBuf, int nSize, 
                                          GBool bMakeCopy /* = TRUE */,
                                          FILE *fpSrc /* = NULL */, 
                                          int nOffset /* = 0 */)
@@ -115,9 +107,9 @@ int     TABMAPToolBlock::InitBlockData(GByte *pabyBuf, int nSize,
     int nStatus;
 
     /*-----------------------------------------------------------------
-     * First of all, we must call the base class' InitBlockData()
+     * First of all, we must call the base class' InitBlockFromData()
      *----------------------------------------------------------------*/
-    nStatus = TABRawBinBlock::InitBlockData(pabyBuf, nSize, bMakeCopy,
+    nStatus = TABRawBinBlock::InitBlockFromData(pabyBuf, nSize, bMakeCopy,
                                             fpSrc, nOffset);
     if (nStatus != 0)   
         return nStatus;
@@ -128,7 +120,7 @@ int     TABMAPToolBlock::InitBlockData(GByte *pabyBuf, int nSize,
     if (m_nBlockType != TABMAP_TOOL_BLOCK)
     {
         CPLError(CE_Failure, CPLE_FileIO,
-                 "InitBlockData(): Invalid Block Type: got %d expected %d",
+                 "InitBlockFromData(): Invalid Block Type: got %d expected %d",
                  m_nBlockType, TABMAP_TOOL_BLOCK);
         CPLFree(m_pabyBuf);
         m_pabyBuf = NULL;
@@ -150,6 +142,120 @@ int     TABMAPToolBlock::InitBlockData(GByte *pabyBuf, int nSize,
 
     return 0;
 }
+
+/**********************************************************************
+ *                   TABMAPToolBlock::CommitToFile()
+ *
+ * Commit the current state of the binary block to the file to which 
+ * it has been previously attached.
+ *
+ * This method makes sure all values are properly set in the map object
+ * block header and then calls TABRawBinBlock::CommitToFile() to do
+ * the actual writing to disk.
+ *
+ * Returns 0 if succesful or -1 if an error happened, in which case 
+ * CPLError() will have been called.
+ **********************************************************************/
+int     TABMAPToolBlock::CommitToFile()
+{
+    int nStatus = 0;
+
+    if ( m_pabyBuf == NULL )
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed, 
+                 "CommitToFile(): Block has not been initialized yet!");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Make sure 8 bytes block header is up to date.
+     *----------------------------------------------------------------*/
+    GotoByteInBlock(0x000);
+
+    WriteInt16(TABMAP_TOOL_BLOCK);    // Block type code
+    WriteInt16(m_nSizeUsed - MAP_TOOL_HEADER_SIZE); // num. bytes used
+    WriteInt32(m_nNextToolBlock);
+
+    nStatus = CPLGetLastErrorNo();
+
+    /*-----------------------------------------------------------------
+     * OK, call the base class to write the block to disk.
+     *----------------------------------------------------------------*/
+    if (nStatus == 0)
+        nStatus = TABRawBinBlock::CommitToFile();
+
+    return nStatus;
+}
+
+/**********************************************************************
+ *                   TABMAPToolBlock::InitNewBlock()
+ *
+ * Initialize a newly created block so that it knows to which file it
+ * is attached, its block size, etc . and then perform any specific 
+ * initialization for this block type, including writing a default 
+ * block header, etc. and leave the block ready to receive data.
+ *
+ * This is an alternative to calling ReadFromFile() or InitBlockFromData()
+ * that puts the block in a stable state without loading any initial
+ * data in it.
+ *
+ * Returns 0 if succesful or -1 if an error happened, in which case 
+ * CPLError() will have been called.
+ **********************************************************************/
+int     TABMAPToolBlock::InitNewBlock(FILE *fpSrc, int nBlockSize, 
+                                        int nFileOffset /* = 0*/)
+{
+    /*-----------------------------------------------------------------
+     * Start with the default initialisation
+     *----------------------------------------------------------------*/
+    if ( TABRawBinBlock::InitNewBlock(fpSrc, nBlockSize, nFileOffset) != 0)
+        return -1;
+
+    /*-----------------------------------------------------------------
+     * And then set default values for the block header.
+     *----------------------------------------------------------------*/
+    m_nNextToolBlock = 0;
+ 
+    m_numDataBytes = 0;
+
+    GotoByteInBlock(0x000);
+
+    if (m_eAccess != TABRead)
+    {
+        WriteInt16(TABMAP_TOOL_BLOCK); // Block type code
+        WriteInt16(0);                 // num. bytes used, excluding header
+        WriteInt32(0);                 // Pointer to next tool block
+    }
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABMAPToolBlock::SetNextToolBlock()
+ *
+ * Set the address (offset from beginning of file) of the drawing tool block
+ * that follows the current one.
+ **********************************************************************/
+void     TABMAPToolBlock::SetNextToolBlock(GInt32 nNextToolBlockAddress)
+{
+    m_nNextToolBlock = nNextToolBlockAddress;
+}
+
+/**********************************************************************
+ *                   TABMAPToolBlock::SetMAPBlockManagerRef()
+ *
+ * Pass a reference to the block manager object for the file this 
+ * block belongs to.  The block manager will be used by this object
+ * when it needs to automatically allocate a new block.
+ **********************************************************************/
+void TABMAPToolBlock::SetMAPBlockManagerRef(TABMAPBlockManager *poBlockMgr)
+{
+    m_poBlockManagerRef = poBlockMgr;
+};
+
 
 /**********************************************************************
  *                   TABMAPToolBlock::ReadBytes()
@@ -185,266 +291,49 @@ int     TABMAPToolBlock::ReadBytes(int numBytes, GByte *pabyDstBuf)
             return nStatus;
         }
 
-        GotoByteInBlock(8);      // Move pointer past header
+        GotoByteInBlock(MAP_TOOL_HEADER_SIZE);  // Move pointer past header
+        m_numBlocksInChain++;
     }
 
     return TABRawBinBlock::ReadBytes(numBytes, pabyDstBuf);
 }
 
-
 /**********************************************************************
- *                   TABMAPToolBlock::ReadAllToolDefs()
+ *                   TABMAPToolBlock::WriteBytes()
  *
- * Read all tool definition blocks until we reach the end of the chain.
- * This function will be called automatically the first time a drawing
- * tool definition is requested.
+ * Cover function for TABRawBinBlock::WriteBytes() that will automagically
+ * CommitToFile() the current block and create a new one if we are at 
+ * the end of the current block.
  *
- * This has to be done only once for the first initialization... after that
- * we keep all the tool definitions in memory, so calls to this function
- * will simply have no effect.
+ * Then the control is passed to TABRawBinBlock::WriteBytes() to finish the
+ * work.
+ *
+ * Passing pabySrcBuf = NULL will only move the write pointer by the
+ * specified number of bytes as if the copy had happened... but it 
+ * won't crash.
+ *
+ * Returns 0 if succesful or -1 if an error happened, in which case 
+ * CPLError() will have been called.
  **********************************************************************/
-int     TABMAPToolBlock::ReadAllToolDefs()
+int  TABMAPToolBlock::WriteBytes(int nBytesToWrite, GByte *pabySrcBuf)
 {
-    int nStatus = 0;
-    int nDefType;
-
-    if (m_bToolDefsInitialized)
-        return 0;
-    
-    /*-----------------------------------------------------------------
-     * Loop until we reach the end of the chain of blocks... we assume
-     * that the first block of data is already pre-loaded. 
-     *----------------------------------------------------------------*/
-    while(nStatus == 0 && m_pabyBuf && 
-          (m_nCurPos < (m_numDataBytes+MAP_TOOL_HEADER_SIZE) || 
-           m_nNextToolBlock > 0 ) )
+    if (m_eAccess == TABWrite && m_poBlockManagerRef &&
+        GetNumUnusedBytes() < nBytesToWrite)
     {
-        nDefType = ReadByte();
-        switch(nDefType)
+        int nNewBlockOffset = m_poBlockManagerRef->AllocNewBlock();
+        SetNextToolBlock(nNewBlockOffset);
+
+        if (CommitToFile() != 0 ||
+            InitNewBlock(m_fp, 512, nNewBlockOffset) != 0)
         {
-          case 1:       // PEN
-            if (m_numPen >= m_numAllocatedPen)
-            {
-                // Realloc array by blocks of 20 items
-                m_numAllocatedPen += 20;
-                m_papsPen = (TABPenDef**)CPLRealloc(m_papsPen, 
-                                        m_numAllocatedPen*sizeof(TABPenDef*));
-            }
-            m_papsPen[m_numPen] = (TABPenDef*)CPLCalloc(1, sizeof(TABPenDef));
-
-            m_papsPen[m_numPen]->nRefCount  = ReadInt32();
-            m_papsPen[m_numPen]->nLineWidth = ReadByte();
-            m_papsPen[m_numPen]->nLinePattern = ReadByte();
-            m_papsPen[m_numPen]->nLineStyle = ReadByte();
-            m_papsPen[m_numPen]->rgbColor   = ReadByte()*256*256+
-                                              ReadByte()*256 + ReadByte();
-
-            m_numPen++;
-
-            break;
-          case 2:       // BRUSH
-            if (m_numBrushes >= m_numAllocatedBrushes)
-            {
-                // Realloc array by blocks of 20 items
-                m_numAllocatedBrushes += 20;
-                m_papsBrush = (TABBrushDef**)CPLRealloc(m_papsBrush, 
-                                 m_numAllocatedBrushes*sizeof(TABBrushDef*));
-            }
-            m_papsBrush[m_numBrushes] = 
-                               (TABBrushDef*)CPLCalloc(1,sizeof(TABBrushDef));
-
-            m_papsBrush[m_numBrushes]->nRefCount    = ReadInt32();
-            m_papsBrush[m_numBrushes]->nFillPattern = ReadByte();
-            m_papsBrush[m_numBrushes]->bTransparentFill = ReadByte();
-            m_papsBrush[m_numBrushes]->rgbFGColor   = ReadByte()*256*256+
-                                                      ReadByte()*256 + 
-                                                      ReadByte();
-            m_papsBrush[m_numBrushes]->rgbBGColor   = ReadByte()*256*256+
-                                                      ReadByte()*256 + 
-                                                      ReadByte();
-
-            m_numBrushes++;
-
-            break;
-          case 3:       // FONT NAME
-            if (m_numFonts >= m_numAllocatedFonts)
-            {
-                // Realloc array by blocks of 20 items
-                m_numAllocatedFonts += 20;
-                m_papsFont = (TABFontDef**)CPLRealloc(m_papsFont, 
-                                 m_numAllocatedFonts*sizeof(TABFontDef*));
-            }
-            m_papsFont[m_numFonts] = 
-                               (TABFontDef*)CPLCalloc(1,sizeof(TABFontDef));
-
-            m_papsFont[m_numFonts]->nRefCount    = ReadInt32();
-            ReadBytes(32, (GByte*)m_papsFont[m_numFonts]->szFontName);
-            m_papsFont[m_numFonts]->szFontName[32] = '\0';
-
-            m_numFonts++;
-
-            break;
-          case 4:       // SYMBOL
-            if (m_numSymbols >= m_numAllocatedSymbols)
-            {
-                // Realloc array by blocks of 20 items
-                m_numAllocatedSymbols += 20;
-                m_papsSymbol = (TABSymbolDef**)CPLRealloc(m_papsSymbol, 
-                                 m_numAllocatedSymbols*sizeof(TABSymbolDef*));
-            }
-            m_papsSymbol[m_numSymbols] = 
-                               (TABSymbolDef*)CPLCalloc(1,sizeof(TABSymbolDef));
-
-            m_papsSymbol[m_numSymbols]->nRefCount    = ReadInt32();
-            m_papsSymbol[m_numSymbols]->nSymbolNo    = ReadInt16();
-            m_papsSymbol[m_numSymbols]->nPointSize   = ReadInt16();
-            m_papsSymbol[m_numSymbols]->_nUnknownValue_ = ReadByte();
-            m_papsSymbol[m_numSymbols]->rgbColor   = ReadByte()*256*256+
-                                                     ReadByte()*256 + 
-                                                     ReadByte();
-
-            m_numSymbols++;
-
-            break;
-          default:
-            /* Unsupported Tool type!!! */
-            CPLError(CE_Failure, CPLE_NotSupported,
-                     "Unsupported drawing tool type: `%d'", nDefType);
-            nStatus = -1;
+            // An error message should have already been reported.
+            return -1;
         }
 
-        if (CPLGetLastErrorNo() != 0)
-        {
-            // An error happened reading this tool definition... stop now.
-            nStatus = -1;
-        }
+        m_numBlocksInChain ++;
     }
 
-    m_bToolDefsInitialized = TRUE;
-
-    return nStatus;
-}
-
-
-
-/**********************************************************************
- *                   TABMAPToolBlock::GetNumPen()
- *
- * Return the number of valid pen indexes for this .MAP file
- **********************************************************************/
-int     TABMAPToolBlock::GetNumPen()
-{
-    ReadAllToolDefs();
-    
-    return m_numPen;
-}
-
-/**********************************************************************
- *                   TABMAPToolBlock::GetPenDefRef()
- *
- * Return a reference to the specified Pen tool definition, or NULL if
- * specified index is invalid.
- *
- * Note that nIndex is a 1-based index.  A value of 0 indicates "none" 
- * in MapInfo.
- **********************************************************************/
-TABPenDef *TABMAPToolBlock::GetPenDefRef(int nIndex)
-{
-    ReadAllToolDefs();
-    if (nIndex >0 && nIndex <= m_numPen)
-        return m_papsPen[nIndex-1];
-
-    return NULL;
-}
-
-/**********************************************************************
- *                   TABMAPToolBlock::GetNumBrush()
- *
- * Return the number of valid Brush indexes for this .MAP file
- **********************************************************************/
-int     TABMAPToolBlock::GetNumBrushes()
-{
-    ReadAllToolDefs();
-    
-    return m_numBrushes;
-}
-
-/**********************************************************************
- *                   TABMAPToolBlock::GetBrushDefRef()
- *
- * Return a reference to the specified Brush tool definition, or NULL if
- * specified index is invalid.
- *
- * Note that nIndex is a 1-based index.  A value of 0 indicates "none" 
- * in MapInfo.
- **********************************************************************/
-TABBrushDef *TABMAPToolBlock::GetBrushDefRef(int nIndex)
-{
-    ReadAllToolDefs();
-    if (nIndex >0 && nIndex <= m_numBrushes)
-        return m_papsBrush[nIndex-1];
-
-    return NULL;
-}
-
-/**********************************************************************
- *                   TABMAPToolBlock::GetNumFonts()
- *
- * Return the number of valid Font indexes for this .MAP file
- **********************************************************************/
-int     TABMAPToolBlock::GetNumFonts()
-{
-    ReadAllToolDefs();
-    
-    return m_numFonts;
-}
-
-/**********************************************************************
- *                   TABMAPToolBlock::GetFontDefRef()
- *
- * Return a reference to the specified Font tool definition, or NULL if
- * specified index is invalid.
- *
- * Note that nIndex is a 1-based index.  A value of 0 indicates "none" 
- * in MapInfo.
- **********************************************************************/
-TABFontDef *TABMAPToolBlock::GetFontDefRef(int nIndex)
-{
-    ReadAllToolDefs();
-    if (nIndex >0 && nIndex <= m_numFonts)
-        return m_papsFont[nIndex-1];
-
-    return NULL;
-}
-
-/**********************************************************************
- *                   TABMAPToolBlock::GetNumSymbols()
- *
- * Return the number of valid Symbol indexes for this .MAP file
- **********************************************************************/
-int     TABMAPToolBlock::GetNumSymbols()
-{
-    ReadAllToolDefs();
-    
-    return m_numSymbols;
-}
-
-/**********************************************************************
- *                   TABMAPToolBlock::GetSymbolDefRef()
- *
- * Return a reference to the specified Symbol tool definition, or NULL if
- * specified index is invalid.
- *
- * Note that nIndex is a 1-based index.  A value of 0 indicates "none" 
- * in MapInfo.
- **********************************************************************/
-TABSymbolDef *TABMAPToolBlock::GetSymbolDefRef(int nIndex)
-{
-    ReadAllToolDefs();
-    if (nIndex >0 && nIndex <= m_numSymbols)
-        return m_papsSymbol[nIndex-1];
-
-    return NULL;
+    return TABRawBinBlock::WriteBytes(nBytesToWrite, pabySrcBuf);
 }
 
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.5 1999-09-24 20:23:09 warmerda Exp $
+ * $Id: mitab.h,v 1.6 1999-09-26 14:59:36 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.5  1999-09-24 20:23:09  warmerda
+ * Revision 1.6  1999-09-26 14:59:36  daniel
+ * Implemented write support
+ *
+ * Revision 1.5  1999/09/24 20:23:09  warmerda
  * added GetProjInfo method
  *
  * Revision 1.4  1999/09/23 19:49:47  warmerda
@@ -78,9 +81,18 @@ class TABFile
     int         m_nCurFeatureId;
     int         m_nLastFeatureId;
 
-    int         ReadFeatureDefn();
 
+    ///////////////
+    // Read access specific stuff
+    //
+    int         ReadFeatureDefn();
     int         ParseTABFile();
+
+    ///////////////
+    // Write access specific stuff
+    //
+    GBool       m_bBoundsSet;
+    int         WriteTABFile();
 
   public:
     TABFile();
@@ -89,6 +101,9 @@ class TABFile
     int         Open(const char *pszFname, const char *pszAccess);
     int         Close();
 
+    ///////////////
+    // Read access specific stuff
+    //
     int         GetNextFeatureId(int nPrevId);
     TABFeature *GetFeatureRef(int nFeatureId);
     OGRFeatureDefn *GetFeatureDefn();
@@ -96,8 +111,19 @@ class TABFile
     TABFieldType GetNativeFieldType(int nFieldId);
 
     OGRSpatialReference *GetSpatialRef();
-    int		 SetSpatialRef( OGRSpatialReference * );
 
+    ///////////////
+    // Write access specific stuff
+    //
+    int         SetBounds(double dXMin, double dYMin, 
+                          double dXMax, double dYMax);
+    int         SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
+                            TABFieldType *paeMapInfoNativeFieldTypes = NULL);
+    int         SetSpatialRef(OGRSpatialReference *poSpatialRef);
+
+    int         SetFeature(TABFeature *poFeature, int nFeatureId = -1);
+
+    ///////////////
     // semi-private.
     int          GetProjInfo(TABProjInfo *poPI)
 	    { return m_poMAPFile->GetHeaderBlock()->GetProjInfo( poPI ); }
@@ -110,7 +136,7 @@ class TABFile
 /*---------------------------------------------------------------------
  * Codes for the known MapInfo Geometry types
  *--------------------------------------------------------------------*/
-
+#define TAB_GEOM_NONE           0
 #define TAB_GEOM_SYMBOL_C       0x01
 #define TAB_GEOM_SYMBOL         0x02
 #define TAB_GEOM_LINE_C         0x04
@@ -284,6 +310,9 @@ class ITABFeatureSymbol
  *
  * TABFeature will be used as a base class for all the feature classes.
  *
+ * This class will also be used to instanciate objects with no Geometry
+ * (i.e. type TAB_GEOM_NONE) which is a valid case in MapInfo.
+ *
  * The logic to read/write the object from/to the .DAT and .MAP files is also
  * implemented as part of this class and derived classes.
  *--------------------------------------------------------------------*/
@@ -303,9 +332,14 @@ class TABFeature: public OGRFeature
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCBaseFeature; };
     virtual int             GetMapInfoType()  { return m_nMapInfoType; };
+    virtual int            ValidateMapInfoType(){m_nMapInfoType=TAB_GEOM_NONE;
+                                                 return m_nMapInfoType;};
 
     virtual int ReadRecordFromDATFile(TABDATFile *poDATFile);
-    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile) = 0;
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+
+    virtual int WriteRecordToDATFile(TABDATFile *poDATFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
 
     void        SetMBR(double dXMin, double dYMin, 
                        double dXMax, double dYMax);
@@ -313,7 +347,7 @@ class TABFeature: public OGRFeature
                        double &dXMax, double &dYMax);
 
     virtual void DumpMID(FILE *fpOut = NULL);
-    virtual void DumpMIF(FILE *fpOut = NULL) = 0;
+    virtual void DumpMIF(FILE *fpOut = NULL);
 };
 
 
@@ -338,11 +372,13 @@ class TABPoint: public TABFeature,
     virtual ~TABPoint();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCPoint; };
+    virtual int             ValidateMapInfoType();
 
     double	GetX();
     double	GetY();
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
 };
 
@@ -373,6 +409,7 @@ class TABFontPoint: public TABPoint,
     virtual TABFeatureClass GetFeatureClass() { return TABFCFontPoint; };
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
 
     GBool       QueryFontStyle(TABFontStyle eStyleToQuery);
 
@@ -405,6 +442,7 @@ class TABCustomPoint: public TABPoint,
     virtual TABFeatureClass GetFeatureClass() { return TABFCCustomPoint; };
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
 
     const char *GetSymbolNameRef()      { return GetFontNameRef(); };
 };
@@ -432,8 +470,10 @@ class TABPolyline: public TABFeature,
     virtual ~TABPolyline();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCPolyline; };
+    virtual int             ValidateMapInfoType();
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
 
     // MapInfo-specific attributes... made available through public vars
@@ -462,8 +502,10 @@ class TABRegion: public TABFeature,
     virtual ~TABRegion();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCRegion; };
+    virtual int             ValidateMapInfoType();
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
 };
 
@@ -493,8 +535,10 @@ class TABRectangle: public TABFeature,
     virtual ~TABRectangle();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCRectangle; };
+    virtual int             ValidateMapInfoType();
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
 
     // MapInfo-specific attributes... made available through public vars
@@ -528,8 +572,10 @@ class TABEllipse: public TABFeature,
     virtual ~TABEllipse();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCEllipse; };
+    virtual int             ValidateMapInfoType();
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
 
     // MapInfo-specific attributes... made available through public vars
@@ -565,8 +611,10 @@ class TABArc: public TABFeature,
     virtual ~TABArc();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCArc; };
+    virtual int             ValidateMapInfoType();
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
 
     // MapInfo-specific attributes... made available through public vars
@@ -613,8 +661,10 @@ class TABText: public TABFeature,
     virtual ~TABText();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCText; };
+    virtual int             ValidateMapInfoType();
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
 
     const char *GetTextString();
@@ -654,6 +704,7 @@ class TABDebugFeature: public TABFeature
     virtual TABFeatureClass GetFeatureClass() { return TABFCBaseFeature; };
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);
 };
 

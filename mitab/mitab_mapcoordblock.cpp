@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapcoordblock.cpp,v 1.1 1999-07-12 04:18:24 daniel Exp $
+ * $Id: mitab_mapcoordblock.cpp,v 1.2 1999-09-26 14:59:36 daniel Exp $
  *
  * Name:     mitab_mapcoordblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapcoordblock.cpp,v $
- * Revision 1.1  1999-07-12 04:18:24  daniel
+ * Revision 1.2  1999-09-26 14:59:36  daniel
+ * Implemented write support
+ *
+ * Revision 1.1  1999/07/12 04:18:24  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -47,10 +50,14 @@
  *
  * Constructor.
  **********************************************************************/
-TABMAPCoordBlock::TABMAPCoordBlock():
-    TABRawBinBlock(TRUE)
+TABMAPCoordBlock::TABMAPCoordBlock(TABAccess eAccessMode /*= TABRead*/):
+    TABRawBinBlock(eAccessMode, TRUE)
 {
     m_nCenterX = m_nCenterY = m_nNextCoordBlock = m_numDataBytes = 0;
+
+    m_numBlocksInChain = 1;  // Current block counts as 1
+ 
+    m_poBlockManagerRef = NULL;
 }
 
 /**********************************************************************
@@ -65,7 +72,7 @@ TABMAPCoordBlock::~TABMAPCoordBlock()
 
 
 /**********************************************************************
- *                   TABMAPCoordBlock::InitBlockData()
+ *                   TABMAPCoordBlock::InitBlockFromData()
  *
  * Perform some initialization on the block after its binary data has
  * been set or changed (or loaded from a file).
@@ -73,7 +80,7 @@ TABMAPCoordBlock::~TABMAPCoordBlock()
  * Returns 0 if succesful or -1 if an error happened, in which case 
  * CPLError() will have been called.
  **********************************************************************/
-int     TABMAPCoordBlock::InitBlockData(GByte *pabyBuf, int nSize, 
+int     TABMAPCoordBlock::InitBlockFromData(GByte *pabyBuf, int nSize, 
                                          GBool bMakeCopy /* = TRUE */,
                                          FILE *fpSrc /* = NULL */, 
                                          int nOffset /* = 0 */)
@@ -81,9 +88,9 @@ int     TABMAPCoordBlock::InitBlockData(GByte *pabyBuf, int nSize,
     int nStatus;
 
     /*-----------------------------------------------------------------
-     * First of all, we must call the base class' InitBlockData()
+     * First of all, we must call the base class' InitBlockFromData()
      *----------------------------------------------------------------*/
-    nStatus = TABRawBinBlock::InitBlockData(pabyBuf, nSize, bMakeCopy,
+    nStatus = TABRawBinBlock::InitBlockFromData(pabyBuf, nSize, bMakeCopy,
                                             fpSrc, nOffset);
     if (nStatus != 0)   
         return nStatus;
@@ -94,7 +101,7 @@ int     TABMAPCoordBlock::InitBlockData(GByte *pabyBuf, int nSize,
     if (m_nBlockType != TABMAP_COORD_BLOCK)
     {
         CPLError(CE_Failure, CPLE_FileIO,
-                 "InitBlockData(): Invalid Block Type: got %d expected %d",
+                 "InitBlockFromData(): Invalid Block Type: got %d expected %d",
                  m_nBlockType, TABMAP_COORD_BLOCK);
         CPLFree(m_pabyBuf);
         m_pabyBuf = NULL;
@@ -116,6 +123,109 @@ int     TABMAPCoordBlock::InitBlockData(GByte *pabyBuf, int nSize,
 
     return 0;
 }
+
+/**********************************************************************
+ *                   TABMAPCoordBlock::CommitToFile()
+ *
+ * Commit the current state of the binary block to the file to which 
+ * it has been previously attached.
+ *
+ * This method makes sure all values are properly set in the map object
+ * block header and then calls TABRawBinBlock::CommitToFile() to do
+ * the actual writing to disk.
+ *
+ * Returns 0 if succesful or -1 if an error happened, in which case 
+ * CPLError() will have been called.
+ **********************************************************************/
+int     TABMAPCoordBlock::CommitToFile()
+{
+    int nStatus = 0;
+
+    if ( m_pabyBuf == NULL )
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed, 
+                 "CommitToFile(): Block has not been initialized yet!");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Make sure 8 bytes block header is up to date.
+     *----------------------------------------------------------------*/
+    GotoByteInBlock(0x000);
+
+    WriteInt16(TABMAP_COORD_BLOCK);    // Block type code
+    WriteInt16(m_nSizeUsed - MAP_COORD_HEADER_SIZE); // num. bytes used
+    WriteInt32(m_nNextCoordBlock);
+
+    nStatus = CPLGetLastErrorNo();
+
+    /*-----------------------------------------------------------------
+     * OK, call the base class to write the block to disk.
+     *----------------------------------------------------------------*/
+    if (nStatus == 0)
+        nStatus = TABRawBinBlock::CommitToFile();
+
+    return nStatus;
+}
+
+/**********************************************************************
+ *                   TABMAPCoordBlock::InitNewBlock()
+ *
+ * Initialize a newly created block so that it knows to which file it
+ * is attached, its block size, etc . and then perform any specific 
+ * initialization for this block type, including writing a default 
+ * block header, etc. and leave the block ready to receive data.
+ *
+ * This is an alternative to calling ReadFromFile() or InitBlockFromData()
+ * that puts the block in a stable state without loading any initial
+ * data in it.
+ *
+ * Returns 0 if succesful or -1 if an error happened, in which case 
+ * CPLError() will have been called.
+ **********************************************************************/
+int     TABMAPCoordBlock::InitNewBlock(FILE *fpSrc, int nBlockSize, 
+                                        int nFileOffset /* = 0*/)
+{
+    /*-----------------------------------------------------------------
+     * Start with the default initialisation
+     *----------------------------------------------------------------*/
+    if ( TABRawBinBlock::InitNewBlock(fpSrc, nBlockSize, nFileOffset) != 0)
+        return -1;
+
+    /*-----------------------------------------------------------------
+     * And then set default values for the block header.
+     *----------------------------------------------------------------*/
+    m_nNextCoordBlock = 0;
+ 
+    m_nCenterX = m_nCenterY = 0;
+    m_numDataBytes = 0;
+
+    if (m_eAccess != TABRead)
+    {
+        GotoByteInBlock(0x000);
+
+        WriteInt16(TABMAP_COORD_BLOCK); // Block type code
+        WriteInt16(0);                  // num. bytes used, excluding header
+        WriteInt32(0);                  // Pointer to next coord block
+    }
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABMAPObjectBlock::SetNextCoordBlock()
+ *
+ * Set the address (offset from beginning of file) of the coord. block
+ * that follows the current one.
+ **********************************************************************/
+void     TABMAPCoordBlock::SetNextCoordBlock(GInt32 nNextCoordBlockAddress)
+{
+    m_nNextCoordBlock = nNextCoordBlockAddress;
+}
+
 
 /**********************************************************************
  *                   TABMAPObjectBlock::SetComprCoordOrigin()
@@ -287,6 +397,111 @@ int     TABMAPCoordBlock::ReadCoordSecHdrs(GBool bCompressed, int numSections,
 }
 
 /**********************************************************************
+ *                   TABMAPObjectBlock::WriteCoordSecHdrs()
+ *
+ * Write a set of coordinate section headers for PLINE MULTIPLE or REGIONs.
+ * pasHdrs should point to an array of numSections TABMAPCoordSecHdr 
+ * structures that have been properly initialized.
+ *
+ * At the end of the call, this TABMAPCoordBlock object will be ready to
+ * receive the coordinate data.
+ *
+ * Returns 0 if succesful or -1 if an error happened, in which case 
+ * CPLError() will have been called.
+ **********************************************************************/
+int     TABMAPCoordBlock::WriteCoordSecHdrs(int numSections,
+                                            TABMAPCoordSecHdr *pasHdrs)
+{
+    int i;
+
+    for(i=0; i<numSections; i++)
+    {
+        /*-------------------------------------------------------------
+         * Write the coord. section header blocks
+         *------------------------------------------------------------*/
+        WriteInt16(pasHdrs[i].numVertices);
+        WriteInt16(pasHdrs[i].numHoles);
+        WriteIntCoord(pasHdrs[i].nXMin, pasHdrs[i].nYMin);
+        WriteIntCoord(pasHdrs[i].nXMax, pasHdrs[i].nYMax);
+        WriteInt32(pasHdrs[i].nDataOffset);
+
+        if (CPLGetLastErrorNo() != 0)
+            return -1;
+    }
+
+    return 0;
+}
+
+
+/**********************************************************************
+ *                   TABMAPCoordBlock::WriteIntCoord()
+ *
+ * Write a pair of integer coordinates values to the current position in the
+ * the block.  For now, compressed integer coordinates are NOT supported.
+ *
+ * Returns 0 if succesful or -1 if an error happened, in which case 
+ * CPLError() will have been called.
+ **********************************************************************/
+int     TABMAPCoordBlock::WriteIntCoord(GInt32 nX, GInt32 nY,
+                                        GBool bUpdateMBR /*=TRUE*/)
+{
+
+    if (WriteInt32(nX) != 0 ||
+        WriteInt32(nY) != 0 )
+    {
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Update MBR and block center unless explicitly requested not to do so.
+     *----------------------------------------------------------------*/
+    if (bUpdateMBR)
+    {
+        if (nX < m_nMinX)
+            m_nMinX = nX;
+        if (nX > m_nMaxX)
+            m_nMaxX = nX;
+
+        if (nY < m_nMinY)
+            m_nMinY = nY;
+        if (nY > m_nMaxY)
+            m_nMaxY = nY;
+    
+        m_nCenterX = (m_nMinX + m_nMaxX) /2;
+        m_nCenterY = (m_nMinY + m_nMaxY) /2;
+
+        /*-------------------------------------------------------------
+         * Also keep track of current feature MBR.
+         *------------------------------------------------------------*/
+        if (nX < m_nFeatureXMin)
+            m_nFeatureXMin = nX;
+        if (nX > m_nFeatureXMax)
+            m_nFeatureXMax = nX;
+
+        if (nY < m_nFeatureYMin)
+            m_nFeatureYMin = nY;
+        if (nY > m_nFeatureYMax)
+            m_nFeatureYMax = nY;
+
+    }
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABMAPCoordBlock::SetMAPBlockManagerRef()
+ *
+ * Pass a reference to the block manager object for the file this 
+ * block belongs to.  The block manager will be used by this object
+ * when it needs to automatically allocate a new block.
+ **********************************************************************/
+void TABMAPCoordBlock::SetMAPBlockManagerRef(TABMAPBlockManager *poBlockMgr)
+{
+    m_poBlockManagerRef = poBlockMgr;
+};
+
+
+/**********************************************************************
  *                   TABMAPCoordBlock::ReadBytes()
  *
  * Cover function for TABRawBinBlock::ReadBytes() that will automagically
@@ -320,11 +535,96 @@ int     TABMAPCoordBlock::ReadBytes(int numBytes, GByte *pabyDstBuf)
             return nStatus;
         }
 
-        GotoByteInBlock(8);      // Move pointer past header
+        GotoByteInBlock(MAP_COORD_HEADER_SIZE); // Move pointer past header
+        m_numBlocksInChain++;
     }
 
     return TABRawBinBlock::ReadBytes(numBytes, pabyDstBuf);
 }
+
+
+/**********************************************************************
+ *                   TABMAPCoordBlock::WriteBytes()
+ *
+ * Cover function for TABRawBinBlock::WriteBytes() that will automagically
+ * CommitToFile() the current block and create a new one if we are at 
+ * the end of the current block.
+ *
+ * Then the control is passed to TABRawBinBlock::WriteBytes() to finish the
+ * work.
+ *
+ * Passing pabySrcBuf = NULL will only move the write pointer by the
+ * specified number of bytes as if the copy had happened... but it 
+ * won't crash.
+ *
+ * Returns 0 if succesful or -1 if an error happened, in which case 
+ * CPLError() will have been called.
+ **********************************************************************/
+int  TABMAPCoordBlock::WriteBytes(int nBytesToWrite, GByte *pabySrcBuf)
+{
+    if (m_eAccess == TABWrite && m_poBlockManagerRef &&
+        (m_nBlockSize - m_nCurPos) < nBytesToWrite)
+    {
+        int nNewBlockOffset = m_poBlockManagerRef->AllocNewBlock();
+        SetNextCoordBlock(nNewBlockOffset);
+
+        if (CommitToFile() != 0 ||
+            InitNewBlock(m_fp, 512, nNewBlockOffset) != 0)
+        {
+            // An error message should have already been reported.
+            return -1;
+        }
+
+        m_numBlocksInChain++;
+    }
+
+    if (m_nCurPos >= MAP_COORD_HEADER_SIZE)
+    {
+        // Keep track of Coordinate data... this means ignore header bytes
+        // that could be written.
+        m_nTotalDataSize += nBytesToWrite;
+        m_nFeatureDataSize += nBytesToWrite;
+    }
+
+    return TABRawBinBlock::WriteBytes(nBytesToWrite, pabySrcBuf);
+}
+
+/**********************************************************************
+ *                   TABMAPCoordBlock::StartNewFeature()
+ *
+ * Reset all member vars that are used to keep track of data size
+ * and MBR for the current feature.  This is info is not needed by
+ * the coord blocks themselves, but it helps a lot the callers to
+ * have this class take care of that for them.
+ *
+ * See Also: GetFeatureDataSize() and GetFeatureMBR()
+ **********************************************************************/
+void TABMAPCoordBlock::StartNewFeature()
+{
+    m_nFeatureDataSize = 0;
+
+    m_nFeatureXMin = 1000000000;
+    m_nFeatureYMin = 1000000000;
+    m_nFeatureXMax = -1000000000;
+    m_nFeatureYMax = -1000000000;
+
+}
+
+/**********************************************************************
+ *                   TABMAPCoordBlock::GetFeatureMBR()
+ *
+ * Return the MBR of all the coords written using WriteIntCoord() since
+ * the last call to StartNewFeature().
+ **********************************************************************/
+void TABMAPCoordBlock::GetFeatureMBR(GInt32 &nXMin, GInt32 &nYMin, 
+                                     GInt32 &nXMax, GInt32 &nYMax)
+{
+    nXMin = m_nFeatureXMin;
+    nYMin = m_nFeatureXMax;
+    nXMax = m_nFeatureYMax;
+    nYMax = m_nFeatureYMax; 
+}
+
 
 /**********************************************************************
  *                   TABMAPCoordBlock::Dump()

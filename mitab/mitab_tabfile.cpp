@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.7 1999-09-23 19:51:43 warmerda Exp $
+ * $Id: mitab_tabfile.cpp,v 1.8 1999-09-26 14:59:37 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.7  1999-09-23 19:51:43  warmerda
+ * Revision 1.8  1999-09-26 14:59:37  daniel
+ * Implemented write support
+ *
+ * Revision 1.7  1999/09/23 19:51:43  warmerda
  * moved GetSpatialRef() to mitab_spatialref.cpp
  *
  * Revision 1.6  1999/09/20 18:42:20  daniel
@@ -81,6 +84,7 @@ TABFile::TABFile()
     m_nCurFeatureId = -1;
     m_nLastFeatureId = -1;
 
+    m_bBoundsSet = FALSE;
 }
 
 /**********************************************************************
@@ -97,7 +101,12 @@ TABFile::~TABFile()
  *                   TABFile::Open()
  *
  * Open a .TAB dataset and the associated files, and initialize the 
- * structures to be ready to read features from it.
+ * structures to be ready to read features from (or write to) it.
+ *
+ * Supported access modes are "r" (read-only) and "w" (create new dataset).
+ *
+ * Note that dataset extents will have to be set using SetBounds() before
+ * any feature can be written to a newly created dataset.
  *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
@@ -123,10 +132,6 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
     }
     else if (EQUALN(pszAccess, "w", 1))
     {
-        CPLError(CE_Failure, CPLE_NotSupported,
-                 "Open() failed: write access not implemented yet!");
-        return -1;
-
         m_eAccessMode = TABWrite;
         pszAccess = "wb";
     }
@@ -165,20 +170,37 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
 #ifndef _WIN32
     /*-----------------------------------------------------------------
      * On Unix, make sure extension uses the right cases
+     * We do it even for write access because if a file with the same
+     * extension already exists we want to overwrite it.
      *----------------------------------------------------------------*/
     TABAdjustFilenameExtension(m_pszFname);
 #endif
 
     /*-----------------------------------------------------------------
-     * Open .TAB file... since it's a small text file, we will just load
-     * it as a stringlist in memory.
+     * Handle .TAB file... depends on access mode.
      *----------------------------------------------------------------*/
-    m_papszTABFile = CSLLoad(m_pszFname);
-    if (m_papszTABFile == NULL)
+    if (m_eAccessMode == TABRead)
     {
-        // Failed... an error has already been produced.
-        CPLFree(m_pszFname);
-        return -1;
+        /*-------------------------------------------------------------
+         * Open .TAB file... since it's a small text file, we will just load
+         * it as a stringlist in memory.
+         *------------------------------------------------------------*/
+        m_papszTABFile = CSLLoad(m_pszFname);
+        if (m_papszTABFile == NULL)
+        {
+            // Failed... an error has already been produced.
+            CPLFree(m_pszFname);
+            return -1;
+        }
+    }
+    else
+    {
+        /*-------------------------------------------------------------
+         * In Write access mode, the .TAB file will be written during the 
+         * Close() call... we will just set some defaults here.
+         *------------------------------------------------------------*/
+        m_pszVersion = CPLStrdup("300");
+        m_pszCharset = CPLStrdup("Neutral");
     }
 
     /*-----------------------------------------------------------------
@@ -234,9 +256,9 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
     pszTmpFname = NULL;
 
     /*-----------------------------------------------------------------
-     * Build FeatureDefn
+     * Build FeatureDefn (only in read access)
      *----------------------------------------------------------------*/
-    if (ParseTABFile() != 0)
+    if (m_eAccessMode == TABRead && ParseTABFile() != 0)
     {
         // Failed... an error has already been reported, just return.
         CPLFree(pszTmpFname);
@@ -271,6 +293,13 @@ int TABFile::ParseTABFile()
     char        **papszTok=NULL;
     GBool       bInsideTableDef = FALSE;
     OGRFieldDefn *poFieldDefn;
+
+    if (m_eAccessMode != TABRead)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "ParseTABFile() can be used only with Read access.");
+        return -1;
+    }
 
     m_poDefn = new OGRFeatureDefn("TABFeature");
 
@@ -457,6 +486,97 @@ int TABFile::ParseTABFile()
     return 0;
 }
 
+/**********************************************************************
+ *                   TABFile::WriteTABFile()
+ *
+ * Generate the .TAB file using mainly the attribute fields definition.
+ *
+ * This private method should be used only during the Close() call with
+ * write access mode.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABFile::WriteTABFile()
+{
+    FILE *fp;
+
+    if (m_eAccessMode != TABWrite)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "WriteTABFile() can be used only with Write access.");
+        return -1;
+    }
+
+    if ( (fp = VSIFOpen(m_pszFname, "wt")) != NULL)
+    {
+        fprintf(fp, "!table\n");
+        fprintf(fp, "!version %s\n", m_pszVersion);
+        fprintf(fp, "!charset %s\n", m_pszCharset);
+        fprintf(fp, "\n");
+
+        if (m_poDefn && m_poDefn->GetFieldCount() > 0)
+        {
+            int iField;
+            OGRFieldDefn *poFieldDefn;
+            const char *pszFieldType;
+
+            fprintf(fp, "Definition Table\n");
+            fprintf(fp, "  Type NATIVE Charset \"%s\"\n", m_pszCharset);
+            fprintf(fp, "  Fields %d\n", m_poDefn->GetFieldCount());
+
+            for(iField=0; iField<m_poDefn->GetFieldCount(); iField++)
+            {
+                poFieldDefn = m_poDefn->GetFieldDefn(iField);
+                switch(GetNativeFieldType(iField))
+                {
+                  case TABFChar:
+                    pszFieldType = CPLSPrintf("Char (%d)", 
+                                              poFieldDefn->GetWidth());
+                    break;
+                  case TABFDecimal:
+                    pszFieldType = CPLSPrintf("Decimal (%d,%d)",
+                                              poFieldDefn->GetWidth(),
+                                              poFieldDefn->GetPrecision());
+                    break;
+                  case TABFInteger:
+                    pszFieldType = "Integer";
+                    break;
+                  case TABFSmallInt:
+                    pszFieldType = "SmallInt";
+                    break;
+                  case TABFFloat:
+                    pszFieldType = "Float";
+                    break;
+                  case TABFLogical:
+                    pszFieldType = "Logical";
+                    break;
+                  case TABFDate:
+                    pszFieldType = "Date";
+                    break;
+                  default:
+                    // Unsupported field type!!!  This should never happen.
+                    CPLError(CE_Failure, CPLE_AssertionFailed,
+                             "WriteTABFile(): Unsupported field type");
+                    VSIFClose(fp);
+                    return -1;
+                }
+
+                fprintf(fp, "    %s %s ;\n", poFieldDefn->GetNameRef(), 
+                                            pszFieldType );
+            }
+        }
+
+        VSIFClose(fp);
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_FileIO,
+                 "Failed to create file `%s'", m_pszFname);
+        return -1;
+    }
+
+    return 0;
+}
 
 /**********************************************************************
  *                   TABFile::Close()
@@ -472,6 +592,12 @@ int TABFile::Close()
 
     //__TODO__ Commit the latest changes to the file...
     
+    // In Write access, it's time to write the .TAB file.
+    if (m_eAccessMode == TABWrite && m_poMAPFile)
+    {
+        WriteTABFile();
+    }
+
     if (m_poMAPFile)
     {
         m_poMAPFile->Close();
@@ -492,23 +618,29 @@ int TABFile::Close()
         m_poCurFeature = NULL;
     }
 
-    if (m_poDefn)
-    {
+    /*-----------------------------------------------------------------
+     * Note: we have to check the reference count before deleting 
+     * m_poSpatialRef and m_poDefn
+     *----------------------------------------------------------------*/
+    if (m_poDefn && m_poDefn->Dereference() == 0)
         delete m_poDefn;
-        m_poDefn = NULL;
-    }
-
-    if (m_poSpatialRef)
-    {
+    m_poDefn = NULL;
+    
+    if (m_poSpatialRef && m_poSpatialRef->Dereference() == 0)
         delete m_poSpatialRef;
-        m_poSpatialRef = NULL;
-    }
+    m_poSpatialRef = NULL;
+    
 
     CPLFree(m_papszTABFile);
     m_papszTABFile = NULL;
 
     CPLFree(m_pszFname);
     m_pszFname = NULL;
+
+    CPLFree(m_pszVersion);
+    m_pszVersion = NULL;
+    CPLFree(m_pszCharset);
+    m_pszCharset = NULL;
 
     m_nCurFeatureId = -1;
     m_nLastFeatureId = -1;
@@ -525,6 +657,13 @@ int TABFile::Close()
  **********************************************************************/
 int TABFile::GetNextFeatureId(int nPrevId)
 {
+    if (m_eAccessMode != TABRead)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "GetNextFeatureId() can be used only with Read access.");
+        return -1;
+    }
+
     if (nPrevId <= 0 && m_nLastFeatureId > 0)
         return 1;       // Feature Ids start at 1
     else if (nPrevId > 0 && nPrevId < m_nLastFeatureId)
@@ -551,6 +690,13 @@ int TABFile::GetNextFeatureId(int nPrevId)
  **********************************************************************/
 TABFeature *TABFile::GetFeatureRef(int nFeatureId)
 {
+    if (m_eAccessMode != TABRead)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "GetFeatureRef() can be used only with Read access.");
+        return NULL;
+    }
+
     /*-----------------------------------------------------------------
      * Make sure file is opened and Validate feature id by positioning
      * the read pointers for the .MAP and .DAT files to this feature id.
@@ -587,6 +733,9 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
      *----------------------------------------------------------------*/
     switch(m_poMAPFile->GetCurObjType())
     {
+      case TAB_GEOM_NONE:
+        m_poCurFeature = new TABFeature(m_poDefn);
+        break;
       case TAB_GEOM_SYMBOL_C:
       case TAB_GEOM_SYMBOL:
         m_poCurFeature = new TABPoint(m_poDefn);
@@ -666,6 +815,96 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
 }
 
 /**********************************************************************
+ *                   TABFile::SetFeature()
+ *
+ * Write a feature to this dataset.  
+ *
+ * For now only sequential writes are supported (i.e. with nFeatureId=-1)
+ * but eventually we should be able to do random access by specifying
+ * a value through nFeatureId.
+ *
+ * Returns the new featureId (> 0) on success, or -1 if an
+ * error happened in which case, CPLError() will have been called to
+ * report the reason of the failure.
+ **********************************************************************/
+int TABFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
+{
+    if (m_eAccessMode != TABWrite)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "SetFeature() can be used only with Write access.");
+        return -1;
+    }
+
+    if (nFeatureId != -1)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "SetFeature(): random access not implemented yet.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Make sure file is opened and establish new feature id.
+     *----------------------------------------------------------------*/
+    if (m_poMAPFile == NULL)
+    {
+        CPLError(CE_Failure, CPLE_IllegalArg,
+                 "SetFeature() failed: file is not opened!");
+        return -1;
+    }
+
+    if (m_nLastFeatureId < 1)
+    {
+        /*-------------------------------------------------------------
+         * OK, this is the first feature in the dataset... make sure the
+         * .DAT schema has been initialized.
+         *------------------------------------------------------------*/
+        if (m_poDefn == NULL)
+            SetFeatureDefn(poFeature->GetDefnRef(), NULL);
+
+        nFeatureId = m_nLastFeatureId = 1;
+    }
+    else
+    {
+        nFeatureId = ++ m_nLastFeatureId;
+    }
+
+
+    /*-----------------------------------------------------------------
+     * Write fields to the .DAT file
+     *----------------------------------------------------------------*/
+    if (m_poDATFile == NULL ||
+        m_poDATFile->GetRecordBlock(nFeatureId) == NULL ||
+        poFeature->WriteRecordToDATFile(m_poDATFile) != 0 ||
+        m_poDATFile->CommitRecordToFile() != 0 )
+    {
+        CPLError(CE_Failure, CPLE_FileIO,
+                 "Failed writing attributes for feature id %d in %s",
+                 nFeatureId, m_pszFname);
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Write geometry to the .MAP file
+     * The call to PrepareNewObj() takes care of the .ID file.
+     *----------------------------------------------------------------*/
+    if (m_poMAPFile == NULL ||
+        m_poMAPFile->PrepareNewObj(nFeatureId,
+                                   poFeature->ValidateMapInfoType()) != 0 ||
+        poFeature->WriteGeometryToMAPFile(m_poMAPFile) != 0)
+    {
+        CPLError(CE_Failure, CPLE_FileIO,
+                 "Failed writing geometry for feature id %d in %s",
+                 nFeatureId, m_pszFname);
+        return -1;
+    }
+
+    return nFeatureId;
+}
+
+
+
+/**********************************************************************
  *                   TABFile::GetFeatureDefn()
  *
  * Returns a reference to the OGRFeatureDefn that will be used to create
@@ -680,6 +919,97 @@ OGRFeatureDefn *TABFile::GetFeatureDefn()
 {
     return m_poDefn;
 }
+
+/**********************************************************************
+ *                   TABFile::SetFeatureDefn()
+ *
+ * Pass a reference to the OGRFeatureDefn that will be used to create
+ * features in this dataset.  This function should be called after
+ * creating a new dataset, but before writing the first feature.
+ * All features that will be written to this dataset must share this same
+ * OGRFeatureDefn.
+ *
+ * A reference to the OGRFeatureDefn will be kept and will be used to
+ * build the .DAT file, etc.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABFile::SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
+                         TABFieldType *paeMapInfoNativeFieldTypes /* =NULL */)
+{
+    int           iField, numFields;
+    OGRFieldDefn *poFieldDefn;
+    TABFieldType eMapInfoType = TABFUnknown;
+    int nStatus = 0;
+
+    if (m_eAccessMode != TABWrite)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "SetFeatureDefn() can be used only with Write access.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Keep a reference to the OGRFeatureDefn... we'll have to take the
+     * reference count into account when we are done with it.
+     *----------------------------------------------------------------*/
+    if (m_poDefn && m_poDefn->Dereference() == 0)
+        delete m_poDefn;
+
+    m_poDefn = poFeatureDefn;
+    m_poDefn->Reference();
+
+    /*-----------------------------------------------------------------
+     * Pass field information to the .DAT file, after making sure that
+     * it has been created and that it does not contain any field
+     * definition yet.
+     *----------------------------------------------------------------*/
+    if (m_poDATFile== NULL || m_poDATFile->GetNumFields() > 0 )
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "SetFeatureDefn() can be called only once in a newly "
+                 "created dataset.");
+        return -1;
+    }
+
+    numFields = poFeatureDefn->GetFieldCount();
+    for(iField=0; nStatus==0 && iField < numFields; iField++)
+    {
+        poFieldDefn = m_poDefn->GetFieldDefn(iField);
+
+        if (paeMapInfoNativeFieldTypes)
+        {
+            eMapInfoType = paeMapInfoNativeFieldTypes[iField];
+        }
+        else
+        {
+            /*---------------------------------------------------------
+             * Map OGRFieldTypes to MapInfo native types
+             *--------------------------------------------------------*/
+            switch(poFieldDefn->GetType())
+            {
+              case OFTInteger:
+                eMapInfoType = TABFInteger;
+                break;
+              case OFTReal:
+                eMapInfoType = TABFFloat;
+                break;
+              case OFTString:
+              default:
+                eMapInfoType = TABFChar;
+            }
+        }
+
+        nStatus = m_poDATFile->AddField(poFieldDefn->GetNameRef(),
+                                            eMapInfoType,
+                                            poFieldDefn->GetWidth(),
+                                            poFieldDefn->GetPrecision());
+    }
+
+    return nStatus;
+}
+
+
 
 /**********************************************************************
  *                   TABFile::GetNativeFieldType()
@@ -697,6 +1027,49 @@ TABFieldType TABFile::GetNativeFieldType(int nFieldId)
     }
     return TABFUnknown;
 }
+
+
+/**********************************************************************
+ *                   TABFile::SetBounds()
+ *
+ * Set projection coordinates bounds of the newly created dataset.
+ *
+ * This function must be called after creating a new dataset and before any
+ * feature can be written to it.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABFile::SetBounds(double dXMin, double dYMin, 
+                       double dXMax, double dYMax)
+{
+    if (m_eAccessMode != TABWrite)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "SetBounds() can be used only with Write access.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Check that dataset has been created but no feature set yet.
+     *----------------------------------------------------------------*/
+    if (m_poMAPFile && m_nLastFeatureId < 1)
+    {
+        m_poMAPFile->SetCoordsysBounds(dXMin, dYMin, dXMax, dYMax);
+
+        m_bBoundsSet = TRUE;
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "SetBounds() can be called only after dataset has been "
+                 "created and before any feature is set.");
+        return -1;
+    }
+
+    return 0;
+}
+
+
 
 
 /**********************************************************************

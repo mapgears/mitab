@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_idfile.cpp,v 1.3 1999-09-20 18:43:01 daniel Exp $
+ * $Id: mitab_idfile.cpp,v 1.4 1999-09-26 14:59:36 daniel Exp $
  *
  * Name:     mitab_idfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_idfile.cpp,v $
- * Revision 1.3  1999-09-20 18:43:01  daniel
+ * Revision 1.4  1999-09-26 14:59:36  daniel
+ * Implemented write support
+ *
+ * Revision 1.3  1999/09/20 18:43:01  daniel
  * Use binary acces to open file.
  *
  * Revision 1.2  1999/09/16 02:39:16  daniel
@@ -103,10 +106,6 @@ int TABIDFile::Open(const char *pszFname, const char *pszAccess)
     }
     else if (EQUALN(pszAccess, "w", 1))
     {
-        CPLError(CE_Failure, CPLE_NotSupported,
-                 "Open() failed: write access not implemented yet!");
-        return -1;
-
         m_eAccessMode = TABWrite;
         pszAccess = "wb";
     }
@@ -136,7 +135,7 @@ int TABIDFile::Open(const char *pszFname, const char *pszAccess)
 #endif
 
     /*-----------------------------------------------------------------
-     * Open file for reading
+     * Open file
      *----------------------------------------------------------------*/
     m_fp = VSIFOpen(m_pszFname, pszAccess);
 
@@ -149,30 +148,45 @@ int TABIDFile::Open(const char *pszFname, const char *pszAccess)
         return -1;
     }
 
-    /*---------------------------------------------------------------------
-     * Establish the number of object IDs from the size of the file
-     *--------------------------------------------------------------------*/
-    VSIStatBuf  sStatBuf;
-    if ( VSIStat(m_pszFname, &sStatBuf) == -1 )
+    if (m_eAccessMode == TABRead)
     {
-        CPLError(CE_Failure, CPLE_FileIO, 
-                 "stat() failed for %s\n", m_pszFname);
-        Close();
-        return -1;
+        /*-------------------------------------------------------------
+         * READ access:
+         * Establish the number of object IDs from the size of the file
+         *------------------------------------------------------------*/
+        VSIStatBuf  sStatBuf;
+        if ( VSIStat(m_pszFname, &sStatBuf) == -1 )
+        {
+            CPLError(CE_Failure, CPLE_FileIO, 
+                     "stat() failed for %s\n", m_pszFname);
+            Close();
+            return -1;
+        }
+
+        m_nMaxId = sStatBuf.st_size/4;
+        m_nBlockSize = MIN(1024, m_nMaxId*4);
+
+        /*-------------------------------------------------------------
+         * Read the first block from the file
+         *------------------------------------------------------------*/
+        m_poIDBlock = new TABRawBinBlock(m_eAccessMode, FALSE);
+        if (m_poIDBlock->ReadFromFile(m_fp, 0, m_nBlockSize) != 0)
+        {
+            // CPLError() has already been called.
+            Close();
+            return -1;
+        }
     }
-
-    m_nMaxId = sStatBuf.st_size/4;
-    m_nBlockSize = MIN(1024, m_nMaxId*4);
-
-    /*-----------------------------------------------------------------
-     * Read the first block from the file
-     *----------------------------------------------------------------*/
-    m_poIDBlock = new TABRawBinBlock;
-    if (m_poIDBlock->ReadFromFile(m_fp, 0, m_nBlockSize) != 0)
+    else
     {
-        // CPLError() has already been called.
-        Close();
-        return -1;
+        /*-------------------------------------------------------------
+         * WRITE access:
+         * Get ready to write to the file
+         *------------------------------------------------------------*/
+        m_poIDBlock = new TABRawBinBlock(m_eAccessMode, FALSE);
+        m_nMaxId = 0;
+        m_nBlockSize = 1024;
+        m_poIDBlock->InitNewBlock(m_fp, m_nBlockSize, 0);
     }
 
     return 0;
@@ -190,7 +204,13 @@ int TABIDFile::Close()
     if (m_fp == NULL)
         return 0;
 
-    //__TODO__ Commit the latest changes to the file...
+    /*----------------------------------------------------------------
+     * Write access: commit latest changes to the file.
+     *---------------------------------------------------------------*/
+    if (m_eAccessMode == TABWrite && m_poIDBlock)
+    {
+        m_poIDBlock->CommitToFile();
+    }
     
     // Delete all structures 
     delete m_poIDBlock;
@@ -215,6 +235,8 @@ int TABIDFile::Close()
  *
  * Note that object ids are positive and start at 1.
  *
+ * An object Id of '0' means that object has no geometry.
+ *
  * Returns a value >= 0 on success, -1 on error.
  **********************************************************************/
 GInt32 TABIDFile::GetObjPtr(GInt32 nObjId)
@@ -234,6 +256,51 @@ GInt32 TABIDFile::GetObjPtr(GInt32 nObjId)
         return -1;
 
     return m_poIDBlock->ReadInt32();
+}
+
+/**********************************************************************
+ *                   TABIDFile::SetObjPtr()
+ *
+ * Set the offset in the .MAP file where the map object with the
+ * specified id is located.
+ *
+ * Note that object ids are positive and start at 1.
+ *
+ * An object Id of '0' means that object has no geometry.
+ *
+ * Returns a value of 0 on success, -1 on error.
+ **********************************************************************/
+int TABIDFile::SetObjPtr(GInt32 nObjId, GInt32 nObjPtr)
+{
+    if (m_poIDBlock == NULL)
+        return -1;
+
+    if (m_eAccessMode != TABWrite)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "SetObjPtr() can be used only with Write access.");
+        return -1;
+    }
+
+    if (nObjId < 1)
+    {
+        CPLError(CE_Failure, CPLE_IllegalArg,
+               "GetObjPtr(): Invalid object ID %d (must be greater than zero)",
+                 nObjId);
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * GotoByteInFile() will automagically commit current block and init
+     * a new one if necessary.
+     *----------------------------------------------------------------*/
+
+    if (m_poIDBlock->GotoByteInFile( (nObjId-1)*4 ) != 0)
+        return -1;
+
+    m_nMaxId = MAX(m_nMaxId, nObjId);
+
+    return m_poIDBlock->WriteInt32(nObjPtr);
 }
 
 

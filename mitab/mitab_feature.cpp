@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.3 1999-09-16 02:39:16 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.4 1999-09-26 14:59:36 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.3  1999-09-16 02:39:16  daniel
+ * Revision 1.4  1999-09-26 14:59:36  daniel
+ * Implemented write support
+ *
+ * Revision 1.3  1999/09/16 02:39:16  daniel
  * Completed read support for most feature types
  *
  * Revision 1.2  1999/09/01 17:49:24  daniel
@@ -55,7 +58,7 @@
 TABFeature::TABFeature(OGRFeatureDefn *poDefnIn):
                OGRFeature(poDefnIn)
 {
-    m_nMapInfoType = 0;
+    m_nMapInfoType = TAB_GEOM_NONE;
 
     SetMBR(0.0, 0.0, 0.0, 0.0);
 }
@@ -163,6 +166,115 @@ int TABFeature::ReadRecordFromDATFile(TABDATFile *poDATFile)
 }
 
 /**********************************************************************
+ *                   TABFeature::WriteRecordToDATFile()
+ *
+ * Write the attribute part of the feature to the .DAT file.
+ *
+ * It is assumed that poDATFile currently points to the beginning of
+ * the table record and that this feature's OGRFeatureDefn has been 
+ * properly initialized for this table.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABFeature::WriteRecordToDATFile(TABDATFile *poDATFile)
+{
+    int         iField, numFields, nStatus=0;
+
+    CPLAssert(poDATFile);
+
+    numFields = poDATFile->GetNumFields();
+
+    for(iField=0; nStatus == 0 && iField<numFields; iField++)
+    {
+        switch(poDATFile->GetFieldType(iField))
+        {
+          case TABFChar:
+            nStatus = poDATFile->WriteCharField(GetFieldAsString(iField),
+                                      poDATFile->GetFieldWidth(iField));
+            break;
+          case TABFDecimal:
+            nStatus = poDATFile->WriteDecimalField(GetFieldAsDouble(iField),
+                                      poDATFile->GetFieldWidth(iField),
+                                      poDATFile->GetFieldPrecision(iField));
+            break;
+          case TABFInteger:
+            nStatus = poDATFile->WriteIntegerField(GetFieldAsInteger(iField));
+            break;
+          case TABFSmallInt:
+            nStatus = poDATFile->WriteSmallIntField(GetFieldAsInteger(iField));
+            break;
+          case TABFFloat:
+            nStatus = poDATFile->WriteFloatField(GetFieldAsDouble(iField));
+            break;
+          case TABFLogical:
+            nStatus = poDATFile->WriteLogicalField(GetFieldAsString(iField));
+            break;
+          case TABFDate:
+            nStatus = poDATFile->WriteDateField(GetFieldAsString(iField));
+            break;
+          default:
+            // Other type???  Impossible!
+            CPLError(CE_Failure, CPLE_AssertionFailed,
+                     "Unsupported field type!");
+        }
+
+    }
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABFeature::ReadGeometryFromMAPFile()
+ *
+ * In derived classes, this method should be reimplemented to
+ * fill the geometry and representation (color, etc...) part of the
+ * feature from the contents of the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that before calling ReadGeometryFromMAPFile(), poMAPFile
+ * currently points to the beginning of a map object.
+ *
+ * The current implementation does nothing since instances of TABFeature
+ * objects contain no geometry (i.e. TAB_GEOM_NONE).
+ * 
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABFeature::ReadGeometryFromMAPFile(TABMAPFile * /*poMapFile*/)
+{
+    /*-----------------------------------------------------------------
+     * Nothing to do... instances of TABFeature objects contain no geometry.
+     *----------------------------------------------------------------*/
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABFeature::WriteGeometryToMAPFile()
+ *
+ *
+ * In derived classes, this method should be reimplemented to
+ * write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that before calling WriteGeometryToMAPFile(), poMAPFile
+ * currently points to a valid map object.
+ *
+ * The current implementation does nothing since instances of TABFeature
+ * objects contain no geometry (i.e. TAB_GEOM_NONE).
+ * 
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABFeature::WriteGeometryToMAPFile(TABMAPFile * /* poMapFile*/)
+{
+    /*-----------------------------------------------------------------
+     * Nothing to do... instances of TABFeature objects contain no geometry.
+     *----------------------------------------------------------------*/
+
+    return 0;
+}
+
+/**********************************************************************
  *                   TABFeature::DumpMID()
  *
  * Dump feature attributes in a format similar to .MID data records.
@@ -183,6 +295,24 @@ void TABFeature::DumpMID(FILE *fpOut /*=NULL*/)
                  OGRFieldDefn::GetFieldTypeName(poFDefn->GetType()),
                  GetFieldAsString( iField ) );
     }
+
+    fflush(fpOut);
+}
+
+/**********************************************************************
+ *                   TABFeature::DumpMIF()
+ *
+ * Dump feature geometry in a format similar to .MIF files.
+ **********************************************************************/
+void TABFeature::DumpMIF(FILE *fpOut /*=NULL*/)
+{
+    if (fpOut == NULL)
+        fpOut = stdout;
+
+    /*-----------------------------------------------------------------
+     * Generate output... not much to do, feature contains no geometry.
+     *----------------------------------------------------------------*/
+    fprintf(fpOut, "NONE\n" );
 
     fflush(fpOut);
 }
@@ -210,6 +340,50 @@ TABPoint::TABPoint(OGRFeatureDefn *poDefnIn):
  **********************************************************************/
 TABPoint::~TABPoint()
 {
+}
+
+/**********************************************************************
+ *                   TABPoint::ValidateMapInfoType()
+ *
+ * Check the feature's geometry part and return the corresponding
+ * mapinfo object type code.  The m_nMapInfoType member will also
+ * be updated for further calls to GetMapInfoType();
+ *
+ * Returns TAB_GEOM_NONE if the geometry is not compatible with what
+ * is expected for this object class.
+ **********************************************************************/
+int  TABPoint::ValidateMapInfoType()
+{
+    OGRGeometry *poGeom;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPoint)
+    {
+        switch(GetFeatureClass())
+        {
+          case TABFCFontPoint:
+            m_nMapInfoType = TAB_GEOM_FONTSYMBOL;
+            break;
+          case TABFCCustomPoint:
+            m_nMapInfoType = TAB_GEOM_CUSTOMSYMBOL;
+            break;
+          case TABFCPoint:
+          default:
+            m_nMapInfoType = TAB_GEOM_SYMBOL;
+            break;
+        }
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABPoint: Missing or Invalid Geometry!");
+        m_nMapInfoType = TAB_GEOM_NONE;
+    }
+
+    return m_nMapInfoType;
 }
 
 /**********************************************************************
@@ -268,6 +442,58 @@ int TABPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
     SetGeometryDirectly(poGeometry);
 
     SetMBR(dX, dY, dX, dY);
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABPoint::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
+{
+    GInt32              nX, nY;
+    OGRGeometry         *poGeom;
+    OGRPoint            *poPoint;
+    TABMAPObjectBlock   *poObjBlock;
+
+    if (ValidateMapInfoType() == TAB_GEOM_NONE)
+        return -1;      // Invalid Geometry... an error has already been sent
+
+    poObjBlock = poMapFile->GetCurObjBlock();
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPoint)
+        poPoint = (OGRPoint*)poGeom;
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABPoint: Missing or Invalid Geometry!");
+        return -1;
+    }
+
+    poMapFile->Coordsys2Int(poPoint->getX(), poPoint->getY(), nX, nY);
+
+    /*-----------------------------------------------------------------
+     * Write object information
+     *----------------------------------------------------------------*/
+    poObjBlock->WriteIntCoord(nX, nY);
+
+    m_nSymbolDefIndex = poMapFile->WriteSymbolDef(&m_sSymbolDef);
+    poObjBlock->WriteByte(m_nSymbolDefIndex);      // Symbol index
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
 
     return 0;
 }
@@ -503,6 +729,88 @@ int TABFontPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
 }
 
 /**********************************************************************
+ *                   TABFontPoint::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABFontPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
+{
+    GInt32              nX, nY;
+    TABMAPObjectBlock   *poObjBlock;
+    OGRGeometry         *poGeom;
+    OGRPoint            *poPoint;
+
+    if (ValidateMapInfoType() == TAB_GEOM_NONE)
+        return -1;      // Invalid Geometry... an error has already been sent
+
+    poObjBlock = poMapFile->GetCurObjBlock();
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPoint)
+        poPoint = (OGRPoint*)poGeom;
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABFontPoint: Missing or Invalid Geometry!");
+        return -1;
+    }
+
+    poMapFile->Coordsys2Int(poPoint->getX(), poPoint->getY(), nX, nY);
+
+    /*-----------------------------------------------------------------
+     * Write object information
+     * NOTE: This symbol type does not contain a reference to a
+     * SymbolDef block in the file, but we still use the m_sSymbolDef
+     * structure to store the information inside the class so that the
+     * ITABFeatureSymbol methods work properly for the class user.
+     *----------------------------------------------------------------*/
+    poObjBlock->WriteByte(m_sSymbolDef.nSymbolNo);   // shape
+    poObjBlock->WriteByte(m_sSymbolDef.nPointSize);  // point size
+
+    poObjBlock->WriteInt16(m_nFontStyle);            // font style
+
+    poObjBlock->WriteByte( COLOR_R(m_sSymbolDef.rgbColor) );
+    poObjBlock->WriteByte( COLOR_G(m_sSymbolDef.rgbColor) );
+    poObjBlock->WriteByte( COLOR_B(m_sSymbolDef.rgbColor) );
+
+    poObjBlock->WriteByte( 0 );
+    poObjBlock->WriteByte( 0 );
+    poObjBlock->WriteByte( 0 );
+    
+    /*-------------------------------------------------------------
+     * Symbol Angle, (written in thenths of degrees)
+     * Since the angles are specified for integer coordinates, and
+     * that these coordinates have the X axis reversed, we have to
+     * adjust the angle value for the change in the X axis
+     * direction.
+     *------------------------------------------------------------*/
+    // __TODO__ For some reason, this adjustment does not seem to
+    // be necessary here?!?!!
+    //m_dAngle = (m_dAngle<180.0) ? (180.0-m_dAngle): (540.0-m_dAngle);
+    poObjBlock->WriteInt16((int)(m_dAngle * 10));
+
+    poObjBlock->WriteIntCoord(nX, nY);
+
+    // Write Font Def
+    m_nFontDefIndex = poMapFile->WriteFontDef(&m_sFontDef);
+    poObjBlock->WriteByte(m_nFontDefIndex);      // Font name index
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
+
+    return 0;
+}
+
+/**********************************************************************
  *                   TABFontPoint::QueryFontStyle()
  *
  * Return TRUE if the specified font style attribute is turned ON,
@@ -608,6 +916,64 @@ int TABCustomPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
     return 0;
 }
 
+/**********************************************************************
+ *                   TABCustomPoint::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABCustomPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
+{
+    GInt32              nX, nY;
+    TABMAPObjectBlock   *poObjBlock;
+    OGRGeometry         *poGeom;
+    OGRPoint            *poPoint;
+
+    if (ValidateMapInfoType() == TAB_GEOM_NONE)
+        return -1;      // Invalid Geometry... an error has already been sent
+
+    poObjBlock = poMapFile->GetCurObjBlock();
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPoint)
+        poPoint = (OGRPoint*)poGeom;
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABCustomPoint: Missing or Invalid Geometry!");
+        return -1;
+    }
+
+    poMapFile->Coordsys2Int(poPoint->getX(), poPoint->getY(), nX, nY);
+
+    /*-----------------------------------------------------------------
+     * Write object information
+     *----------------------------------------------------------------*/
+    poObjBlock->WriteByte(m_nUnknown_);  // ??? 
+    poObjBlock->WriteByte(m_nCustomStyle);   // 0x01=Show BG,
+                                         // 0x02=Apply Color
+    poObjBlock->WriteIntCoord(nX, nY);
+
+    m_nSymbolDefIndex = poMapFile->WriteSymbolDef(&m_sSymbolDef);
+    poObjBlock->WriteByte(m_nSymbolDefIndex);      // Symbol index
+
+    m_nFontDefIndex = poMapFile->WriteFontDef(&m_sFontDef);
+    poObjBlock->WriteByte(m_nFontDefIndex);      // Font index
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
+
+    return 0;
+}
+
 
 /*=====================================================================
  *                      class TABPolyline
@@ -633,6 +999,75 @@ TABPolyline::TABPolyline(OGRFeatureDefn *poDefnIn):
 TABPolyline::~TABPolyline()
 {
 }
+
+/**********************************************************************
+ *                   TABPolyline::ValidateMapInfoType()
+ *
+ * Check the feature's geometry part and return the corresponding
+ * mapinfo object type code.  The m_nMapInfoType member will also
+ * be updated for further calls to GetMapInfoType();
+ *
+ * Returns TAB_GEOM_NONE if the geometry is not compatible with what
+ * is expected for this object class.
+ **********************************************************************/
+int  TABPolyline::ValidateMapInfoType()
+{
+    OGRGeometry   *poGeom;
+    OGRGeometryCollection *poCollection = NULL;
+    OGRLineString *poLine = NULL;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbLineString)
+    {
+        /*-------------------------------------------------------------
+         * Simple polyline
+         *------------------------------------------------------------*/
+        poLine = (OGRLineString*)poGeom;
+        if ( poLine->getNumPoints() > 2)
+        {
+            m_nMapInfoType = TAB_GEOM_PLINE;
+        }
+        else
+        {
+            m_nMapInfoType = TAB_GEOM_LINE;
+        }
+    }
+    else if (poGeom && poGeom->getGeometryType() == wkbGeometryCollection)
+    {
+        /*-------------------------------------------------------------
+         * Multiple polyline... validate all components
+         *------------------------------------------------------------*/
+        int iLine, numLines;
+        poCollection = (OGRGeometryCollection*)poGeom;
+        numLines = poCollection->getNumGeometries();
+
+        m_nMapInfoType = TAB_GEOM_MULTIPLINE;
+
+        for(iLine=0; iLine < numLines; iLine++)
+        {
+            poGeom = poCollection->getGeometryRef(iLine);
+            if (poGeom && poGeom->getGeometryType() != wkbLineString)
+            {
+                CPLError(CE_Failure, CPLE_AssertionFailed,
+                         "TABPolyline: Object contains an invalid Geometry!");
+                m_nMapInfoType = TAB_GEOM_NONE;
+                break;
+            }
+        }
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABPolyline: Missing or Invalid Geometry!");
+        m_nMapInfoType = TAB_GEOM_NONE;
+    }
+
+    return m_nMapInfoType;
+}
+
 
 /**********************************************************************
  *                   TABPolyline::ReadGeometryFromMAPFile()
@@ -873,6 +1308,246 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
     return 0;
 }
 
+/**********************************************************************
+ *                   TABPolyline::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
+{
+    GInt32              nX, nY;
+    TABMAPObjectBlock   *poObjBlock;
+    OGRGeometry         *poGeom;
+    OGRLineString       *poLine=NULL;
+
+    if (ValidateMapInfoType() == TAB_GEOM_NONE)
+        return -1;      // Invalid Geometry... an error has already been sent
+
+    poObjBlock = poMapFile->GetCurObjBlock();
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+
+    if (m_nMapInfoType == TAB_GEOM_LINE &&
+        poGeom && poGeom->getGeometryType() == wkbLineString &&
+        (poLine = (OGRLineString*)poGeom)->getNumPoints() == 2)
+    {
+        /*=============================================================
+         * LINE (2 vertices)
+         *============================================================*/
+        poMapFile->Coordsys2Int(poLine->getX(0), poLine->getY(0), nX, nY);
+        poObjBlock->WriteIntCoord(nX, nY);
+
+        poMapFile->Coordsys2Int(poLine->getX(1), poLine->getY(1), nX, nY);
+        poObjBlock->WriteIntCoord(nX, nY);
+
+        m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
+        poObjBlock->WriteByte(m_nPenDefIndex);      // Pen index
+
+    }
+    else if (m_nMapInfoType == TAB_GEOM_PLINE &&
+             poGeom && poGeom->getGeometryType() == wkbLineString)
+    {
+        /*=============================================================
+         * PLINE ( > 2 vertices)
+         *============================================================*/
+        int     i, numPoints, nStatus;
+        GUInt32 nCoordDataSize;
+        GInt32  nCoordBlockPtr, nXMin, nYMin, nXMax, nYMax;
+        TABMAPCoordBlock *poCoordBlock;
+
+        /*-------------------------------------------------------------
+         * Process geometry first...
+         *------------------------------------------------------------*/
+        poLine = (OGRLineString*)poGeom;
+        numPoints = poLine->getNumPoints();
+
+        poCoordBlock = poMapFile->GetCurCoordBlock();
+        poCoordBlock->StartNewFeature();
+        nCoordBlockPtr = poCoordBlock->GetCurAddress();
+
+        nStatus = 0;
+        for(i=0; nStatus == 0 && i<numPoints; i++)
+        {
+            poMapFile->Coordsys2Int(poLine->getX(i), poLine->getY(i), nX, nY);
+            if ((nStatus = poCoordBlock->WriteIntCoord(nX, nY)) != 0)
+            {
+                // Failed ... error message has already been produced
+                return nStatus;
+            }   
+        }
+
+        nCoordDataSize = poCoordBlock->GetFeatureDataSize();
+
+        // Combine smooth flag in the coord data size.
+        if (m_bSmooth)
+            nCoordDataSize |= 0x80000000;
+
+        poCoordBlock->GetFeatureMBR(nXMin, nXMax, nYMin, nYMax);
+
+        /*-------------------------------------------------------------
+         * Write info to poObjBlock
+         *------------------------------------------------------------*/
+        poObjBlock->WriteInt32(nCoordBlockPtr);
+        poObjBlock->WriteInt32(nCoordDataSize);
+
+        // Polyline center
+        poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
+
+        // MBR
+        poObjBlock->WriteIntCoord(nXMin, nYMin);
+        poObjBlock->WriteIntCoord(nXMax, nYMax);
+
+        m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
+        poObjBlock->WriteByte(m_nPenDefIndex);      // Pen index
+
+    }
+    else if (poGeom && poGeom->getGeometryType() == wkbGeometryCollection)
+    {
+        /*=============================================================
+         * PLINE MULTIPLE
+         *============================================================*/
+        int     nStatus=0, i, iLine, numPointsTotal, numPoints;
+        GUInt32 nCoordDataSize;
+        GInt32  nCoordBlockPtr, numLines;
+        GInt32  nXMin, nYMin, nXMax, nYMax;
+        TABMAPCoordBlock        *poCoordBlock;
+        OGRGeometryCollection   *poCollection;
+        TABMAPCoordSecHdr       *pasSecHdrs;
+        OGREnvelope             sEnvelope;
+
+        /*-------------------------------------------------------------
+         * Process geometry first...
+         *------------------------------------------------------------*/
+        poCoordBlock = poMapFile->GetCurCoordBlock();
+        poCoordBlock->StartNewFeature();
+        nCoordBlockPtr = poCoordBlock->GetCurAddress();
+
+        poCollection = (OGRGeometryCollection*)poGeom;
+        numLines = poCollection->getNumGeometries();
+
+        /*-------------------------------------------------------------
+         * Build and write array of coord sections headers
+         *------------------------------------------------------------*/
+        pasSecHdrs = (TABMAPCoordSecHdr*)CPLCalloc(numLines,
+                                                   sizeof(TABMAPCoordSecHdr));
+
+        numPointsTotal = 0;
+        for(iLine=0; iLine < numLines; iLine++)
+        {
+            poGeom = poCollection->getGeometryRef(iLine);
+            if (poGeom && poGeom->getGeometryType() == wkbLineString)
+            {
+                poLine = (OGRLineString*)poGeom;
+                numPoints = poLine->getNumPoints();
+                poLine->getEnvelope(&sEnvelope);
+
+                pasSecHdrs[iLine].numVertices = poLine->getNumPoints();
+                pasSecHdrs[iLine].numHoles = 0; // It's a line!
+
+                poMapFile->Coordsys2Int(sEnvelope.MinX, sEnvelope.MinY,
+                                        pasSecHdrs[iLine].nXMin,
+                                        pasSecHdrs[iLine].nYMin);
+                poMapFile->Coordsys2Int(sEnvelope.MaxX, sEnvelope.MaxY,
+                                        pasSecHdrs[iLine].nXMax,
+                                        pasSecHdrs[iLine].nYMax);
+                pasSecHdrs[iLine].nDataOffset = numLines * 24 +
+                                                numPointsTotal*4*2;
+                pasSecHdrs[iLine].nVertexOffset = numPointsTotal;
+
+                numPointsTotal += numPoints;
+            }
+            else
+            {
+                CPLError(CE_Failure, CPLE_AssertionFailed,
+                         "TABPolyline: Object contains an invalid Geometry!");
+                nStatus = -1;
+            }
+
+        }
+         
+        if (nStatus == 0)
+            nStatus = poCoordBlock->WriteCoordSecHdrs(numLines, pasSecHdrs);
+
+        CPLFree(pasSecHdrs);
+        pasSecHdrs = NULL;
+
+        if (nStatus != 0)
+            return nStatus;  // Error has already been reported.
+
+        /*-------------------------------------------------------------
+         * Then write the coordinates themselves...
+         *------------------------------------------------------------*/
+        for(iLine=0; nStatus == 0 && iLine < numLines; iLine++)
+        {
+            poGeom = poCollection->getGeometryRef(iLine);
+            if (poGeom && poGeom->getGeometryType() == wkbLineString)
+            {
+                poLine = (OGRLineString*)poGeom;
+                numPoints = poLine->getNumPoints();
+
+                for(i=0; nStatus == 0 && i<numPoints; i++)
+                {
+                    poMapFile->Coordsys2Int(poLine->getX(i), poLine->getY(i),
+                                            nX, nY);
+                    if ((nStatus=poCoordBlock->WriteIntCoord(nX, nY)) != 0)
+                    {
+                        // Failed ... error message has already been produced
+                        return nStatus;
+                    }   
+                }
+            }
+            else
+            {
+                CPLError(CE_Failure, CPLE_AssertionFailed,
+                         "TABPolyline: Object contains an invalid Geometry!");
+                return -1;
+            }
+
+        }
+
+        nCoordDataSize = poCoordBlock->GetFeatureDataSize();
+
+        poCoordBlock->GetFeatureMBR(nXMin, nXMax, nYMin, nYMax);
+
+        /*-------------------------------------------------------------
+         * ... and finally write info to poObjBlock
+         *------------------------------------------------------------*/
+        poObjBlock->WriteInt32(nCoordBlockPtr);
+        poObjBlock->WriteInt32(nCoordDataSize);
+        poObjBlock->WriteInt16(numLines);
+
+        // Polyline center
+        poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
+
+        // MBR
+        poObjBlock->WriteIntCoord(nXMin, nYMin);
+        poObjBlock->WriteIntCoord(nXMax, nYMax);
+
+        m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
+        poObjBlock->WriteByte(m_nPenDefIndex);      // Pen index
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABPolyline: Object contains an invalid Geometry!");
+        return -1;
+    }
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
+
+    return 0;
+}
+
 
 /**********************************************************************
  *                   TABPolyline::DumpMIF()
@@ -969,6 +1644,38 @@ TABRegion::TABRegion(OGRFeatureDefn *poDefnIn):
  **********************************************************************/
 TABRegion::~TABRegion()
 {
+}
+
+/**********************************************************************
+ *                   TABRegion::ValidateMapInfoType()
+ *
+ * Check the feature's geometry part and return the corresponding
+ * mapinfo object type code.  The m_nMapInfoType member will also
+ * be updated for further calls to GetMapInfoType();
+ *
+ * Returns TAB_GEOM_NONE if the geometry is not compatible with what
+ * is expected for this object class.
+ **********************************************************************/
+int  TABRegion::ValidateMapInfoType()
+{
+    OGRGeometry *poGeom;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPolygon)
+    {
+        m_nMapInfoType = TAB_GEOM_REGION;
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABRegion: Missing or Invalid Geometry!");
+        m_nMapInfoType = TAB_GEOM_NONE;
+    }
+
+    return m_nMapInfoType;
 }
 
 /**********************************************************************
@@ -1118,6 +1825,172 @@ int TABRegion::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
     return 0;
 }
 
+/**********************************************************************
+ *                   TABRegion::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
+{
+    GInt32              nX, nY;
+    TABMAPObjectBlock   *poObjBlock;
+    OGRGeometry         *poGeom;
+    OGRPolygon          *poPolygon=NULL;
+
+    if (ValidateMapInfoType() == TAB_GEOM_NONE)
+        return -1;      // Invalid Geometry... an error has already been sent
+
+    poObjBlock = poMapFile->GetCurObjBlock();
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+
+    if (poGeom && poGeom->getGeometryType() == wkbPolygon)
+    {
+        /*=============================================================
+         * REGIONs are similar to PLINE MULTIPLE
+         *============================================================*/
+        int     nStatus=0, i, iRing, numIntRings, numPointsTotal, numPoints;
+        GUInt32 nCoordDataSize;
+        GInt32  nCoordBlockPtr;
+        GInt32  nXMin, nYMin, nXMax, nYMax;
+        TABMAPCoordBlock        *poCoordBlock;
+        TABMAPCoordSecHdr       *pasSecHdrs;
+        OGREnvelope             sEnvelope;
+
+        /*-------------------------------------------------------------
+         * Process geometry first...
+         *------------------------------------------------------------*/
+        poCoordBlock = poMapFile->GetCurCoordBlock();
+        poCoordBlock->StartNewFeature();
+        nCoordBlockPtr = poCoordBlock->GetCurAddress();
+
+        poPolygon = (OGRPolygon*)poGeom;
+        numIntRings = poPolygon->getNumInteriorRings();
+
+        /*-------------------------------------------------------------
+         * Build and write array of coord sections headers
+         *------------------------------------------------------------*/
+        pasSecHdrs = (TABMAPCoordSecHdr*)CPLCalloc(numIntRings+1,
+                                                   sizeof(TABMAPCoordSecHdr));
+
+        numPointsTotal = 0;
+
+        // In this loop, iRing=0 for the outer ring.
+        for(iRing=0; iRing <= numIntRings; iRing++)
+        {
+            OGRLinearRing       *poRing;
+
+            if (iRing == 0)
+                poRing = poPolygon->getExteriorRing();
+            else
+                poRing = poPolygon->getInteriorRing(iRing-1);
+
+            numPoints = poRing->getNumPoints();
+
+            poRing->getEnvelope(&sEnvelope);
+
+            pasSecHdrs[iRing].numVertices = poRing->getNumPoints();
+            if (iRing == -1)
+                pasSecHdrs[iRing].numHoles = numIntRings;
+            else
+                pasSecHdrs[iRing].numHoles = 0;
+
+            poMapFile->Coordsys2Int(sEnvelope.MinX, sEnvelope.MinY,
+                                        pasSecHdrs[iRing].nXMin,
+                                        pasSecHdrs[iRing].nYMin);
+            poMapFile->Coordsys2Int(sEnvelope.MaxX, sEnvelope.MaxY,
+                                        pasSecHdrs[iRing].nXMax,
+                                        pasSecHdrs[iRing].nYMax);
+            pasSecHdrs[iRing].nDataOffset = (numIntRings+1) * 24 +
+                                                numPointsTotal*4*2;
+            pasSecHdrs[iRing].nVertexOffset = numPointsTotal;
+
+            numPointsTotal += numPoints;
+        }
+
+        if (nStatus == 0)
+            nStatus = poCoordBlock->WriteCoordSecHdrs(numIntRings+1,
+                                                      pasSecHdrs);
+
+        CPLFree(pasSecHdrs);
+        pasSecHdrs = NULL;
+
+        if (nStatus != 0)
+            return nStatus;  // Error has already been reported.
+
+        /*-------------------------------------------------------------
+         * Then write the coordinates themselves...
+         *------------------------------------------------------------*/
+        // In this loop, iRing=0 for the outer ring.
+        for(iRing=0; iRing <= numIntRings; iRing++)
+        {
+            OGRLinearRing       *poRing;
+
+            if (iRing == 0)
+                poRing = poPolygon->getExteriorRing();
+            else
+                poRing = poPolygon->getInteriorRing(iRing-1);
+
+            numPoints = poRing->getNumPoints();
+
+            for(i=0; nStatus == 0 && i<numPoints; i++)
+            {
+                poMapFile->Coordsys2Int(poRing->getX(i), poRing->getY(i),
+                                        nX, nY);
+                if ((nStatus=poCoordBlock->WriteIntCoord(nX, nY)) != 0)
+                {
+                    // Failed ... error message has already been produced
+                    return nStatus;
+                }   
+            }
+        }
+
+        nCoordDataSize = poCoordBlock->GetFeatureDataSize();
+
+        poCoordBlock->GetFeatureMBR(nXMin, nXMax, nYMin, nYMax);
+
+        /*-------------------------------------------------------------
+         * ... and finally write info to poObjBlock
+         *------------------------------------------------------------*/
+        poObjBlock->WriteInt32(nCoordBlockPtr);
+        poObjBlock->WriteInt32(nCoordDataSize);
+        poObjBlock->WriteInt16(numIntRings+1);
+
+        // Polyline center
+        poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
+
+        // MBR
+        poObjBlock->WriteIntCoord(nXMin, nYMin);
+        poObjBlock->WriteIntCoord(nXMax, nYMax);
+
+        m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
+        poObjBlock->WriteByte(m_nPenDefIndex);      // Pen index
+
+        m_nBrushDefIndex = poMapFile->WriteBrushDef(&m_sBrushDef);
+        poObjBlock->WriteByte(m_nBrushDefIndex);      // Brush index
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABRegion: Object contains an invalid Geometry!");
+        return -1;
+    }
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
+
+    return 0;
+}
+
 
 /**********************************************************************
  *                   TABRegion::DumpMIF()
@@ -1200,6 +2073,42 @@ TABRectangle::TABRectangle(OGRFeatureDefn *poDefnIn):
 TABRectangle::~TABRectangle()
 {
 }
+
+/**********************************************************************
+ *                   TABRectangle::ValidateMapInfoType()
+ *
+ * Check the feature's geometry part and return the corresponding
+ * mapinfo object type code.  The m_nMapInfoType member will also
+ * be updated for further calls to GetMapInfoType();
+ *
+ * Returns TAB_GEOM_NONE if the geometry is not compatible with what
+ * is expected for this object class.
+ **********************************************************************/
+int  TABRectangle::ValidateMapInfoType()
+{
+    OGRGeometry *poGeom;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPolygon)
+    {
+        if (m_bRoundCorners && m_dRoundXRadius!=0.0 && m_dRoundYRadius!=0.0)
+            m_nMapInfoType = TAB_GEOM_ROUNDRECT;
+        else
+            m_nMapInfoType = TAB_GEOM_RECT;
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABRectangle: Missing or Invalid Geometry!");
+        m_nMapInfoType = TAB_GEOM_NONE;
+    }
+
+    return m_nMapInfoType;
+}
+
 
 /**********************************************************************
  *                   TABRectangle::ReadGeometryFromMAPFile()
@@ -1295,7 +2204,7 @@ int TABRectangle::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
      *----------------------------------------------------------------*/
     poPolygon = new OGRPolygon;
     poRing = new OGRLinearRing();
-    if (m_bRoundCorners && m_dRoundXRadius != 0.0 && m_dRoundXRadius != 0.0)
+    if (m_bRoundCorners && m_dRoundXRadius != 0.0 && m_dRoundYRadius != 0.0)
     {
         /*-------------------------------------------------------------
          * For rounded rectangles, we generate arcs with 45 line
@@ -1337,6 +2246,79 @@ int TABRectangle::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
     poPolygon->addRing(poRing);
     SetGeometryDirectly(poPolygon);
 
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABRectangle::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABRectangle::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
+{
+    GInt32              nX, nY;
+    TABMAPObjectBlock   *poObjBlock;
+    OGRGeometry         *poGeom;
+    OGRPolygon          *poPolygon;
+    OGREnvelope         sEnvelope;
+
+    if (ValidateMapInfoType() == TAB_GEOM_NONE)
+        return -1;      // Invalid Geometry... an error has already been sent
+
+    poObjBlock = poMapFile->GetCurObjBlock();
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPolygon)
+        poPolygon = (OGRPolygon*)poGeom;
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABRectangle: Missing or Invalid Geometry!");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Note that we will simply use the rectangle's MBR and don't really 
+     * read the polygon geometry... this should be OK unless the 
+     * polygon geometry was not really a rectangle.
+     *----------------------------------------------------------------*/
+    poPolygon->getEnvelope(&sEnvelope);
+
+    /*-----------------------------------------------------------------
+     * Write object information
+     *----------------------------------------------------------------*/
+    if (m_nMapInfoType == TAB_GEOM_ROUNDRECT)
+    {
+        poMapFile->Coordsys2IntDist(m_dRoundXRadius*2.0, m_dRoundYRadius*2.0,
+                                    nX, nY);
+        poObjBlock->WriteInt32(nX);     // Oval width
+        poObjBlock->WriteInt32(nY);     // Oval height
+    }
+
+    // A rectangle is defined by its MBR
+    poMapFile->Coordsys2Int(sEnvelope.MinX, sEnvelope.MinY, nX, nY);
+    poObjBlock->WriteIntCoord(nX, nY);
+    poMapFile->Coordsys2Int(sEnvelope.MaxX, sEnvelope.MaxY, nX, nY);
+    poObjBlock->WriteIntCoord(nX, nY);
+
+    m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
+    poObjBlock->WriteByte(m_nPenDefIndex);      // Pen index
+
+    m_nBrushDefIndex = poMapFile->WriteBrushDef(&m_sBrushDef);
+    poObjBlock->WriteByte(m_nBrushDefIndex);      // Brush index
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
 
     return 0;
 }
@@ -1437,6 +2419,38 @@ TABEllipse::~TABEllipse()
 }
 
 /**********************************************************************
+ *                   TABEllipse::ValidateMapInfoType()
+ *
+ * Check the feature's geometry part and return the corresponding
+ * mapinfo object type code.  The m_nMapInfoType member will also
+ * be updated for further calls to GetMapInfoType();
+ *
+ * Returns TAB_GEOM_NONE if the geometry is not compatible with what
+ * is expected for this object class.
+ **********************************************************************/
+int  TABEllipse::ValidateMapInfoType()
+{
+    OGRGeometry *poGeom;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPolygon)
+    {
+        m_nMapInfoType = TAB_GEOM_ELLIPSE;
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABEllipse: Missing or Invalid Geometry!");
+        m_nMapInfoType = TAB_GEOM_NONE;
+    }
+
+    return m_nMapInfoType;
+}
+
+/**********************************************************************
  *                   TABEllipse::ReadGeometryFromMAPFile()
  *
  * Fill the geometry and representation (color, etc...) part of the
@@ -1522,6 +2536,72 @@ int TABEllipse::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
 
     poPolygon->addRing(poRing);
     SetGeometryDirectly(poPolygon);
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABEllipse::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABEllipse::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
+{
+    GInt32              nX, nY;
+    TABMAPObjectBlock   *poObjBlock;
+    OGRGeometry         *poGeom;
+    OGRPolygon          *poPolygon;
+    OGREnvelope         sEnvelope;
+
+    if (ValidateMapInfoType() == TAB_GEOM_NONE)
+        return -1;      // Invalid Geometry... an error has already been sent
+
+    poObjBlock = poMapFile->GetCurObjBlock();
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPolygon)
+        poPolygon = (OGRPolygon*)poGeom;
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABEllipse: Missing or Invalid Geometry!");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Note that we will simply use the ellipse's MBR and don't really 
+     * read the polygon geometry... this should be OK unless the 
+     * polygon geometry was not really an ellipse.
+     *----------------------------------------------------------------*/
+    poPolygon->getEnvelope(&sEnvelope);
+
+    /*-----------------------------------------------------------------
+     * Write object information
+     *----------------------------------------------------------------*/
+
+    // An ellipse is defined by its MBR
+    poMapFile->Coordsys2Int(sEnvelope.MinX, sEnvelope.MinY, nX, nY);
+    poObjBlock->WriteIntCoord(nX, nY);
+    poMapFile->Coordsys2Int(sEnvelope.MaxX, sEnvelope.MaxY, nX, nY);
+    poObjBlock->WriteIntCoord(nX, nY);
+
+    m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
+    poObjBlock->WriteByte(m_nPenDefIndex);      // Pen index
+
+    m_nBrushDefIndex = poMapFile->WriteBrushDef(&m_sBrushDef);
+    poObjBlock->WriteByte(m_nBrushDefIndex);      // Brush index
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
 
     return 0;
 }
@@ -1617,6 +2697,38 @@ TABArc::TABArc(OGRFeatureDefn *poDefnIn):
  **********************************************************************/
 TABArc::~TABArc()
 {
+}
+
+/**********************************************************************
+ *                   TABArc::ValidateMapInfoType()
+ *
+ * Check the feature's geometry part and return the corresponding
+ * mapinfo object type code.  The m_nMapInfoType member will also
+ * be updated for further calls to GetMapInfoType();
+ *
+ * Returns TAB_GEOM_NONE if the geometry is not compatible with what
+ * is expected for this object class.
+ **********************************************************************/
+int  TABArc::ValidateMapInfoType()
+{
+    OGRGeometry *poGeom;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbLineString)
+    {
+        m_nMapInfoType = TAB_GEOM_ARC;
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABArc: Missing or Invalid Geometry!");
+        m_nMapInfoType = TAB_GEOM_NONE;
+    }
+
+    return m_nMapInfoType;
 }
 
 /**********************************************************************
@@ -1727,6 +2839,99 @@ int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
     return 0;
 }
 
+/**********************************************************************
+ *                   TABArc::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
+{
+    GInt32              nX, nY;
+    TABMAPObjectBlock   *poObjBlock;
+    OGRGeometry         *poGeom;
+    OGRLineString       *poLine;
+    OGREnvelope         sEnvelope;
+
+    if (ValidateMapInfoType() == TAB_GEOM_NONE)
+        return -1;      // Invalid Geometry... an error has already been sent
+
+    poObjBlock = poMapFile->GetCurObjBlock();
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbLineString)
+        poLine = (OGRLineString*)poGeom;
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABArc: Missing or Invalid Geometry!");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Note that we will simply use the ellipse's MBR and don't really 
+     * read the polygon geometry... this should be OK unless the 
+     * polygon geometry was not really an ellipse.
+     *----------------------------------------------------------------*/
+    poLine->getEnvelope(&sEnvelope);
+
+    /*-----------------------------------------------------------------
+     * Write object information
+     *----------------------------------------------------------------*/
+
+    /*-------------------------------------------------------------
+     * Start/End angles
+     * Since the angles are specified for integer coordinates, and
+     * that these coordinates have the X axis reversed, we have to
+     * adjust the angle values for the change in the X axis
+     * direction.
+     *
+     * __TODO__ This should be necessary only when X axis is flipped.
+     *          Also: check order of start/end values when writing.
+     *------------------------------------------------------------*/
+    double dStartAngle, dEndAngle;
+
+    dStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
+                                             (540.0-m_dStartAngle);
+    dEndAngle   = (m_dEndAngle<=180.0) ? (180.0-m_dEndAngle):
+                                               (540.0-m_dEndAngle);
+
+    // ??? Shouldn't order be Start angle followed by end angle???
+
+    poObjBlock->WriteInt16((int)(dEndAngle*10));
+    poObjBlock->WriteInt16((int)(dStartAngle*10));
+
+    // An arc is defined by its defining ellipse's MBR:
+    poMapFile->Coordsys2Int(m_dCenterX-m_dXRadius, m_dCenterY-m_dYRadius,
+                            nX, nY);
+    poObjBlock->WriteIntCoord(nX, nY);
+    poMapFile->Coordsys2Int(m_dCenterX+m_dXRadius, m_dCenterY+m_dYRadius,
+                            nX, nY);
+    poObjBlock->WriteIntCoord(nX, nY);
+
+    // Write the Arc's actual MBR
+    poMapFile->Coordsys2Int(sEnvelope.MinX, sEnvelope.MinY, nX, nY);
+    poObjBlock->WriteIntCoord(nX, nY);
+    poMapFile->Coordsys2Int(sEnvelope.MaxX, sEnvelope.MaxY, nX, nY);
+    poObjBlock->WriteIntCoord(nX, nY);
+
+    m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
+    poObjBlock->WriteByte(m_nPenDefIndex);      // Pen index
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
+
+    return 0;
+}
+
 
 /**********************************************************************
  *                   TABArc::DumpMIF()
@@ -1812,6 +3017,38 @@ TABText::TABText(OGRFeatureDefn *poDefnIn):
 TABText::~TABText()
 {
     CPLFree(m_pszString);
+}
+
+/**********************************************************************
+ *                   TABText::ValidateMapInfoType()
+ *
+ * Check the feature's geometry part and return the corresponding
+ * mapinfo object type code.  The m_nMapInfoType member will also
+ * be updated for further calls to GetMapInfoType();
+ *
+ * Returns TAB_GEOM_NONE if the geometry is not compatible with what
+ * is expected for this object class.
+ **********************************************************************/
+int  TABText::ValidateMapInfoType()
+{
+    OGRGeometry *poGeom;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPoint)
+    {
+        m_nMapInfoType = TAB_GEOM_TEXT;
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABText: Missing or Invalid Geometry!");
+        m_nMapInfoType = TAB_GEOM_NONE;
+    }
+
+    return m_nMapInfoType;
 }
 
 /**********************************************************************
@@ -1906,8 +3143,9 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         m_pszString = (char*)CPLMalloc((nStringLen+1)*sizeof(char));
         poCoordBlock = poMapFile->GetCoordBlock(nCoordBlockPtr);
 
-        if (poCoordBlock == NULL ||
-            poCoordBlock->ReadBytes(nStringLen, (GByte*)m_pszString) != 0)
+        if (nStringLen > 0 && 
+            (poCoordBlock == NULL ||
+             poCoordBlock->ReadBytes(nStringLen, (GByte*)m_pszString) != 0))
         {
             CPLError(CE_Failure, CPLE_FileIO,
                      "Failed reading text string at offset %d", 
@@ -1969,6 +3207,135 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
 
     return 0;
 }
+
+/**********************************************************************
+ *                   TABText::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABText::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
+{
+    GInt32              nX, nY, nXMin, nYMin, nXMax, nYMax;
+    TABMAPObjectBlock   *poObjBlock;
+    OGRGeometry         *poGeom;
+    OGRPoint            *poPoint;
+    GInt32              nCoordBlockPtr;
+    TABMAPCoordBlock    *poCoordBlock;
+    int                 nStringLen;
+
+    if (ValidateMapInfoType() == TAB_GEOM_NONE)
+        return -1;      // Invalid Geometry... an error has already been sent
+
+    poObjBlock = poMapFile->GetCurObjBlock();
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPoint)
+        poPoint = (OGRPoint*)poGeom;
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABText: Missing or Invalid Geometry!");
+        return -1;
+    }
+
+    poMapFile->Coordsys2Int(poPoint->getX(), poPoint->getY(), nX, nY);
+
+    /*-----------------------------------------------------------------
+     * Write string to a coord block first...
+     *----------------------------------------------------------------*/
+    poCoordBlock = poMapFile->GetCurCoordBlock();
+    poCoordBlock->StartNewFeature();
+    nCoordBlockPtr = poCoordBlock->GetCurAddress();
+
+    nStringLen = strlen(m_pszString);
+
+    if (nStringLen > 0)
+    {
+        poCoordBlock->WriteBytes(nStringLen, (GByte *)m_pszString);
+    }
+    else
+    {
+        nCoordBlockPtr = 0;
+    }
+
+    /*-----------------------------------------------------------------
+     * Write object information
+     *----------------------------------------------------------------*/
+    poObjBlock->WriteInt32(nCoordBlockPtr);     // String position
+    poObjBlock->WriteInt16(nStringLen);         // String length
+    poObjBlock->WriteInt16(m_nTextAlignment);   // just./spacing/arrow
+
+
+    /*-----------------------------------------------------------------
+     * Text Angle, (written in thenths of degrees)
+     * Since the angles are specified for integer coordinates, and
+     * that these coordinates have the X axis reversed, we have to
+     * adjust the angle value for the change in the X axis
+     * direction.
+     *----------------------------------------------------------------*/
+    // __TODO__ For some reason, this adjustment does not seem to
+    // be necessary here?!?!!
+    // double dAngle = (m_dAngle<180.0) ? (180.0-m_dAngle): (540.0-m_dAngle);
+
+    poObjBlock->WriteInt16((int)(m_dAngle*10));
+
+    poObjBlock->WriteInt16(m_nFontStyle);          // Font style/effect
+
+    poObjBlock->WriteByte( COLOR_R(m_rgbForeground) );
+    poObjBlock->WriteByte( COLOR_G(m_rgbForeground) );
+    poObjBlock->WriteByte( COLOR_B(m_rgbForeground) );
+
+    poObjBlock->WriteByte( COLOR_R(m_rgbBackground) );
+    poObjBlock->WriteByte( COLOR_G(m_rgbBackground) );
+    poObjBlock->WriteByte( COLOR_B(m_rgbBackground) );
+
+    /*-----------------------------------------------------------------
+     * The OGRPoint's X,Y values were the coords of the lower-left corner
+     * before rotation was applied.  (Note that the rotation in MapInfo is
+     * done around the upper-left corner)
+     * It is expected that the Feature's MBR is the MBR of the text after
+     * rotation.
+     *----------------------------------------------------------------*/
+    double dXMin, dYMin, dXMax, dYMax;
+    GetMBR(dXMin, dYMin, dXMax, dYMax);
+
+    poMapFile->Coordsys2Int(dXMin, dYMin, nXMin, nYMin);
+    poMapFile->Coordsys2Int(dXMax, dYMax, nXMax, nYMax);
+
+    // Line/arrow endpoint... default to bounding box center
+    poObjBlock->WriteIntCoord((nXMin+nXMax)/2, (nYMin+nYMax)/2);
+
+    // Text Height
+    poMapFile->Coordsys2IntDist(0.0, m_dHeight, nX, nY);
+    poObjBlock->WriteInt32(nY);
+
+    // Font name
+    m_nFontDefIndex = poMapFile->WriteFontDef(&m_sFontDef);
+    poObjBlock->WriteByte(m_nFontDefIndex);      // Font name index
+
+    // MBR after rotation
+    poObjBlock->WriteIntCoord(nXMin, nYMin);
+    poObjBlock->WriteIntCoord(nXMax, nYMax);
+
+    m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
+    poObjBlock->WriteByte(m_nPenDefIndex);      // Pen index for line/arrow
+
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
+
+    return 0;
+}
+
 
 /**********************************************************************
  *                   TABText::GetTextString()
@@ -2225,6 +3592,26 @@ int TABDebugFeature::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
     return 0;
 }
 
+/**********************************************************************
+ *                   TABDebugFeature::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABDebugFeature::WriteGeometryToMAPFile(TABMAPFile * /*poMapFile*/)
+{
+    // __TODO__
+
+    CPLError(CE_Failure, CPLE_NotSupported,
+             "TABDebugFeature::WriteGeometryToMAPFile() not implemented.\n");
+
+    return -1;
+}
 
 /**********************************************************************
  *                   TABDebugFeature::DumpMIF()

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.18 2000-05-19 06:45:25 daniel Exp $
+ * $Id: mitab_priv.h,v 1.19 2000-11-13 22:19:30 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.18  2000-05-19 06:45:25  daniel
+ * Revision 1.19  2000-11-13 22:19:30  daniel
+ * Added TABINDNode::UpdateCurChildEntry()
+ *
+ * Revision 1.18  2000/05/19 06:45:25  daniel
  * Modified generation of spatial index to split index nodes and produce a
  * more balanced tree.
  *
@@ -989,6 +992,7 @@ class TABINDNode
     int         SplitNode();
     int         SplitRootNode();
     GByte*      GetNodeKey();
+    int         UpdateCurChildEntry(GByte *pKeyValue, GInt32 nRecordNo);
     int         UpdateSplitChild(GByte *pKeyValue1, GInt32 nRecordNo1,
                                  GByte *pKeyValue2, GInt32 nRecordNo2,
                                  int nNewCurChildNo /* 1 or 2 */);

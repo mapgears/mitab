@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.22 1999-12-17 01:41:58 daniel Exp $
+ * $Id: mitab.h,v 1.23 1999-12-17 02:05:00 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -28,8 +28,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.22  1999-12-17 01:41:58  daniel
- * Avoid */ outside of comment warning
+ * Revision 1.23  1999-12-17 02:05:00  daniel
+ * OOOPS! My RCS log msg with a closing comment in it confused the compiler!
+ *
+ * Revision 1.22  1999/12/17 01:41:58  daniel
+ * Avoid comment warning
  *
  * Revision 1.21  1999/12/15 16:13:43  warmerda
  * Avoid unused parameter warnings.

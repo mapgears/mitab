@@ -8,6 +8,12 @@ CHANGES - Current Version:
  - Ensure that a blank line in a mid file is treated as one field containing
    an empty string instead of being zero fields.  NFW
 
+ - Fixes to support mif/mid files produced by Geomedia V5 (bug 1631):
+    - Do not produce an error if .mid data records end with a stray ','
+    - Treat tabs (\t) as a blank space delimiter when reading coordinate 
+      values in .mif file
+
+
 Version 1.2.3 - (2002-10-15)
 ----------------------------
 
@@ -487,5 +493,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.102 2002-10-29 21:10:12 warmerda Exp $
+$Id: HISTORY.TXT,v 1.103 2002-11-27 22:52:02 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.17 2001-09-14 19:14:43 warmerda Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.18 2003-12-19 07:55:55 fwarmerdam Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.17  2001-09-14 19:14:43  warmerda
+ * Revision 1.18  2003-12-19 07:55:55  fwarmerdam
+ * treat 3D features as 2D on write
+ *
+ * Revision 1.17  2001/09/14 19:14:43  warmerda
  * added attribute query support
  *
  * Revision 1.16  2001/09/14 03:23:55  warmerda
@@ -266,7 +269,7 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
     else
         eGType = wkbNone;
 
-    switch (eGType)
+    switch( wkbFlatten(eGType) )
     {
       /*-------------------------------------------------------------
        * POINT

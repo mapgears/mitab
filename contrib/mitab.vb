@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.vb,v 1.10 2004-07-07 22:10:32 dmorissette Exp $
+' * $Id: mitab.vb,v 1.11 2005-04-01 16:22:54 dmorissette Exp $
 ' *
 ' * Name:     mitab.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.vb,v $
-' * Revision 1.10  2004-07-07 22:10:32  dmorissette
+' * Revision 1.11  2005-04-01 16:22:54  dmorissette
+' * Updated to Libversion = 1004000 for 1.4.0 release
+' *
+' * Revision 1.10  2004/07/07 22:10:32  dmorissette
 ' * Update for 1.3.0 release by BVT
 ' *
 ' * Revision 1.10  2004/07/06 18:51:00  bvt
@@ -134,7 +137,7 @@ Public Const TABTL_Arrow = 2
 
 Rem version 
 
-Public Const Libversion = 1003000
+Public Const Libversion = 1004000
 
 
 Public Declare Function mitab_c_add_field Lib "mitab.dll" Alias "_mitab_c_add_field@28" (ByVal handle As Long, ByVal field_name As String, ByVal field_type As Long, ByVal width As Long, ByVal precision As Long, ByVal indexed As Long, ByVal unique As Long) As Long

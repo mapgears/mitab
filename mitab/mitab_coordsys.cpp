@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.16 2000-10-16 21:44:50 warmerda Exp $
+ * $Id: mitab_coordsys.cpp,v 1.17 2000-12-05 14:55:27 daniel Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.16  2000-10-16 21:44:50  warmerda
+ * Revision 1.17  2000-12-05 14:55:27  daniel
+ * Added some missing unit name aliases in MITABSpatialRef2CoordSys()
+ *
+ * Revision 1.16  2000/10/16 21:44:50  warmerda
  * added nonearth support
  *
  * Revision 1.15  2000/10/12 22:01:01  daniel
@@ -925,11 +928,14 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
         pszMIFUnits = "m";
     else if( dfLinearConv == 1000.0 )
         pszMIFUnits = "km";
-    else if( dfLinearConv == 0.0254 )
+    else if( dfLinearConv == 0.0254 || EQUAL(pszLinearUnits,"Inch")
+             || EQUAL(pszLinearUnits,"IINCH"))
         pszMIFUnits = "in";
-    else if( EQUAL(pszLinearUnits,SRS_UL_FOOT) )
+    else if( dfLinearConv == atof(SRS_UL_FOOT_CONV)
+             || EQUAL(pszLinearUnits,SRS_UL_FOOT) )
         pszMIFUnits = "ft";
-    else if( EQUAL(pszLinearUnits,"IYARD") || dfLinearConv == 0.9144 )
+    else if( EQUAL(pszLinearUnits,"YARD") || EQUAL(pszLinearUnits,"IYARD") 
+             || dfLinearConv == 0.9144 )
         pszMIFUnits = "yd";
     else if( dfLinearConv == 0.001 )
         pszMIFUnits = "mm";
@@ -937,13 +943,16 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
         pszMIFUnits = "cm";
     else if( dfLinearConv == 1.0 )
         pszMIFUnits = "m";
-    else if( EQUAL(pszLinearUnits,SRS_UL_US_FOOT) )
+    else if( dfLinearConv == atof(SRS_UL_US_FOOT_CONV)
+             || EQUAL(pszLinearUnits,SRS_UL_US_FOOT) )
         pszMIFUnits = "survey ft";
     else if( EQUAL(pszLinearUnits,SRS_UL_NAUTICAL_MILE) )
         pszMIFUnits = "nmi";
-    else if( EQUAL(pszLinearUnits,SRS_UL_LINK) )
+    else if( EQUAL(pszLinearUnits,SRS_UL_LINK) 
+             || EQUAL(pszLinearUnits,"GUNTERLINK") )
         pszMIFUnits = "li";
-    else if( EQUAL(pszLinearUnits,SRS_UL_CHAIN) )
+    else if( EQUAL(pszLinearUnits,SRS_UL_CHAIN) 
+             || EQUAL(pszLinearUnits,"GUNTERCHAIN") )
         pszMIFUnits = "ch";
     else if( EQUAL(pszLinearUnits,SRS_UL_ROD) )
         pszMIFUnits = "rd";

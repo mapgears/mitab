@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.22 2000-01-16 19:08:48 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.23 2000-01-26 21:18:39 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.22  2000-01-16 19:08:48  daniel
+ * Revision 1.23  2000-01-26 21:18:39  daniel
+ * Fixed writing of arc angles... they were written in reversed order.
+ *
+ * Revision 1.22  2000/01/16 19:08:48  daniel
  * Added support for reading 'Table Type DBF' tables
  *
  * Revision 1.21  2000/01/15 22:30:43  daniel
@@ -3605,36 +3608,14 @@ int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
      * Start/End angles
      * Since we ALWAYS produce files in quadrant 1 then we can
      * ignore the special angle conversion required by flipped axis.
+     *
+     * See the notes about Arc angles in TABArc::ReadGeometryFromMAPFile()
      *------------------------------------------------------------*/
     CPLAssert(poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant == 1);
 
-    if (TRUE)
-    {
-        /*-------------------------------------------------------------
-         * OK, Arc angles again!!!!!!!!!!!!
-         * After further tests, it appears that the angle values ALWAYS
-         * have to be flipped, no matter which quadrant the file is in.
-         * This does not make any sense, so I suspect that there is something
-         * that we are missing here!
-         *------------------------------------------------------------*/
-        double dAdjustedStartAngle, dAdjustedEndAngle;
-
-        dAdjustedStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
-                                               (540.0-m_dStartAngle);
-        dAdjustedEndAngle   = (m_dEndAngle<=180.0) ? (180.0-m_dEndAngle):
-                                               (540.0-m_dEndAngle);
-        poObjBlock->WriteInt16(ROUND_INT(dAdjustedEndAngle*10.0));
-        poObjBlock->WriteInt16(ROUND_INT(dAdjustedStartAngle*10.0));
-    }
-    else
-    {
-        /* This is what we should logically do... but looks like MapInfo
-         * does not like arc angles written this way...
-         */
-        poObjBlock->WriteInt16(ROUND_INT(m_dStartAngle*10.0));
-        poObjBlock->WriteInt16(ROUND_INT(m_dEndAngle*10.0));
-    }
-
+    poObjBlock->WriteInt16(ROUND_INT(m_dStartAngle*10.0));
+    poObjBlock->WriteInt16(ROUND_INT(m_dEndAngle*10.0));
+    
     // An arc is defined by its defining ellipse's MBR:
     poMapFile->Coordsys2Int(m_dCenterX-m_dXRadius, m_dCenterY-m_dYRadius,
                             nXMin, nYMin);

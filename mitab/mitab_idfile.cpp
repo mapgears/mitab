@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_idfile.cpp,v 1.5 2000-01-15 22:30:44 daniel Exp $
+ * $Id: mitab_idfile.cpp,v 1.6 2000-01-18 22:08:56 daniel Exp $
  *
  * Name:     mitab_idfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_idfile.cpp,v $
- * Revision 1.5  2000-01-15 22:30:44  daniel
+ * Revision 1.6  2000-01-18 22:08:56  daniel
+ * Allow opening of 0-size .ID file (dataset with 0 features)
+ *
+ * Revision 1.5  2000/01/15 22:30:44  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.4  1999/09/26 14:59:36  daniel
@@ -175,7 +178,15 @@ int TABIDFile::Open(const char *pszFname, const char *pszAccess)
          * Read the first block from the file
          *------------------------------------------------------------*/
         m_poIDBlock = new TABRawBinBlock(m_eAccessMode, FALSE);
-        if (m_poIDBlock->ReadFromFile(m_fp, 0, m_nBlockSize) != 0)
+
+        if (m_nMaxId == 0)
+        {
+            // .ID file size = 0 ... just allocate a blank block but
+            // it won't get really used anyways.
+            m_nBlockSize = 512;
+            m_poIDBlock->InitNewBlock(m_fp, m_nBlockSize, 0);
+        }
+        else if (m_poIDBlock->ReadFromFile(m_fp, 0, m_nBlockSize) != 0)
         {
             // CPLError() has already been called.
             Close();

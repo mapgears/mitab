@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.7 1999-09-28 04:52:17 daniel Exp $
+ * $Id: mitab_spatialref.cpp,v 1.8 1999-10-04 19:46:42 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.7  1999-09-28 04:52:17  daniel
+ * Revision 1.8  1999-10-04 19:46:42  warmerda
+ * assorted changes, including rework of units
+ *
+ * Revision 1.7  1999/09/28 04:52:17  daniel
  * Added missing param in sprintf() format for szDatumName[]
  *
  * Revision 1.6  1999/09/28 02:51:46  warmerda
@@ -99,7 +102,7 @@ static MapInfoDatumInfo asDatumInfoList[] =
 {26, "", 4, 230, -199, -752, 0, 0, 0, 0, 0},
 {27, "", 4, 211, 147, 111, 0, 0, 0, 0, 0},
 {28, "European_Datum_1950", 4, -87, -98, -121, 0, 0, 0, 0, 0},
-{29, "European_Datum_1987", 4, -86, -98, -119, 0, 0, 0, 0, 0},
+{29, "", 4, -86, -98, -119, 0, 0, 0, 0, 0},
 {30, "Gandajika_1970", 4, -133, -321, 50, 0, 0, 0, 0, 0},
 {31, "", 4, 84, -22, 209, 0, 0, 0, 0, 0},
 {32, "", 21, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -178,7 +181,7 @@ static MapInfoDatumInfo asDatumInfoList[] =
 {105, "Yacare", 4, -155, 171, 37, 0, 0, 0, 0, 0},
 {106, "Zanderij", 4, -265, 120, -358, 0, 0, 0, 0, 0},
 {107, "Nouvelle_Triangulation_Francaise", 30, -168, -60, 320, 0, 0, 0, 0, 0},
-{108, "", 4, -83, -96, -113, 0, 0, 0, 0, 0},
+{108, "European_Datum_1987", 4, -83, -96, -113, 0, 0, 0, 0, 0},
 {109, "", 10, 593, 26, 478, 0, 0, 0, 0, 0},
 {110, "", 4, 81, 120, 129, 0, 0, 0, 0, 0},
 {111, "", 1, -1, 15, 1, 0, 0, 0, 0, 0},
@@ -462,7 +465,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
             break;
             
           case 2:
-            poUnits->GetChild(0)->SetValue("Inch");
+            poUnits->GetChild(0)->SetValue("IINCH");
             poUnits->GetChild(1)->SetValue("0.0254");
             break;
             
@@ -472,7 +475,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
             break;
             
           case 4:
-            poUnits->GetChild(0)->SetValue("Yard");
+            poUnits->GetChild(0)->SetValue("IYARD");
             poUnits->GetChild(1)->SetValue("0.9144");
             break;
             
@@ -567,17 +570,33 @@ OGRSpatialReference *TABFile::GetSpatialRef()
 
     if( psDatumInfo == NULL )
     {
-        sprintf( szDatumName,
-                 "DefDatum %d %.4g %.4g %.4g %.15g %.15g %.15g %.15g %.15g",
-                 sTABProj.nEllipsoidId,
-                 sTABProj.dDatumShiftX, 
-                 sTABProj.dDatumShiftY, 
-                 sTABProj.dDatumShiftZ,
-                 sTABProj.adDatumParams[0],
-                 sTABProj.adDatumParams[1],
-                 sTABProj.adDatumParams[2],
-                 sTABProj.adDatumParams[3],
-                 sTABProj.adDatumParams[4] );
+        if( sTABProj.adDatumParams[0] == 0.0
+            && sTABProj.adDatumParams[1] == 0.0
+            && sTABProj.adDatumParams[2] == 0.0
+            && sTABProj.adDatumParams[3] == 0.0
+            && sTABProj.adDatumParams[4] == 0.0 )
+        {
+            sprintf( szDatumName,
+                     "MIF 999,%d,%.4g,%.4g,%.4g",
+                     sTABProj.nEllipsoidId,
+                     sTABProj.dDatumShiftX, 
+                     sTABProj.dDatumShiftY, 
+                     sTABProj.dDatumShiftZ );
+        }
+        else
+        {
+            sprintf( szDatumName,
+                    "MIF 9999,%d,%.4g,%.4g,%.4g,%.15g,%.15g,%.15g,%.15g,%.15g",
+                     sTABProj.nEllipsoidId,
+                     sTABProj.dDatumShiftX, 
+                     sTABProj.dDatumShiftY, 
+                     sTABProj.dDatumShiftZ,
+                     sTABProj.adDatumParams[0],
+                     sTABProj.adDatumParams[1],
+                     sTABProj.adDatumParams[2],
+                     sTABProj.adDatumParams[3],
+                     sTABProj.adDatumParams[4] );
+        }
         
         poDatum->AddChild( new OGR_SRSNode(szDatumName) );
 
@@ -590,7 +609,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     }
     else
     {
-        sprintf( szDatumName, "MapInfo %d", psDatumInfo->nMapInfoDatumID );
+        sprintf( szDatumName, "MIF %d", psDatumInfo->nMapInfoDatumID );
         
         poDatum->AddChild( new OGR_SRSNode(szDatumName) );
         poHeader->SetProjInfo( &sTABProj );
@@ -612,13 +631,27 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     */
 
     /*-----------------------------------------------------------------
-     * It seems that the prime meridian is always Greenwich for Mapinfo
+     * Set the prime meridian.
      *----------------------------------------------------------------*/
-    
-    poDatum->AddChild( (poPM = new OGR_SRSNode("PRIMEM")) );
 
-    poPM->AddChild( new OGR_SRSNode("Greenwich") );
-    poPM->AddChild( new OGR_SRSNode("0") );
+    poDatum->AddChild( (poPM = new OGR_SRSNode("PRIMEM")) );
+        
+    if( sTABProj.adDatumParams[4] != 0.0 )
+    {
+        char	szPMOffset[64];
+
+        sprintf( szPMOffset, "%.15g", sTABProj.adDatumParams[4] );
+        
+        poPM->AddChild( new OGR_SRSNode("non-Greenwich") );
+        poPM->AddChild( new OGR_SRSNode(szPMOffset) );
+    }
+    else
+    {
+        poDatum->AddChild( (poPM = new OGR_SRSNode("PRIMEM")) );
+        
+        poPM->AddChild( new OGR_SRSNode("Greenwich") );
+        poPM->AddChild( new OGR_SRSNode("0") );
+    }
                     
     /*-----------------------------------------------------------------
      * GeogCS is always in degrees.
@@ -695,7 +728,11 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     const char *pszProjection = poSpatialRef->GetAttrValue("PROJECTION");
     double	*parms = sTABProj.adProjParams;
 
-    if( EQUAL(pszProjection,SRS_PT_ALBERS_CONIC_EQUAL_AREA) )
+    if( pszProjection == NULL )
+    {
+        sTABProj.nProjId = 1;
+    }
+    else if( EQUAL(pszProjection,SRS_PT_ALBERS_CONIC_EQUAL_AREA) )
     {
         sTABProj.nProjId = 9;
         parms[0] = poSpatialRef->GetProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0);
@@ -843,19 +880,25 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
     }
 
-    /*-----------------------------------------------------------------
+    /* ==============================================================
      * Translate Datum and Ellipsoid
-     *----------------------------------------------------------------*/
+     * ============================================================== */
     const char *pszWKTDatum = poSpatialRef->GetAttrValue("DATUM");
     MapInfoDatumInfo *psDatumInfo = NULL;
 
-    if( EQUALN(pszWKTDatum,"Mapinfo ",8) )
+    /*-----------------------------------------------------------------
+     * We know the MIF datum number, and need to look it up to
+     * translate into datum parameters.
+     *----------------------------------------------------------------*/
+    if( EQUALN(pszWKTDatum,"MIF ",4)
+        && atoi(pszWKTDatum+4) != 999
+        && atoi(pszWKTDatum+4) != 9999 )
     {
         int	i;
 
         for( i = 0; asDatumInfoList[i].nMapInfoDatumID != -1; i++ )
         {
-            if( atoi(pszWKTDatum+8) == asDatumInfoList[i].nMapInfoDatumID )
+            if( atoi(pszWKTDatum+4) == asDatumInfoList[i].nMapInfoDatumID )
             {
                 psDatumInfo = asDatumInfoList + i;
                 break;
@@ -866,6 +909,44 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
             psDatumInfo = asDatumInfoList+0; /* WGS 84 */
     }
 
+    /*-----------------------------------------------------------------
+     * We have the MIF datum parameters, and apply those directly.
+     *----------------------------------------------------------------*/
+    else if( EQUALN(pszWKTDatum,"MIF ",4)
+             && (atoi(pszWKTDatum+4) == 999 || atoi(pszWKTDatum+4) == 9999) )
+    {
+        char **papszFields;
+
+        papszFields =
+            CSLTokenizeStringComplex( pszWKTDatum+4, ",", FALSE, TRUE);
+
+        if( CSLCount(papszFields) >= 5 )
+        {
+            sTABProj.nEllipsoidId = atoi(papszFields[1]);
+            sTABProj.dDatumShiftX = atof(papszFields[2]);
+            sTABProj.dDatumShiftY = atof(papszFields[3]);
+            sTABProj.dDatumShiftZ = atof(papszFields[4]);
+        }
+
+        if( CSLCount(papszFields) >= 10 )
+        {
+            sTABProj.adDatumParams[0] = atof(papszFields[4]);
+            sTABProj.adDatumParams[1] = atof(papszFields[5]);
+            sTABProj.adDatumParams[2] = atof(papszFields[6]);
+            sTABProj.adDatumParams[3] = atof(papszFields[7]);
+            sTABProj.adDatumParams[4] = atof(papszFields[8]);
+        }
+
+        CSLDestroy( papszFields );
+
+        if( CSLCount(papszFields) < 5 )
+            psDatumInfo = asDatumInfoList+0; /* WKS84 */
+    }
+    
+    /*-----------------------------------------------------------------
+     * We have a "real" datum name.  Try to look it up and get the
+     * parameters.  If we don't find it just use WGS84.
+     *----------------------------------------------------------------*/
     else 
     {
         int	i;
@@ -883,15 +964,55 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
             psDatumInfo = asDatumInfoList+0; /* WGS 84 */
     }
 
-    sTABProj.nEllipsoidId = psDatumInfo->nEllipsoid;
-    sTABProj.dDatumShiftX = psDatumInfo->dfShiftX;
-    sTABProj.dDatumShiftY = psDatumInfo->dfShiftY;
-    sTABProj.dDatumShiftZ = psDatumInfo->dfShiftZ;
-    sTABProj.adDatumParams[0] = psDatumInfo->dfDatumParm0;
-    sTABProj.adDatumParams[1] = psDatumInfo->dfDatumParm1;
-    sTABProj.adDatumParams[2] = psDatumInfo->dfDatumParm2;
-    sTABProj.adDatumParams[3] = psDatumInfo->dfDatumParm3;
-    sTABProj.adDatumParams[4] = psDatumInfo->dfDatumParm4;
+    if( psDatumInfo != NULL )
+    {
+        sTABProj.nEllipsoidId = psDatumInfo->nEllipsoid;
+        sTABProj.dDatumShiftX = psDatumInfo->dfShiftX;
+        sTABProj.dDatumShiftY = psDatumInfo->dfShiftY;
+        sTABProj.dDatumShiftZ = psDatumInfo->dfShiftZ;
+        sTABProj.adDatumParams[0] = psDatumInfo->dfDatumParm0;
+        sTABProj.adDatumParams[1] = psDatumInfo->dfDatumParm1;
+        sTABProj.adDatumParams[2] = psDatumInfo->dfDatumParm2;
+        sTABProj.adDatumParams[3] = psDatumInfo->dfDatumParm3;
+        sTABProj.adDatumParams[4] = psDatumInfo->dfDatumParm4;
+    }
+    
+    /*-----------------------------------------------------------------
+     * Translate the units
+     *----------------------------------------------------------------*/
+    char 	*pszLinearUnits;
+    double      dfLinearConv;
+
+    dfLinearConv = poSpatialRef->GetLinearUnits( &pszLinearUnits );
+
+    if( sTABProj.nProjId == 1 || pszLinearUnits == NULL )
+        sTABProj.nUnitsId = 13;
+    else if( dfLinearConv == 1000.0 )
+        sTABProj.nUnitsId = 1;
+    else if( dfLinearConv == 0.0254 )
+        sTABProj.nUnitsId = 2;
+    else if( EQUAL(pszLinearUnits,SRS_UL_FOOT) )
+        sTABProj.nUnitsId = 3;
+    else if( EQUAL(pszLinearUnits,"IYARD") || dfLinearConv == 0.9144 )
+        sTABProj.nUnitsId = 4;
+    else if( dfLinearConv == 0.001 )
+        sTABProj.nUnitsId = 5;
+    else if( dfLinearConv == 0.01 )
+        sTABProj.nUnitsId = 6;
+    else if( dfLinearConv == 1.0 )
+        sTABProj.nUnitsId = 7;
+    else if( EQUAL(pszLinearUnits,SRS_UL_US_FOOT) )
+        sTABProj.nUnitsId = 8;
+    else if( EQUAL(pszLinearUnits,SRS_UL_NAUTICAL_MILE) )
+        sTABProj.nUnitsId = 9;
+    else if( EQUAL(pszLinearUnits,SRS_UL_LINK) )
+        sTABProj.nUnitsId = 30;
+    else if( EQUAL(pszLinearUnits,SRS_UL_CHAIN) )
+        sTABProj.nUnitsId = 31;
+    else if( EQUAL(pszLinearUnits,SRS_UL_ROD) )
+        sTABProj.nUnitsId = 32;
+    else
+        sTABProj.nUnitsId = 7;
     
     /*-----------------------------------------------------------------
      * Set the new parameters in the .MAP header.

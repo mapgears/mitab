@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.48 2001-11-19 15:08:50 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.49 2002-03-26 01:48:40 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.48  2001-11-19 15:08:50  daniel
+ * Revision 1.49  2002-03-26 01:48:40  daniel
+ * Added Multipoint object type (V650)
+ *
+ * Revision 1.48  2001/11/19 15:08:50  daniel
  * Handle the case of TAB_GEOM_NONE with the new TABMAPObjHdr classes.
  *
  * Revision 1.47  2001/11/17 21:54:06  daniel
@@ -1255,6 +1258,10 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
       case TAB_GEOM_TEXT_C:
       case TAB_GEOM_TEXT:
         m_poCurFeature = new TABText(m_poDefn);
+        break;
+      case TAB_GEOM_MULTIPOINT_C:
+      case TAB_GEOM_MULTIPOINT:
+        m_poCurFeature = new TABMultiPoint(m_poDefn);
         break;
       default:
         /*-------------------------------------------------------------

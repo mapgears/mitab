@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.23 2002-02-20 13:53:40 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.24 2002-03-26 01:48:40 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.23  2002-02-20 13:53:40  daniel
+ * Revision 1.24  2002-03-26 01:48:40  daniel
+ * Added Multipoint object type (V650)
+ *
+ * Revision 1.23  2002/02/20 13:53:40  daniel
  * Prevent an infinite loop of calls to LoadNextMatchingObjectBlock() in
  * GetNextFeatureId() if no objects found in spatial index.
  *
@@ -987,6 +990,17 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
          nObjType == TAB_GEOM_V450_MULTIPLINE_C) )
     {
         m_nMinTABVersion = 450;
+    }
+    /*-----------------------------------------------------------------
+     * Check for V460-specific object types (multipoint and collection)
+     *----------------------------------------------------------------*/
+    if (m_nMinTABVersion < 650 &&
+        (nObjType == TAB_GEOM_MULTIPOINT   ||
+         nObjType == TAB_GEOM_MULTIPOINT_C ||
+         nObjType == TAB_GEOM_COLLECTION   ||
+         nObjType == TAB_GEOM_COLLECTION_C    ) )
+    {
+        m_nMinTABVersion = 650;
     }
 
     /*-----------------------------------------------------------------

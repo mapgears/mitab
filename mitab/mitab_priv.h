@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.30 2002-02-22 20:44:51 julien Exp $
+ * $Id: mitab_priv.h,v 1.31 2002-03-26 01:48:40 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.30  2002-02-22 20:44:51  julien
+ * Revision 1.31  2002-03-26 01:48:40  daniel
+ * Added Multipoint object type (V650)
+ *
+ * Revision 1.30  2002/02/22 20:44:51  julien
  * Prevent infinite loop with TABRelation by suppress the m_poCurFeature object
  * from the class and setting it in the calling function and add GetFeature in
  * the class. (bug 706)
@@ -577,6 +580,28 @@ class TABMAPObjText: public TABMAPObjHdrWithCoord
 //  protected:
     virtual int ReadObj(TABMAPObjectBlock *);
 };
+
+
+class TABMAPObjMultiPoint: public TABMAPObjHdrWithCoord
+{
+  public:
+    GInt32      m_nNumPoints;
+    GInt32      m_nComprOrgX;   /* Present only in compressed coord. case */
+    GInt32      m_nComprOrgY;
+    GByte       m_nSymbolId;
+    GInt32      m_nLabelX;      /* Not sure if it's a label point, but */
+    GInt32      m_nLabelY;      /* it's similar to what we find in PLINE */
+
+    TABMAPObjMultiPoint() {};
+    virtual ~TABMAPObjMultiPoint() {};
+
+    virtual int WriteObj(TABMAPObjectBlock *);
+
+//  protected:
+    virtual int ReadObj(TABMAPObjectBlock *);
+};
+
+
 
 /*=====================================================================
           Classes to handle .MAP files low-level blocks

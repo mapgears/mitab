@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.60 2002-03-26 03:17:13 daniel Exp $
+ * $Id: mitab.h,v 1.61 2002-03-26 19:27:43 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -8,7 +8,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999-2001, Daniel Morissette
+ * Copyright (c) 1999-2002, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.60  2002-03-26 03:17:13  daniel
+ * Revision 1.61  2002-03-26 19:27:43  daniel
+ * Got rid of tabs in source
+ *
+ * Revision 1.60  2002/03/26 03:17:13  daniel
  * Added Get/SetCenter() to MultiPoint
  *
  * Revision 1.59  2002/03/26 01:48:40  daniel
@@ -325,7 +328,7 @@ class TABFile: public IMapInfoFile
     // Read access specific stuff
     //
 
-    int		GetNextFeatureId_Spatial( int nPrevId );
+    int         GetNextFeatureId_Spatial( int nPrevId );
 
     virtual int GetNextFeatureId(int nPrevId);
     virtual TABFeature *GetFeatureRef(int nFeatureId);

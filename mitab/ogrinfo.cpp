@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrinfo.cpp,v 1.3 2001-09-14 03:21:35 warmerda Exp $
+ * $Id: ogrinfo.cpp,v 1.4 2002-03-26 19:27:43 daniel Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Simple client for viewing OGR driver data.
@@ -28,7 +28,10 @@
  ******************************************************************************
  *
  * $Log: ogrinfo.cpp,v $
- * Revision 1.3  2001-09-14 03:21:35  warmerda
+ * Revision 1.4  2002-03-26 19:27:43  daniel
+ * Got rid of tabs in source
+ *
+ * Revision 1.3  2001/09/14 03:21:35  warmerda
  * upgraded
  *
  * Revision 1.11  2001/07/18 05:03:05  warmerda
@@ -72,7 +75,7 @@
 #include "mitab_priv.h"
 #include "mitab_ogr_driver.h"
 
-CPL_CVSID("$Id: ogrinfo.cpp,v 1.3 2001-09-14 03:21:35 warmerda Exp $");
+CPL_CVSID("$Id: ogrinfo.cpp,v 1.4 2002-03-26 19:27:43 daniel Exp $");
 
 int     bReadOnly = FALSE;
 int     bVerbose = TRUE;
@@ -365,7 +368,7 @@ static void ReportOnLayer( OGRLayer * poLayer, const char *pszWHERE,
 /* -------------------------------------------------------------------- */
 #ifdef notdef
     OGRFeature  *poFeature;
-    int		nId = -1;
+    int         nId = -1;
 
     while( (nId = poTF->GetNextFeatureId_Spatial(nId)) != -1 )
     {

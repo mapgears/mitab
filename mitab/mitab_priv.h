@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.31 2002-03-26 01:48:40 daniel Exp $
+ * $Id: mitab_priv.h,v 1.32 2002-03-26 19:27:43 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -8,7 +8,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999-2001, Daniel Morissette
+ * Copyright (c) 1999-2002, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.31  2002-03-26 01:48:40  daniel
+ * Revision 1.32  2002-03-26 19:27:43  daniel
+ * Got rid of tabs in source
+ *
+ * Revision 1.31  2002/03/26 01:48:40  daniel
  * Added Multipoint object type (V650)
  *
  * Revision 1.30  2002/02/22 20:44:51  julien
@@ -935,9 +938,9 @@ class TABMAPObjectBlock: public TABRawBinBlock
                        GInt32 &nXMax, GInt32 &nYMax);
 
     int         AdvanceToNextObject( TABMAPHeaderBlock * );
-    int		GetCurObjectOffset() { return m_nCurObjectOffset; }
-    int		GetCurObjectId() { return m_nCurObjectId; }
-    int		GetCurObjectType() { return m_nCurObjectType; }
+    int         GetCurObjectOffset() { return m_nCurObjectOffset; }
+    int         GetCurObjectId() { return m_nCurObjectId; }
+    int         GetCurObjectType() { return m_nCurObjectType; }
 
 #ifdef DEBUG
     virtual void Dump(FILE *fpOut = NULL) { Dump(fpOut, FALSE); };
@@ -1191,7 +1194,7 @@ class TABMAPFile
     int         PrepareNewObj(int nObjId, GByte nObjType);
 
     void        ResetReading();
-    int		GetNextFeatureId( int nPrevId );
+    int         GetNextFeatureId( int nPrevId );
 
     int         GetCurObjType();
     int         GetCurObjId();

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.24 2002-03-26 01:48:40 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.25 2002-03-26 19:27:43 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.24  2002-03-26 01:48:40  daniel
+ * Revision 1.25  2002-03-26 19:27:43  daniel
+ * Got rid of tabs in source
+ *
+ * Revision 1.24  2002/03/26 01:48:40  daniel
  * Added Multipoint object type (V650)
  *
  * Revision 1.23  2002/02/20 13:53:40  daniel
@@ -542,7 +545,7 @@ int TABMAPFile::LoadNextMatchingObjectBlock( int bFirstObject )
 
     while( m_poSpIndexLeaf != NULL )
     {
-        int		iEntry = m_poSpIndexLeaf->GetCurChildIndex();
+        int     iEntry = m_poSpIndexLeaf->GetCurChildIndex();
 
         if( iEntry >= m_poSpIndexLeaf->GetNumEntries()-1 )
         {

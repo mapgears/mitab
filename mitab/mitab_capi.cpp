@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.17 2002-02-22 14:10:33 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.18 2002-03-26 19:27:43 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -10,7 +10,7 @@
  * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  **********************************************************************
- * Copyright (c) 2000-2001, Frank Warmerdam
+ * Copyright (c) 2000-2002, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.17  2002-02-22 14:10:33  daniel
+ * Revision 1.18  2002-03-26 19:27:43  daniel
+ * Got rid of tabs in source
+ *
+ * Revision 1.17  2002/02/22 14:10:33  daniel
  * Restored mitab_c_set_arc() fix from v1.15 which had been overwritten.
  * Added a note about VB, Pascal, MapBasic in Doxygen docs introduction.
  *
@@ -1120,7 +1123,7 @@ mitab_c_get_font_vb( mitab_feature feature, char * font, int l )
     if( poFeature->GetFeatureClass() == TABFC_Text )
     {
          strncpy(font,poFeature->GetFontNameRef(),l);
-    	   return strlen(font);
+           return strlen(font);
     }
     return 0;
 }
@@ -1878,7 +1881,7 @@ mitab_c_get_field_as_string_vb( mitab_feature feature, int field, char * value, 
 
     if (poFeature)
     {
-	strncpy(value,poFeature->GetFieldAsString(field),l);
+        strncpy(value,poFeature->GetFieldAsString(field),l);
         return strlen(value);
     };
     return 0;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.5 2000-02-28 17:14:31 daniel Exp $
+ * $Id: tabdump.cpp,v 1.6 2000-10-18 03:57:55 daniel Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.5  2000-02-28 17:14:31  daniel
+ * Revision 1.6  2000-10-18 03:57:55  daniel
+ * Added DumpCoordsys()
+ *
+ * Revision 1.5  2000/02/28 17:14:31  daniel
  * Report indexed fields
  *
  * Revision 1.4  2000/01/15 22:30:45  daniel
@@ -57,6 +60,7 @@ static int DumpMapFileObjects(const char *pszFname);
 static int DumpIndFileObjects(const char *pszFname);
 
 static int DumpTabFile(const char *pszFname);
+static int DumpCoordsys(const char *pszFname);
 
 
 #define TABTEST_USAGE "Usage: tabtest -a|-all     <filename>\n" \
@@ -142,6 +146,19 @@ int main(int argc, char *argv[])
             strstr(pszFname, ".TAB") != NULL)
         {
             DumpTabFile(pszFname);
+        }
+    }
+/*---------------------------------------------------------------------
+ *      With option -coordsys <filename>
+ *      Dump the dataset's projection string
+ *--------------------------------------------------------------------*/
+    else if (EQUALN(argv[1], "-coordsys", 2))
+    {
+
+        if (strstr(pszFname, ".tab") != NULL ||
+            strstr(pszFname, ".TAB") != NULL)
+        {
+            DumpCoordsys(pszFname);
         }
     }
 /*---------------------------------------------------------------------
@@ -353,6 +370,79 @@ static int DumpIndFileObjects(const char *pszFname)
      * Cleanup and exit.
      *--------------------------------------------------------------------*/
     oINDFile.Close();
+
+    return 0;
+}
+
+/**********************************************************************
+ *                          DumpCoordsys()
+ *
+ * Open a .TAB file and dump coordsys info
+ **********************************************************************/
+static int DumpCoordsys(const char *pszFname)
+{
+    IMapInfoFile  *poFile;
+    double dXMin, dYMin, dXMax, dYMax;
+
+    /*---------------------------------------------------------------------
+     * Try to open source file
+     *--------------------------------------------------------------------*/
+    if ((poFile = IMapInfoFile::SmartOpen(pszFname)) == NULL)
+    {
+        printf("Failed to open %s\n", pszFname);
+        return -1;
+    }
+
+    OGRSpatialReference *poSRS = poFile->GetSpatialRef();
+    char *pszCoordSys = MITABSpatialRef2CoordSys(poSRS);
+    char *pszProjString=NULL;
+
+    printf("CoordSys %s\n", pszCoordSys?pszCoordSys:"(null)");
+
+    if (poFile->GetBounds(dXMin, dYMin, dXMax, dYMax) == 0)
+    {
+        printf("  Bounds (%.15g %.15g) (%.15g %.15g)\n", dXMin, dYMin, dXMax, dYMax);
+        printf("    dX dY = %.15g %.15g\n", dXMax - dXMin, dYMax - dYMin);
+
+    }
+    else
+    {
+        printf("  Bounds not available!\n");
+    }
+
+    if (poSRS)
+    {
+
+//        poSRS->exportToWkt(&pszProjString);
+//        printf("  WKT SRS = %s\n", pszProjString);
+//        CPLFree(pszProjString);
+
+        poSRS->exportToProj4(&pszProjString);
+        printf("  PROJ4 SRS = %s\n", pszProjString);
+
+        // Write bounds to a file and launch 'proj' to convert them to LAT/LON
+        FILE *fpOut;
+        if (pszProjString &&
+            (fpOut = fopen("/tmp/tttbounds.txt", "w")))
+        {
+            fprintf(fpOut, "%.15g %.15g\n", dXMin, dYMin);
+            fprintf(fpOut, "%.15g %.15g\n", dXMax, dYMax);
+            fclose(fpOut);
+
+            fflush(stdout);
+
+            system(CPLSPrintf("proj -I %s /tmp/tttbounds.txt", pszProjString));
+        }
+
+    }
+
+    /*---------------------------------------------------------------------
+     * Cleanup and exit.
+     *--------------------------------------------------------------------*/
+    CPLFree(pszProjString);
+    poFile->Close();
+
+    delete poFile;
 
     return 0;
 }

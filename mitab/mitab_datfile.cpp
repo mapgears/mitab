@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_datfile.cpp,v 1.14 2000-02-28 16:52:52 daniel Exp $
+ * $Id: mitab_datfile.cpp,v 1.15 2000-04-27 15:42:03 daniel Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_datfile.cpp,v $
- * Revision 1.14  2000-02-28 16:52:52  daniel
+ * Revision 1.15  2000-04-27 15:42:03  daniel
+ * Map variable field length (width=0) coming from OGR to acceptable default
+ *
+ * Revision 1.14  2000/02/28 16:52:52  daniel
  * Added support for writing indexes, removed validation on field name in
  * NATIVE tables, and remove trailing spaces in DBF char field values
  *
@@ -686,6 +689,14 @@ int  TABDATFile::AddField(const char *pszName, TABFieldType eType,
                  "Size must be 254 or less.", nWidth, pszName);
         return -1;
     }
+
+    /*-----------------------------------------------------------------
+     * Map fields with width=0 (variable length in OGR) to a valid default
+     *----------------------------------------------------------------*/
+    if (eType == TABFDecimal && nWidth == 0)
+        nWidth=20;
+    else if (nWidth == 0)
+        nWidth=254; /* char fields */
 
     if (m_numFields < 0)
         m_numFields = 0;

@@ -4,4 +4,9 @@ tab2mif
 mif2tab
 mif2mif
 mitabc_test
+*.lib
+*.exp
+*.pdb
+*.ilk
+mitab.dll
 

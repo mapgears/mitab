@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.7 1999-10-18 15:40:27 daniel Exp $
+ * $Id: mitab_priv.h,v 1.8 1999-11-08 04:34:54 stephane Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.7  1999-10-18 15:40:27  daniel
+ * Revision 1.8  1999-11-08 04:34:54  stephane
+ * mid/mif support
+ *
+ * Revision 1.7  1999/10/18 15:40:27  daniel
  * Added TABMAPObjectBlock::WriteIntMBRCoord()
  *
  * Revision 1.6  1999/10/01 03:45:27  daniel
@@ -886,6 +889,56 @@ class TABDATFile
 #endif
 
 };
+
+/*---------------------------------------------------------------------
+ *                      class MIDDATAFile
+ *
+ * Class to handle a file pointer with a copy of the latest readed line
+ *
+ *--------------------------------------------------------------------*/
+
+class MIDDATAFile
+{
+   public:
+      MIDDATAFile();
+     ~MIDDATAFile();
+
+     int         Open(const char *pszFname, const char *pszAccess);
+     int         Close();
+
+     const char *GetLine();
+     const char *GetLastLine();
+     int Rewind();
+     void SaveLine(const char *pszLine);
+     const char *GetSavedLine();
+     void WriteLine(const char*, ...);
+
+//  Translation information
+     void SetTranslation(double, double, double, double);
+     double GetXTrans(double);
+     double GetYTrans(double);
+     double GetXMultiplier(){return m_dfXMultiplier;}
+     const char *GetDelimiter(){return m_pszDelimiter;}
+     void SetDelimiter(const char *pszDelimiter){m_pszDelimiter = pszDelimiter;}
+
+     private:
+       FILE *m_fp;
+       const char *m_pszDelimiter;
+
+       // 512 is a limit for the length of a line
+#define MIDMAXCHAR 512
+       char m_szLastRead[MIDMAXCHAR];
+       char m_szSavedLine[MIDMAXCHAR];
+
+       char        *m_pszFname;
+       TABAccess   m_eAccessMode;
+       double      m_dfXMultiplier;
+       double      m_dfYMultiplier;
+       double      m_dfXDisplacement;
+       double      m_dfYDisplacement;
+};
+
+
 
 /*=====================================================================
                         Function prototypes

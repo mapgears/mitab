@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.16 2002-05-08 19:59:23 daniel Exp $
+ * $Id: mitab_capi.h,v 1.17 2002-05-08 20:27:07 daniel Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.16  2002-05-08 19:59:23  daniel
+ * Revision 1.17  2002-05-08 20:27:07  daniel
+ * Use cdecl calling convention if MITAB_CDECL is set at compile time.
+ *
+ * Revision 1.16  2002/05/08 19:59:23  daniel
  * Use stdcall by default for all public functions
  *
  * Revision 1.15  2002/05/03 15:09:14  daniel
@@ -96,8 +99,13 @@ extern "C" {
 #endif
 
 #ifdef _WIN32
-#define MITAB_DLL __declspec(dllexport) __stdcall
-#define MITAB_STDCALL __stdcall
+# ifndef MITAB_CDECL  /* STDCALL is the default */
+#   define MITAB_DLL __declspec(dllexport) __stdcall
+#   define MITAB_STDCALL __stdcall
+# else                /* Use CDECL only if MITAB_CDECL explicitly set */
+#   define MITAB_DLL __declspec(dllexport)
+#   define MITAB_STDCALL
+# endif
 #else
 #define MITAB_DLL
 #define MITAB_STDCALL

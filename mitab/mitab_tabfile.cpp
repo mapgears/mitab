@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.33 2000-03-19 23:22:43 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.34 2000-06-28 00:31:05 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.33  2000-03-19 23:22:43  daniel
+ * Revision 1.34  2000-06-28 00:31:05  warmerda
+ * Try to set geometry type on OGRFeatureDefn by feature count
+ *
+ * Revision 1.33  2000/03/19 23:22:43  daniel
  * Fixed test on return value of SetSpatialRef() in SetMIFCoordSys()
  *
  * Revision 1.32  2000/02/28 17:11:14  daniel
@@ -438,6 +441,25 @@ int TABFile::Open(const char *pszFname, const char *pszAccess,
             Close();
             return -1;
         }
+
+        /*-------------------------------------------------------------
+         * Set geometry type if the geometry objects are uniform.
+         *------------------------------------------------------------*/
+        int numPoints=0, numRegions=0, numTexts=0, numLines=0;
+
+        GetFeatureCountByType( numPoints, numLines, numRegions, numTexts);
+
+        printf( "p=%d,l=%d,r=%d,t=%d\n", 
+                numPoints, numLines, numRegions, numTexts );
+        numPoints += numTexts;
+        if( numPoints > 0 && numLines == 0 && numRegions == 0 )
+            m_poDefn->SetGeomType( wkbPoint );
+        else if( numPoints == 0 && numLines > 0 && numRegions == 0 )
+            m_poDefn->SetGeomType( wkbLineString );
+        else if( numPoints == 0 && numLines == 0 && numRegions > 0 )
+            m_poDefn->SetGeomType( wkbPolygon );
+        else
+            /* we leave it unknown indicating a mixture */;
     }
     else if (m_poMAPFile->Open(pszTmpFname, pszAccess) != 0)
     {
@@ -612,7 +634,7 @@ int TABFile::ParseTABFileFirstPass(GBool bTestOpenNoError)
  **********************************************************************/
 int TABFile::ParseTABFileFields()
 {
-    int         iLine, numLines, numTok, nStatus;
+    int         iLine, numLines=0, numTok, nStatus;
     char        **papszTok=NULL;
     OGRFieldDefn *poFieldDefn;
 
@@ -629,8 +651,10 @@ int TABFile::ParseTABFileFields()
     // Ref count defaults to 0... set it to 1
     m_poDefn->Reference();
 
+    /*-------------------------------------------------------------
+     * Scan for fields.
+     *------------------------------------------------------------*/
     numLines = CSLCount(m_papszTABFile);
-
     for(iLine=0; iLine<numLines; iLine++)
     {
         /*-------------------------------------------------------------

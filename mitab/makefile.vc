@@ -6,7 +6,7 @@
 #  - Run the VCVARS32.BAT script to initialize the VC++ environment variables
 #  - Start the build with:  nmake /f makefile.vc
 #
-# $Id: makefile.vc,v 1.1 2003-07-24 03:32:28 dmorissette Exp $
+# $Id: makefile.vc,v 1.2 2003-07-25 03:25:20 dmorissette Exp $
 #
 
 TABLIB  =	mitab.lib

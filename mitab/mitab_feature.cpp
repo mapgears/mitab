@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.1 1999-07-12 04:18:24 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.2 1999-09-01 17:49:24 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.1  1999-07-12 04:18:24  daniel
+ * Revision 1.2  1999-09-01 17:49:24  daniel
+ * Changes to work with latest OGR
+ *
+ * Revision 1.1  1999/07/12 04:18:24  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -139,6 +142,10 @@ int TABFeature::ReadRecordFromDATFile(TABDATFile *poDATFile)
             break;
           case TABFLogical:
             pszValue = poDATFile->ReadLogicalField();
+            SetField(iField, pszValue);
+            break;
+          case TABFDate:
+            pszValue = poDATFile->ReadDateField();
             SetField(iField, pszValue);
             break;
           default:
@@ -289,6 +296,60 @@ int TABPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
 
 
 /**********************************************************************
+ *                   TABPoint::GetX()
+ *
+ * Return this point's X coordinate.
+ **********************************************************************/
+double TABPoint::GetX()
+{
+    OGRGeometry *poGeom;
+    OGRPoint    *poPoint=NULL;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPoint)
+        poPoint = (OGRPoint*)poGeom;
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABPoint: Missing or Invalid Geometry!");
+        return 0.0;
+    }
+
+    return poPoint->getX();
+}
+
+/**********************************************************************
+ *                   TABPoint::GetY()
+ *
+ * Return this point's Y coordinate.
+ **********************************************************************/
+double TABPoint::GetY()
+{
+    OGRGeometry *poGeom;
+    OGRPoint    *poPoint=NULL;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbPoint)
+        poPoint = (OGRPoint*)poGeom;
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABPoint: Missing or Invalid Geometry!");
+        return 0.0;
+    }
+
+    return poPoint->getY();
+}
+
+
+
+/**********************************************************************
  *                   TABPoint::DumpMIF()
  *
  * Dump feature geometry in a format similar to .MIF POINTs.
@@ -304,7 +365,7 @@ void TABPoint::DumpMIF(FILE *fpOut /*=NULL*/)
     /*-----------------------------------------------------------------
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
-    poGeom = GetGeometryRef(NULL);
+    poGeom = GetGeometryRef();
     if (poGeom && poGeom->getGeometryType() == wkbPoint)
         poPoint = (OGRPoint*)poGeom;
     else
@@ -604,7 +665,7 @@ void TABPolyline::DumpMIF(FILE *fpOut /*=NULL*/)
     /*-----------------------------------------------------------------
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
-    poGeom = GetGeometryRef(NULL);
+    poGeom = GetGeometryRef();
     if (poGeom && poGeom->getGeometryType() == wkbLineString)
     {
         /*-------------------------------------------------------------
@@ -845,7 +906,7 @@ void TABRegion::DumpMIF(FILE *fpOut /*=NULL*/)
     /*-----------------------------------------------------------------
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
-    poGeom = GetGeometryRef(NULL);
+    poGeom = GetGeometryRef();
     if (poGeom && poGeom->getGeometryType() == wkbPolygon)
     {
         /*-------------------------------------------------------------
@@ -1071,7 +1132,7 @@ void TABRectangle::DumpMIF(FILE *fpOut /*=NULL*/)
     /*-----------------------------------------------------------------
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
-    poGeom = GetGeometryRef(NULL);
+    poGeom = GetGeometryRef();
     if (poGeom && poGeom->getGeometryType() == wkbPolygon)
     {
         /*-------------------------------------------------------------
@@ -1244,7 +1305,7 @@ void TABEllipse::DumpMIF(FILE *fpOut /*=NULL*/)
     /*-----------------------------------------------------------------
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
-    poGeom = GetGeometryRef(NULL);
+    poGeom = GetGeometryRef();
     if (poGeom && poGeom->getGeometryType() == wkbPolygon)
     {
         /*-------------------------------------------------------------
@@ -1443,7 +1504,7 @@ void TABArc::DumpMIF(FILE *fpOut /*=NULL*/)
     /*-----------------------------------------------------------------
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
-    poGeom = GetGeometryRef(NULL);
+    poGeom = GetGeometryRef();
     if (poGeom && poGeom->getGeometryType() == wkbLineString)
     {
         /*-------------------------------------------------------------
@@ -1569,7 +1630,7 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
 
         // Text Height
         nY = bComprCoord? poObjBlock->ReadInt16():poObjBlock->ReadInt32();
-        poMapFile->Int2CoordsysDist(0.0, nY, dJunk, m_dHeight);
+        poMapFile->Int2CoordsysDist(0, nY, dJunk, m_dHeight);
 
         poObjBlock->ReadByte();         // Font name index
 
@@ -1637,7 +1698,7 @@ void TABText::DumpMIF(FILE *fpOut /*=NULL*/)
     /*-----------------------------------------------------------------
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
-    poGeom = GetGeometryRef(NULL);
+    poGeom = GetGeometryRef();
     if (poGeom && poGeom->getGeometryType() == wkbPoint)
     {
         /*-------------------------------------------------------------

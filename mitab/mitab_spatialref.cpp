@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.11 1999-10-19 16:27:50 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.12 1999-10-19 16:31:32 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.11  1999-10-19 16:27:50  warmerda
+ * Revision 1.12  1999-10-19 16:31:32  warmerda
+ * Improved mile support.
+ *
+ * Revision 1.11  1999/10/19 16:27:50  warmerda
  * Added support for Mile (units=0).  Also added support for nonearth
  * projections.
  *
@@ -481,7 +484,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         {
           case 0:
             poUnits->GetChild(0)->SetValue("Mile");
-            poUnits->GetChild(1)->SetValue("1609.35");
+            poUnits->GetChild(1)->SetValue("1609.344");
             break;
 
           case 1:
@@ -1035,7 +1038,8 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         sTABProj.nUnitsId = 31;
     else if( EQUAL(pszLinearUnits,SRS_UL_ROD) )
         sTABProj.nUnitsId = 32;
-    else if( EQUAL(pszLinearUnits,"Mile") )
+    else if( EQUAL(pszLinearUnits,"Mile") 
+             || EQUAL(pszLinearUnits,"IMILE") )
         sTABProj.nUnitsId = 0;
     else
         sTABProj.nUnitsId = 7;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.20 1999-11-14 17:43:32 stephane Exp $
+ * $Id: mitab_tabfile.cpp,v 1.21 1999-11-14 17:49:18 stephane Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.20  1999-11-14 17:43:32  stephane
+ * Revision 1.21  1999-11-14 17:49:18  stephane
+ * Add missing ifndef OGR in open
+ *
+ * Revision 1.20  1999/11/14 17:43:32  stephane
  * Add ifdef to remove CPLError if OGR is define
  *
  * Revision 1.19  1999/11/14 04:49:11  daniel
@@ -380,9 +383,13 @@ int TABFile::Open(const char *pszFname, const char *pszAccess)
         {
             // File exists, but Open Failed... 
             // we have to produce an error message
+#ifndef OGR
             CPLError(CE_Failure, CPLE_FileIO, 
                      "Open() failed for %s", pszTmpFname);
-            CPLFree(pszTmpFname);
+#else
+            CPLErrorReset();
+#endif
+	    CPLFree(pszTmpFname);
             Close();
             return -1;
         }

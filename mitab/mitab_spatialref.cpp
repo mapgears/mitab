@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.26 2001-01-19 21:56:18 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.27 2001-01-22 16:00:53 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.26  2001-01-19 21:56:18  warmerda
+ * Revision 1.27  2001-01-22 16:00:53  warmerda
+ * reworked swiss projection support
+ *
+ * Revision 1.26  2001/01/19 21:56:18  warmerda
  * added untested support for Swiss Oblique Mercator
  *
  * Revision 1.25  2000/12/05 14:56:55  daniel
@@ -297,16 +300,16 @@ MapInfoDatumInfo asDatumInfoList[] =
 /* -------------------------------------------------------------------- */
 MapInfoSpheroidInfo asSpheroidInfoList[] =
 {
-    {9,"Airy 1930",				6377563.396,299.3249646},
-    {13,"Airy 1930 (modified for Ireland 1965",	6377340.189,299.3249646},
-    {2,"Australian",				6378160.0,  298.25},
+    {9,"Airy 1930",                             6377563.396,299.3249646},
+    {13,"Airy 1930 (modified for Ireland 1965", 6377340.189,299.3249646},
+    {2,"Australian",                            6378160.0,  298.25},
     {10,"Bessel 1841",                          6377397.155,299.1528128},
     {14,"Bessel 1841 (modified for Schwarzeck)",6377483.865,299.1528128},
     {35,"Bessel 1841 (modified for NGO 1948)",  6377492.0176,299.15281},
-    {36,"Clarke 1858",				6378293.639,294.26068},
+    {36,"Clarke 1858",                          6378293.639,294.26068},
     {7, "Clarke 1866",                          6378206.4,  294.9786982},
     {8, "Clarke 1866 (modified for Michigan)",  6378450.047484481,294.9786982},
-    {6, "Clarke 1880",    			6378249.145, 293.465},
+    {6, "Clarke 1880",                          6378249.145, 293.465},
     {15,"Clarke 1880 (modified for Arc 1950)",  6378249.145326, 293.4663076},
     {30,"Clarke 1880 (modified for IGN)",       6378249.2,  293.4660213},
     {37,"Clarke 1880 (modified for Jamaica)",   6378249.136, 293.46631},
@@ -350,8 +353,6 @@ MapInfoSpheroidInfo asSpheroidInfoList[] =
     {-1,NULL,                                   0.0,         0.0}
 };
  
-#define MITAB_SRS_PT_SWISS_OBLIQUE_MERCATOR "Swiss_Oblique_Mercator"
-
 /**********************************************************************
  *                   TABFile::GetSpatialRef()
  *
@@ -611,18 +612,13 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         break;
 
         /*--------------------------------------------------------------
-         * Swiss Oblique Mercator
-         *
-         * I am not too sure what this really is, but we preserve it
-         * in the same format as NZMG with the name overridden to be 
-         * 
+         * Swiss Oblique Mercator / Cylindrical
          *-------------------------------------------------------------*/
       case 25:
-        m_poSpatialRef->SetNZMG( sTABProj.adProjParams[1],
-                                 sTABProj.adProjParams[0],
-                                 sTABProj.adProjParams[2],
-                                 sTABProj.adProjParams[3] );
-        m_poSpatialRef->SetProjection( MITAB_SRS_PT_SWISS_OBLIQUE_MERCATOR );
+        m_poSpatialRef->SetSOC( sTABProj.adProjParams[1],
+                                sTABProj.adProjParams[0],
+                                sTABProj.adProjParams[2],
+                                sTABProj.adProjParams[3] );
         break;
 
       default:
@@ -634,7 +630,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
      *----------------------------------------------------------------*/
     if( sTABProj.nProjId != 1 && m_poSpatialRef->GetRoot() != NULL )
     {
-        OGR_SRSNode	*poUnits = new OGR_SRSNode("UNIT");
+        OGR_SRSNode     *poUnits = new OGR_SRSNode("UNIT");
         
         m_poSpatialRef->GetRoot()->AddChild(poUnits);
 
@@ -730,8 +726,8 @@ OGRSpatialReference *TABFile::GetSpatialRef()
      * we will use an epsilon in our scan instead of looking for equality.
      *----------------------------------------------------------------*/
 #define TAB_EQUAL(a, b) (((a)<(b) ? ((b)-(a)) : ((a)-(b))) < 1e-10)
-    char	szDatumName[160];
-    int		iDatumInfo;
+    char        szDatumName[160];
+    int         iDatumInfo;
     MapInfoDatumInfo *psDatumInfo = NULL;
 
     for( iDatumInfo = 0;
@@ -803,7 +799,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     /*-----------------------------------------------------------------
      * Set the spheroid.
      *----------------------------------------------------------------*/
-    double	dfSemiMajor=0.0, dfInvFlattening=0.0;
+    double      dfSemiMajor=0.0, dfInvFlattening=0.0;
     const char *pszSpheroidName = NULL;
 
     for( int i = 0; asSpheroidInfoList[i].nMapInfoId != -1; i++ )
@@ -828,7 +824,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     /*-----------------------------------------------------------------
      * Set the prime meridian.
      *----------------------------------------------------------------*/
-    double	dfPMOffset = 0.0;
+    double      dfPMOffset = 0.0;
     const char *pszPMName = "Greenwich";
     
     if( sTABProj.adDatumParams[4] != 0.0 )
@@ -919,7 +915,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
      * Transform the projection and projection parameters.
      *----------------------------------------------------------------*/
     const char *pszProjection = poSpatialRef->GetAttrValue("PROJECTION");
-    double	*parms = sTABProj.adProjParams;
+    double      *parms = sTABProj.adProjParams;
 
     if( pszProjection == NULL && poSpatialRef->GetAttrNode("LOCAL_CS") != NULL)
     {
@@ -1046,7 +1042,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         parms[3] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
     }
 
-    else if( EQUAL(pszProjection,MITAB_SRS_PT_SWISS_OBLIQUE_MERCATOR) )
+    else if( EQUAL(pszProjection,SRS_PT_SWISS_OBLIQUE_CYLINDRICAL) )
     {
         sTABProj.nProjId = 25;
         parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
@@ -1109,7 +1105,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
              && atoi(pszWKTDatum+4) != 999
              && atoi(pszWKTDatum+4) != 9999 )
     {
-        int	i;
+        int     i;
 
         for( i = 0; asDatumInfoList[i].nMapInfoDatumID != -1; i++ )
         {
@@ -1164,7 +1160,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
      *----------------------------------------------------------------*/
     else 
     {
-        int	i;
+        int     i;
 
         for( i = 0; asDatumInfoList[i].nMapInfoDatumID != -1; i++ )
         {
@@ -1195,7 +1191,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     /*-----------------------------------------------------------------
      * Translate the units
      *----------------------------------------------------------------*/
-    char 	*pszLinearUnits;
+    char        *pszLinearUnits;
     double      dfLinearConv;
 
     dfLinearConv = poSpatialRef->GetLinearUnits( &pszLinearUnits );

@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab.pas,v 1.2 2002-05-08 20:23:53 daniel Exp $
+ * $Id: mitab.pas,v 1.3 2002-05-09 22:04:22 daniel Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab.pas,v $
- * Revision 1.2  2002-05-08 20:23:53  daniel
+ * Revision 1.3  2002-05-09 22:04:22  daniel
+ * Added missing TABFC_MultiPoint=10
+ *
+ * Revision 1.2  2002/05/08 20:23:53  daniel
  * Update from Bo, and re-re-renamed mitab_vb.dll to mitab.dll (stdcall is default now)
  *
  * Revision 1.21  2002/05/07 13:43:30  bvt
@@ -74,6 +77,7 @@ const
   TABFC_Region      = 7;
   TABFC_Rectangle   = 8;
   TABFC_Ellipse     = 9;
+  TABFC_MultiPoint  = 10;
 
 // field types
   TABFT_Char        = 1;

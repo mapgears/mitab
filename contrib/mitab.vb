@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.vb,v 1.2 2002-05-08 20:23:53 daniel Exp $
+' * $Id: mitab.vb,v 1.3 2002-05-09 22:04:22 daniel Exp $
 ' *
 ' * Name:     mitab.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.vb,v $
-' * Revision 1.2  2002-05-08 20:23:53  daniel
+' * Revision 1.3  2002-05-09 22:04:22  daniel
+' * Added missing TABFC_MultiPoint=10
+' *
+' * Revision 1.2  2002/05/08 20:23:53  daniel
 ' * Update from Bo, and re-re-renamed mitab_vb.dll to mitab.dll (stdcall is default now)
 ' *
 ' * Revision 1.21  2002/05/07 13:43:30  bvt
@@ -69,6 +72,7 @@ Public Const TABFC_Arc = 6
 Public Const TABFC_Region = 7
 Public Const TABFC_Rectangle = 8
 Public Const TABFC_Ellipse = 9
+Public Const TABFC_MultiPoint = 10
 
 Rem field types
 

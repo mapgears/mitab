@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.def,v 1.2 2002-05-08 20:23:53 daniel Exp $
+' * $Id: mitab.def,v 1.3 2002-05-09 22:04:22 daniel Exp $
 ' *
 ' * Name:     mitab.def
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.def,v $
-' * Revision 1.2  2002-05-08 20:23:53  daniel
+' * Revision 1.3  2002-05-09 22:04:22  daniel
+' * Added missing TABFC_MultiPoint=10
+' *
+' * Revision 1.2  2002/05/08 20:23:53  daniel
 ' * Update from Bo, and re-re-renamed mitab_vb.dll to mitab.dll (stdcall is default now)
 ' *
 ' * Revision 1.21  2002/05/07 13:43:30  bvt
@@ -65,6 +68,7 @@ Define TABFC_Arc  6
 Define TABFC_Region  7
 Define TABFC_Rectangle  8
 Define TABFC_Ellipse  9
+Define TABFC_MultiPoint 10
 Define TABFT_Char  1
 Define TABFT_Integer  2
 Define TABFT_SmallInt  3

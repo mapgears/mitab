@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.23 2002-05-10 20:54:56 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.24 2002-05-16 14:12:53 julien Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.23  2002-05-10 20:54:56  daniel
+ * Revision 1.24  2002-05-16 14:12:53  julien
+ * Add support for MultiPolygon in mitab_c_setpoint
+ *
+ * Revision 1.23  2002/05/10 20:54:56  daniel
  * Fixed crash in mitab_c_sef_font()... I was using an illegal type cast
  *
  * Revision 1.22  2002/05/08 21:37:40  daniel
@@ -660,23 +663,47 @@ mitab_c_set_points( mitab_feature feature, int part,
     else if( poFeature->GetFeatureClass() == TABFC_Region )
     {
         OGRLinearRing   *poRing = new OGRLinearRing();
-        OGRPolygon      *poPolygon;
+        OGRPolygon      *poPolygon, *poPoly;
+        OGRMultiPolygon *poMultiPolygon;
+        int iLastPolygon, numRingsTotal=0;
 
         poRing->setPoints( vertex_count, x, y );
         if( poFeature->GetGeometryRef() != NULL && part > 0 )
         {
+            poMultiPolygon = (OGRMultiPolygon *) poFeature->GetGeometryRef();
+            iLastPolygon = poMultiPolygon->getNumGeometries() - 1;
+            poPolygon = (OGRPolygon *) 
+                  poMultiPolygon->getGeometryRef( iLastPolygon );
 
-            poPolygon = (OGRPolygon *) poFeature->GetGeometryRef();
-            CPLAssert( part == poPolygon->getNumInteriorRings() + 1 );
+            // Get total number of rings
+            for(int iPoly=0; iPoly<poMultiPolygon->getNumGeometries(); iPoly++)
+            {
+                // We are guaranteed that all parts are OGRPolygons
+                poPoly = (OGRPolygon*)poMultiPolygon->getGeometryRef(iPoly);
+                if (poPoly  == NULL)
+                    continue;
+
+                numRingsTotal += poPoly->getNumInteriorRings()+1;
+
+            }/*for*/
+
+            CPLAssert( part == numRingsTotal );
             poPolygon->addRingDirectly( poRing );
         }
         else
         {
-            CPLAssert( part == 0 );
+            CPLAssert( part <= 0 );
             
+            if( poFeature->GetGeometryRef() != NULL )
+                poMultiPolygon = (OGRMultiPolygon *) poFeature->GetGeometryRef();
+            else
+                poMultiPolygon = new OGRMultiPolygon;
+
             poPolygon = new OGRPolygon;
             poPolygon->addRingDirectly( poRing );
-            poFeature->SetGeometryDirectly( poPolygon );
+            poMultiPolygon->addGeometryDirectly( poPolygon );
+            if( poFeature->GetGeometryRef() == NULL )
+                poFeature->SetGeometryDirectly( poMultiPolygon );
         }
     }
 
@@ -709,7 +736,7 @@ mitab_c_set_points( mitab_feature feature, int part,
 
         for(i=0; i<vertex_count; i++)
         {
-            poPoint =  new OGRPoint( x[0], y[0] );
+            poPoint =  new OGRPoint( x[i], y[i] );
             poMultiPoint->addGeometryDirectly( poPoint );
         }
         poFeature->SetGeometryDirectly( poMultiPoint );

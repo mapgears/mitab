@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.15 2001-12-17 16:05:19 warmerda Exp $
+ * $Id: mitab_capi.cpp,v 1.16 2002-02-22 13:50:28 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,8 +32,12 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.15  2001-12-17 16:05:19  warmerda
- * set point geometry in mitab_c_set_arc() so validate will work
+ * Revision 1.16  2002-02-22 13:50:28  daniel
+ * (From Bo Thomsen) New VB interface functions
+ *
+ * Revision 1.15  2002/02/20 12:35:00  bvt
+ * Added alternative functions to fetch various strings for VB compatibility.
+ * Functions has suffix _vb.
  *
  * Revision 1.14  2001/11/02 17:30:02  daniel
  * Added mitab_c_get/set_projinfo() and mitab_c_get_mif_coordsys().
@@ -159,6 +163,32 @@ mitab_c_getlasterrormsg()
         return "";
     else
         return pszLastMessage;
+}
+
+/************************************************************************/
+/*                      mitab_c_getlasterrormsg_vb()                    */
+/************************************************************************/
+
+/**
+ * Get the last error message.
+ *
+ * Fetches the last error message posted with CPLError(), that hasn't
+ * been cleared by CPLErrorReset().  The returned pointer is to an internal
+ * string that should not be altered or freed.
+ *
+ * @param errormsg the last error message, or an empty string if there is no posted
+ *         error message.
+ * @param l the maximum length of the errormessage string including terminating null.
+ * @return the length of the last error message, or zero if there is no posted
+ *         error message.
+ */
+
+int MITAB_STDCALL 
+mitab_c_getlasterrormsg_vb (char * errormsg, int l)
+
+{
+    strncpy (errormsg,CPLGetLastErrorMsg(),l); 
+    return strlen(errormsg);
 }
 
 
@@ -665,10 +695,6 @@ mitab_c_set_arc( mitab_feature feature,
         poArc->m_dYRadius = y_radius;
         poArc->SetStartAngle(start_angle);
         poArc->SetEndAngle(end_angle);
-
-        // We also need a point geometry to make things legal.
-        OGRPoint	oPoint( center_x, center_y );
-        poArc->SetGeometry( &oPoint );
     }
     else if (poFeature->GetFeatureClass() == TABFC_Ellipse)
     {
@@ -738,6 +764,34 @@ mitab_c_get_text( mitab_feature feature )
         return poFeature->GetTextString( );
 
     return "";
+}
+
+/************************************************************************/
+/*                          mitab_c_get_text_vb()                       */
+/************************************************************************/
+
+/**
+ * Get the text string on a TABFC_Text object.
+ *
+ * @param feature the mitab_feature object.
+ * @param text the text string in the object.
+ * @param l the maximum length of the text string including terminating null.
+ * @return the length of the text string in the object.
+ */
+
+int MITAB_STDCALL 
+mitab_c_get_text_vb( mitab_feature feature, char * text, int l )
+
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {  
+      strncpy (text,poFeature->GetTextString( ),l); 
+      return strlen(text);
+    }
+
+    return 0;
 }
 
 
@@ -1031,6 +1085,33 @@ mitab_c_get_font( mitab_feature feature )
 
     return "";
 }
+
+/************************************************************************/
+/*                          mitab_c_get_font_vb()                       */
+/************************************************************************/
+
+/** 
+ * Get a TABFC_Text object's font name.
+ *
+ * @param feature the mitab_feature object.
+ * @param font the text font name.
+ * @param l the maximum lentgh of the text string including terminating null.
+ * @return the length of the text font name.
+ */
+
+int MITAB_STDCALL 
+mitab_c_get_font_vb( mitab_feature feature, char * font, int l )
+{
+    TABText     *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+         strncpy(font,poFeature->GetFontNameRef(),l);
+    	   return strlen(font);
+    }
+    return 0;
+}
+
 
 /************************************************************************/
 /*                         mitab_c_set_brush()                          */
@@ -1693,6 +1774,39 @@ mitab_c_get_field_name( mitab_handle handle, int field )
     return "";
 }
 
+/************************************************************************/
+/*                       mitab_c_get_field_name_vb()                    */
+/************************************************************************/
+
+/**
+ * Return the name of an attribute fields in a dataset's schema.
+ *
+ * @param handle the dataset's handle.
+ * @param field the index of the field to look at, with 0 being the first 
+ *        field.
+ * @param name the field name. 
+ * @param l the maximum lenght of the name string including terminating null. 
+ * @return the length of the field name.
+ */
+int MITAB_STDCALL
+mitab_c_get_field_name_vb( mitab_handle handle, int field, char * name, int l )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+    OGRFeatureDefn      *poDefn;
+    OGRFieldDefn        *poFDefn;
+
+    if (poFile && 
+        (poDefn = poFile->GetLayerDefn()) != NULL &&
+        (poFDefn = poDefn->GetFieldDefn(field)) != NULL)
+    {
+        strncpy (name,poFDefn->GetNameRef(),l);
+        return (strlen(name));
+    }
+
+    return 0;
+}
+
+
 
 /************************************************************************/
 /*                    mitab_c_get_field_as_string()                     */
@@ -1723,6 +1837,38 @@ mitab_c_get_field_as_string( mitab_feature feature, int field )
         return poFeature->GetFieldAsString(field);
 
     return "";
+}
+
+/************************************************************************/
+/*                    mitab_c_get_field_as_string_vb()                  */
+/************************************************************************/
+
+/**
+ * Fetch an attribute field value in a mitab_feature as a string.
+ *
+ * The function returns a reference to an internal string buffer that contains
+ * the string representation of the attribute field's value (integer
+ * and floating point values are converted to string using sprintf()).
+ *
+ * @param feature the mitab_feature object.
+ * @param field the index of the field to look at, with 0 being the first 
+ *        field.
+ * @param value a string containing the value of the field.
+ * @param l the maximum lenght of the value string including terminating null. 
+ * @return the length of the string containing the value of the field.
+ */
+
+int MITAB_STDCALL
+mitab_c_get_field_as_string_vb( mitab_feature feature, int field, char * value, int l )
+{
+    TABFeature          *poFeature = (TABFeature *) feature;
+
+    if (poFeature)
+    {
+	strncpy(value,poFeature->GetFieldAsString(field),l);
+        return strlen(value);
+    };
+    return 0;
 }
 
 
@@ -1815,6 +1961,37 @@ mitab_c_get_mif_coordsys( mitab_handle dataset)
     return NULL;
 }
 
+/************************************************************************/
+/*                        mitab_c_get_mif_coordsys_vb()                 */
+/************************************************************************/
+
+/**
+ * Get the MIF CoordSys string from an opened dataset.
+ *
+ * @param dataset the mitab_handle of the source dataset.
+ * @param coordsys a string with the dataset coordinate system definition in MIF
+ *    CoordSys format.  This value can be passed to mitab_c_create() to 
+ *    create new datasets with the same coordinate system.
+ *    Returns NULL if the information could not be read.
+ * @param l the maximum length of the coordsys string including terminating null.
+ * @return the length of the string in coordsys or zero if the information could
+ *    not be read
+ */
+
+int MITAB_STDCALL
+mitab_c_get_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l)
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) dataset;
+    OGRSpatialReference *poSRS;
+
+    if (poFile && (poSRS = poFile->GetSpatialRef()) != NULL)
+    {
+        strncpy( coordsys, MITABSpatialRef2CoordSys( poSRS ),l);
+        return strlen(coordsys);
+    }
+
+    return 0;
+}
 
 /* ==================================================================== */
 /*                           Helper functions                           */

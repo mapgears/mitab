@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.12 2001-11-02 17:30:02 daniel Exp $
+ * $Id: mitab_capi.h,v 1.13 2002-02-22 13:50:28 daniel Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,13 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.12  2001-11-02 17:30:02  daniel
+ * Revision 1.13  2002-02-22 13:50:28  daniel
+ * (From Bo Thomsen) New VB interface functions
+ *
+ * Revision 1.13  2002/02/20 12:35:00  bvt
+ * Added alternative functions to fetch various strings for VB compatibility
+ *
+ * Revision 1.12  2001/11/02 17:30:02  daniel
  * Added mitab_c_get/set_projinfo() and mitab_c_get_mif_coordsys().
  * Changed mitab_c_create() to make bounds optional and allow using default
  * projection bounds if available.
@@ -130,6 +136,7 @@ typedef void * mitab_projinfo;
 #define TABTL_Arrow     2
 
 const char MITAB_DLL *mitab_c_getlasterrormsg();
+int MITAB_DLL mitab_c_getlasterrormsg_vb (char * errormsg, int l);
 int MITAB_DLL mitab_c_getlasterrorno();
 
 mitab_handle MITAB_DLL mitab_c_open( const char * filename );
@@ -166,6 +173,8 @@ void MITAB_DLL
 mitab_c_set_text( mitab_feature feature, const char * text );
 const char MITAB_DLL *
 mitab_c_get_text( mitab_feature feature );
+int MITAB_DLL 
+mitab_c_get_text_vb( mitab_feature feature, char * text, int l );
 
 void MITAB_DLL
 mitab_c_set_text_display( mitab_feature feature,
@@ -214,6 +223,8 @@ void MITAB_DLL
 mitab_c_set_font( mitab_feature feature, const char * font_name );
 const char MITAB_DLL *
 mitab_c_get_font( mitab_feature feature );
+int MITAB_DLL 
+mitab_c_get_font_vb( mitab_feature feature, char * font, int l );
 
 void MITAB_DLL mitab_c_set_symbol( mitab_feature feature, int symbol_no,
                                    int symbol_size, int symbol_color );
@@ -240,13 +251,18 @@ double MITAB_DLL mitab_c_get_vertex_y( mitab_feature, int part, int vertex );
 int MITAB_DLL mitab_c_get_field_count( mitab_handle handle );
 int MITAB_DLL mitab_c_get_field_type( mitab_handle handle, int field );
 const char MITAB_DLL *mitab_c_get_field_name(mitab_handle handle, int field);
+int MITAB_DLL mitab_c_get_field_name_vb( mitab_handle handle, int field, char * name, int l );
+
+
 const char MITAB_DLL *mitab_c_get_field_as_string( mitab_feature feature, 
                                                    int field );
+int MITAB_DLL mitab_c_get_field_as_string_vb( mitab_feature feature, int field, char * value, int l );
 
 mitab_projinfo MITAB_DLL mitab_c_get_projinfo( mitab_handle dataset );
 int            MITAB_DLL mitab_c_set_projinfo( mitab_handle dataset, 
                                                mitab_projinfo projinfo );
 const char MITAB_DLL *mitab_c_get_mif_coordsys( mitab_handle dataset);
+int MITAB_DLL mitab_c_get_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l);
 
 #ifdef __cplusplus
 }

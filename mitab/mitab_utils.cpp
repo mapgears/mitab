@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.12 2000-04-18 04:19:22 daniel Exp $
+ * $Id: mitab_utils.cpp,v 1.13 2000-09-20 18:35:51 daniel Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.12  2000-04-18 04:19:22  daniel
+ * Revision 1.13  2000-09-20 18:35:51  daniel
+ * Fixed TABAdjustFilenameExtension() to also handle basename and path
+ * using TABAdjustCaseSensitiveFilename()
+ *
+ * Revision 1.12  2000/04/18 04:19:22  daniel
  * Now accept extended chars with accents in TABCleanFieldName()
  *
  * Revision 1.11  2000/02/28 17:08:56  daniel
@@ -142,6 +146,144 @@ int TABCloseRing(OGRLineString *poRing)
     return 0;
 }
 
+/**********************************************************************
+ *                     TABAdjustCaseSensitiveFilename()
+ *
+ * Scan a filename and its path, adjust uppercase/lowercases if
+ * necessary.
+ *
+ * Returns TRUE if file found, or FALSE if it could not be located with
+ * a case-insensitive search.
+ *
+ * This function works on the original buffer and returns a reference to it.
+ * It does nothing on Windows systems where filenames are not case sensitive.
+ **********************************************************************/
+GBool TABAdjustCaseSensitiveFilename(char *pszFname)
+{
+
+#ifdef _WIN32
+    /*-----------------------------------------------------------------
+     * Nothing to do on Windows
+     *----------------------------------------------------------------*/
+    return TRUE;
+
+#else
+    /*-----------------------------------------------------------------
+     * Unix case.
+     *----------------------------------------------------------------*/
+    VSIStatBuf  sStatBuf;
+    char        *pszTmpPath = NULL;
+    int         nTotalLen, iTmpPtr;
+    GBool       bValidPath;
+
+    /*-----------------------------------------------------------------
+     * First check if the filename is OK as is.
+     *----------------------------------------------------------------*/
+    if (VSIStat(pszFname, &sStatBuf) == 0)
+    {
+        return TRUE;
+    }
+
+    /*-----------------------------------------------------------------
+     * OK, file either does not exist or has the wrong cases... we'll
+     * go backwards until we find a portion of the path that is valid.
+     *----------------------------------------------------------------*/
+    pszTmpPath = CPLStrdup(pszFname);
+    nTotalLen = strlen(pszTmpPath);
+    iTmpPtr = nTotalLen;
+    bValidPath = FALSE;
+
+    while(iTmpPtr > 0 && !bValidPath)
+    {
+        /*-------------------------------------------------------------
+         * Move back to the previous '/' separator
+         *------------------------------------------------------------*/
+        pszTmpPath[--iTmpPtr] = '\0';
+        while( iTmpPtr > 0 && pszTmpPath[iTmpPtr-1] != '/' )
+        {
+            pszTmpPath[--iTmpPtr] = '\0';
+        }
+
+        if (iTmpPtr > 0 && VSIStat(pszTmpPath, &sStatBuf) == 0)
+            bValidPath = TRUE;
+    }
+
+    CPLAssert(iTmpPtr >= 0);
+
+    /*-----------------------------------------------------------------
+     * Assume that CWD is valid... so an empty path is a valid path
+     *----------------------------------------------------------------*/
+    if (iTmpPtr == 0)
+        bValidPath = TRUE;
+
+    /*-----------------------------------------------------------------
+     * OK, now that we have a valid base, reconstruct the whole path
+     * by scanning all the sub-directories.  
+     * If we get to a point where a path component does not exist then
+     * we simply return the rest of the path as is.
+     *----------------------------------------------------------------*/
+    while(bValidPath && (int)strlen(pszTmpPath) < nTotalLen)
+    {
+        char    **papszDir=NULL;
+        int     iEntry, iLastPartStart;
+
+        iLastPartStart = iTmpPtr;
+        papszDir = CPLReadDir(pszTmpPath);
+
+        /*-------------------------------------------------------------
+         * Add one component to the current path
+         *------------------------------------------------------------*/
+        pszTmpPath[iTmpPtr] = pszFname[iTmpPtr];
+        iTmpPtr++;
+        for( ; pszFname[iTmpPtr] != '\0' && pszFname[iTmpPtr]!='/'; iTmpPtr++)
+        {
+            pszTmpPath[iTmpPtr] = pszFname[iTmpPtr];
+        }
+
+        while(iLastPartStart < iTmpPtr && pszTmpPath[iLastPartStart] == '/')
+            iLastPartStart++;
+
+        /*-------------------------------------------------------------
+         * And do a case insensitive search in the current dir...
+         *------------------------------------------------------------*/
+        for(iEntry=0; papszDir && papszDir[iEntry]; iEntry++)
+        {
+            if (EQUAL(pszTmpPath+iLastPartStart, papszDir[iEntry]))
+            {
+                /* Fount it! */
+                strcpy(pszTmpPath+iLastPartStart, papszDir[iEntry]);
+                break;
+            }
+        }
+
+        if (iTmpPtr > 0 && VSIStat(pszTmpPath, &sStatBuf) != 0)
+            bValidPath = FALSE;
+
+        CSLDestroy(papszDir);
+    }
+
+    /*-----------------------------------------------------------------
+     * We reached the last valid path component... just copy the rest
+     * of the path as is.
+     *----------------------------------------------------------------*/
+    if (iTmpPtr < nTotalLen-1)
+    {
+        strncpy(pszTmpPath+iTmpPtr, pszFname+iTmpPtr, nTotalLen-iTmpPtr);
+    }
+
+    /*-----------------------------------------------------------------
+     * Update the source buffer and return.
+     *----------------------------------------------------------------*/
+    strcpy(pszFname, pszTmpPath);
+    CPLFree(pszTmpPath);
+
+    return bValidPath;
+
+#endif
+}
+
+
+
 
 /**********************************************************************
  *                       TABAdjustFilenameExtension()
@@ -159,15 +301,14 @@ int TABCloseRing(OGRLineString *poRing)
  **********************************************************************/
 GBool TABAdjustFilenameExtension(char *pszFname)
 {
-    FILE        *fp;
+    VSIStatBuf  sStatBuf;
     int         i;
     
     /*-----------------------------------------------------------------
      * First try using filename as provided
      *----------------------------------------------------------------*/
-    if ((fp=VSIFOpen(pszFname, "r")) != NULL)
+    if (VSIStat(pszFname, &sStatBuf) == 0)
     {
-        VSIFClose(fp);
         return TRUE;
     }     
 
@@ -179,9 +320,8 @@ GBool TABAdjustFilenameExtension(char *pszFname)
         pszFname[i] = toupper(pszFname[i]);
     }
 
-    if ((fp=VSIFOpen(pszFname, "r")) != NULL)
+    if (VSIStat(pszFname, &sStatBuf) == 0)
     {
-        VSIFClose(fp);
         return TRUE;
     }     
     
@@ -193,17 +333,16 @@ GBool TABAdjustFilenameExtension(char *pszFname)
         pszFname[i] = tolower(pszFname[i]);
     }
 
-    if ((fp=VSIFOpen(pszFname, "r")) != NULL)
+    if (VSIStat(pszFname, &sStatBuf) == 0)
     {
-        VSIFClose(fp);
         return TRUE;
     }     
 
     /*-----------------------------------------------------------------
-     * None of the extensions worked!
+     * None of the extensions worked!  
+     * Try adjusting cases in the whole path and filename 
      *----------------------------------------------------------------*/
-
-    return FALSE;
+    return TABAdjustCaseSensitiveFilename(pszFname);
 }
 
 

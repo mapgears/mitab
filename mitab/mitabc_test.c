@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.5 2000-01-15 22:37:02 daniel Exp $
+ * $Id: mitabc_test.c,v 1.6 2000-02-28 17:20:34 daniel Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.5  2000-01-15 22:37:02  daniel
+ * Revision 1.6  2000-02-28 17:20:34  daniel
+ * Removed style param to mitab_c_set_pen() since this param is actually
+ * used inside the format to define pen width in points (version 450)
+ *
+ * Revision 1.5  2000/01/15 22:37:02  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.4  2000/01/14 21:58:40  warmerda
@@ -172,7 +176,7 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     y[1] = 42;
     
     mitab_c_set_points( feature, 0, 2, x, y );
-    mitab_c_set_pen( feature, 1, 2, 3, 65535 );
+    mitab_c_set_pen( feature, 1, 2, 65535 );
     mitab_c_write_feature( dataset, feature );
     mitab_c_destroy_feature( feature );
 
@@ -187,7 +191,7 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     mitab_c_set_points( feature, 0, 1, x, y );
     mitab_c_set_text( feature, "My text" );
     mitab_c_set_font( feature, "Arial" );
-    mitab_c_set_pen( feature, 1, 2, 3, 65535 );
+    mitab_c_set_pen( feature, 1, 2, 65535 );
     mitab_c_set_text_display( feature, 0.0, 0.0, 0.0, 255*65536, 0,
                               -1, -1, -1 );
     mitab_c_write_feature( dataset, feature );
@@ -223,7 +227,7 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     mitab_c_set_points( feature, 1, 4, x, y );
 
     mitab_c_set_brush( feature, 255, 0, 1, 0 );
-    mitab_c_set_pen( feature, 1, 2, 3, 65535 );
+    mitab_c_set_pen( feature, 1, 2, 65535 );
     mitab_c_write_feature( dataset, feature );
     mitab_c_destroy_feature( feature );
     

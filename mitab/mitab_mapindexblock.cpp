@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapindexblock.cpp,v 1.2 1999-09-26 14:59:37 daniel Exp $
+ * $Id: mitab_mapindexblock.cpp,v 1.3 1999-09-29 04:23:51 daniel Exp $
  *
  * Name:     mitab_mapindexblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapindexblock.cpp,v $
- * Revision 1.2  1999-09-26 14:59:37  daniel
+ * Revision 1.3  1999-09-29 04:23:51  daniel
+ * Fixed typo in GetMBR()
+ *
+ * Revision 1.2  1999/09/26 14:59:37  daniel
  * Implemented write support
  *
  * Revision 1.1  1999/07/12 04:18:25  daniel
@@ -331,7 +334,7 @@ int     TABMAPIndexBlock::GetMaxDepth()
 }
 
 /**********************************************************************
- *                   TABMAPCoordBlock::GetMBR()
+ *                   TABMAPIndexBlock::GetMBR()
  *
  * Return the MBR for the current block.
  **********************************************************************/
@@ -339,7 +342,7 @@ void TABMAPIndexBlock::GetMBR(GInt32 &nXMin, GInt32 &nYMin,
                                      GInt32 &nXMax, GInt32 &nYMax)
 {
     nXMin = m_nMinX;
-    nYMin = m_nMaxY;
+    nYMin = m_nMinY;
     nXMax = m_nMaxX;
     nYMax = m_nMaxY; 
 }

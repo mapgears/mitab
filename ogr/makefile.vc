@@ -1,0 +1,28 @@
+#
+# OGR 
+#
+
+OBJ =	ogr_srsnode.obj ogrcurve.obj ogrfeature.obj ogrfeaturedefn.obj \
+	ogrgeometry.obj ogrgeometrycollection.obj ogrgeometryfactory.obj \
+	ogrlinearring.obj ogrlinestring.obj ogrmultilinestring.obj \
+	ogrmultipoint.obj ogrmultipolygon.obj ogrpoint.obj ogrpolygon.obj \
+	ogrspatialreference.obj ogrsurface.obj ogrutils.obj \
+	ogrlayer.obj ogrsfdriverregistrar.obj ogrfielddefn.obj \
+	ogrdatasource.obj ogrsfdriver.obj ogr_srs_proj4.obj \
+	ogrfeaturestyle.obj ogr_fromepsg.obj ogrfeaturequery.obj swq.obj \
+	ogrct.obj ogr_gensql.obj ogr_srs_xml.obj ogr_srs_esri.obj
+	
+LIB	=	ogr.lib
+
+INCLUDE ../nmake.opt
+
+CXXFLAGS = $(BASE_CFLAGS)
+
+default:	$(LIB)
+
+clean:
+	del *.obj
+	del $(LIB)
+
+$(LIB): $(OBJ)
+	lib /out:$(LIB) $(OBJ)

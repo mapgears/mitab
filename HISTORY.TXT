@@ -41,7 +41,7 @@ Version 1.3.0 (CVS)
  - Modified the OGR creation logic to properly support creating single
    files sets rather than directories full of files.  NFW
 
-
+ - Fixed memory leaks with seamless tab files (bug 283)
 
 Version 1.2.4 (2003-07-23)
 --------------------------
@@ -567,5 +567,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.117 2004-02-27 21:08:59 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.118 2004-03-12 18:30:09 dmorissette Exp $
 ------------

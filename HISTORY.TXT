@@ -14,7 +14,7 @@ CHANGES - Current Version:
 --------------------------
 
 
-Version 1.4.0 (2005-03-23)
+Version 1.4.0 (2005-04-01)
 --------------------------
 
  - Added bounds entry to match datum 1011 based on MapInfo's "Svenska 
@@ -619,5 +619,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.136 2005-03-31 22:01:51 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.137 2005-04-01 16:48:41 dmorissette Exp $
 ------------

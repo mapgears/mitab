@@ -25,6 +25,11 @@ CHANGES - Current Version:
  - mitab_mapfile.cpp: Fixed error return value in LoadNextMatchingObjectBlock()
    per http://bugzilla.remotesensing.org/show_bug.cgi?id=615. NFW
 
+ - mitab_ogr_datasource.cpp: Modified CreateLayer() to use 
+   -1000,-1000,1000,1000 bounds for GEOGCS much like in mitab_bounds.cpp. 
+   This ensures that geographic files in the range 0-360 works as well as
+   -180 to 180.
+
 
 Version 1.3.0 (2004-07-07)
 --------------------------
@@ -593,5 +598,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.128 2004-10-11 20:53:49 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.129 2004-10-15 01:52:30 fwarmerdam Exp $
 ------------

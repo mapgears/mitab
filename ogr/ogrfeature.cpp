@@ -164,8 +164,6 @@ OGRFeatureH OGR_F_Create( OGRFeatureDefnH hDefn )
 OGRFeature::~OGRFeature()
 
 {
-    poDefn->Dereference();
-
     if( poGeometry != NULL )
         delete poGeometry;
 
@@ -200,6 +198,9 @@ OGRFeature::~OGRFeature()
     
     CPLFree( pauFields );
     CPLFree(m_pszStyleString);
+
+    if (poDefn->Dereference() == 0)
+        delete poDefn;
 }
 
 /************************************************************************/

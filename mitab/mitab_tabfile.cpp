@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.37 2000-09-20 18:32:02 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.38 2000-10-18 03:53:16 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.37  2000-09-20 18:32:02  daniel
+ * Revision 1.38  2000-10-18 03:53:16  daniel
+ * GetBounds() now calculates bounds based on +/- 1e9 integer coordinates limit
+ *
+ * Revision 1.37  2000/09/20 18:32:02  daniel
  * Accept "FORMAT: DBF" in version 100 .tab headers
  *
  * Revision 1.36  2000/09/07 23:32:13  daniel
@@ -1877,12 +1880,12 @@ int TABFile::GetBounds(double &dXMin, double &dYMin,
     if (m_poMAPFile && (poHeader=m_poMAPFile->GetHeaderBlock()) != NULL)
     {
         /*-------------------------------------------------------------
-         * Fetch dataset bounds from the header block...
+         * Projection bounds correspond to the +/- 1e9 integer coord. limits
          *------------------------------------------------------------*/
         double dX0, dX1, dY0, dY1;
-        m_poMAPFile->Int2Coordsys(poHeader->m_nXMin, poHeader->m_nYMin, 
+        m_poMAPFile->Int2Coordsys(-1000000000, -1000000000,  
                                   dX0, dY0);
-        m_poMAPFile->Int2Coordsys(poHeader->m_nXMax, poHeader->m_nYMax, 
+        m_poMAPFile->Int2Coordsys(1000000000, 1000000000, 
                                   dX1, dY1);
         /*-------------------------------------------------------------
          * ... and make sure that Min < Max

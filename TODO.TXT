@@ -10,9 +10,6 @@ MITAB Library - ToDo, Open Questions:
 
  - Support MetaData in .TAB header
 
- - Can we do anything for optimized spatial searches in TAB files?
-   (i.e. See SetSpatialFilter())
-
  - TABView support:
      - Complete and tested only for cases in which 2 tables
        are linked with a many-to-1 relation through an integer field.  
@@ -42,5 +39,5 @@ MITAB Library - ToDo, Open Questions:
 
 
 ------------
-$Id: TODO.TXT,v 1.1 2001-03-09 04:16:16 daniel Exp $
+$Id: TODO.TXT,v 1.2 2001-09-19 14:33:34 warmerda Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.7 1999-12-14 04:02:31 daniel Exp $
+ * $Id: mitab_miffile.cpp,v 1.8 1999-12-18 08:25:39 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.7  1999-12-14 04:02:31  daniel
+ * Revision 1.8  1999-12-18 08:25:39  daniel
+ * Write OFTReals as Floats instead of Decimals (for which width ended up
+ * being 0 most of the time)
+ *
+ * Revision 1.7  1999/12/14 04:02:31  daniel
  * Added bforceFlags to GetBounds() and GetFeatureCountByType()
  *
  * Revision 1.6  1999/12/14 02:20:55  daniel
@@ -739,10 +743,8 @@ int MIFFile::WriteMIFHeader()
 				       poFieldDefn->GetNameRef());
 		break;
               case OFTReal:
-		m_poMIFFile->WriteLine("  %s Decimal(%d,%d)\n",
-				       poFieldDefn->GetNameRef(),
-				       poFieldDefn->GetWidth(),
-				       poFieldDefn->GetPrecision());    
+		m_poMIFFile->WriteLine("  %s Float\n",
+				       poFieldDefn->GetNameRef());    
 		break;
               case OFTString:
               default:

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.6 1999-10-01 02:09:25 warmerda Exp $
+ * $Id: mitab_feature.cpp,v 1.7 1999-10-01 03:54:46 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.6  1999-10-01 02:09:25  warmerda
+ * Revision 1.7  1999-10-01 03:54:46  daniel
+ * Moved fix for writing string fields down in TABDATFile::WriteCharField()
+ *
+ * Revision 1.6  1999/10/01 02:09:25  warmerda
  * Ensure that WriteRecordToDATFile() doesn't try to write more bytes than
  * are returned by GetFieldAsString().
  *
@@ -196,15 +199,8 @@ int TABFeature::WriteRecordToDATFile(TABDATFile *poDATFile)
         switch(poDATFile->GetFieldType(iField))
         {
           case TABFChar:
-            char      *pszPaddedString;
-
-            pszPaddedString = (char *) 
-                CPLMalloc(poDATFile->GetFieldWidth(iField)+1);
-            memset( pszPaddedString, 0, poDATFile->GetFieldWidth(iField)+1);
-            strcpy( pszPaddedString, GetFieldAsString(iField));
-            nStatus = poDATFile->WriteCharField(pszPaddedString,
+            nStatus = poDATFile->WriteCharField(GetFieldAsString(iField),
                                       poDATFile->GetFieldWidth(iField));
-            CPLFree( pszPaddedString );
             break;
           case TABFDecimal:
             nStatus = poDATFile->WriteDecimalField(GetFieldAsDouble(iField),
@@ -2787,14 +2783,25 @@ int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
          * that these coordinates have the X axis reversed, we have to
          * adjust the angle values for the change in the X axis
          * direction.
+         *
+         * __TODO__ This should be necessary only when X axis is flipped.
+         *          Also: check order of start/end values ???
          *------------------------------------------------------------*/
-        m_dEndAngle = poObjBlock->ReadInt16()/10.0;
-        m_dStartAngle = poObjBlock->ReadInt16()/10.0;
+        if (poMapFile->GetHeaderBlock()->m_nReflectXAxisCoord)
+        {
+            m_dEndAngle = poObjBlock->ReadInt16()/10.0;
+            m_dStartAngle = poObjBlock->ReadInt16()/10.0;
 
-        m_dStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
+            m_dStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
                                                  (540.0-m_dStartAngle);
-        m_dEndAngle   = (m_dEndAngle<=180.0) ? (180.0-m_dEndAngle):
+            m_dEndAngle   = (m_dEndAngle<=180.0) ? (180.0-m_dEndAngle):
                                                (540.0-m_dEndAngle);
+        }
+        else
+        {
+            m_dStartAngle = poObjBlock->ReadInt16()/10.0;
+            m_dEndAngle = poObjBlock->ReadInt16()/10.0;
+        }
 
         // An arc is defined by its defining ellipse's MBR:
 
@@ -2911,17 +2918,25 @@ int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
      * __TODO__ This should be necessary only when X axis is flipped.
      *          Also: check order of start/end values when writing.
      *------------------------------------------------------------*/
-    double dStartAngle, dEndAngle;
+    if (poMapFile->GetHeaderBlock()->m_nReflectXAxisCoord)
+    {
+        double dStartAngle, dEndAngle;
 
-    dStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
+        dStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
                                              (540.0-m_dStartAngle);
-    dEndAngle   = (m_dEndAngle<=180.0) ? (180.0-m_dEndAngle):
+        dEndAngle   = (m_dEndAngle<=180.0) ? (180.0-m_dEndAngle):
                                                (540.0-m_dEndAngle);
 
-    // ??? Shouldn't order be Start angle followed by end angle???
+        // ??? Shouldn't order be Start angle followed by end angle???
 
-    poObjBlock->WriteInt16((int)(dEndAngle*10));
-    poObjBlock->WriteInt16((int)(dStartAngle*10));
+        poObjBlock->WriteInt16((int)(dEndAngle*10));
+        poObjBlock->WriteInt16((int)(dStartAngle*10));
+    }
+    else
+    {
+        poObjBlock->WriteInt16((int)(m_dStartAngle*10));
+        poObjBlock->WriteInt16((int)(m_dEndAngle*10));
+    }
 
     // An arc is defined by its defining ellipse's MBR:
     poMapFile->Coordsys2Int(m_dCenterX-m_dXRadius, m_dCenterY-m_dYRadius,

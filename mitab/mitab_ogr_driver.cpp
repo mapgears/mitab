@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_ogr_driver.cpp,v 1.2 1999-11-12 02:44:36 stephane Exp $
+ * $Id: mitab_ogr_driver.cpp,v 1.3 1999-12-14 02:22:29 daniel Exp $
  *
  * Name:     mitab_ogr_driver.cpp
  * Project:  MapInfo Mid/Mif, Tab ogr support
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_ogr_driver.cpp,v $
- * Revision 1.2  1999-11-12 02:44:36  stephane
+ * Revision 1.3  1999-12-14 02:22:29  daniel
+ * Merged TAB+MIF DataSource/Driver into ane using IMapInfoFile class
+ *
+ * Revision 1.2  1999/11/12 02:44:36  stephane
  * added comment, change Register name.
  *
  * Revision 1.1  1999/11/08 21:05:51  svillene
@@ -46,15 +49,18 @@
 
 
 /*=======================================================================
+ *                 OGRTABDataSource/OGRTABDriver Classes
  *
- *                 OGRTab Class
+ * We need one single OGRDataSource/Driver set of classes to handle all
+ * the MapInfo file types.  They all deal with the IMapInfoFile abstract
+ * class.
  *=====================================================================*/
 
 /************************************************************************/
 /*                         OGRTABDataSource()                           */
 /************************************************************************/
 OGRTABDataSource::OGRTABDataSource( const char * pszNameIn,
-                                        TABFile *poLayerIn )
+                                    IMapInfoFile *poLayerIn )
 
 {
     m_pszName = CPLStrdup( pszNameIn );
@@ -87,7 +93,7 @@ OGRTABDriver::~OGRTABDriver()
 const char *OGRTABDriver::GetName()
 
 {
-    return "MapInfo TABFile";
+    return "MapInfo File";
 }
 
 /************************************************************************/
@@ -107,95 +113,18 @@ OGRDataSource *OGRTABDriver::Open( const char * pszFilename,
 /* -------------------------------------------------------------------- */
 /*      Create the layer object.                                        */
 /* -------------------------------------------------------------------- */
+    IMapInfoFile *poLayer;
     TABFile	*poLayer;
 
-    poLayer = new TABFile();
-    if (poLayer->Open(pszFilename,"r") ==0)
+    if ((poLayer = IMapInfoFile::SmartOpen( pszFilename, TRUE ) ==0)
          return new OGRTABDataSource( pszFilename, poLayer );
-    else
-    {
-	delete poLayer;
-	return NULL;
-    }
+ 
+    return NULL;
 }
 
-/*=======================================================================
- *
- *                 OGRMID Class
- *=====================================================================*/
-
 
 /************************************************************************/
-/*                         OGRMIDDataSource()                           */
-/************************************************************************/
-OGRMIDDataSource::OGRMIDDataSource( const char * pszNameIn,
-                                        MIFFile *poLayerIn )
-
-{
-    m_pszName = CPLStrdup( pszNameIn );
-    m_poLayer = poLayerIn;
-}
-
-/************************************************************************/
-/*                        ~OGRMIDDataSource()                         */
-/************************************************************************/
-OGRMIDDataSource::~OGRMIDDataSource()
-
-{
-    CPLFree( m_pszName );
-    delete m_poLayer;
-}
-
-/************************************************************************/
-/*                          ~OGRMIDDriver()                           */
-/************************************************************************/
-
-OGRMIDDriver::~OGRMIDDriver()
-
-{
-}
-
-/************************************************************************/
-/*                OGRMIDDriver::GetName()                               */
-/************************************************************************/
-
-const char *OGRMIDDriver::GetName()
-
-{
-    return "MapInfo Mid/Mif File";
-}
-
-/************************************************************************/
-/*                  OGRMIDDriver::Open()                                */
-/************************************************************************/
-
-OGRDataSource *OGRMIDDriver::Open( const char * pszFilename,
-                                     int bUpdate )
-
-{
-
-    if( bUpdate )
-    {
-	return NULL;
-    }
-       
-/* -------------------------------------------------------------------- */
-/*      Create the layer object.                                        */
-/* -------------------------------------------------------------------- */
-    MIFFile	*poLayer;
-
-    poLayer = new MIFFile();
-    if (poLayer->Open(pszFilename,"r") == 0)
-      return new OGRMIDDataSource( pszFilename, poLayer );
-    else
-    {
-	delete poLayer;
-	return NULL;
-    }
-}
-
-/************************************************************************/
-/*              RegisterOGRTAB() and RegisterOGRMID()                   */
+/*              RegisterOGRTAB()                                        */
 /************************************************************************/
 
 extern "C"
@@ -207,10 +136,5 @@ void RegisterOGRTAB()
     OGRSFDriverRegistrar::GetRegistrar()->RegisterDriver( new OGRTABDriver );
 }
 
-void RegisterOGRMIF()
-
-{
-    OGRSFDriverRegistrar::GetRegistrar()->RegisterDriver( new OGRMIDDriver );
-}
 
 }

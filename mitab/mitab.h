@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.3 1999-09-16 02:39:16 daniel Exp $
+ * $Id: mitab.h,v 1.4 1999-09-23 19:49:47 warmerda Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.3  1999-09-16 02:39:16  daniel
+ * Revision 1.4  1999-09-23 19:49:47  warmerda
+ * Added setspatialref()
+ *
+ * Revision 1.3  1999/09/16 02:39:16  daniel
  * Completed read support for most feature types
  *
  * Revision 1.2  1999/09/01 17:46:49  daniel
@@ -90,6 +93,7 @@ class TABFile
     TABFieldType GetNativeFieldType(int nFieldId);
 
     OGRSpatialReference *GetSpatialRef();
+    int		 SetSpatialRef( OGRSpatialReference * );
 
 #ifdef DEBUG
     void Dump(FILE *fpOut = NULL);

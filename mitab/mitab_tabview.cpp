@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabview.cpp,v 1.1 1999-12-14 02:10:32 daniel Exp $
+ * $Id: mitab_tabview.cpp,v 1.2 1999-12-14 04:04:10 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabview.cpp,v $
- * Revision 1.1  1999-12-14 02:10:32  daniel
+ * Revision 1.2  1999-12-14 04:04:10  daniel
+ * Added bforceFlags to GetBounds() and GetFeatureCountByType()
+ *
+ * Revision 1.1  1999/12/14 02:10:32  daniel
  * Initial revision
  *
  **********************************************************************/
@@ -583,10 +586,14 @@ TABFieldType TABView::GetNativeFieldType(int nFieldId)
  *
  * Fetch projection coordinates bounds of a dataset.
  *
+ * The bForce flag has no effect on TAB files since the bounds are
+ * always in the header.
+ *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
 int TABView::GetBounds(double &dXMin, double &dYMin, 
-                       double &dXMax, double &dYMax)
+                       double &dXMax, double &dYMax,
+                       GBool bForce /*= TRUE*/)
 {
     if (m_nMainTableIndex == -1)
     {
@@ -596,7 +603,8 @@ int TABView::GetBounds(double &dXMin, double &dYMin,
     }
 
     return m_papoTABFiles[m_nMainTableIndex]->GetBounds(dXMin, dYMin,
-                                                        dXMax, dYMax);
+                                                        dXMax, dYMax,
+                                                        bForce);
 }
 
 /**********************************************************************
@@ -608,11 +616,15 @@ int TABView::GetBounds(double &dXMin, double &dYMin,
  * the total number of features since features with NONE geometry
  * are not taken into account here.
  *
+ * Note: the bForce flag has nmo effect on .TAB files since the info
+ * is always in the header.
+ *
  * Returns 0 on success, or silently returns -1 (with no error) if this
  * information is not available.
  **********************************************************************/
 int TABView::GetFeatureCountByType(int &numPoints, int &numLines,
-                                   int &numRegions, int &numTexts)
+                                   int &numRegions, int &numTexts,
+                                   GBool bForce /*= TRUE*/)
 {
     if (m_nMainTableIndex == -1)
         return -1;
@@ -620,7 +632,8 @@ int TABView::GetFeatureCountByType(int &numPoints, int &numLines,
     return m_papoTABFiles[m_nMainTableIndex]->GetFeatureCountByType(numPoints,
                                                                     numLines,
                                                                     numRegions,
-                                                                    numTexts);
+                                                                    numTexts,
+                                                                    bForce);
 }
 
 

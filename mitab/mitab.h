@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.19 1999-12-14 02:02:12 daniel Exp $
+ * $Id: mitab.h,v 1.20 1999-12-14 04:04:44 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.19  1999-12-14 02:02:12  daniel
+ * Revision 1.20  1999-12-14 04:04:44  daniel
+ * Added bforceFlags to GetBounds() and GetFeatureCountByType()
+ *
+ * Revision 1.19  1999/12/14 02:02:12  daniel
  * Added TABView class + several minor changes
  *
  * Revision 1.18  1999/11/14 04:42:19  daniel
@@ -174,12 +177,14 @@ class IMapInfoFile : public OGRLayer
     virtual TABFieldType GetNativeFieldType(int nFieldId) = 0;
 
     virtual int GetBounds(double &dXMin, double &dYMin, 
-                          double &dXMax, double &dYMax) = 0;
+                          double &dXMax, double &dYMax,
+                          GBool bForce = TRUE ) = 0;
     
     virtual OGRSpatialReference *GetSpatialRef() = 0;
 
     virtual int GetFeatureCountByType(int &numPoints, int &numLines,
-                                      int &numRegions, int &numTexts) = 0;
+                                      int &numRegions, int &numTexts,
+                                      GBool bForce = TRUE ) = 0;
 
     ///////////////
     // Write access specific stuff
@@ -268,12 +273,14 @@ class TABFile: public IMapInfoFile
     virtual TABFieldType GetNativeFieldType(int nFieldId);
 
     virtual int GetBounds(double &dXMin, double &dYMin, 
-                          double &dXMax, double &dYMax);
+                          double &dXMax, double &dYMax,
+                          GBool bForce = TRUE );
     
     virtual OGRSpatialReference *GetSpatialRef();
 
     virtual int GetFeatureCountByType(int &numPoints, int &numLines,
-                                      int &numRegions, int &numTexts);
+                                      int &numRegions, int &numTexts,
+                                      GBool bForce = TRUE);
 
     ///////////////
     // Write access specific stuff
@@ -372,12 +379,14 @@ class TABView: public IMapInfoFile
     virtual TABFieldType GetNativeFieldType(int nFieldId);
 
     virtual int GetBounds(double &dXMin, double &dYMin, 
-                          double &dXMax, double &dYMax);
+                          double &dXMax, double &dYMax,
+                          GBool bForce = TRUE );
     
     virtual OGRSpatialReference *GetSpatialRef();
 
     virtual int GetFeatureCountByType(int &numPoints, int &numLines,
-                                      int &numRegions, int &numTexts);
+                                      int &numRegions, int &numTexts,
+                                      GBool bForce = TRUE);
 
     ///////////////
     // Write access specific stuff ... not supported
@@ -497,12 +506,14 @@ class MIFFile: public IMapInfoFile
     virtual TABFieldType GetNativeFieldType(int nFieldId);
 
     virtual int GetBounds(double &dXMin, double &dYMin, 
-                          double &dXMax, double &dYMax);
+                          double &dXMax, double &dYMax,
+                          GBool bForce = TRUE );
     
     virtual OGRSpatialReference *GetSpatialRef();
 
     virtual int GetFeatureCountByType(int &numPoints, int &numLines,
-                                      int &numRegions, int &numTexts);
+                                      int &numRegions, int &numTexts,
+                                      GBool bForce = TRUE);
 
     ///////////////
     // Write access specific stuff

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.22 1999-12-14 02:13:40 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.23 1999-12-14 04:03:03 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,8 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.22  1999-12-14 02:13:40  daniel
- * Added .IND file support, bTextOpen flag on open(), + minor changes
+ * Revision 1.23  1999-12-14 04:03:03  daniel
+ * Added bforceFlags to GetBounds() and GetFeatureCountByType()
+ *
+ * Revision 1.22  1999/12/14 02:13:40  daniel
+ * Added .IND file support, bTestOpen flag on open(), + minor changes
  *
  * Revision 1.21  1999/11/14 17:49:18  stephane
  * Add missing ifndef OGR in open
@@ -1516,10 +1519,14 @@ int TABFile::SetBounds(double dXMin, double dYMin,
  *
  * Fetch projection coordinates bounds of a dataset.
  *
+ * The bForce flag has no effect on TAB files since the bounds are
+ * always in the header.
+ *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
 int TABFile::GetBounds(double &dXMin, double &dYMin, 
-                       double &dXMax, double &dYMax)
+                       double &dXMax, double &dYMax,
+                       GBool /*bForce = TRUE*/)
 {
     TABMAPHeaderBlock *poHeader;
 
@@ -1550,11 +1557,15 @@ int TABFile::GetBounds(double &dXMin, double &dYMin,
  * the total number of features since features with NONE geometry
  * are not taken into account here.
  *
+ * Note: the bForce flag has nmo effect on .TAB files since the info
+ * is always in the header.
+ *
  * Returns 0 on success, or silently returns -1 (with no error) if this
  * information is not available.
  **********************************************************************/
 int TABFile::GetFeatureCountByType(int &numPoints, int &numLines,
-                                   int &numRegions, int &numTexts)
+                                   int &numRegions, int &numTexts,
+                                   GBool /* bForce = TRUE*/ )
 {
     TABMAPHeaderBlock *poHeader;
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.6 1999-12-14 02:20:55 daniel Exp $
+ * $Id: mitab_miffile.cpp,v 1.7 1999-12-14 04:02:31 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.6  1999-12-14 02:20:55  daniel
+ * Revision 1.7  1999-12-14 04:02:31  daniel
+ * Added bforceFlags to GetBounds() and GetFeatureCountByType()
+ *
+ * Revision 1.6  1999/12/14 02:20:55  daniel
  * Added bTestOpen flag on Open()
  *
  * Revision 1.5  1999/11/14 18:12:47  stephane
@@ -1289,11 +1292,15 @@ int MIFFile::SetBounds(double dXMin, double dYMin,
  * NOTE: The current implementation always returns -1 for MIF files
  *       since this would require scanning the whole file.
  *
+ * When properly implemented, the bForce flag will force scanning the
+ * whole file by default.
+ *
  * Returns 0 on success, or silently returns -1 (with no error) if this
  * information is not available.
  **********************************************************************/
 int MIFFile::GetFeatureCountByType(int &numPoints, int &numLines,
-                                   int &numRegions, int &numTexts)
+                                   int &numRegions, int &numTexts,
+                                   GBool /*bForce = TRUE */)
 {
     numPoints = numLines = numRegions = numTexts = 0;
     return -1;
@@ -1304,10 +1311,15 @@ int MIFFile::GetFeatureCountByType(int &numPoints, int &numLines,
  *
  * Fetch projection coordinates bounds of a dataset.
  *
- * Returns 0 on success, -1 on error.
+ * Pass bForce=FALSE to avoid a scan of the whole file if the bounds
+ * are not already available.
+ *
+ * Returns 0 on success, -1 on error or if bounds are not available and
+ * bForce=FALSE.
  **********************************************************************/
 int MIFFile::GetBounds(double &dXMin, double &dYMin, 
-                       double &dXMax, double &dYMax)
+                       double &dXMax, double &dYMax,
+                       GBool bForce /*= TRUE*/ )
 {
     
     if (m_bBoundsSet == FALSE)

@@ -69,6 +69,8 @@ CHANGES - Current Version:
 - Made all open() methods completely case-insensitive on filenames on Unix
   (added TABAdjustCaseSensitiveFilename())
 
+- Added new MapInfo 6.0 datums in datum list.
+
 
 Version 1.0.1 - (2000-04-21)
 ----------------------------
@@ -184,5 +186,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.24 2000-09-28 16:40:16 warmerda Exp $
+$Id: HISTORY.TXT,v 1.25 2000-09-29 22:41:18 daniel Exp $
 ------------

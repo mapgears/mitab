@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.2 1999-11-09 22:31:38 warmerda Exp $
+ * $Id: mitab_miffile.cpp,v 1.3 1999-11-11 01:22:05 stephane Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.2  1999-11-09 22:31:38  warmerda
+ * Revision 1.3  1999-11-11 01:22:05  stephane
+ * Remove DebugFeature call, Point Reading error, add IsValidFeature() to test correctly if we are on a feature
+ *
+ * Revision 1.2  1999/11/09 22:31:38  warmerda
  * initial implementation of MIF CoordSys support
  *
  * Revision 1.1  1999/11/08 19:19:34  stephane
@@ -297,7 +300,7 @@ int MIFFile::ParseMIFHeader()
     {
 	if (EQUALN(pszLine,"VERSION",7))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," \"()",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
 	    bColumns = FALSE; bCoordSys = FALSE;
 	    if (CSLCount(papszToken)  == 2)
 	      m_pszVersion = CPLStrdup(papszToken[1]);
@@ -307,7 +310,7 @@ int MIFFile::ParseMIFHeader()
 	}
 	else if (EQUALN(pszLine,"CHARSET",7))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," \"()",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
 	     bColumns = FALSE; bCoordSys = FALSE;
 	  
 	    if (CSLCount(papszToken)  == 2)
@@ -318,7 +321,7 @@ int MIFFile::ParseMIFHeader()
 	}
 	else if (EQUALN(pszLine,"DELIMITER",9))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," \"()",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
 	     bColumns = FALSE; bCoordSys = FALSE;
 	  
 	   if (CSLCount(papszToken)  == 2)
@@ -331,7 +334,7 @@ int MIFFile::ParseMIFHeader()
 	}
 	else if (EQUALN(pszLine,"UNIQUE",6))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," \"()",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
 	     bColumns = FALSE; bCoordSys = FALSE;
 	  
 	    if (CSLCount(papszToken) == 2)
@@ -342,7 +345,7 @@ int MIFFile::ParseMIFHeader()
 	}
 	else if (EQUALN(pszLine,"INDEX",5))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," \"()",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
 	     bColumns = FALSE; bCoordSys = FALSE;
 	  
 	    if (CSLCount(papszToken) == 2)
@@ -382,7 +385,7 @@ int MIFFile::ParseMIFHeader()
 	}
 	else if (EQUALN(pszLine,"COLUMNS",7))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," \"()",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
 	    bCoordSys = FALSE;
 	    bColumns = TRUE;
 	    if (CSLCount(papszToken) == 2)
@@ -447,7 +450,7 @@ int  MIFFile::AddFields(const char *pszLine)
     OGRFieldDefn *poFieldDefn = NULL;
 
     CPLAssert(m_poDefn);
-    papszToken = CSLTokenizeStringComplex(pszLine," \"(,)",TRUE,FALSE); 
+    papszToken = CSLTokenizeStringComplex(pszLine," (,)",TRUE,FALSE); 
     numTok = CSLCount(papszToken);
 
                 
@@ -551,7 +554,7 @@ void MIFFile::ResetReading()
 
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
     {
-	if (isalpha(pszLine[0]))
+	if (m_poMIFFile->IsValidFeature(pszLine))
 	  break;
     }
 
@@ -572,7 +575,7 @@ int MIFFile::CountNumberFeature()
 
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
     {
-	if (isalpha(pszLine[0]))
+	if (m_poMIFFile->IsValidFeature(pszLine))
 	{
 	    bPLine = FALSE;
 	    bText = FALSE;
@@ -642,7 +645,7 @@ int MIFFile::CountNumberFeature()
 
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
     {
-	if (isalpha(pszLine[0]))
+	if (m_poMIFFile->IsValidFeature(pszLine))
 	  break;
     }
     
@@ -829,7 +832,7 @@ int MIFFile::NextFeature()
     const char *pszLine;
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
     {
-	if (isalpha(pszLine[0]))
+	if (m_poMIFFile->IsValidFeature(pszLine))
 	  break;
     }
     
@@ -955,7 +958,12 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
 	}
 	else
 	{
-	    m_poCurFeature = new TABDebugFeature(m_poDefn);
+	    CPLError(CE_Failure, CPLE_NotSupported,
+                 "Error during reading, unknown type %s.",
+		     pszLine);
+	
+	    //m_poCurFeature = new TABDebugFeature(m_poDefn);
+	    return NULL;
 	}
     }
    /*-----------------------------------------------------------------
@@ -965,7 +973,10 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
     
     if (m_poCurFeature->ReadRecordFromMIDFile(m_poMIDFile) != 0)
     {
-	delete m_poCurFeature;
+	CPLError(CE_Failure, CPLE_NotSupported,
+                 "Error during reading Record.");
+	
+        delete m_poCurFeature;
         m_poCurFeature = NULL;
         return NULL;
     }
@@ -976,6 +987,9 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
      *----------------------------------------------------------------*/
     if (m_poCurFeature->ReadGeometryFromMIFFile(m_poMIFFile) != 0)
     {
+	CPLError(CE_Failure, CPLE_NotSupported,
+                 "Error during reading Geometry.");
+	
 	delete m_poCurFeature;
 	m_poCurFeature = NULL;
 	return NULL;
@@ -1049,18 +1063,8 @@ int MIFFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
     }
 
 
-    if (m_poMIDFile == NULL ||
-        poFeature->WriteRecordToMIDFile(m_poMIDFile) != 0 )
-    {
-        CPLError(CE_Failure, CPLE_FileIO,
-                 "Failed writing attributes for feature id %d in %s",
-                 nFeatureId, m_pszFname);
-        return -1;
-    }
-
     /*-----------------------------------------------------------------
-     * Write geometry to the .MAP file
-     * The call to PrepareNewObj() takes care of the .ID file.
+     * Write geometry to the .Mif file
      *----------------------------------------------------------------*/
     if (m_poMIFFile == NULL ||
         poFeature->WriteGeometryToMIFFile(m_poMIFFile) != 0)
@@ -1070,6 +1074,16 @@ int MIFFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
                  nFeatureId, m_pszFname);
         return -1;
     }
+
+    if (m_poMIDFile == NULL ||
+        poFeature->WriteRecordToMIDFile(m_poMIDFile) != 0 )
+    {
+        CPLError(CE_Failure, CPLE_FileIO,
+                 "Failed writing attributes for feature id %d in %s",
+                 nFeatureId, m_pszFname);
+        return -1;
+    }
+
    
     return nFeatureId; 
 }

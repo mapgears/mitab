@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.9 1999-11-09 07:37:22 daniel Exp $
+ * $Id: mitab_priv.h,v 1.10 1999-11-11 01:22:05 stephane Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.9  1999-11-09 07:37:22  daniel
+ * Revision 1.10  1999-11-11 01:22:05  stephane
+ * Remove DebugFeature call, Point Reading error, add IsValidFeature() to test correctly if we are on a feature
+ *
+ * Revision 1.9  1999/11/09 07:37:22  daniel
  * Support for deleted records when reading TABDATFiles
  *
  * Revision 1.8  1999/11/08 04:34:54  stephane
@@ -917,6 +920,7 @@ class MIDDATAFile
      void SaveLine(const char *pszLine);
      const char *GetSavedLine();
      void WriteLine(const char*, ...);
+     GBool IsValidFeature(const char *pszString);
 
 //  Translation information
      void SetTranslation(double, double, double, double);

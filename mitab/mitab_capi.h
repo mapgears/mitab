@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.2 2000-01-14 16:33:24 warmerda Exp $
+ * $Id: mitab_capi.h,v 1.3 2000-01-14 17:30:39 warmerda Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.2  2000-01-14 16:33:24  warmerda
+ * Revision 1.3  2000-01-14 17:30:39  warmerda
+ * added capi dll support
+ *
+ * Revision 1.2  2000/01/14 16:33:24  warmerda
  * initial implementation complete
  *
  * Revision 1.1  2000/01/14 14:53:59  warmerda
@@ -43,6 +46,12 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#ifdef _WIN32
+#define MITAB_DLL __declspec(dllexport)
+#else
+#define MITAB_DLL
 #endif
 
 typedef void * mitab_handle;
@@ -59,50 +68,58 @@ typedef void * mitab_feature;
 #define TABFT_Integer	2
 #define TABFT_Float	5
 
-mitab_handle mitab_c_open( const char * filename );
-void mitab_c_close( mitab_handle handle );
+mitab_handle MITAB_DLL mitab_c_open( const char * filename );
+void MITAB_DLL mitab_c_close( mitab_handle handle );
 
-mitab_handle mitab_c_create( const char * filename,
-                             const char * mif_or_tab,
-                             const char * mif_projectiondef,
-                             double north, double south,
-                             double east, double west );
+mitab_handle MITAB_DLL mitab_c_create( const char * filename,
+                                       const char * mif_or_tab,
+                                       const char * mif_projectiondef,
+                                       double north, double south,
+                                       double east, double west );
 
-int mitab_c_add_field( mitab_handle handle, const char * field_name,
-                       int field_type, int width, int precision );
+int MITAB_DLL mitab_c_add_field( mitab_handle handle, const char * field_name,
+                                 int field_type, int width, int precision );
 
-int mitab_c_write_feature( mitab_handle handle, mitab_feature feature );
+int MITAB_DLL
+mitab_c_write_feature( mitab_handle handle, mitab_feature feature );
 
-int mitab_c_next_feature_id( mitab_handle handle, int last_feature_id );
+int MITAB_DLL
+mitab_c_next_feature_id( mitab_handle handle, int last_feature_id );
 
-mitab_feature mitab_c_read_feature( mitab_handle handle, int feature_id );
+mitab_feature MITAB_DLL
+mitab_c_read_feature( mitab_handle handle, int feature_id );
 
-void mitab_c_destroy_feature( mitab_feature );
-int mitab_c_get_feature_id( mitab_feature );
+void MITAB_DLL mitab_c_destroy_feature( mitab_feature );
+int MITAB_DLL mitab_c_get_feature_id( mitab_feature );
 
-mitab_feature mitab_c_create_feature( mitab_handle, int feature_type );
+mitab_feature MITAB_DLL
+mitab_c_create_feature( mitab_handle, int feature_type );
 
-void mitab_c_set_field( mitab_feature, int field_index, const char * value );
+void MITAB_DLL
+mitab_c_set_field( mitab_feature, int field_index, const char * value );
+    
+void MITAB_DLL
+mitab_c_set_text( mitab_feature feature, const char * text );
+void MITAB_DLL
+mitab_c_set_text_display( mitab_feature feature,
+                          double angle, double height, double width,
+                          int fg_color, int bg_color,
+                          int justification, int spacing, int linetype );
 
-void mitab_c_set_text( mitab_feature feature, const char * text );
-void mitab_c_set_text_display( mitab_feature feature,
-                               double angle, double height, double width,
-                               int fg_color, int bg_color,
-                               int justification, int spacing, int linetype );
+void MITAB_DLL mitab_c_set_pen( mitab_feature feature,
+                                int width, int pattern, int style, int color );
 
-void mitab_c_set_pen( mitab_feature feature,
-                      int width, int pattern, int style, int color );
+void MITAB_DLL mitab_c_set_brush( mitab_feature feature,
+                                  int fg_color, int bg_color, int pattern,
+                                  int transparent );
+void MITAB_DLL
+mitab_c_set_font( mitab_feature feature, const char * font_name );
 
-void mitab_c_set_brush( mitab_feature feature,
-                        int fg_color, int bg_color, int pattern,
-                        int transparent );
-void mitab_c_set_font( mitab_feature feature, const char * font_name );
+void MITAB_DLL mitab_c_set_symbol( mitab_feature feature, int symbol_no,
+                                   int symbol_size, int symbol_color );
 
-void mitab_c_set_symbol( mitab_feature feature, int symbol_no,
-                         int symbol_size, int symbol_color );
-
-void mitab_c_set_points( mitab_feature feature, int part,
-                         int vertex_count, double * x, double * y );
+void MITAB_DLL mitab_c_set_points( mitab_feature feature, int part,
+                                   int vertex_count, double * x, double * y );
 
 /* -------------------------------------------------------------------- */
 /*      Not implemented                                                 */

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_datfile.cpp,v 1.12 2000-01-16 19:08:48 daniel Exp $
+ * $Id: mitab_datfile.cpp,v 1.13 2000-01-28 07:31:49 daniel Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_datfile.cpp,v $
- * Revision 1.12  2000-01-16 19:08:48  daniel
+ * Revision 1.13  2000-01-28 07:31:49  daniel
+ * Validate char field width (must be <= 254 chars)
+ *
+ * Revision 1.12  2000/01/16 19:08:48  daniel
  * Added support for reading 'Table Type DBF' tables
  *
  * Revision 1.11  2000/01/15 22:30:43  daniel
@@ -659,6 +662,17 @@ int  TABDATFile::AddField(const char *pszName, TABFieldType eType,
         CPLError(CE_Failure, CPLE_NotSupported,
                  "Addition of new table fields is not supported after the "
                  "first data item has been written.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Validate field width... must be <= 254
+     *----------------------------------------------------------------*/
+    if (nWidth > 254)
+    {
+        CPLError(CE_Failure, CPLE_IllegalArg,
+                 "Invalid size (%d) for field '%s'.  "
+                 "Size must be 254 or less.", nWidth, pszName);
         return -1;
     }
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.13 2000-01-24 19:51:33 warmerda Exp $
+ * $Id: mitab_miffile.cpp,v 1.14 2000-01-28 07:32:25 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.13  2000-01-24 19:51:33  warmerda
+ * Revision 1.14  2000-01-28 07:32:25  daniel
+ * Validate char field width (must be <= 254 chars)
+ *
+ * Revision 1.13  2000/01/24 19:51:33  warmerda
  * AddFieldNative should not fail for read-only datasets
  *
  * Revision 1.12  2000/01/18 23:13:41  daniel
@@ -1236,6 +1239,17 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         CPLError(CE_Failure, CPLE_AssertionFailed,
                  "AddFieldNative() must be called after opening a new "
                  "dataset, but before writing the first feature to it.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Validate field width... must be <= 254
+     *----------------------------------------------------------------*/
+    if (nWidth > 254)
+    {
+        CPLError(CE_Failure, CPLE_IllegalArg,
+                 "Invalid size (%d) for field '%s'.  "
+                 "Size must be 254 or less.", nWidth, pszName);
         return -1;
     }
 

@@ -43,8 +43,13 @@ ToDo - Open Questions:
    is not properly written.
 
 
+
 CHANGES - Current Version:
 --------------------------
+
+- Fixed a problem writing indexes - When a new entry was inserted at the 
+  beginning of an index node (changing this node's key) then the parent was 
+  not properly updated and some records were not queriable through that index.
 
 
 Version 1.0.3 - (2000-10-19)
@@ -218,5 +223,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.32 2000-10-19 20:06:25 daniel Exp $
+$Id: HISTORY.TXT,v 1.33 2000-11-13 22:30:03 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.6 2004-07-05 18:45:24 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.7 2005-03-24 17:21:05 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.6  2004-07-05 18:45:24  dmorissette
+ * Revision 1.7  2005-03-24 17:21:05  dmorissette
+ * Updated Libversion to 1004000 for 1.4.0 release
+ *
+ * Revision 1.6  2004/07/05 18:45:24  dmorissette
  * Added mitab_c_load_coordsys_table defn (Uffe K.)
  *
  * Revision 1.5  2004/06/30 20:18:53  dmorissette
@@ -97,7 +100,7 @@ Type
 
 const
 // update to match mitab.h (app. line 175), when new versions are released
-  Libversion = 1003000;
+  Libversion = 1004000;
   
 // feature type values
   TABFC_NoGeom      = 0;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.14 2001-11-02 17:30:02 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.15 2001-12-17 16:05:19 warmerda Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.14  2001-11-02 17:30:02  daniel
+ * Revision 1.15  2001-12-17 16:05:19  warmerda
+ * set point geometry in mitab_c_set_arc() so validate will work
+ *
+ * Revision 1.14  2001/11/02 17:30:02  daniel
  * Added mitab_c_get/set_projinfo() and mitab_c_get_mif_coordsys().
  * Changed mitab_c_create() to make bounds optional and allow using default
  * projection bounds if available.
@@ -662,6 +665,10 @@ mitab_c_set_arc( mitab_feature feature,
         poArc->m_dYRadius = y_radius;
         poArc->SetStartAngle(start_angle);
         poArc->SetEndAngle(end_angle);
+
+        // We also need a point geometry to make things legal.
+        OGRPoint	oPoint( center_x, center_y );
+        poArc->SetGeometry( &oPoint );
     }
     else if (poFeature->GetFeatureClass() == TABFC_Ellipse)
     {

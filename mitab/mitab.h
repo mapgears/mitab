@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.56 2001-09-19 21:39:15 warmerda Exp $
+ * $Id: mitab.h,v 1.57 2001-11-02 17:27:21 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.56  2001-09-19 21:39:15  warmerda
+ * Revision 1.57  2001-11-02 17:27:21  daniel
+ * Version 1.1.3
+ *
+ * Revision 1.56  2001/09/19 21:39:15  warmerda
  * get extents efficiently
  *
  * Revision 1.55  2001/09/19 14:31:22  warmerda
@@ -123,7 +126,7 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION "1.1.2 (2001-06-24)"
+#define MITAB_VERSION "1.1.3 (2001-11-02)"
 
 #ifndef PI
 #  define PI 3.14159265358979323846

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.34 2004-07-07 21:51:35 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.35 2004-07-08 00:00:54 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.34  2004-07-07 21:51:35  dmorissette
+ * Revision 1.35  2004-07-08 00:00:54  dmorissette
+ * Disabled mitab_c_get_extended_mif_coordsys_vb() until
+ * mitab_c_get_extended_mif_coordsys() is re-enabled
+ *
+ * Revision 1.34  2004/07/07 21:51:35  dmorissette
  * Added mitab_c_get_mif_coordsys_vb() (patch from BVT)
  *
  * Revision 1.33  2004/06/30 20:05:34  dmorissette
@@ -2410,8 +2414,6 @@ mitab_c_get_extended_mif_coordsys( mitab_handle dataset)
     return NULL;
 }
 
-#endif // __TO_BE_REVIEWED__
-
 /************************************************************************/
 /*                    mitab_c_get_extended_mif_coordsys_vb()            */
 /************************************************************************/
@@ -2433,6 +2435,8 @@ mitab_c_get_extended_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int
         strncpy( coordsys, mitab_c_get_extended_mif_coordsys(dataset), l );
         return strlen(coordsys);
 }
+
+#endif // __TO_BE_REVIEWED__
 
 
 /************************************************************************/

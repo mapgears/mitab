@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.14 1999-11-10 20:13:12 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.15 1999-11-11 02:56:17 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.14  1999-11-10 20:13:12  warmerda
+ * Revision 1.15  1999-11-11 02:56:17  warmerda
+ * fixed problems with stereographic
+ *
+ * Revision 1.14  1999/11/10 20:13:12  warmerda
  * implement spheroid table
  *
  * Revision 1.13  1999/11/09 22:31:38  warmerda
@@ -478,7 +481,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         break;
 
         /*--------------------------------------------------------------
-         * Gall
+         * Gall Stereographic
          *-------------------------------------------------------------*/
       case 17:
         m_poSpatialRef->SetGS( sTABProj.adProjParams[0], 0.0, 0.0 );
@@ -510,10 +513,11 @@ OGRSpatialReference *TABFile::GetSpatialRef()
          * Stereographic
          *-------------------------------------------------------------*/
       case 20:
-        m_poSpatialRef->SetStereographic( 0.0, sTABProj.adProjParams[0], 
-                                          1.0,
-                                          sTABProj.adProjParams[1],
-                                          sTABProj.adProjParams[2] );
+        m_poSpatialRef->SetStereographic( sTABProj.adProjParams[1],
+                                          sTABProj.adProjParams[0],
+                                          sTABProj.adProjParams[2],
+                                          sTABProj.adProjParams[3],
+                                          sTABProj.adProjParams[4] );
         break;
 
       default:

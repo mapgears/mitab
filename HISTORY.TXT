@@ -5,9 +5,22 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+
+Version 1.1.2 - (2001-06-24)
+----------------------------
+
 - Support reading and writing TEXT objects with strings longer than 512
   bytes.  MITABMAPCoordBlock's Read/WriteBytes() had to be fixed to 
   allow reading/writing data split over more than 2 blocks.
+
+- StyleString fixes: include font name in text style string, and placed
+  brush before pen in region style strings.
+
+- C API: added get methods for all pen, brush, font and symbol properties.
+
+- Fixed MIF Text object output: negative text angles were lost.  Also use
+  TABText::SetTextAngle() when reading MIF instead of setting class members
+  directly so that negative angles get converted to the [0..360] range.
 
 
 Version 1.1.1 - (2001-05-01)
@@ -277,5 +290,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.53 2001-05-09 17:54:49 daniel Exp $
+$Id: HISTORY.TXT,v 1.54 2001-06-25 01:49:05 daniel Exp $
 ------------

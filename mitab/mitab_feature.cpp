@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.11 1999-10-19 06:13:38 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.12 1999-11-05 05:54:14 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.11  1999-10-19 06:13:38  daniel
+ * Revision 1.12  1999-11-05 05:54:14  daniel
+ * Fixed TABArc to expect wkbLineString instead of wkbPolygon geometry
+ *
+ * Revision 1.11  1999/10/19 06:13:38  daniel
  * Removed obsolete code and comments related to angles vs flipped axis
  *
  * Revision 1.10  1999/10/18 15:43:03  daniel
@@ -2817,7 +2820,7 @@ int  TABArc::ValidateMapInfoType()
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
     poGeom = GetGeometryRef();
-    if ( (poGeom && poGeom->getGeometryType() == wkbPolygon ) ||
+    if ( (poGeom && poGeom->getGeometryType() == wkbLineString ) ||
          (poGeom && poGeom->getGeometryType() == wkbPoint ) )
     {
         m_nMapInfoType = TAB_GEOM_ARC;
@@ -2990,7 +2993,7 @@ int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
      * Fetch and validate geometry
      *----------------------------------------------------------------*/
     poGeom = GetGeometryRef();
-    if ( (poGeom && poGeom->getGeometryType() == wkbPolygon ) )
+    if ( (poGeom && poGeom->getGeometryType() == wkbLineString ) )
     {
         /*-------------------------------------------------------------
          * POLYGON geometry:

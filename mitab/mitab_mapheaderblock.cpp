@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.4 1999-09-26 14:59:36 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.5 1999-09-29 04:25:03 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.4  1999-09-26 14:59:36  daniel
+ * Revision 1.5  1999-09-29 04:25:03  daniel
+ * Set default scale so that default coord range is +/-1000000.000
+ *
+ * Revision 1.4  1999/09/26 14:59:36  daniel
  * Implemented write support
  *
  * Revision 1.3  1999/09/21 03:36:33  warmerda
@@ -118,8 +121,8 @@ TABMAPHeaderBlock::TABMAPHeaderBlock(TABAccess eAccessMode /*= TABRead*/):
     m_sProj.nProjId  = 0;
     m_sProj.nEllipsoidId = 0;
     m_sProj.nUnitsId = 0;
-    m_XScale = 1.0;
-    m_YScale = 1.0;
+    m_XScale = 1000.0;  // Default coord range (before SetCoordSysBounds()) 
+    m_YScale = 1000.0;  // will be [-1000000.000 .. 1000000.000]
     m_XDispl = 0.0;
     m_YDispl = 0.0;
 
@@ -689,8 +692,8 @@ int     TABMAPHeaderBlock::InitNewBlock(FILE *fpSrc, int nBlockSize,
     m_sProj.nProjId  = 0;
     m_sProj.nEllipsoidId = 0;
     m_sProj.nUnitsId = 0;
-    m_XScale = 1.0;
-    m_YScale = 1.0;
+    m_XScale = 1000.0;  // Default coord range (before SetCoordSysBounds()) 
+    m_YScale = 1000.0;  // will be [-1000000.000 .. 1000000.000]
     m_XDispl = 0.0;
     m_YDispl = 0.0;
 

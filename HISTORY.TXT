@@ -8,6 +8,10 @@ CHANGES - Current Version:
 Version 1.2.2 - (2002-07-06)
 ----------------------------
 
+- Added a validation in TABMAPFile::GetFeatureId(). When there's no .map file 
+  or no spatial indexes or no geometry, the function return -1 like an Eof.
+  This prevent the reading of a file set to NULL. (bug 169 (MapServer))
+
 - Treat Region as MultiPolygon in mitab_c_set_point() to support Regions
   with multiple islands and holes. Passing a part number <= 0 (second 
   parameter in mitab_c_set_point()) will result in adding a new island 
@@ -452,5 +456,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.93 2002-07-06 15:36:57 daniel Exp $
+$Id: HISTORY.TXT,v 1.94 2002-07-30 13:54:11 julien Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.8 2001-01-23 21:23:42 daniel Exp $
+ * $Id: tabdump.cpp,v 1.9 2001-07-04 14:13:24 daniel Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.8  2001-01-23 21:23:42  daniel
+ * Revision 1.9  2001-07-04 14:13:24  daniel
+ * Added GetExtent() output in DumpCoordsys()
+ *
+ * Revision 1.8  2001/01/23 21:23:42  daniel
  * Added projection bounds lookup table, called from TABFile::SetProjInfo()
  *
  * Revision 1.7  2000/11/13 22:05:45  daniel
@@ -433,13 +436,24 @@ static int DumpCoordsys(const char *pszFname)
 
     if (poFile->GetBounds(dXMin, dYMin, dXMax, dYMax) == 0)
     {
-        printf("  Bounds (%.15g %.15g) (%.15g %.15g)\n", dXMin, dYMin, dXMax, dYMax);
+        printf("  Proj. Bounds (%.15g %.15g) (%.15g %.15g)\n", dXMin, dYMin, dXMax, dYMax);
         printf("    dX dY = %.15g %.15g\n", dXMax - dXMin, dYMax - dYMin);
 
     }
     else
     {
-        printf("  Bounds not available!\n");
+        printf("  Projection Bounds not available!\n");
+    }
+
+    OGREnvelope oEnv;
+    if (poFile->GetExtent(&oEnv, TRUE) == 0)
+    {
+        printf("  Data Extents (%.15g %.15g) (%.15g %.15g)\n", oEnv.MinX, oEnv.MinY, oEnv.MaxX, oEnv.MaxY);
+
+    }
+    else
+    {
+        printf("  Data Extents not available!\n");
     }
 
     if (poSRS)

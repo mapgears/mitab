@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.16 1999-11-10 20:13:12 warmerda Exp $
+ * $Id: mitab.h,v 1.17 1999-11-12 05:51:12 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.16  1999-11-10 20:13:12  warmerda
+ * Revision 1.17  1999-11-12 05:51:12  daniel
+ * Added MITABExtractMIFCoordSysBounds()
+ *
+ * Revision 1.16  1999/11/10 20:13:12  warmerda
  * implement spheroid table
  *
  * Revision 1.15  1999/11/09 22:31:38  warmerda
@@ -242,6 +245,7 @@ class TABFile: public IMapInfoFile
 	    { return m_poMAPFile->GetHeaderBlock()->GetProjInfo( poPI ); }
     int          SetProjInfo(TABProjInfo *poPI)
 	    { return m_poMAPFile->GetHeaderBlock()->SetProjInfo( poPI ); }
+    int          SetMIFCoordSys(const char *pszMIFCoordSys);
 
 #ifdef DEBUG
     void Dump(FILE *fpOut = NULL);
@@ -1110,6 +1114,9 @@ class TABDebugFeature: public TABFeature
 
 char *MITABSpatialRef2CoordSys( OGRSpatialReference * );
 OGRSpatialReference * MITABCoordSys2SpatialRef( const char * );
+GBool MITABExtractCoordSysBounds( const char * pszCoordSys,
+                                  double &dXMin, double &dYMin,
+                                  double &dXMax, double &dYMax );
 
 typedef struct {
     int		nMapInfoDatumID;

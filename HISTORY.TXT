@@ -48,6 +48,9 @@ Version 1.3.0 (CVS)
  - Removed special bailout for m_poMAPFile == NULL in TABFile::Close().
    It is important to cleanup other used memory.
 
+ - mitab_coordsys.cpp: fixed small memory leak for non-earth coordinate
+   systems.  (bug supplied by Stephen Cheeseman, Geosoft). 
+
 Version 1.2.4 (2003-07-23)
 --------------------------
 
@@ -572,5 +575,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.119 2004-05-20 13:48:51 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.120 2004-06-03 19:36:53 fwarmerdam Exp $
 ------------

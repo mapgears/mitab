@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.vb,v 1.7 2002-09-07 17:57:01 daniel Exp $
+' * $Id: mitab.vb,v 1.8 2003-07-29 14:39:26 dmorissette Exp $
 ' *
 ' * Name:     mitab.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,13 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.vb,v $
-' * Revision 1.7  2002-09-07 17:57:01  daniel
+' * Revision 1.8  2003-07-29 14:39:26  dmorissette
+' * Update for v1.2.4 from BVT (mitab_c_add_field declaration changed)
+' *
+' * Revision 1.8  2003/07/29 13:53:11  daniel
+' * Update for v1.2.4 from BVT (mitab_c_add_field declaration changed)
+' *
+' * Revision 1.7  2002/09/07 17:57:01  daniel
 ' * Update for version 1.2.2 (from BVT)
 ' *
 ' * Revision 1.6  2002/09/07 13:59:38  daniel
@@ -113,7 +119,7 @@ Public Const TABTL_NoLine = 0
 Public Const TABTL_Simple = 1
 Public Const TABTL_Arrow = 2
 
-Public Declare Function mitab_c_add_field Lib "mitab.dll" Alias "_mitab_c_add_field@20" (ByVal handle As Long, ByVal field_name As String, ByVal field_type As Long, ByVal width As Long, ByVal precision As Long) As Long
+Public Declare Function mitab_c_add_field Lib "mitab.dll" Alias "_mitab_c_add_field@28" (ByVal handle As Long, ByVal field_name As String, ByVal field_type As Long, ByVal width As Long, ByVal precision As Long, ByVal indexed As Long, ByVal unique As Long) As Long
 Public Declare Sub mitab_c_close Lib "mitab.dll" Alias "_mitab_c_close@4" (ByVal handle As Long)
 Public Declare Function mitab_c_create Lib "mitab.dll" Alias "_mitab_c_create@44" (ByVal filename As String, ByVal mif_or_tab As String, ByVal mif_projectiondef As String, ByVal north As Double, ByVal south As Double, ByVal east As Double, ByVal west As Double) As Long
 Public Declare Function mitab_c_create_feature Lib "mitab.dll" Alias "_mitab_c_create_feature@8" (ByVal handle As Long, ByVal feature_type As Long) As Long

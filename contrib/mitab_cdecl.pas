@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_cdecl.pas,v 1.4 2002-08-01 13:53:11 daniel Exp $
+ * $Id: mitab_cdecl.pas,v 1.5 2003-07-29 14:39:26 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,13 @@
  **********************************************************************
  *
  * $Log: mitab_cdecl.pas,v $
- * Revision 1.4  2002-08-01 13:53:11  daniel
+ * Revision 1.5  2003-07-29 14:39:26  dmorissette
+ * Update for v1.2.4 from BVT (mitab_c_add_field declaration changed)
+ *
+ * Revision 1.5  2003/07/29 13:53:11  daniel
+ * Update for v1.2.4 from BVT (mitab_c_add_field declaration changed)
+ *
+ * Revision 1.4  2002/08/01 13:53:11  daniel
  * Update for v1.2.2 from BVT
  *
  * Revision 1.4  2002/07/07 22:04:22  bvt
@@ -112,7 +118,7 @@ const
 
   DLL = 'mitab_cdecl.dll';
 
-function  mitab_c_add_field              (handle: mitab_handle; field_name: pchar;field_type, width, precision: longint): longint;                              cdecl; external DLL Name 'mitab_c_add_field'               ;
+function  mitab_c_add_field              (handle: mitab_handle; field_name: pchar;field_type, width, precision, indexed, unique: longint): longint;             cdecl; external DLL Name 'mitab_c_add_field'               ;
 procedure mitab_c_close                  (handle: mitab_handle);                                                                                                cdecl; external DLL Name 'mitab_c_close'                   ;
 function  mitab_c_create                 (filename, mif_or_tab, mif_projectiondef: pchar; north, south, east, west: double): mitab_handle;                      cdecl; external DLL Name 'mitab_c_create'                  ;
 function  mitab_c_create_feature         (handle: mitab_handle; feature_type: longint): mitab_feature;                                                          cdecl; external DLL Name 'mitab_c_create_feature'          ;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.19 2000-07-04 01:50:40 warmerda Exp $
+ * $Id: mitab_miffile.cpp,v 1.20 2000-11-14 06:15:37 daniel Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.19  2000-07-04 01:50:40  warmerda
+ * Revision 1.20  2000-11-14 06:15:37  daniel
+ * Handle '\t' as spaces in parsing, and fixed GotoFeature() to avoid calling
+ * ResetReading() when reading forward.
+ *
+ * Revision 1.19  2000/07/04 01:50:40  warmerda
  * Removed unprotected debugging printf.
  *
  * Revision 1.18  2000/06/28 00:32:04  warmerda
@@ -405,7 +409,7 @@ int MIFFile::ParseMIFHeader()
 
 	if (EQUALN(pszLine,"VERSION",7))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
 	    bColumns = FALSE; bCoordSys = FALSE;
 	    if (CSLCount(papszToken)  == 2)
 	      m_pszVersion = CPLStrdup(papszToken[1]);
@@ -415,7 +419,7 @@ int MIFFile::ParseMIFHeader()
 	}
 	else if (EQUALN(pszLine,"CHARSET",7))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
 	     bColumns = FALSE; bCoordSys = FALSE;
 	  
 	    if (CSLCount(papszToken)  == 2)
@@ -426,7 +430,7 @@ int MIFFile::ParseMIFHeader()
 	}
 	else if (EQUALN(pszLine,"DELIMITER",9))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
 	     bColumns = FALSE; bCoordSys = FALSE;
 	  
 	   if (CSLCount(papszToken)  == 2)
@@ -456,7 +460,7 @@ int MIFFile::ParseMIFHeader()
 
             // Extract bounds if present
             char  **papszFields;
-            papszFields = CSLTokenizeStringComplex(m_pszCoordSys, " ,()", 
+            papszFields = CSLTokenizeStringComplex(m_pszCoordSys, " ,()\t",
                                                    TRUE, FALSE );
             int iBounds = CSLFindString( papszFields, "Bounds" );
             if (iBounds >= 0 && iBounds + 4 < CSLCount(papszFields))
@@ -470,7 +474,7 @@ int MIFFile::ParseMIFHeader()
         }
 	else if (EQUALN(pszLine,"TRANSFORM",9))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," ,",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ,\t",TRUE,FALSE); 
             bColumns = FALSE; bCoordSys = FALSE;
 	  
 	    if (CSLCount(papszToken) == 5)
@@ -489,7 +493,7 @@ int MIFFile::ParseMIFHeader()
 	}
 	else if (EQUALN(pszLine,"COLUMNS",7))
 	{
-	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
+	    papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
 	    bCoordSys = FALSE;
 	    bColumns = TRUE;
 	    if (CSLCount(papszToken) == 2)
@@ -554,7 +558,7 @@ int MIFFile::ParseMIFHeader()
      *----------------------------------------------------------------*/
     if (m_pszIndex)
     {
-        papszToken = CSLTokenizeStringComplex(m_pszIndex," ,",TRUE,FALSE);
+        papszToken = CSLTokenizeStringComplex(m_pszIndex," ,\t",TRUE,FALSE);
         for(int i=0; papszToken && papszToken[i]; i++)
         {
             int nVal = atoi(papszToken[i]);
@@ -566,7 +570,7 @@ int MIFFile::ParseMIFHeader()
 
     if (m_pszUnique)
     {
-        papszToken = CSLTokenizeStringComplex(m_pszUnique," ,",TRUE,FALSE);
+        papszToken = CSLTokenizeStringComplex(m_pszUnique," ,\t",TRUE,FALSE);
         for(int i=0; papszToken && papszToken[i]; i++)
         {
             int nVal = atoi(papszToken[i]);
@@ -590,7 +594,7 @@ int  MIFFile::AddFields(const char *pszLine)
     int nStatus = 0,numTok;
 
     CPLAssert(m_bHeaderWrote == FALSE);
-    papszToken = CSLTokenizeStringComplex(pszLine," (,)",TRUE,FALSE); 
+    papszToken = CSLTokenizeStringComplex(pszLine," (,)\t",TRUE,FALSE); 
     numTok = CSLCount(papszToken);
 
     if (numTok >= 3 && EQUAL(papszToken[1], "char"))
@@ -705,7 +709,8 @@ void MIFFile::ResetReading()
     m_poMIDFile->Rewind();
     m_poMIDFile->GetLine();
     
-    m_nCurFeatureId = 0;
+    // We're positioned on first feature.  Feature Ids start at 1.
+    m_nCurFeatureId = 1;
 }
 
 /************************************************************************/
@@ -1053,25 +1058,37 @@ int MIFFile::GetNextFeatureId(int nPrevId)
     return 0;
 }
 
+/**********************************************************************
+ *                   MIFFile::GotoFeature()
+ *
+ * Private method to move MIF and MID pointers ready to read specified 
+ * feature.  Note that Feature Ids start at 1.
+ *
+ * Returns 0 on success, -1 on error (likely request for invalid feature id)
+ **********************************************************************/
 int MIFFile::GotoFeature(int nFeatureId)
 {
-    int i;
 
-    if (nFeatureId <= 0)
+    if (nFeatureId < 1)
       return -1;
 
-    if ((nFeatureId -1) == m_nCurFeatureId) //CorrectPosition
+    if (nFeatureId == m_nCurFeatureId) // CorrectPosition
     {
 	return 0;
     }
     else
     {
-	ResetReading();
-	for (i=0;i<nFeatureId;i++)
-	{
+        if (nFeatureId < m_nCurFeatureId || m_nCurFeatureId == 0)
+            ResetReading();
+
+        while(m_nCurFeatureId < nFeatureId)
+        {
 	    if (NextFeature() == FALSE)
 	      return -1;
 	}
+
+        CPLAssert(m_nCurFeatureId == nFeatureId);
+
 	return 0;
     }
 }
@@ -1084,6 +1101,7 @@ GBool MIFFile::NextFeature()
 	if (m_poMIFFile->IsValidFeature(pszLine))
 	{
 	    m_poMIDFile->GetLine();
+            m_nCurFeatureId++;
 	    return TRUE;
 	}
     }
@@ -1168,7 +1186,7 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
 	    if ((pszLine = m_poMIFFile->GetLine()) != NULL)
 	    {
                 CSLDestroy(papszToken);
-		papszToken = CSLTokenizeStringComplex(pszLine," ,()",
+		papszToken = CSLTokenizeStringComplex(pszLine," ,()\t",
 						      TRUE,FALSE);
 		if (CSLCount(papszToken)> 0 &&EQUALN(papszToken[0],"SYMBOL",6))
 		{

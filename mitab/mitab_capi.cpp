@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.13 2001-08-10 19:32:38 warmerda Exp $
+ * $Id: mitab_capi.cpp,v 1.14 2001-11-02 17:30:02 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,12 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.13  2001-08-10 19:32:38  warmerda
+ * Revision 1.14  2001-11-02 17:30:02  daniel
+ * Added mitab_c_get/set_projinfo() and mitab_c_get_mif_coordsys().
+ * Changed mitab_c_create() to make bounds optional and allow using default
+ * projection bounds if available.
+ *
+ * Revision 1.13  2001/08/10 19:32:38  warmerda
  * check reference count before deleting spatial ref
  *
  * Revision 1.12  2001/07/02 20:03:28  daniel
@@ -224,10 +229,16 @@ mitab_c_close( mitab_handle handle )
  * @param mif_projection the projection to use for the dataset, in the same
  *        format that is used in the "CoordSys" line of a MIF file header.
  *        If this parameter's value is NULL or empty then a LAT/LON coordsys
- *        is assumed.
+ *        is assumed.  See also mitab_c_get_mif_coordsys().
  * @param north the upper dataset bound.
- *        Note that valid bounds must be provided for a .TAB dataset otherwise
- *        data may not be stored properly in the file.
+ *        Note that valid bounds are required for a .TAB dataset otherwise
+ *        data may not be stored properly in the file.  
+ *        MITAB knows the default bounds only for the most common MapInfo 
+ *        coordinate systems, passing north,south,east,west as 0,0,0,0 will
+ *        instruct MITAB to attempt to use the default bounds for that 
+ *        projection.  If no default bounds are found for this projection then
+ *        your data may not be stored properly in the file unless you provide
+ *        valid bounds via the north,south,east,west parameters.
  * @param south the lower dataset bound.
  * @param east the right dataset bound.
  * @param west the left dataset bound.
@@ -261,20 +272,13 @@ mitab_c_create( const char * filename,
         return NULL;
     }
 
-    poFile->SetBounds( west, south, east, north );
-
     if( mif_projection != NULL && strlen(mif_projection) > 0 )
     {
-        OGRSpatialReference     *poSRS;
-
-        poSRS = MITABCoordSys2SpatialRef( mif_projection );
-        if( poSRS != NULL )
-        {
-            poFile->SetSpatialRef( poSRS );
-            if (poSRS->Dereference() == 0)
-                delete poSRS;
-        }
+        poFile->SetMIFCoordSys( mif_projection );
     }
+
+    if (north != 0 || south != 0 || east != 0 || west != 0)
+        poFile->SetBounds( west, south, east, north );
 
     return (mitab_handle) poFile;
 }
@@ -1476,7 +1480,7 @@ mitab_c_get_symbol_size( mitab_feature feature )
  *         TABFC_Rectangle (8) or TABFC_Ellipse (9).
  */
 
-int MITAB_DLL 
+int MITAB_STDCALL 
 mitab_c_get_type( mitab_feature feature )
 {
     TABFeature          *poFeature = (TABFeature *) feature;
@@ -1502,7 +1506,7 @@ mitab_c_get_type( mitab_feature feature )
  *         region, returns 1 if object geometry is set.
  */
 
-int MITAB_DLL 
+int MITAB_STDCALL 
 mitab_c_get_parts( mitab_feature feature )
 {
     int numParts = 0;
@@ -1530,7 +1534,7 @@ mitab_c_get_parts( mitab_feature feature )
  *         has no geometry or the part number is invalid.
  */
 
-int MITAB_DLL
+int MITAB_STDCALL
 mitab_c_get_vertex_count( mitab_feature feature, int part )
 {
     int numPoints = 0;
@@ -1559,7 +1563,7 @@ mitab_c_get_vertex_count( mitab_feature feature, int part )
  *         geometry or the part or the point number is invalid.
  */
 
-double MITAB_DLL
+double MITAB_STDCALL
 mitab_c_get_vertex_x( mitab_feature feature, int part, int vertex )
 {
     double dX = 0.0;
@@ -1588,7 +1592,7 @@ mitab_c_get_vertex_x( mitab_feature feature, int part, int vertex )
  *         geometry or the part or the point number is invalid.
  */
 
-double MITAB_DLL
+double MITAB_STDCALL
 mitab_c_get_vertex_y( mitab_feature feature, int part, int vertex )
 {
     double dY = 0.0;
@@ -1613,7 +1617,7 @@ mitab_c_get_vertex_y( mitab_feature feature, int part, int vertex )
  * @return the number of attribute fields defined in the dataset.
  */
 
-int MITAB_DLL 
+int MITAB_STDCALL 
 mitab_c_get_field_count( mitab_handle handle )
 {
     IMapInfoFile        *poFile = (IMapInfoFile *) handle;
@@ -1640,7 +1644,7 @@ mitab_c_get_field_count( mitab_handle handle )
  *        TABFT_Float (5), TABFT_Date (6), or TABFT_Logical (7)
  */
 
-int MITAB_DLL 
+int MITAB_STDCALL 
 mitab_c_get_field_type( mitab_handle handle, int field )
 {
     IMapInfoFile        *poFile = (IMapInfoFile *) handle;
@@ -1665,7 +1669,7 @@ mitab_c_get_field_type( mitab_handle handle, int field )
  *        internal buffer and should not be modified or freed by the caller.
  */
 
-const char MITAB_DLL *
+const char MITAB_STDCALL *
 mitab_c_get_field_name( mitab_handle handle, int field )
 {
     IMapInfoFile        *poFile = (IMapInfoFile *) handle;
@@ -1703,7 +1707,7 @@ mitab_c_get_field_name( mitab_handle handle, int field )
  *         until the next call to mitab_c_get_field().
  */
 
-const char MITAB_DLL *
+const char MITAB_STDCALL *
 mitab_c_get_field_as_string( mitab_feature feature, int field )
 {
     TABFeature          *poFeature = (TABFeature *) feature;
@@ -1714,6 +1718,95 @@ mitab_c_get_field_as_string( mitab_feature feature, int field )
     return "";
 }
 
+
+/********************************************************************/
+/*                    mitab_c_get_projinfo()                        */
+/********************************************************************/
+ 
+/**
+ * Get the projinfo handle from an opened dataset
+ *
+ * @param dataset the mitab_handle of the source dataset.
+ * @return a mitab_projinfo handle usable with mitab_c_set_projinfo() or NULL
+ *    if the information is not available.
+ *    The handle is valid only until the next call to mitab_c_get_projinfo().
+ */
+ 
+mitab_projinfo MITAB_STDCALL
+mitab_c_get_projinfo( mitab_handle dataset )
+{
+    static TABProjInfo  sProjInfo;
+    IMapInfoFile        *poFile = (IMapInfoFile *) dataset;
+
+    if( poFile->GetProjInfo(&sProjInfo) == 0 )
+    {
+        return &sProjInfo;
+    }
+
+    return NULL;
+}
+ 
+
+/********************************************************************/
+/*                    mitab_c_set_projinfo()                        */
+/********************************************************************/
+ 
+/**
+ * Set the projinfo on a newly created dataset.  Should be called immediately
+ * after creating the dataset and before adding features to it.
+ *
+ * @param dataset the mitab_handle of the target dataset.
+ * @param projinfo the mitab_projinfo to set on the target dataset, obtained
+ *        from mitab_c_get_projinfo().
+ * @return 0 on success, -1 on failure.
+ */
+ 
+int MITAB_STDCALL
+mitab_c_set_projinfo( mitab_handle dataset, mitab_projinfo projinfo )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) dataset;
+    TABProjInfo         *psProjInfo = (TABProjInfo *) projinfo;
+
+    if (poFile && psProjInfo)
+        return poFile->SetProjInfo(psProjInfo);
+
+    return -1;
+}
+ 
+
+
+/************************************************************************/
+/*                        mitab_c_get_mif_coordsys()                    */
+/************************************************************************/
+
+/**
+ * Get the MIF CoordSys string from an opened dataset.
+ *
+ * @param dataset the mitab_handle of the source dataset.
+ * @return a string with the dataset coordinate system definition in MIF
+ *    CoordSys format.  This value can be passed to mitab_c_create() to 
+ *    create new datasets with the same coordinate system.
+ *    Returns NULL if the information could not be read.
+ *    The returned string is valid only until the next call to 
+ *    mitab_c_get_mif_coordsys().
+ */
+
+const char MITAB_STDCALL *
+mitab_c_get_mif_coordsys( mitab_handle dataset)
+{
+    static char *spszCoordSys = NULL;
+    IMapInfoFile        *poFile = (IMapInfoFile *) dataset;
+    OGRSpatialReference *poSRS;
+
+    if (poFile && (poSRS = poFile->GetSpatialRef()) != NULL)
+    {
+        CPLFree( spszCoordSys );
+        spszCoordSys = MITABSpatialRef2CoordSys( poSRS );
+        return spszCoordSys;
+    }
+
+    return NULL;
+}
 
 
 /* ==================================================================== */

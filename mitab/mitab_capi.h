@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.11 2001-07-02 20:03:28 daniel Exp $
+ * $Id: mitab_capi.h,v 1.12 2001-11-02 17:30:02 daniel Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,12 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.11  2001-07-02 20:03:28  daniel
+ * Revision 1.12  2001-11-02 17:30:02  daniel
+ * Added mitab_c_get/set_projinfo() and mitab_c_get_mif_coordsys().
+ * Changed mitab_c_create() to make bounds optional and allow using default
+ * projection bounds if available.
+ *
+ * Revision 1.11  2001/07/02 20:03:28  daniel
  * Added mitab_c_get_text().
  *
  * Revision 1.10  2001/06/25 01:49:47  daniel
@@ -86,6 +91,7 @@ extern "C" {
 
 typedef void * mitab_handle;
 typedef void * mitab_feature;
+typedef void * mitab_projinfo;
 
 /* feature type values */
 #define TABFC_NoGeom    0
@@ -236,6 +242,11 @@ int MITAB_DLL mitab_c_get_field_type( mitab_handle handle, int field );
 const char MITAB_DLL *mitab_c_get_field_name(mitab_handle handle, int field);
 const char MITAB_DLL *mitab_c_get_field_as_string( mitab_feature feature, 
                                                    int field );
+
+mitab_projinfo MITAB_DLL mitab_c_get_projinfo( mitab_handle dataset );
+int            MITAB_DLL mitab_c_set_projinfo( mitab_handle dataset, 
+                                               mitab_projinfo projinfo );
+const char MITAB_DLL *mitab_c_get_mif_coordsys( mitab_handle dataset);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.4 2000-01-15 22:30:43 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.5 2000-02-28 16:46:37 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.4  2000-01-15 22:30:43  daniel
+ * Revision 1.5  2000-02-28 16:46:37  daniel
+ * Removed style param to mitab_c_set_pen() since this param is actually
+ * used inside the format to define pen width in points (version 450)
+ *
+ * Revision 1.4  2000/01/15 22:30:43  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.3  2000/01/14 21:58:40  warmerda
@@ -420,11 +424,14 @@ mitab_c_set_brush( mitab_feature feature,
 
 /************************************************************************/
 /*                          mitab_c_set_pen()                           */
+/*                                                                      */
+/*      The width value is the MIF value: 1-7 for pixel width,          */
+/*      and 11-2047 for point width (10 + (point_width*10)).            */
 /************************************************************************/
 
 void MITAB_STDCALL
 mitab_c_set_pen( mitab_feature feature,
-                 int width, int pattern, int style, int color )
+                 int width, int pattern, int color )
 
 {
     TABFeature		*poFeature = (TABFeature *) feature;
@@ -441,9 +448,8 @@ mitab_c_set_pen( mitab_feature feature,
 
     if( poPen != NULL )
     {
-        poPen->SetPenWidth( width );
+        poPen->SetPenWidthMIF( width );
         poPen->SetPenPattern( pattern );
-        poPen->SetPenStyle( style );
         poPen->SetPenColor( color );
     }
 }

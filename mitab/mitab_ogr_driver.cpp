@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_ogr_driver.cpp,v 1.6 2000-01-15 22:30:44 daniel Exp $
+ * $Id: mitab_ogr_driver.cpp,v 1.7 2000-01-26 18:17:00 warmerda Exp $
  *
  * Name:     mitab_ogr_driver.cpp
  * Project:  MapInfo Mid/Mif, Tab ogr support
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_ogr_driver.cpp,v $
- * Revision 1.6  2000-01-15 22:30:44  daniel
+ * Revision 1.7  2000-01-26 18:17:00  warmerda
+ * reimplement OGR driver
+ *
+ * Revision 1.6  2000/01/15 22:30:44  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.5  1999/12/15 17:05:24  warmerda
@@ -52,46 +55,15 @@
  * Revision 1.1  1999/11/08 04:16:07  stephane
  * First Revision
  *
- *
  **********************************************************************/
 
 #include "mitab_ogr_driver.h"
 
 
-
-/*=======================================================================
- *                 OGRTABDataSource/OGRTABDriver Classes
- *
- * We need one single OGRDataSource/Driver set of classes to handle all
- * the MapInfo file types.  They all deal with the IMapInfoFile abstract
- * class.
- *=====================================================================*/
-
 /************************************************************************/
-/*                         OGRTABDataSource()                           */
+/*                           ~OGRTABDriver()                            */
 /************************************************************************/
-OGRTABDataSource::OGRTABDataSource( const char * pszNameIn,
-                                    IMapInfoFile *poLayerIn )
 
-{
-    m_pszName = CPLStrdup( pszNameIn );
-    m_poLayer = poLayerIn;
-}
-
-/************************************************************************/
-/*                         ~OGRTABDataSource()                          */
-/************************************************************************/
-OGRTABDataSource::~OGRTABDataSource()
-
-{
-    CPLFree( m_pszName ); 
-    delete m_poLayer;
-}
-
-
-/************************************************************************/
-/*                          ~OGRTABDriver()                           */
-/************************************************************************/
 OGRTABDriver::~OGRTABDriver()
 
 {
@@ -112,26 +84,76 @@ const char *OGRTABDriver::GetName()
 /************************************************************************/
 
 OGRDataSource *OGRTABDriver::Open( const char * pszFilename,
-                                     int bUpdate )
+                                   int bUpdate )
 
 {
-
+    OGRTABDataSource	*poDS;
+    
     if( bUpdate )
     {
 	return NULL;
     }
-       
-/* -------------------------------------------------------------------- */
-/*      Create the layer object.                                        */
-/* -------------------------------------------------------------------- */
-    IMapInfoFile *poLayer;
 
-    if( (poLayer = IMapInfoFile::SmartOpen( pszFilename, TRUE )) != NULL )
-         return new OGRTABDataSource( pszFilename, poLayer );
- 
-    return NULL;
+    poDS = new OGRTABDataSource();
+    if( poDS->Open( pszFilename, TRUE ) )
+        return poDS;
+    else
+    {
+        delete poDS;
+        return NULL;
+    }
 }
 
+
+/************************************************************************/
+/*                          CreateDataSource()                          */
+/************************************************************************/
+
+OGRDataSource *OGRTABDriver::CreateDataSource( const char * pszName,
+                                               char ** papszOptions )
+
+{
+    VSIStatBuf	stat;
+    OGRTABDataSource *poDS;
+
+/* -------------------------------------------------------------------- */
+/*      Verify that the target is a valid directory.                    */
+/* -------------------------------------------------------------------- */
+    if( VSIStat( pszName, &stat ) == 0 )
+    {
+        CPLError( CE_Failure, CPLE_AppDefined,
+                  "File already exists: %s\n"
+                  "Can't create new Mapinfo file.\n",
+                  pszName );
+        
+        return NULL;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Try to create the data source.                                  */
+/* -------------------------------------------------------------------- */
+    poDS = new OGRTABDataSource();
+    if( !poDS->Create( pszName, papszOptions ) )
+    {
+        delete poDS;
+        return NULL;
+    }
+    else
+        return poDS;
+}
+
+/************************************************************************/
+/*                           TestCapability()                           */
+/************************************************************************/
+
+int OGRTABDriver::TestCapability( const char * pszCap )
+
+{
+    if( EQUAL(pszCap,ODrCCreateDataSource) )
+        return TRUE;
+    else
+        return FALSE;
+}
 
 /************************************************************************/
 /*              RegisterOGRTAB()                                        */
@@ -145,6 +167,5 @@ void RegisterOGRTAB()
 {
     OGRSFDriverRegistrar::GetRegistrar()->RegisterDriver( new OGRTABDriver );
 }
-
 
 }

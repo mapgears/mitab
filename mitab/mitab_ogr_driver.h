@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_ogr_driver.h,v 1.6 2000-01-15 22:30:44 daniel Exp $
+ * $Id: mitab_ogr_driver.h,v 1.7 2000-01-26 18:17:00 warmerda Exp $
  *
  * Name:     mitab_ogr_drive.h
  * Project:  Mid/mif tab ogr support
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_ogr_driver.h,v $
- * Revision 1.6  2000-01-15 22:30:44  daniel
+ * Revision 1.7  2000-01-26 18:17:00  warmerda
+ * reimplement OGR driver
+ *
+ * Revision 1.6  2000/01/15 22:30:44  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.5  1999/12/15 16:28:17  warmerda
@@ -49,6 +52,7 @@
  * first revision
  *
  **********************************************************************/
+
 #include "mitab.h"
 #include "ogrsf_frmts.h"
 
@@ -64,40 +68,43 @@
 class OGRTABDataSource : public OGRDataSource
 {
   private:
-    IMapInfoFile        *m_poLayer;
     char                *m_pszName;
-    
+    char		*m_pszDirectory;
+
+    int			m_nLayerCount;
+    IMapInfoFile	**m_papoLayers;
+
   public:
-    OGRTABDataSource( const char * pszName,
-                      IMapInfoFile * poLayerIn );
-    ~OGRTABDataSource();
+		OGRTABDataSource();
+    virtual	~OGRTABDataSource();
+
+    int		Open( const char *pszName, int bTestOpen );
+    int		Create( const char *pszName, char ** papszOptions );
 
     const char	*GetName() { return m_pszName; }
-    int          GetLayerCount() { return 1; }
-    OGRLayer    *GetLayer( int ) { return m_poLayer; }
-    int          TestCapability( const char * ){return 0;}
+    int          GetLayerCount() { return m_nLayerCount; }
+    OGRLayer    *GetLayer( int );
+    int          TestCapability( const char * );
+    
     OGRLayer    *CreateLayer(const char *, 
                              OGRSpatialReference * = NULL,
                              OGRwkbGeometryType = wkbUnknown,
-                             char ** = NULL )   {return NULL;}
+                             char ** = NULL );
 };
  
+/************************************************************************/
+/*                             OGRTABDriver                             */
+/************************************************************************/
 
 class OGRTABDriver : public OGRSFDriver
 {
-  public:
-    ~OGRTABDriver();
+public:
+    virtual	~OGRTABDriver();
 
     const char  *GetName();
     OGRDataSource *Open ( const char *,int );
-    int         TestCapability( const char * ){return 0;}
-    virtual OGRDataSource *CreateDataSource( const char * /*pszName*/,
-                                             char ** = NULL ){return NULL;}
-    
-    
-
+    int         TestCapability( const char * );
+    virtual OGRDataSource *CreateDataSource( const char *, char ** = NULL );
 };
-
-
 
 #endif /* _MITAB_OGR_DRIVER_H_INCLUDED_ */

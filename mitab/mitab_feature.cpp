@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.43 2001-12-05 22:38:59 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.44 2002-01-23 20:29:56 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -8,7 +8,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999-2001, Daniel Morissette
+ * Copyright (c) 1999-2002, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.43  2001-12-05 22:38:59  daniel
+ * Revision 1.44  2002-01-23 20:29:56  daniel
+ * Fixed warning produced by CPLAssert() in non-DEBUG mode.
+ *
+ * Revision 1.43  2001/12/05 22:38:59  daniel
  * Fixed problems writing TAB_GEOM_LINE (bug 610, 633).
  *
  * Revision 1.42  2001/11/23 22:50:17  daniel
@@ -1843,7 +1846,9 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             if (poGeometry==NULL)
                 poGeometry = poLine;
             else if (poMultiLine->addGeometryDirectly(poLine) != OGRERR_NONE)
+            {
                 CPLAssert(FALSE); // Just in case lower-level lib is modified
+            }
             poLine = NULL;
         }
 

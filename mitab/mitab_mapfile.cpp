@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.10 2000-01-15 22:30:44 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.11 2000-02-28 17:00:00 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.10  2000-01-15 22:30:44  daniel
+ * Revision 1.11  2000-02-28 17:00:00  daniel
+ * Added V450 object types
+ *
+ * Revision 1.10  2000/01/15 22:30:44  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.9  1999/12/19 17:37:52  daniel
@@ -78,6 +81,7 @@
  **********************************************************************/
 TABMAPFile::TABMAPFile()
 {
+    m_nMinTABVersion = 300;
     m_fp = NULL;
     m_pszFname = NULL;
     m_poHeader = NULL;
@@ -130,6 +134,7 @@ int TABMAPFile::Open(const char *pszFname, const char *pszAccess,
         return -1;
     }
 
+    m_nMinTABVersion = 300;
     m_fp = NULL;
     m_poHeader = NULL;
     m_poIdIndex = NULL;
@@ -686,6 +691,10 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
         nObjType = TAB_GEOM_FONTSYMBOL_C;
     else if (nObjType == TAB_GEOM_CUSTOMSYMBOL_C)
         nObjType = TAB_GEOM_CUSTOMSYMBOL;
+    else if (nObjType == TAB_GEOM_V450_REGION_C)
+        nObjType = TAB_GEOM_V450_REGION;
+    else if (nObjType == TAB_GEOM_V450_MULTIPLINE_C)
+        nObjType = TAB_GEOM_V450_MULTIPLINE;
 
     /*-----------------------------------------------------------------
      * Update count of objects by type in the header block
@@ -699,11 +708,13 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
     else if (nObjType == TAB_GEOM_LINE ||
              nObjType == TAB_GEOM_PLINE ||
              nObjType == TAB_GEOM_MULTIPLINE ||
+             nObjType == TAB_GEOM_V450_MULTIPLINE ||
              nObjType == TAB_GEOM_ARC)
     {
         m_poHeader->m_numLineObjects++;
     }
     else if (nObjType == TAB_GEOM_REGION ||
+             nObjType == TAB_GEOM_V450_REGION ||
              nObjType == TAB_GEOM_RECT ||
              nObjType == TAB_GEOM_ROUNDRECT ||
              nObjType == TAB_GEOM_ELLIPSE)
@@ -713,6 +724,16 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
     else if (nObjType == TAB_GEOM_TEXT)
     {
         m_poHeader->m_numTextObjects++;
+    }
+
+    /*-----------------------------------------------------------------
+     * Check for V450-specific object types and minimum TAB file version number
+     *----------------------------------------------------------------*/
+    if (m_nMinTABVersion < 450 &&
+        (nObjType == TAB_GEOM_V450_REGION ||
+         nObjType == TAB_GEOM_V450_MULTIPLINE ) )
+    {
+        m_nMinTABVersion = 450;
     }
 
     /*-----------------------------------------------------------------
@@ -1442,6 +1463,22 @@ int TABMAPFile::CommitSpatialIndex()
     return m_poSpIndex->CommitToFile();
 }
 
+
+/**********************************************************************
+ *                   TABMAPFile::GetMinTABFileVersion()
+ *
+ * Returns the minimum TAB file version number that can contain all the
+ * objects stored in this file.
+ **********************************************************************/
+int   TABMAPFile::GetMinTABFileVersion()
+{
+    int nToolVersion = 0;
+
+    if (m_poToolDefTable)
+        nToolVersion = m_poToolDefTable->GetMinVersionNumber();
+
+    return MAX(nToolVersion, m_nMinTABVersion);
+}
 
 
 /**********************************************************************

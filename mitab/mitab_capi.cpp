@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.21 2002-05-08 20:02:03 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.22 2002-05-08 21:37:40 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.21  2002-05-08 20:02:03  daniel
+ * Revision 1.22  2002-05-08 21:37:40  daniel
+ * Added FontPoint and CustomPoint in mitab_c_create_feature() and
+ * mitab_c_set_points().  And (hopefully) fixed the STDCALL stuff.
+ *
+ * Revision 1.21  2002/05/08 20:02:03  daniel
  * Made mitab_c_set_font() and mitab_c_get_font() work for TABFC_FontPoint
  * and TABFC_CustomPoint.
  *
@@ -175,7 +179,7 @@ mitab_c_getlasterrorno()
  *         error message.
  */
 
-const char MITAB_STDCALL *
+const char * MITAB_STDCALL
 mitab_c_getlasterrormsg()
 
 {
@@ -502,7 +506,8 @@ mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
  * @param handle the handle of the dataset opened for write access.
  * @param feature_type the type of feature object to create.  At this point,
  *        only the following types can be created by this C API function:
- *        TABFC_Point (1), TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6), 
+ *        TABFC_Point (1), TABFC_FontPoint (2), TABFC_CustomPoint (3),
+ *        TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6), 
  *        TABFC_Region (7), TABFC_Rectangle (8), TABFC_Ellipse (9) and
  *        TABFC_MultiPoint (10)
  * @return the new mitab_feature object, or NULL if creation failed.  Note that
@@ -525,6 +530,10 @@ mitab_c_create_feature( mitab_handle handle,
 
     if( feature_type == TABFC_Point )
         poFeature = new TABPoint(poFile->GetLayerDefn());
+    else if( feature_type == TABFC_FontPoint )
+        poFeature = new TABFontPoint(poFile->GetLayerDefn());
+    else if( feature_type == TABFC_CustomPoint )
+        poFeature = new TABCustomPoint(poFile->GetLayerDefn());
     else if( feature_type == TABFC_Text )
     {
         TABText         *poText = new TABText(poFile->GetLayerDefn());
@@ -602,6 +611,8 @@ mitab_c_set_points( mitab_feature feature, int part,
     TABFeature  *poFeature = (TABFeature *) feature;
 
     if( poFeature->GetFeatureClass() == TABFC_Point
+        || poFeature->GetFeatureClass() == TABFC_FontPoint
+        || poFeature->GetFeatureClass() == TABFC_CustomPoint
         || poFeature->GetFeatureClass() == TABFC_Text )
     {
         CPLAssert( vertex_count == 1 );
@@ -803,7 +814,7 @@ mitab_c_set_text( mitab_feature feature, const char * text )
  * @return the text string in the object.
  */
 
-const char MITAB_STDCALL *
+const char * MITAB_STDCALL
 mitab_c_get_text( mitab_feature feature )
 
 {
@@ -1131,7 +1142,7 @@ mitab_c_set_font( mitab_feature feature, const char * fontname )
  * @return the text font name.
  */
 
-const char MITAB_STDCALL *
+const char * MITAB_STDCALL
 mitab_c_get_font( mitab_feature feature )
 
 {
@@ -1544,6 +1555,8 @@ mitab_c_set_symbol( mitab_feature feature, int symbol_no,
     TABPoint    *poFeature = (TABPoint *) feature;
 
     if(( poFeature->GetFeatureClass() == TABFC_Point ) ||
+       ( poFeature->GetFeatureClass() == TABFC_FontPoint ) ||
+       ( poFeature->GetFeatureClass() == TABFC_CustomPoint ) ||
        ( poFeature->GetFeatureClass() == TABFC_MultiPoint ))
     {
         poFeature->SetSymbolNo( symbol_no );
@@ -1834,7 +1847,7 @@ mitab_c_get_field_type( mitab_handle handle, int field )
  *        internal buffer and should not be modified or freed by the caller.
  */
 
-const char MITAB_STDCALL *
+const char * MITAB_STDCALL
 mitab_c_get_field_name( mitab_handle handle, int field )
 {
     IMapInfoFile        *poFile = (IMapInfoFile *) handle;
@@ -1965,7 +1978,7 @@ mitab_c_get_field_precision( mitab_handle handle, int field )
  *         until the next call to mitab_c_get_field().
  */
 
-const char MITAB_STDCALL *
+const char * MITAB_STDCALL
 mitab_c_get_field_as_string( mitab_feature feature, int field )
 {
     TABFeature          *poFeature = (TABFeature *) feature;
@@ -2081,7 +2094,7 @@ mitab_c_set_projinfo( mitab_handle dataset, mitab_projinfo projinfo )
  *    mitab_c_get_mif_coordsys().
  */
 
-const char MITAB_STDCALL *
+const char * MITAB_STDCALL
 mitab_c_get_mif_coordsys( mitab_handle dataset)
 {
     static char *spszCoordSys = NULL;

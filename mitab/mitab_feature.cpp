@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.8 1999-10-06 13:15:54 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.9 1999-10-06 15:17:59 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.8  1999-10-06 13:15:54  daniel
+ * Revision 1.9  1999-10-06 15:17:59  daniel
+ * Fixed order of args in calls to GetFeatureMBR()
+ *
+ * Revision 1.8  1999/10/06 13:15:54  daniel
  * Added several Get/Set() methods to feature classes
  *
  * Revision 1.7  1999/10/01 03:54:46  daniel
@@ -1412,7 +1415,7 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
         if (m_bSmooth)
             nCoordDataSize |= 0x80000000;
 
-        poCoordBlock->GetFeatureMBR(nXMin, nXMax, nYMin, nYMax);
+        poCoordBlock->GetFeatureMBR(nXMin, nYMin, nXMax, nYMax);
 
         /*-------------------------------------------------------------
          * Write info to poObjBlock
@@ -1537,7 +1540,7 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
 
         nCoordDataSize = poCoordBlock->GetFeatureDataSize();
 
-        poCoordBlock->GetFeatureMBR(nXMin, nXMax, nYMin, nYMax);
+        poCoordBlock->GetFeatureMBR(nXMin, nYMin, nXMax, nYMax);
 
         /*-------------------------------------------------------------
          * ... and finally write info to poObjBlock
@@ -1977,7 +1980,7 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
 
         nCoordDataSize = poCoordBlock->GetFeatureDataSize();
 
-        poCoordBlock->GetFeatureMBR(nXMin, nXMax, nYMin, nYMax);
+        poCoordBlock->GetFeatureMBR(nXMin, nYMin, nXMax, nYMax);
 
         /*-------------------------------------------------------------
          * ... and finally write info to poObjBlock

@@ -77,6 +77,8 @@ CHANGES - Current Version:
 
 - Fixed IMapInfoFile::CreateFeature(), was leaking feature memory. (NFW)
 
+- Fixed small memory leak in OGRTABDataSource::CreateLayer() (NFW)
+
 
 Version 1.0.4 - (2000-11-14)
 ----------------------------
@@ -266,5 +268,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.44 2001-02-06 22:03:24 warmerda Exp $
+$Id: HISTORY.TXT,v 1.45 2001-02-06 22:13:54 warmerda Exp $
 ------------

@@ -24,6 +24,11 @@ CHANGES - Current Version:
 - Fixed mitab_capi.c to not delete the spatial ref unless dereferencing it
   drops the count to 0.  NFW.
 
+- Modified TABFile::SetSpatialRef() to clone the passed in OGRSpatialReference
+  instead of taking a reference to it, so it will work with stack allocated
+  OGRSpatialReferences or in cases where the caller doesn't check ref counts.
+  NFW.
+
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -309,5 +314,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.59 2001-08-10 19:32:38 warmerda Exp $
+$Id: HISTORY.TXT,v 1.60 2001-08-10 21:25:59 warmerda Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.13 2000-05-19 06:44:55 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.14 2000-11-15 04:13:49 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.13  2000-05-19 06:44:55  daniel
+ * Revision 1.14  2000-11-15 04:13:49  daniel
+ * Fixed writing of TABMAPToolBlock to allocate a new block when full
+ *
+ * Revision 1.13  2000/05/19 06:44:55  daniel
  * Modified generation of spatial index to split index nodes and produce a
  * more balanced tree.
  *
@@ -1178,7 +1181,8 @@ int TABMAPFile::CommitDrawingTools()
     
     poBlock = new TABMAPToolBlock(m_eAccessMode);
     poBlock->InitNewBlock(m_fp, 512, m_oBlockManager.AllocNewBlock());
-    
+    poBlock->SetMAPBlockManagerRef(&m_oBlockManager);
+
     m_poHeader->m_nFirstToolBlock = poBlock->GetStartAddress();
 
     m_poHeader->m_numPenDefs = m_poToolDefTable->GetNumPen();

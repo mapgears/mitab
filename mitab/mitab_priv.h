@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.19 2000-11-13 22:19:30 daniel Exp $
+ * $Id: mitab_priv.h,v 1.20 2000-11-15 04:13:50 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.19  2000-11-13 22:19:30  daniel
+ * Revision 1.20  2000-11-15 04:13:50  daniel
+ * Fixed writing of TABMAPToolBlock to allocate a new block when full
+ *
+ * Revision 1.19  2000/11/13 22:19:30  daniel
  * Added TABINDNode::UpdateCurChildEntry()
  *
  * Revision 1.18  2000/05/19 06:45:25  daniel
@@ -124,6 +127,14 @@ typedef enum
 #define TABMAP_GARB_BLOCK       4
 #define TABMAP_TOOL_BLOCK       5
 #define TABMAP_LAST_VALID_BLOCK_TYPE  5
+
+/*---------------------------------------------------------------------
+ * Drawing Tool types
+ *--------------------------------------------------------------------*/
+#define TABMAP_TOOL_PEN         1
+#define TABMAP_TOOL_BRUSH       2
+#define TABMAP_TOOL_FONT        3
+#define TABMAP_TOOL_SYMBOL      4
 
 /*---------------------------------------------------------------------
  * Limits related to .TAB version number.  If we pass any of those limits
@@ -771,6 +782,8 @@ class TABMAPToolBlock: public TABRawBinBlock
 
     GBool       EndOfChain();
     int         GetNumBlocksInChain() { return m_numBlocksInChain; };
+
+    int         CheckAvailableSpace(int nToolType);
 
 #ifdef DEBUG
     virtual void Dump(FILE *fpOut = NULL);

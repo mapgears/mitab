@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_middatafile.cpp,v 1.6 2001-01-22 16:03:58 warmerda Exp $
+ * $Id: mitab_middatafile.cpp,v 1.7 2001-09-19 14:49:49 warmerda Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_middatafile.cpp,v $
- * Revision 1.6  2001-01-22 16:03:58  warmerda
+ * Revision 1.7  2001-09-19 14:49:49  warmerda
+ * use VSIRewind() instead of rewind()
+ *
+ * Revision 1.6  2001/01/22 16:03:58  warmerda
  * expanded tabs
  *
  * Revision 1.5  2000/01/15 22:30:44  daniel
@@ -139,10 +142,10 @@ int MIDDATAFile::Open(const char *pszFname, const char *pszAccess)
 int MIDDATAFile::Rewind()
 {
     if (m_fp == NULL || m_eAccessMode == TABWrite) 
-      return -1;
+        return -1;
 
     else
-      rewind(m_fp);
+        VSIRewind(m_fp);
     return 0;
 }
 

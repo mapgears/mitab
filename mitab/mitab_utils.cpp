@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.10 2000-02-18 20:46:35 daniel Exp $
+ * $Id: mitab_utils.cpp,v 1.11 2000-02-28 17:08:56 daniel Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.10  2000-02-18 20:46:35  daniel
+ * Revision 1.11  2000-02-28 17:08:56  daniel
+ * Avoid using isalnum() in TABCleanFieldName
+ *
+ * Revision 1.10  2000/02/18 20:46:35  daniel
  * Added TABCleanFieldName()
  *
  * Revision 1.9  2000/01/15 22:30:45  daniel
@@ -429,7 +432,10 @@ char *TABCleanFieldName(const char *pszSrcName)
     pszNewName = CPLStrdup(pszSrcName);
     for(int i=0; pszSrcName && pszSrcName[i] != '\0'; i++)
     {
-        if (pszSrcName[i] != '_' && !isalnum(pszSrcName[i]))
+        if ( !( pszSrcName[i] == '_' ||
+                (pszSrcName[i]>='0' && pszSrcName[i]<='9') || 
+                (pszSrcName[i]>='a' && pszSrcName[i]<='z') || 
+                (pszSrcName[i]>='A' && pszSrcName[i]<='Z')   ) )
         {
             pszNewName[i] = '_';
             numInvalidChars++;

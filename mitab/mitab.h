@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.20 1999-12-14 04:04:44 daniel Exp $
+ * $Id: mitab.h,v 1.21 1999-12-15 16:13:43 warmerda Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.20  1999-12-14 04:04:44  daniel
+ * Revision 1.21  1999-12-15 16:13:43  warmerda
+ * Avoid unused parameter warnings.
+ *
+ * Revision 1.20  1999/12/14 04:04:44  daniel
  * Added bforceFlags to GetBounds() and GetFeatureCountByType()
  *
  * Revision 1.19  1999/12/14 02:02:12  daniel
@@ -391,17 +394,19 @@ class TABView: public IMapInfoFile
     ///////////////
     // Write access specific stuff ... not supported
     //
-    virtual int SetBounds(double dXMin, double dYMin, 
-                          double dXMax, double dYMax)  {return -1;};
-    virtual int SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
-                            TABFieldType *paeMapInfoNativeFieldTypes = NULL)
+    virtual int SetBounds(double /*dXMin*/, double /*dYMin*/, 
+                          double /*dXMax*/, double /*dYMax*/)  {return -1;};
+    virtual int SetFeatureDefn(OGRFeatureDefn */*poFeatureDefn*/,
+                            TABFieldType */*paeMapInfoNativeFieldTypes*/ =NULL)
                                                        {return -1;};
-    virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
-                               int nWidth, int nPrecision=0)  {return -1;};
-    virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef)
+    virtual int AddFieldNative(const char */*pszName*/,
+                               TABFieldType /*eMapInfoType*/,
+                               int /*nWidth*/, int /*nPrecision*/=0)
+    							{return -1;};
+    virtual int SetSpatialRef(OGRSpatialReference */*poSpatialRef*/)
                                                        {return -1;};
 
-    virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1)
+    virtual int SetFeature(TABFeature */*poFeature*/, int /*nFeatureId*/ = -1)
                                                        {return -1;};
 
     ///////////////
@@ -412,7 +417,7 @@ class TABView: public IMapInfoFile
     int          SetProjInfo(TABProjInfo *poPI)
 	    { return m_nMainTableIndex!=-1?
                      m_papoTABFiles[m_nMainTableIndex]->SetProjInfo(poPI):-1; }
-    int          SetMIFCoordSys(const char *pszMIFCoordSys) {return -1;};
+    int          SetMIFCoordSys(const char */*pszMIFCoordSys*/) {return -1;};
 
 #ifdef DEBUG
     virtual void Dump(FILE *fpOut = NULL);
@@ -531,13 +536,13 @@ class MIFFile: public IMapInfoFile
 
     ///////////////
     // semi-private.
-    int          GetProjInfo(TABProjInfo *poPI){return 0;}
+    int          GetProjInfo(TABProjInfo * /*poPI*/){return 0;}
     /*  { return m_poMAPFile->GetHeaderBlock()->GetProjInfo( poPI ); }*/
-    int          SetProjInfo(TABProjInfo *poPI){return 0;}
+    int          SetProjInfo(TABProjInfo * /*poPI*/){return 0;}
     /*  { return m_poMAPFile->GetHeaderBlock()->SetProjInfo( poPI ); }*/
 
 #ifdef DEBUG
-    virtual void Dump(FILE *fpOut = NULL) {};
+    virtual void Dump(FILE * /*fpOut*/ = NULL) {};
 #endif
 };
 

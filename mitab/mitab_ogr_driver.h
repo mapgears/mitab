@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_ogr_driver.h,v 1.3 1999-12-14 02:23:05 daniel Exp $
+ * $Id: mitab_ogr_driver.h,v 1.4 1999-12-15 16:15:05 warmerda Exp $
  *
  * Name:     mitab_ogr_drive.h
  * Project:  Mid/mif tab ogr support
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_ogr_driver.h,v $
- * Revision 1.3  1999-12-14 02:23:05  daniel
+ * Revision 1.4  1999-12-15 16:15:05  warmerda
+ * Avoid unused parameter warnings.
+ *
+ * Revision 1.3  1999/12/14 02:23:05  daniel
  * Merged TAB+MIF DataSource/Driver into one using IMapInfoFile class
  *
  * Revision 1.2  1999/11/12 02:44:36  stephane
@@ -80,7 +83,7 @@ class OGRTABDriver : public OGRSFDriver
     const char  *GetName();
     OGRDataSource *Open ( const char *,int );
     int         TestCapability( const char * ){return 0;}
-    virtual OGRDataSource *CreateDataSource( const char *pszName,
+    virtual OGRDataSource *CreateDataSource( const char * /*pszName*/,
                                              char ** = NULL ){return NULL;}
     
     

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapindexblock.cpp,v 1.6 2000-05-19 06:45:10 daniel Exp $
+ * $Id: mitab_mapindexblock.cpp,v 1.7 2000-05-23 17:02:54 daniel Exp $
  *
  * Name:     mitab_mapindexblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapindexblock.cpp,v $
- * Revision 1.6  2000-05-19 06:45:10  daniel
+ * Revision 1.7  2000-05-23 17:02:54  daniel
+ * Removed unused variables
+ *
+ * Revision 1.6  2000/05/19 06:45:10  daniel
  * Modified generation of spatial index to split index nodes and produce a
  * more balanced tree.
  *
@@ -365,8 +368,6 @@ int     TABMAPIndexBlock::GetNumFreeEntries()
  **********************************************************************/
 int     TABMAPIndexBlock::GetCurMaxDepth()
 {
-    int nMaxDepth = 0, nDepth, i;
-
     if (m_poCurChild)
         return m_poCurChild->GetCurMaxDepth() + 1;
 
@@ -400,8 +401,6 @@ int     TABMAPIndexBlock::InsertEntry(GInt32 nXMin, GInt32 nYMin,
                                       GInt32 nXMax, GInt32 nYMax,
                                       GInt32 nBlockPtr)
 {
-    int i;
-
     if (m_eAccess != TABWrite && m_eAccess != TABReadWrite)
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,

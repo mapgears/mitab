@@ -1,7 +1,7 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.17 2000-04-27 15:46:25 daniel Exp $
+ * $Id: mitab_miffile.cpp,v 1.18 2000-06-28 00:32:04 warmerda Exp $
  *
- * Name:     mitab_tabfile.cpp
+ * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
  * Language: C++
  * Purpose:  Implementation of the MIDFile class.
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.17  2000-04-27 15:46:25  daniel
+ * Revision 1.18  2000-06-28 00:32:04  warmerda
+ * Make GetFeatureCountByType() actually work if bForce is TRUE
+ * Collect detailed (by feature type) feature counts in PreParse().
+ *
+ * Revision 1.17  2000/04/27 15:46:25  daniel
  * Make SetFeatureDefn() use AddFieldNative(), scan field names for invalid
  * chars, and map field width=0 (variable length in OGR) to valid defaults
  *
@@ -78,7 +82,8 @@
  * Add ifdef to remove CPLError if OGR is define
  *
  * Revision 1.3  1999/11/11 01:22:05  stephane
- * Remove DebugFeature call, Point Reading error, add IsValidFeature() to test correctly if we are on a feature
+ * Remove DebugFeature call, Point Reading error, add IsValidFeature() to 
+ * test correctly if we are on a feature.
  *
  * Revision 1.2  1999/11/09 22:31:38  warmerda
  * initial implementation of MIF CoordSys support
@@ -141,6 +146,7 @@ MIFFile::MIFFile()
     m_bPreParsed = FALSE;
     m_nAttribut = 0;
     m_bHeaderWrote = FALSE;
+    m_nPoints = m_nLines = m_nRegions = m_nTexts = 0;
 }
 
 /**********************************************************************
@@ -325,6 +331,27 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
 				m_dfXDisplacement, m_dfYDisplacement);
     m_poMIFFile->SetDelimiter(m_pszDelimiter);
     m_poMIDFile->SetDelimiter(m_pszDelimiter);
+
+    /*-------------------------------------------------------------
+     * Set geometry type if the geometry objects are uniform.
+     *------------------------------------------------------------*/
+    int numPoints=0, numRegions=0, numTexts=0, numLines=0;
+
+    if( GetFeatureCountByType( numPoints, numLines, numRegions, numTexts, 
+                               FALSE ) == 0 )
+    {
+        printf( "p=%d,l=%d,r=%d,t=%d\n", 
+                numPoints, numLines, numRegions, numTexts );
+        numPoints += numTexts;
+        if( numPoints > 0 && numLines == 0 && numRegions == 0 )
+            m_poDefn->SetGeomType( wkbPoint );
+        else if( numPoints == 0 && numLines > 0 && numRegions == 0 )
+            m_poDefn->SetGeomType( wkbLineString );
+        else if( numPoints == 0 && numLines == 0 && numRegions > 0 )
+            m_poDefn->SetGeomType( wkbPolygon );
+        else
+            /* we leave it unknown indicating a mixture */;
+    }
 
     return 0;
 }
@@ -552,6 +579,9 @@ int MIFFile::ParseMIFHeader()
 
 }
 
+/************************************************************************/
+/*                             AddFields()                              */
+/************************************************************************/
 
 int  MIFFile::AddFields(const char *pszLine)
 {
@@ -629,6 +659,9 @@ int  MIFFile::AddFields(const char *pszLine)
     return 0;
 }
 
+/************************************************************************/
+/*                          GetFeatureCount()                           */
+/************************************************************************/
 
 int MIFFile::GetFeatureCount (int bForce)
 {
@@ -638,16 +671,18 @@ int MIFFile::GetFeatureCount (int bForce)
     else
     {
 	if (bForce == TRUE)
-	{
 	    PreParseFile();
-	    return m_nFeatureCount;
-	}
-	else if (m_bPreParsed)
-	  return m_nFeatureCount;
+
+	if (m_bPreParsed)
+            return m_nFeatureCount;
 	else
-	  return -1;
+            return -1;
     }
 }
+
+/************************************************************************/
+/*                            ResetReading()                            */
+/************************************************************************/
 
 void MIFFile::ResetReading()
 
@@ -672,6 +707,9 @@ void MIFFile::ResetReading()
     m_nCurFeatureId = 0;
 }
 
+/************************************************************************/
+/*                            PreParseFile()                            */
+/************************************************************************/
 
 void MIFFile::PreParseFile()
 {
@@ -690,6 +728,8 @@ void MIFFile::PreParseFile()
       if (EQUALN(pszLine,"DATA",4))
 	break;
 
+    m_nPoints = m_nLines = m_nRegions = m_nTexts = 0;
+
     while ((pszLine = m_poMIFFile->GetLine()) != NULL)
     {
 	if (m_poMIFFile->IsValidFeature(pszLine))
@@ -704,6 +744,7 @@ void MIFFile::PreParseFile()
 
 	if (EQUALN(pszLine,"POINT",5))
 	{
+            m_nPoints++;
 	    if (CSLCount(papszToken) == 3)
 	    {
 		UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[1])),
@@ -719,19 +760,26 @@ void MIFFile::PreParseFile()
 	{
 	    if (CSLCount(papszToken) == 5)
 	    {
+                m_nLines++;
 		UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[1])), 
 			     m_poMIFFile->GetYTrans(atof(papszToken[2])));
 		UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[3])), 
 			     m_poMIFFile->GetYTrans(atof(papszToken[4])));
 	    }
 	}
-	else if (EQUALN(pszLine,"REGION",6) ||
-		 EQUALN(pszLine,"PLINE",5))
+	else if (EQUALN(pszLine,"REGION",6) )
+        {
+            m_nRegions++;
+	    bPLine = TRUE;
+        }
+        else if( EQUALN(pszLine,"PLINE",5))
 	{
+            m_nLines++;
 	    bPLine = TRUE;
 	}
 	else if (EQUALN(pszLine,"TEXT",4)) 
 	{
+            m_nTexts++;
 	    bText = TRUE;
 	}
 	else if (bPLine == TRUE)
@@ -1734,10 +1782,23 @@ int MIFFile::SetBounds(double dXMin, double dYMin,
  **********************************************************************/
 int MIFFile::GetFeatureCountByType(int &numPoints, int &numLines,
                                    int &numRegions, int &numTexts,
-                                   GBool /*bForce = TRUE */)
+                                   GBool bForce )
 {
-    numPoints = numLines = numRegions = numTexts = 0;
-    return -1;
+    if( m_bPreParsed || bForce )
+    {
+        PreParseFile();
+
+        numPoints = m_nPoints;
+        numLines = m_nLines;
+        numRegions = m_nRegions;
+        numTexts = m_nTexts;
+        return 0;
+    }
+    else
+    {
+        numPoints = numLines = numRegions = numTexts = 0;
+        return -1;
+    }
 }
 
 /**********************************************************************
@@ -1801,4 +1862,3 @@ int MIFFile::TestCapability( const char * pszCap )
     else 
         return FALSE;
 }
-

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.35 2000-07-04 01:45:16 warmerda Exp $
+ * $Id: mitab.h,v 1.36 2000-07-27 02:03:57 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.35  2000-07-04 01:45:16  warmerda
+ * Revision 1.36  2000-07-27 02:03:57  daniel
+ * Remove extra comma at end of TABCustSymbStyle enum
+ *
+ * Revision 1.35  2000/07/04 01:45:16  warmerda
  * avoid warning on nfieldid of IsFieldUnique
  *
  * Revision 1.34  2000/06/28 00:30:25  warmerda
@@ -760,7 +763,7 @@ typedef enum TABCustSymbStyle_t // Can be OR'ed
 { 
     TABCSNone       = 0,        // Transparent BG, use default colors
     TABCSBGOpaque   = 0x01,     // White pixels are opaque
-    TABCSApplyColor = 0x02,     // non-white pixels drawn using symbol color
+    TABCSApplyColor = 0x02      // non-white pixels drawn using symbol color
 } TABCustSymbStyle;
 
 /*=====================================================================

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.15 2000-09-28 16:39:44 warmerda Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.16 2000-10-03 19:29:51 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.15  2000-09-28 16:39:44  warmerda
+ * Revision 1.16  2000-10-03 19:29:51  daniel
+ * Include OGR StyleString stuff (implemented by Stephane)
+ *
+ * Revision 1.15  2000/09/28 16:39:44  warmerda
  * avoid warnings for unused, and unitialized variables
  *
  * Revision 1.14  2000/09/19 17:23:53  daniel
@@ -92,12 +95,11 @@
 /*=====================================================================
  *                      class TABFeature
  *====================================================================*/
-/**********************************************************************
- **********************************************************************/
+
 /**********************************************************************
  *                   TABFeature::ReadRecordFromMIDFile()
  *
- *  This methode is used to read the Record (Attributs) for all type of
+ *  This method is used to read the Record (Attributs) for all type of
  *  feature included in a mid/mif file.
  * 
  * Returns 0 on success, -1 on error, in which case CPLError() will have

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.29 2000-09-19 17:23:52 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.30 2000-10-03 19:29:51 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.29  2000-09-19 17:23:52  daniel
+ * Revision 1.30  2000-10-03 19:29:51  daniel
+ * Include OGR StyleString stuff (implemented by Stephane)
+ *
+ * Revision 1.29  2000/09/19 17:23:52  daniel
  * Maintain and/or compute valid region and polyline center/label point
  *
  * Revision 1.28  2000/09/07 23:32:13  daniel
@@ -755,6 +758,23 @@ double TABPoint::GetY()
 }
 
 
+/**********************************************************************
+ *                   TABPoint::GetStyleString()
+ *
+ * Return style string for this feature.
+ *
+ * Style String is built only once during the first call to GetStyleString().
+ **********************************************************************/
+const char *TABPoint::GetStyleString()
+{
+    if (m_pszStyleString == NULL)
+    {
+        m_pszStyleString = CPLStrdup(GetSymbolStyleString());
+    }
+
+    return m_pszStyleString;
+}
+
 
 /**********************************************************************
  *                   TABPoint::DumpMIF()
@@ -1105,6 +1125,23 @@ void TABFontPoint::SetSymbolAngle(double dAngle)
 }
 
 
+/**********************************************************************
+ *                   TABFontPoint::GetStyleString()
+ *
+ * Return style string for this feature.
+ *
+ * Style String is built only once during the first call to GetStyleString().
+ **********************************************************************/
+const char *TABFontPoint::GetStyleString()
+{
+    if (m_pszStyleString == NULL)
+    {
+        m_pszStyleString = CPLStrdup(GetSymbolStyleString(GetSymbolAngle()));
+    }
+
+    return m_pszStyleString;
+}
+
 
 /*=====================================================================
  *                      class TABCustomPoint
@@ -1289,6 +1326,23 @@ int TABCustomPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
     return 0;
 }
 
+
+/**********************************************************************
+ *                   TABCustomPoint::GetStyleString()
+ *
+ * Return style string for this feature.
+ *
+ * Style String is built only once during the first call to GetStyleString().
+ **********************************************************************/
+const char *TABCustomPoint::GetStyleString()
+{
+    if (m_pszStyleString == NULL)
+    {
+        m_pszStyleString = CPLStrdup(GetSymbolStyleString());
+    }
+
+    return m_pszStyleString;
+}
 
 /*=====================================================================
  *                      class TABPolyline
@@ -2042,6 +2096,23 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
         return -1;
 
     return 0;
+}
+
+/**********************************************************************
+ *                   TABPolyline::GetStyleString()
+ *
+ * Return style string for this feature.
+ *
+ * Style String is built only once during the first call to GetStyleString().
+ **********************************************************************/
+const char *TABPolyline::GetStyleString()
+{
+    if (m_pszStyleString == NULL)
+    {
+        m_pszStyleString = CPLStrdup(GetPenStyleString());
+    }
+
+    return m_pszStyleString;
 }
 
 
@@ -2855,6 +2926,32 @@ OGRLinearRing *TABRegion::GetRingRef(int nRequestedRingIndex)
     return poRing;
 }
 
+/**********************************************************************
+ *                   TABRegion::GetStyleString()
+ *
+ * Return style string for this feature.
+ *
+ * Style String is built only once during the first call to GetStyleString().
+ **********************************************************************/
+const char *TABRegion::GetStyleString()
+{
+    if (m_pszStyleString == NULL)
+    {
+        // Since GetPen/BrushStyleString() use CPLSPrintf(), we need 
+        // to use temporary buffers
+        char *pszPen = CPLStrdup(GetPenStyleString());
+        char *pszBrush = CPLStrdup(GetBrushStyleString());
+
+        m_pszStyleString = CPLStrdup(CPLSPrintf("%s;%s", pszPen, pszBrush));
+
+        CPLFree(pszPen);
+        CPLFree(pszBrush);
+    }
+
+    return m_pszStyleString;
+}
+
+
 
 /**********************************************************************
  *                   TABRegion::DumpMIF()
@@ -3302,6 +3399,30 @@ int TABRectangle::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
     return 0;
 }
 
+/**********************************************************************
+ *                   TABRectangle::GetStyleString()
+ *
+ * Return style string for this feature.
+ *
+ * Style String is built only once during the first call to GetStyleString().
+ **********************************************************************/
+const char *TABRectangle::GetStyleString()
+{
+    if (m_pszStyleString == NULL)
+    {
+        // Since GetPen/BrushStyleString() use CPLSPrintf(), we need 
+        // to use temporary buffers
+        char *pszPen = CPLStrdup(GetPenStyleString());
+        char *pszBrush = CPLStrdup(GetBrushStyleString());
+
+        m_pszStyleString = CPLStrdup(CPLSPrintf("%s;%s", pszPen, pszBrush));
+
+        CPLFree(pszPen);
+        CPLFree(pszBrush);
+    }
+
+    return m_pszStyleString;
+}
 
 /**********************************************************************
  *                   TABRectangle::DumpMIF()
@@ -3635,6 +3756,31 @@ int TABEllipse::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
         return -1;
 
     return 0;
+}
+
+/**********************************************************************
+ *                   TABEllipse::GetStyleString()
+ *
+ * Return style string for this feature.
+ *
+ * Style String is built only once during the first call to GetStyleString().
+ **********************************************************************/
+const char *TABEllipse::GetStyleString()
+{
+    if (m_pszStyleString == NULL)
+    {
+        // Since GetPen/BrushStyleString() use CPLSPrintf(), we need 
+        // to use temporary buffers
+        char *pszPen = CPLStrdup(GetPenStyleString());
+        char *pszBrush = CPLStrdup(GetBrushStyleString());
+
+        m_pszStyleString = CPLStrdup(CPLSPrintf("%s;%s", pszPen, pszBrush));
+
+        CPLFree(pszPen);
+        CPLFree(pszBrush);
+    }
+
+    return m_pszStyleString;
 }
 
 
@@ -4110,6 +4256,24 @@ void TABArc::SetEndAngle(double dAngle)
     while(dAngle > 360.0) dAngle -= 360.0;
 
     m_dEndAngle = dAngle;
+}
+
+
+/**********************************************************************
+ *                   TABArc::GetStyleString()
+ *
+ * Return style string for this feature.
+ *
+ * Style String is built only once during the first call to GetStyleString().
+ **********************************************************************/
+const char *TABArc::GetStyleString()
+{
+    if (m_pszStyleString == NULL)
+    {
+        m_pszStyleString = CPLStrdup(GetPenStyleString());
+    }
+
+    return m_pszStyleString;
 }
 
 /**********************************************************************
@@ -4909,6 +5073,68 @@ int TABText::IsFontBGColorUsed()
     return (QueryFontStyle(TABFSBox) || QueryFontStyle(TABFSHalo));
 }
 
+/**********************************************************************
+ *                   TABText::GetLabelStyleString()
+ *
+ * This is not the correct location, it should be in ITABFeatureFont,
+ * but it's really more easy to put it here.  This fct return a complete
+ * string for the representation with the string to display
+ **********************************************************************/
+const char *TABText::GetLabelStyleString()
+{
+    const char *pszStyle = NULL;
+    char szPattern[20];
+    int nJustification = 1;
+    
+    szPattern[0] = '\0';
+    
+
+    switch(GetTextJustification())
+    {
+      case TABTJCenter:
+	nJustification = 2;
+	break;
+      case TABTJRight:
+	nJustification = 1;
+	break;
+      case TABTJLeft:
+      default:
+	nJustification =1;
+	break;
+    }
+
+    
+    if (IsFontBGColorUsed())
+        pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%f,c:#%6.6x,b:#%6.6x,p:%d)",
+                            GetTextString(),GetTextAngle(), GetTextBoxHeight(),
+                            GetFontFGColor(),GetFontBGColor(),nJustification);
+    else
+        pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%f,c:#%6.6x,p:%d)",
+                            GetTextString(),GetTextAngle(), GetTextBoxHeight(),
+                            GetFontFGColor(),nJustification);
+     
+    return pszStyle;
+    
+}  
+
+/**********************************************************************
+ *                   TABText::GetStyleString()
+ *
+ * Return style string for this feature.
+ *
+ * Style String is built only once during the first call to GetStyleString().
+ **********************************************************************/
+const char *TABText::GetStyleString()
+{
+    if (m_pszStyleString == NULL)
+    {
+        m_pszStyleString = CPLStrdup(GetLabelStyleString());
+    }
+
+    return m_pszStyleString;
+}
+
+
 
 /**********************************************************************
  *                   TABText::DumpMIF()
@@ -5165,6 +5391,140 @@ void  ITABFeaturePen::SetPenWidthMIF(int val)
 }
 
 /**********************************************************************
+ *                   ITABFeaturePen::GetPenStyleString()
+ *
+ *  Return a PEN() string. All representations info for the pen are here.
+ **********************************************************************/
+const char *ITABFeaturePen::GetPenStyleString()
+{
+    const char *pszStyle = NULL;
+    int    nOGRStyle  = 0;
+    char szPattern[20];
+    
+    szPattern[0] = '\0';
+
+    // For now, I only add the 25 first styles 
+    switch (GetPenPattern())
+    {
+      case 1:
+	nOGRStyle =1; 
+	break;
+      case 2:
+	nOGRStyle = 0;
+	break;
+      case 3:
+	nOGRStyle = 3; 
+	strcpy(szPattern,"1 1");
+	break;
+      case 4:
+	nOGRStyle = 3;
+	strcpy(szPattern,"2 1");
+	break;
+      case 5:
+	nOGRStyle = 3;
+	strcpy(szPattern,"3 1");
+	break;
+      case 6:
+	nOGRStyle = 3;
+	strcpy(szPattern,"6 1");
+	break;
+      case 7:
+	nOGRStyle = 4;
+	strcpy(szPattern,"12 2");
+	break;
+      case 8:
+	nOGRStyle = 4;
+	strcpy(szPattern,"24 4");
+	break;
+      case 9:
+	nOGRStyle = 3;
+	strcpy(szPattern,"4 3");
+	break;
+      case 10:
+	nOGRStyle = 5;
+	strcpy(szPattern,"1 4");
+	break;
+      case 11:
+	nOGRStyle = 3;
+	strcpy(szPattern,"4 6");
+	break;
+      case 12:
+	nOGRStyle = 3;
+	strcpy(szPattern,"6 4");
+	break;
+      case 13:
+	nOGRStyle = 4;
+	strcpy(szPattern,"12 12");
+	break;
+      case 14:
+	nOGRStyle = 6;
+	strcpy(szPattern,"8 2 1 2");
+	break;
+      case 15:
+	nOGRStyle = 6;
+	strcpy(szPattern,"12 1 1 1");
+	break;
+      case 16:
+	nOGRStyle = 6;
+	strcpy(szPattern,"12 1 3 1");
+	break;
+      case 17:
+	nOGRStyle = 6;
+	strcpy(szPattern,"24 6 4 6");
+	break;
+      case 18:
+	nOGRStyle = 7;
+	strcpy(szPattern,"24 3 3 3 3 3");
+	break;
+      case 19:
+	nOGRStyle = 7;
+	strcpy(szPattern,"24 3 3 3 3 3 3 3");
+	break;
+      case 20:
+	nOGRStyle = 7;
+	strcpy(szPattern,"6 3 1 3 1 3");
+	break;
+      case 21:
+	nOGRStyle = 7;
+	strcpy(szPattern,"12 2 1 2 1 2");
+	break;
+      case 22:
+	nOGRStyle = 7;
+	strcpy(szPattern,"12 2 1 2 1 2 1 2");
+	break;
+      case 23:
+	nOGRStyle = 6;
+	strcpy(szPattern,"4 1 1 1");
+	break;
+      case 24:
+	nOGRStyle = 7;
+	strcpy(szPattern,"4 1 1 1 1");
+	break;
+      case 25:
+	nOGRStyle = 6;
+	strcpy(szPattern,"4 1 1 1 2 1 1 1");
+	break;
+
+	default:
+	nOGRStyle = 0;
+	break;
+    }
+    
+    if (strlen(szPattern) != 0)
+      pszStyle =CPLSPrintf("PEN(w:%dpx,c:#%6.6x,id:\"mapinfo-pen-%d."
+			   "ogr-pen-%d\",p:\"%spx\")",
+			   GetPenWidthPixel(),
+			   m_sPenDef.rgbColor,GetPenPattern(),nOGRStyle,
+			   szPattern);
+    else
+      pszStyle =CPLSPrintf("PEN(w:%dpx,c:#%6.6x,id:\"mapinfo-pen-%d.ogr-pen-%d\")",
+			   GetPenWidthPixel(),
+			   m_sPenDef.rgbColor,GetPenPattern(),nOGRStyle);
+
+    return pszStyle;
+}
+
+/**********************************************************************
  *                   ITABFeaturePen::DumpPenDef()
  *
  * Dump pen definition information.
@@ -5188,6 +5548,43 @@ void ITABFeaturePen::DumpPenDef(FILE *fpOut /*=NULL*/)
 /*=====================================================================
  *                      class ITABFeatureBrush
  *====================================================================*/
+
+/**********************************************************************
+ *                   ITABFeatureBrush::GetBrushStyleString()
+ *
+ *  Return a Brush() string. All representations info for the Brush are here.
+ **********************************************************************/
+const char *ITABFeatureBrush::GetBrushStyleString()
+{
+    const char *pszStyle = NULL;
+    int    nOGRStyle  = 0;
+    char szPattern[20];
+    
+    szPattern[0] = '\0';
+    
+    if (m_sBrushDef.nFillPattern == 1)
+      nOGRStyle = 1;
+    else if (m_sBrushDef.nFillPattern == 3)
+      nOGRStyle = 2;
+    else if (m_sBrushDef.nFillPattern == 4)
+      nOGRStyle = 3;
+    else if (m_sBrushDef.nFillPattern == 5)
+      nOGRStyle = 5;
+    else if (m_sBrushDef.nFillPattern == 6)
+      nOGRStyle = 4;
+    else if (m_sBrushDef.nFillPattern == 7)
+      nOGRStyle = 6;
+    else if (m_sBrushDef.nFillPattern == 8)
+      nOGRStyle = 7;
+	  
+    pszStyle =CPLSPrintf("BRUSH(fc:#%6.6x,bc:#%6.6x,id:\"mapinfo-brush-%d.ogr-brush-%d\")",
+			 m_sBrushDef.rgbFGColor,
+			 m_sBrushDef.rgbBGColor,
+			 m_sBrushDef.nFillPattern,nOGRStyle);
+     
+     return pszStyle;
+    
+}  
 
 /**********************************************************************
  *                   ITABFeatureBrush::DumpBrushDef()
@@ -5238,6 +5635,82 @@ void ITABFeatureFont::DumpFontDef(FILE *fpOut /*=NULL*/)
 /*=====================================================================
  *                      class ITABFeatureSymbol
  *====================================================================*/
+
+/**********************************************************************
+ *                   ITABFeatureSymbol::GetSymbolStyleString()
+ *
+ *  Return a Symbol() string. All representations info for the Symbol are here.
+ **********************************************************************/
+const char *ITABFeatureSymbol::GetSymbolStyleString(double dfAngle)
+{
+    const char *pszStyle = NULL;
+    int    nOGRStyle  = 1;
+    char szPattern[20];
+    int nAngle = 0;
+    
+    szPattern[0] = '\0';
+    
+    if (m_sSymbolDef.nSymbolNo == 31)
+      nOGRStyle = 0;
+    else if (m_sSymbolDef.nSymbolNo == 32)
+      nOGRStyle = 6;
+    else if (m_sSymbolDef.nSymbolNo == 33)
+    {
+	nAngle = 45;
+	nOGRStyle = 6;
+    }
+    else if (m_sSymbolDef.nSymbolNo == 34)
+      nOGRStyle = 4;
+    else if (m_sSymbolDef.nSymbolNo == 35)
+      nOGRStyle = 10;
+    else if (m_sSymbolDef.nSymbolNo == 36)
+      nOGRStyle = 8;
+    else if (m_sSymbolDef.nSymbolNo == 37)
+    {
+	nAngle = 180;
+	nOGRStyle = 8;
+    }
+    else if (m_sSymbolDef.nSymbolNo == 38)
+      nOGRStyle = 5;
+    else if (m_sSymbolDef.nSymbolNo == 39)
+    {
+	nAngle = 45;
+	nOGRStyle = 5;
+    }
+    else if (m_sSymbolDef.nSymbolNo == 40)
+      nOGRStyle = 3;
+    else if (m_sSymbolDef.nSymbolNo == 41)
+      nOGRStyle = 9;
+    else if (m_sSymbolDef.nSymbolNo == 42)
+      nOGRStyle = 7;
+    else if (m_sSymbolDef.nSymbolNo == 43)
+    {
+	nAngle = 180;
+	nOGRStyle = 7;
+    }
+    else if (m_sSymbolDef.nSymbolNo == 44)
+      nOGRStyle = 6;
+    else if (m_sSymbolDef.nSymbolNo == 45)
+      nOGRStyle = 8;
+    else if (m_sSymbolDef.nSymbolNo == 46)
+      nOGRStyle = 4;
+    else if (m_sSymbolDef.nSymbolNo == 49)
+      nOGRStyle = 1;
+    else if (m_sSymbolDef.nSymbolNo == 50)
+      nOGRStyle = 2;
+
+    nAngle += (int)dfAngle;
+    
+    pszStyle=CPLSPrintf("SYMBOL(a:%d,c:#%6.6x,s:%dpt,id:\"mapinfo-sym-%d.ogr-sym-%d\")",
+			nAngle,
+			m_sSymbolDef.rgbColor,
+			m_sSymbolDef.nPointSize,
+			m_sSymbolDef.nSymbolNo,
+			nOGRStyle);
+     
+    return pszStyle;
+    
+}  
 
 /**********************************************************************
  *                   ITABFeatureSymbol::DumpSymbolDef()

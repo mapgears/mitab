@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.38 2000-09-19 17:23:52 daniel Exp $
+ * $Id: mitab.h,v 1.39 2000-10-03 19:29:51 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.38  2000-09-19 17:23:52  daniel
+ * Revision 1.39  2000-10-03 19:29:51  daniel
+ * Include OGR StyleString stuff (implemented by Stephane)
+ *
+ * Revision 1.38  2000/09/19 17:23:52  daniel
  * Maintain and/or compute valid region and polyline center/label point
  *
  * Revision 1.37  2000/09/07 23:32:13  daniel
@@ -801,6 +804,8 @@ class ITABFeaturePen
     void        SetPenPattern(GByte val) {m_sPenDef.nLinePattern=val;};
     void        SetPenColor(GInt32 clr)  {m_sPenDef.rgbColor = clr;};
 
+    const char *GetPenStyleString();
+
     void        DumpPenDef(FILE *fpOut = NULL);
 };
 
@@ -826,6 +831,8 @@ class ITABFeatureBrush
     void        SetBrushPattern(GByte val)   { m_sBrushDef.nFillPattern=val;};
     void        SetBrushTransparent(GByte val)
                                           {m_sBrushDef.bTransparentFill=val;};
+
+    const char *GetBrushStyleString();
 
     void        DumpBrushDef(FILE *fpOut = NULL);
 };
@@ -870,6 +877,8 @@ class ITABFeatureSymbol
     void        SetSymbolNo(GInt16 val)     { m_sSymbolDef.nSymbolNo = val;};
     void        SetSymbolSize(GInt16 val)   { m_sSymbolDef.nPointSize = val;};
     void        SetSymbolColor(GInt32 clr)  { m_sSymbolDef.rgbColor = clr;};
+
+    const char *GetSymbolStyleString(double dfAngle = 0.0);
 
     void        DumpSymbolDef(FILE *fpOut = NULL);
 };
@@ -995,6 +1004,8 @@ class TABPoint: public TABFeature,
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
 
+    virtual const char *GetStyleString();
+
     virtual void DumpMIF(FILE *fpOut = NULL);
 };
 
@@ -1032,6 +1043,8 @@ class TABFontPoint: public TABPoint,
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
+
+    virtual const char *GetStyleString();
 
     GBool       QueryFontStyle(TABFontStyle eStyleToQuery);
     void        ToggleFontStyle(TABFontStyle eStyleToToggle, GBool bStatus);
@@ -1084,6 +1097,8 @@ class TABCustomPoint: public TABPoint,
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
 
+    virtual const char *GetStyleString();
+
     const char *GetSymbolNameRef()      { return GetFontNameRef(); };
     void        SetSymbolName(const char *pszName) {SetFontName(pszName);};
     
@@ -1134,6 +1149,8 @@ class TABPolyline: public TABFeature,
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
+
+    virtual const char *GetStyleString();
 
     virtual void DumpMIF(FILE *fpOut = NULL);
 
@@ -1202,6 +1219,8 @@ class TABRegion: public TABFeature,
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
 
+    virtual const char *GetStyleString();
+
     virtual void DumpMIF(FILE *fpOut = NULL);
 
     int         GetCenter(double &dX, double &dY);
@@ -1243,6 +1262,8 @@ class TABRectangle: public TABFeature,
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
+
+    virtual const char *GetStyleString();
 
     virtual void DumpMIF(FILE *fpOut = NULL);
 
@@ -1296,6 +1317,8 @@ class TABEllipse: public TABFeature,
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
+
+    virtual const char *GetStyleString();
 
     virtual void DumpMIF(FILE *fpOut = NULL);
 
@@ -1351,6 +1374,8 @@ class TABArc: public TABFeature,
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
 
+    virtual const char *GetStyleString();
+
     virtual void DumpMIF(FILE *fpOut = NULL);
 
     double      GetStartAngle() { return m_dStartAngle; };
@@ -1402,6 +1427,8 @@ class TABText: public TABFeature,
     GInt16      m_nTextAlignment;       // Justification/Vert.Spacing/arrow
     GInt16      m_nFontStyle;           // Bold/italic/underlined/shadow/...
 
+    const char *GetLabelStyleString();
+
   public:
              TABText(OGRFeatureDefn *poDefnIn);
     virtual ~TABText();
@@ -1416,6 +1443,8 @@ class TABText: public TABFeature,
 
     virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
     virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
+
+    virtual const char *GetStyleString();
 
     virtual void DumpMIF(FILE *fpOut = NULL);
 

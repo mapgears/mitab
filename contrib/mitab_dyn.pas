@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.4 2003-08-07 03:24:30 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.5 2004-06-30 20:18:53 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.4  2003-08-07 03:24:30  dmorissette
+ * Revision 1.5  2004-06-30 20:18:53  dmorissette
+ * Update from Uffe K. for V1.3.0 release
+ *
+ * Revision 1.4  2003/08/07 03:24:30  dmorissette
  * Added function for checking of version of library (Uffe K. - bug 21)
  *
  * Revision 1.25  2003/08/06 22:50:00  uffe
@@ -90,9 +93,8 @@ Type
   TABTL = 0..2;
 
 const
-// update to match mitab_capi.cpp (app. line 185), when new versions
-// are released
-  Libversion = 1002004;
+// update to match mitab.h (app. line 175), when new versions are released
+  Libversion = 1003000;
   
 // feature type values
   TABFC_NoGeom      = 0;
@@ -145,6 +147,9 @@ type
   Tmitab_c_get_brush_fgcolor      = function(feature: mitab_feature): longint; stdcall;
   Tmitab_c_get_brush_pattern      = function(feature: mitab_feature): longint; stdcall;
   Tmitab_c_get_brush_transparent  = function(feature: mitab_feature): longint; stdcall;
+  Tmitab_c_get_extended_mif_coordsys = function(dataset: mitab_handle): pchar; stdcall;
+  Tmitab_c_get_feature_count      = function(feature: mitab_handle): longint; stdcall;
+  Tmitab_c_get_field_as_double    = function(feature: mitab_feature; field: longint): double; stdcall;
   Tmitab_c_get_field_as_string    = function(feature: mitab_feature; field: longint): pchar; stdcall;
   Tmitab_c_get_field_as_string_vb = function(feature: mitab_feature; field: longint; value: pchar; l: longint): longint; stdcall;
   Tmitab_c_get_field_count        = function(handle: mitab_handle): longint; stdcall;
@@ -212,6 +217,9 @@ var
   mitab_c_get_brush_fgcolor: Tmitab_c_get_brush_fgcolor;
   mitab_c_get_brush_pattern: Tmitab_c_get_brush_pattern;
   mitab_c_get_brush_transparent: Tmitab_c_get_brush_transparent;
+  mitab_c_get_extended_mif_coordsys: Tmitab_c_get_extended_mif_coordsys;
+  mitab_c_get_feature_count: Tmitab_c_get_feature_count;
+  mitab_c_get_field_as_double: Tmitab_c_get_field_as_double;
   mitab_c_get_field_as_string: Tmitab_c_get_field_as_string;
   mitab_c_get_field_as_string_vb: Tmitab_c_get_field_as_string_vb;
   mitab_c_get_field_count: Tmitab_c_get_field_count;
@@ -304,6 +312,9 @@ begin
         @mitab_c_get_brush_fgcolor:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_fgcolor@4');
         @mitab_c_get_brush_pattern:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_pattern@4');
         @mitab_c_get_brush_transparent:=  GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_transparent@4');
+        @mitab_c_get_extended_mif_coordsys:= GetProcAddress(MITABDLL_Handle,'_mitab_c_get_extended_mif_coordsys@4');
+        @mitab_c_get_feature_count:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_feature_count@4');
+        @mitab_c_get_field_as_double:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_as_double@8');
         @mitab_c_get_field_as_string:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_as_string@8');
         @mitab_c_get_field_as_string_vb:= GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_as_string_vb@16');
         @mitab_c_get_field_count:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_count@4');

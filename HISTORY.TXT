@@ -21,6 +21,8 @@ CHANGES - Current Version:
 - Modified datum list in mitab_spatialref.cpp with a bunch of new EPSG/OGC
   datum names provided by Siro Martello from Cadcorp. NFW
 
+- Fix memory leak of m_pszIndex in mitab_miffile.cpp. NFW
+
 
 Version 1.2.2 - (2002-07-06)
 ----------------------------
@@ -473,5 +475,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.97 2002-09-05 15:24:16 warmerda Exp $
+$Id: HISTORY.TXT,v 1.98 2002-09-23 13:06:45 warmerda Exp $
 ------------

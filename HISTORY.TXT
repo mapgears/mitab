@@ -71,6 +71,10 @@ CHANGES - Current Version:
 
 - Added new MapInfo 6.0 datums in datum list.
 
+- Added OGR Feature Style String support when reading
+
+- Added support for writing arcs, ellipses and rectangles using the C API
+
 
 Version 1.0.1 - (2000-04-21)
 ----------------------------
@@ -186,5 +190,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.25 2000-09-29 22:41:18 daniel Exp $
+$Id: HISTORY.TXT,v 1.26 2000-10-03 20:43:36 daniel Exp $
 ------------

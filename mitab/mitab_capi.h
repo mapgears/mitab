@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.7 2000-04-21 12:53:41 daniel Exp $
+ * $Id: mitab_capi.h,v 1.8 2000-10-03 20:43:36 daniel Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.7  2000-04-21 12:53:41  daniel
+ * Revision 1.8  2000-10-03 20:43:36  daniel
+ * Added support for writing arcs,ellipses and rectangles in C API
+ *
+ * Revision 1.7  2000/04/21 12:53:41  daniel
  * Added funcs to fetch feature coordinates and attributes
  *
  * Revision 1.6  2000/02/28 16:46:53  daniel
@@ -166,6 +169,10 @@ void MITAB_DLL mitab_c_set_symbol( mitab_feature feature, int symbol_no,
 
 void MITAB_DLL mitab_c_set_points( mitab_feature feature, int part,
                                    int vertex_count, double * x, double * y );
+void MITAB_DLL mitab_c_set_arc( mitab_feature feature, 
+                                double center_x, double center_y,
+                                double x_radius, double y_radius,
+                                double start_angle, double end_angle);
 
 int MITAB_DLL mitab_c_get_type( mitab_feature feature );
 int MITAB_DLL mitab_c_get_parts( mitab_feature feature );

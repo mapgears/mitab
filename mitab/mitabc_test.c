@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.7 2000-04-21 12:53:41 daniel Exp $
+ * $Id: mitabc_test.c,v 1.8 2000-10-03 20:43:36 daniel Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.7  2000-04-21 12:53:41  daniel
+ * Revision 1.8  2000-10-03 20:43:36  daniel
+ * Added support for writing arcs,ellipses and rectangles in C API
+ *
+ * Revision 1.7  2000/04/21 12:53:41  daniel
  * Added funcs to fetch feature coordinates and attributes
  *
  * Revision 1.6  2000/02/28 17:20:34  daniel
@@ -311,6 +314,57 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     y[3] = 55;
     
     mitab_c_set_points( feature, 2, 4, x, y );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+
+/* -------------------------------------------------------------------- */
+/*      Write an arc                                                    */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_Arc );
+
+    mitab_c_set_arc( feature, 70, 75, 10, 5, 45, 270);
+    mitab_c_set_field( feature, 0, "123" );
+    mitab_c_set_field( feature, 1, "456" );
+    mitab_c_set_field( feature, 2, "12345678901234567890" );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+
+/* -------------------------------------------------------------------- */
+/*      Write an ellipse                                                */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_Ellipse );
+
+    mitab_c_set_arc( feature, 70, 75, 10, 5, 0, 0);
+    mitab_c_set_field( feature, 0, "1" );
+    mitab_c_set_field( feature, 1, "2" );
+    mitab_c_set_field( feature, 2, "3" );
+    mitab_c_set_brush( feature, 255, 0, 2, 0 );
+    mitab_c_set_pen( feature, 1, 2, 65535 );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+
+/* -------------------------------------------------------------------- */
+/*      Write rectangle.                                                */
+/*      The MBR of the array of points will be used for the             */
+/*      rectangle corners.                                              */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_Rectangle );
+
+    x[0] = 91;
+    y[0] = 61;
+    x[1] = 90;
+    y[1] = 61;
+    x[2] = 90;
+    y[2] = 60;
+    x[3] = 91;
+    y[3] = 60;
+    x[4] = 91;
+    y[4] = 61;
+    
+    mitab_c_set_points( feature, 0, 5, x, y );
+    
+    mitab_c_set_brush( feature, 255, 0, 2, 0 );
+    mitab_c_set_pen( feature, 1, 2, 65535 );
     mitab_c_write_feature( dataset, feature );
     mitab_c_destroy_feature( feature );
 

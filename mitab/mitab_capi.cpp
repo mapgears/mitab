@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.7 2000-04-21 13:37:59 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.8 2000-10-03 20:43:36 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.7  2000-04-21 13:37:59  daniel
+ * Revision 1.8  2000-10-03 20:43:36  daniel
+ * Added support for writing arcs,ellipses and rectangles in C API
+ *
+ * Revision 1.7  2000/04/21 13:37:59  daniel
  * Added doxygen file definition block
  *
  * Revision 1.6  2000/04/21 12:53:07  daniel
@@ -420,8 +423,8 @@ mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
  * @param handle the handle of the dataset opened for write access.
  * @param feature_type the type of feature object to create.  At this point,
  *        only the following types can be created by this C API function:
- *        TABFC_Point (1), TABFC_Text (4), TABFC_Polyline (5), and 
- *        TABFC_Region (7)
+ *        TABFC_Point (1), TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6), 
+ *        TABFC_Region (7), TABFC_Rectangle (8), and TABFC_Ellipse (9)
  * @return the new mitab_feature object, or NULL if creation failed.  Note that
  *         the new object will have to be released using 
  *         mitab_c_destroy_feature().
@@ -451,8 +454,14 @@ mitab_c_create_feature( mitab_handle handle,
     }
     else if( feature_type == TABFC_Polyline )
         poFeature = new TABPolyline(poFile->GetLayerDefn());
+    else if( feature_type == TABFC_Arc )
+        poFeature = new TABArc(poFile->GetLayerDefn());
     else if( feature_type == TABFC_Region )
         poFeature = new TABRegion(poFile->GetLayerDefn());
+    else if( feature_type == TABFC_Rectangle )
+        poFeature = new TABRectangle(poFile->GetLayerDefn());
+    else if( feature_type == TABFC_Ellipse )
+        poFeature = new TABEllipse(poFile->GetLayerDefn());
 
     return poFeature;
 }
@@ -498,6 +507,8 @@ mitab_c_set_field( mitab_feature feature, int field_index,
  *        this function.
  * @param vertex_count the number of points (pairs of x,y values).
  * @param x the array of 'vertex_count' X values.
+ *        Note: for rectangle objects, the MBR of the array of points
+ *        defines rectangle corners.
  * @param y the array of 'vertex_count' Y values.
  */
 
@@ -572,6 +583,87 @@ mitab_c_set_points( mitab_feature feature, int part,
             poFeature->SetGeometryDirectly( poPolygon );
         }
     }
+
+    else if( poFeature->GetFeatureClass() == TABFC_Rectangle )
+    {
+        if ( poFeature->GetGeometryRef() == NULL && part == 0 )
+        {
+            // Rectangle: The MBR of the first part defines the rectangle 
+            // corners
+            OGRPolygon      *poPoly = new OGRPolygon;
+            OGRLinearRing   *poRing = new OGRLinearRing;
+
+            poRing->setPoints( vertex_count, x, y );
+
+            poPoly->addRingDirectly( poRing );
+            poFeature->SetGeometryDirectly( poPoly );
+        }
+    }
+
+}
+
+/************************************************************************/
+/*                         mitab_c_set_points()                         */
+/************************************************************************/
+
+/** 
+ * Set an arc or ellipse feature parameters.
+ *
+ * @param feature the mitab_feature object.
+ * @param center_x the arc/ellipse center X coordinate.
+ * @param center_y the arc/ellipse center Y coordinate.
+ * @param x_radius the arc/ellipse X radius.
+ * @param y_radius the arc/ellipse Y radius.
+ * @param start_angle for an arc: the start angle in degrees, counterclockwise.
+ *                    for an ellipse, this parameter is ignored.
+ * @param end_angle for an arc: the end angle in degrees, counterclockwise.
+ *                  for an ellipse, this parameter is ignored.
+ */
+
+void MITAB_STDCALL
+mitab_c_set_arc( mitab_feature feature, 
+                 double center_x, double center_y,
+                 double x_radius, double y_radius,
+                 double start_angle, double end_angle)
+
+{
+    TABFeature	*poFeature = (TABFeature *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Arc )
+    {
+        TABArc *poArc = (TABArc *)poFeature;
+
+        poArc->m_dCenterX = center_x;
+        poArc->m_dCenterY = center_y;
+        poArc->m_dXRadius = x_radius;
+        poArc->m_dYRadius = y_radius;
+        poArc->SetStartAngle(start_angle);
+        poArc->SetEndAngle(end_angle);
+    }
+    else if (poFeature->GetFeatureClass() == TABFC_Ellipse)
+    {
+        TABEllipse *poEllipse = (TABEllipse *)poFeature;
+
+        poEllipse->m_dCenterX = center_x;
+        poEllipse->m_dCenterY = center_y;
+        poEllipse->m_dXRadius = x_radius;
+        poEllipse->m_dYRadius = y_radius;
+
+        // TABEllipse expects a polygon geometry... just use the MBR
+        OGRPolygon      *poPoly = new OGRPolygon;
+        OGRLinearRing   *poRing = new OGRLinearRing;
+
+        poRing->setNumPoints(5);
+        poRing->setPoint(0, center_x-x_radius, center_y-y_radius );
+        poRing->setPoint(1, center_x-x_radius, center_y+y_radius );
+        poRing->setPoint(2, center_x+x_radius, center_y+y_radius );
+        poRing->setPoint(3, center_x+x_radius, center_y-y_radius );
+        poRing->setPoint(4, center_x-x_radius, center_y-y_radius );
+
+        poPoly->addRingDirectly( poRing );
+        poEllipse->SetGeometryDirectly( poPoly );
+    }
+
 }
 
 /************************************************************************/
@@ -674,7 +766,8 @@ mitab_c_set_font( mitab_feature feature, const char * fontname )
 /************************************************************************/
 
 /**
- * Set an object's brush properties.  Applies only to polygon objects.
+ * Set an object's brush properties.  Applies to region, ellipse and 
+ * rectangle objects.
  *
  * See the MIF specs for more details on the meaning and valid values of
  * each parameter.
@@ -694,7 +787,9 @@ mitab_c_set_brush( mitab_feature feature,
 {
     TABRegion	*poFeature = (TABRegion *) feature;
 
-    if( poFeature->GetFeatureClass() == TABFC_Region )
+    if( poFeature->GetFeatureClass() == TABFC_Region ||
+        poFeature->GetFeatureClass() == TABFC_Ellipse ||
+        poFeature->GetFeatureClass() == TABFC_Rectangle )
     {
         poFeature->SetBrushFGColor( fg_color );
         poFeature->SetBrushBGColor( bg_color );
@@ -708,8 +803,8 @@ mitab_c_set_brush( mitab_feature feature,
 /************************************************************************/
 
 /**
- * Set an object's pen properties.  Applies only to polyline and region
- * objects.
+ * Set an object's pen properties.  Applies only to polyline, region, 
+ * rectangle, arc and ellipse objects.
  *
  * See the MIF specs for more details on the meaning and valid values of
  * each parameter.
@@ -734,6 +829,15 @@ mitab_c_set_pen( mitab_feature feature,
     
     if( poFeature->GetFeatureClass() == TABFC_Region )
         poPen = ((TABRegion *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Rectangle )
+        poPen = ((TABRectangle *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Arc )
+        poPen = ((TABArc *) poFeature);
+
+    if( poFeature->GetFeatureClass() == TABFC_Ellipse )
+        poPen = ((TABEllipse *) poFeature);
 
     if( poFeature->GetFeatureClass() == TABFC_Text )
         poPen = ((TABText *) poFeature);

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_middatafile.cpp,v 1.7 2001-09-19 14:49:49 warmerda Exp $
+ * $Id: mitab_middatafile.cpp,v 1.8 2002-04-22 13:49:09 julien Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_middatafile.cpp,v $
- * Revision 1.7  2001-09-19 14:49:49  warmerda
+ * Revision 1.8  2002-04-22 13:49:09  julien
+ * Add EOF validation in MIDDATAFile::GetLastLine() (Bug 819)
+ *
+ * Revision 1.7  2001/09/19 14:49:49  warmerda
  * use VSIRewind() instead of rewind()
  *
  * Revision 1.6  2001/01/22 16:03:58  warmerda
@@ -136,6 +139,7 @@ int MIDDATAFile::Open(const char *pszFname, const char *pszAccess)
         return -1;
     }
 
+    SetEof(VSIFEof(m_fp));
     return 0;
 }
 
@@ -145,7 +149,10 @@ int MIDDATAFile::Rewind()
         return -1;
 
     else
+    {
         VSIRewind(m_fp);
+        SetEof(VSIFEof(m_fp));
+    }
     return 0;
 }
 
@@ -174,6 +181,8 @@ const char *MIDDATAFile::GetLine()
         
         pszLine = CPLReadLine(m_fp);
 
+        SetEof(VSIFEof(m_fp));
+
         if (pszLine == NULL)
         {
             m_szLastRead[0] = '\0';
@@ -194,17 +203,23 @@ const char *MIDDATAFile::GetLine()
 
 const char *MIDDATAFile::GetLastLine()
 {
-    if (m_eAccessMode == TABRead)
+    // Return NULL if EOF
+    if(GetEof())
     {
-        // printf("%s\n",m_szLastRead);
-        return m_szLastRead;
+        return NULL;
     }
     else
     {
-        CPLAssert(FALSE);
+        if (m_eAccessMode == TABRead)
+        {
+            // printf("%s\n",m_szLastRead);
+            return m_szLastRead;
+        }
+        else
+        {
+            return "";
+        }
     }
-    // Never return NULL, don't need to test the string
-    return "";
 }
 
 void MIDDATAFile::WriteLine(const char *pszFormat,...)
@@ -272,4 +287,16 @@ GBool MIDDATAFile::IsValidFeature(const char *pszString)
     CSLDestroy(papszToken);
     return FALSE;
 
+}
+
+
+GBool MIDDATAFile::GetEof()
+{
+    return m_bEof;
+}
+
+
+void MIDDATAFile::SetEof(GBool bEof)
+{
+    m_bEof = bEof;
 }

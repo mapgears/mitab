@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.9 2001-03-09 03:53:30 daniel Exp $
+ * $Id: tab2tab.cpp,v 1.10 2002-04-22 13:49:09 julien Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.9  2001-03-09 03:53:30  daniel
+ * Revision 1.10  2002-04-22 13:49:09  julien
+ * Add EOF validation in MIDDATAFile::GetLastLine() (Bug 819)
+ *
+ * Revision 1.9  2001/03/09 03:53:30  daniel
  * Added missing delete poDstFile
  *
  * Revision 1.8  2001/01/23 21:23:42  daniel
@@ -212,7 +215,11 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
             poDstFile->SetFeature(poFeature);
         }
         else
-            break;      // GetFeatureRef() failed: Abort the loop
+        {
+            printf( "Failed to read feature %d.\n",
+                    nFeatureId );
+            return -1;      // GetFeatureRef() failed: Error
+        }
     }
 
     /*---------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.32 2002-03-26 19:27:43 daniel Exp $
+ * $Id: mitab_priv.h,v 1.33 2002-04-22 13:49:09 julien Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.32  2002-03-26 19:27:43  daniel
+ * Revision 1.33  2002-04-22 13:49:09  julien
+ * Add EOF validation in MIDDATAFile::GetLastLine() (Bug 819)
+ *
+ * Revision 1.32  2002/03/26 19:27:43  daniel
  * Got rid of tabs in source
  *
  * Revision 1.31  2002/03/26 01:48:40  daniel
@@ -1564,6 +1567,9 @@ class MIDDATAFile
      const char *GetDelimiter(){return m_pszDelimiter;}
      void SetDelimiter(const char *pszDelimiter){m_pszDelimiter=pszDelimiter;}
 
+     void SetEof(GBool bEof);
+     GBool GetEof();
+
      private:
        FILE *m_fp;
        const char *m_pszDelimiter;
@@ -1579,6 +1585,7 @@ class MIDDATAFile
        double      m_dfYMultiplier;
        double      m_dfXDisplacement;
        double      m_dfYDisplacement;
+       GBool       m_bEof;
 };
 
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.9 2001-12-17 16:08:22 warmerda Exp $
+ * $Id: mitabc_test.c,v 1.10 2002-05-16 14:13:44 julien Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.9  2001-12-17 16:08:22  warmerda
+ * Revision 1.10  2002-05-16 14:13:44  julien
+ * Add test for MultiPoint and Region with MultiPolygon
+ *
+ * Revision 1.9  2001/12/17 16:08:22  warmerda
  * added a bit of error reporting
  *
  * Revision 1.8  2000/10/03 20:43:36  daniel
@@ -221,6 +224,26 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     mitab_c_destroy_feature( feature );
 
 /* -------------------------------------------------------------------- */
+/*      Write a MultiPoint.                                                  */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_MultiPoint );
+
+    x[0] = 90;
+    y[0] = 51;
+    x[1] = 90.5;
+    y[1] = 51.5;
+    x[2] = 91;
+    y[2] = 52;
+    
+    mitab_c_set_points( feature, 0, 3, x, y );
+    mitab_c_set_symbol( feature, 41, 15, 255*256 );
+    mitab_c_set_field( feature, 0, "100" );
+    mitab_c_set_field( feature, 1, "100.5" );
+    mitab_c_set_field( feature, 2, "12345678901234567890" );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+
+/* -------------------------------------------------------------------- */
 /*      Write a line.                                                   */
 /* -------------------------------------------------------------------- */
     feature = mitab_c_create_feature( dataset, TABFC_Polyline );
@@ -285,6 +308,81 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     y[4] = 50.5;
 
     mitab_c_set_points( feature, 1, 5, x, y );
+
+    mitab_c_set_brush( feature, 255, 0, 2, 0 );
+    mitab_c_set_pen( feature, 1, 2, 65535 );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+    
+/* -------------------------------------------------------------------- */
+/*      Write a second region with two polygon (polygon).               */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_Region );
+
+    x[0] = 101;
+    y[0] = 41;
+    x[1] = 100;
+    y[1] = 41;
+    x[2] = 100;
+    y[2] = 40;
+    x[3] = 101;
+    y[3] = 40;
+    x[4] = 101;
+    y[4] = 41;
+    
+    mitab_c_set_points( feature, 0, 5, x, y );
+    
+    x[0] = 100.5;
+    y[0] = 40.5;
+    x[1] = 100.5;
+    y[1] = 40.7;
+    x[2] = 100.7;
+    y[2] = 40.7;
+    x[3] = 100.7;
+    y[3] = 40.5;
+    x[4] = 100.5;
+    y[4] = 40.5;
+
+    mitab_c_set_points( feature, 1, 5, x, y );
+    
+    x[0] = 100.2;
+    y[0] = 40.2;
+    x[1] = 100.2;
+    y[1] = 40.4;
+    x[2] = 100.4;
+    y[2] = 40.4;
+    x[3] = 100.4;
+    y[3] = 40.2;
+    x[4] = 100.2;
+    y[4] = 40.2;
+
+    mitab_c_set_points( feature, 2, 5, x, y );
+
+    x[0] = 96;
+    y[0] = 46;
+    x[1] = 95;
+    y[1] = 46;
+    x[2] = 95;
+    y[2] = 45;
+    x[3] = 96;
+    y[3] = 45;
+    x[4] = 96;
+    y[4] = 46;
+    
+    mitab_c_set_points( feature, 0, 5, x, y );
+    
+    x[0] = 95.5;
+    y[0] = 45.5;
+    x[1] = 95.5;
+    y[1] = 45.7;
+    x[2] = 95.7;
+    y[2] = 45.7;
+    x[3] = 95.7;
+    y[3] = 45.5;
+    x[4] = 95.5;
+    y[4] = 45.5;
+
+    mitab_c_set_points( feature, 4, 5, x, y );
 
     mitab_c_set_brush( feature, 255, 0, 2, 0 );
     mitab_c_set_pen( feature, 1, 2, 65535 );

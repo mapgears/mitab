@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.19 2000-01-14 23:51:06 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.20 2000-01-15 05:36:33 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.19  2000-01-14 23:51:06  daniel
+ * Revision 1.20  2000-01-15 05:36:33  daniel
+ * One more try to establish the way the quadrant setting affects the way to
+ * read arc angles... hopefully it's right this time!
+ *
+ * Revision 1.19  2000/01/14 23:51:06  daniel
  * Fixed handling of "\n" in TABText strings... now the external interface
  * of the lib returns and expects escaped "\"+"n" as described in MIF specs
  *
@@ -3389,29 +3393,51 @@ int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
 
         /*-------------------------------------------------------------
          * OK, Arc angles again!!!!!!!!!!!!
-         * After further tests, it appears that the angle values ALWAYS
-         * have to be flipped, no matter which quadrant the file is in.
+         * After some tests in 1999-11, it appeared that the angle values
+         * ALWAYS had to be flipped (read order= end angle followed by 
+         * start angle), no matter which quadrant the file is in.
          * This does not make any sense, so I suspect that there is something
          * that we are missing here!
+         *
+         * 2000-01-14.... Again!!!  Based on some sample data files:
+         *  File         Ver Quadr  ReflXAxis  Read_Order   Adjust_Angle
+         * test_symb.tab 300    2        1      end,start    X=yes Y=no
+         * alltypes.tab: 300    1        0      start,end    X=no  Y=no
+         * arcs.tab:     300    2        0      end,start    X=yes Y=no
+         *
+         * Until we prove it wrong, the rule would be:
+         *  -> Quadrant 1 and 3, angles order = start, end
+         *  -> Quadrant 2 and 4, angles order = end, start
+         * + Always adjust angles for x and y axis based on quadrant.
+         *
+         * This was confirmed using some more files in which the quadrant was 
+         * manually changed, but whether these are valid results is 
+         * discutable.
+         *
+         * The ReflectXAxis flag seems to have no effect here...
          *------------------------------------------------------------*/
-
-        if (TRUE
-            /* poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==2 ||
-               poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 */ )
+        if ( poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==1 ||
+             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3  )
         {
-            // X axis direction is flipped... adjust angle
+            // Quadrants 1 and 3 ... read order = start, end
+            m_dStartAngle = poObjBlock->ReadInt16()/10.0;
+            m_dEndAngle = poObjBlock->ReadInt16()/10.0;
+        }
+        else
+        {
+            // Quadrants 2 and 4 ... read order = end, start
             m_dEndAngle = poObjBlock->ReadInt16()/10.0;
             m_dStartAngle = poObjBlock->ReadInt16()/10.0;
+        }
 
+        if ( poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==2 ||
+             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3  )
+        {
+            // X axis direction is flipped... adjust angle
             m_dStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
                                                  (540.0-m_dStartAngle);
             m_dEndAngle   = (m_dEndAngle<=180.0) ? (180.0-m_dEndAngle):
                                                (540.0-m_dEndAngle);
-        }
-        else
-        {
-            m_dStartAngle = poObjBlock->ReadInt16()/10.0;
-            m_dEndAngle = poObjBlock->ReadInt16()/10.0;
         }
 
         if (poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
@@ -3420,6 +3446,9 @@ int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
             // Y axis direction is flipped... this reverses angle direction
             // Unfortunately we never found any file that contains this case,
             // but this should be the behavior to expect!!!
+            //
+            // 2000-01-14: some files in which quadrant was set to 3 and 4
+            // manually seemed to confirm that this is the right thing to do.
             m_dStartAngle = 360.0 - m_dStartAngle;
             m_dEndAngle = 360.0 - m_dEndAngle;
         }

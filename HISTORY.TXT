@@ -1,7 +1,7 @@
 MITAB Library - Revision History
 ================================
 
-ToDo - Known problems:
+ToDo - Open Questions:
 ----------------------
 
  - OGRTABDataSource: Need to be able to open all files from a directory
@@ -33,8 +33,25 @@ ToDo - Known problems:
      - Need to find out the way float keys are encoded and to add support
        for them.
 
-Current Version:
-----------------
+ - ??? Produce a Warning when bounds not set on first SetFeature()
+
+ - What to do about m_dCoordsys2DistUnits in both read and write.
+
+ - TABMAPObjBlocks could be split during write when they're full in order to
+   optimize spatial index.  Files are still usable even without this kind 
+   of optimization.
+
+ - ARC angles: 
+   - When x axis is flipped, why do we have to read End before start angle?
+     (Actually, angle order always seem to be reversed no matter which 
+      quadrant the file is in.)
+   - What is the correct conversion for angles based on quadrant?
+   - Bizarre: arcs.tab is in quadrant 2, but byte 0x162 (FlipXAxis) = 0 !!!
+
+
+
+CHANGES - Current Version:
+--------------------------
 
  - Added TABView class to support views on pairs of .TAB files (read-only)
     - Currently supports only 2 tables with a many-to-1 relation through
@@ -53,6 +70,18 @@ Current Version:
    handled by MITAB go through the OGRTABDataSource/OGRTABDriver interface
 
  - Fixed problem reading/writing dates (bytes were reversed)
+        Also, Dates are now returned as "YYYY/MM/DD", and accepted as one
+        of "YYYY/MM/DD", "DD/MM/YYYY", or "YYYYMMDD"
+
+ - Fixed TABFile::GetBounds() that could sometimes return Min values > Max
+
+ - Rounded rectangles with radius bigger than MBR: we used to return a
+   corrected radius value, but it's now changed to return the real radius
+   value (even if it's too big) since this is what MapInfo appears to do
+   when exporting from TAB to MIF
+
+ - Fixed some problems that had appeared following a change in OGR's
+   addGeometry()... use the new addGeometryDirectly() + more error checking.
 
 Version 0.1 - (1999-12-04)
 --------------------------
@@ -63,5 +92,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.2 1999-12-14 06:15:07 daniel Exp $
+$Id: HISTORY.TXT,v 1.3 1999-12-17 02:39:02 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_datfile.cpp,v 1.9 1999-12-16 17:11:45 daniel Exp $
+ * $Id: mitab_datfile.cpp,v 1.10 1999-12-20 18:59:20 daniel Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_datfile.cpp,v $
- * Revision 1.9  1999-12-16 17:11:45  daniel
+ * Revision 1.10  1999-12-20 18:59:20  daniel
+ * Dates again... now returned as "YYYYMMDD"
+ *
+ * Revision 1.9  1999/12/16 17:11:45  daniel
  * Date fields: return as "YYYY/MM/DD", and accept 3 diff. formats as input
  *
  * Revision 1.8  1999/12/14 03:58:29  daniel
@@ -890,7 +893,7 @@ const char *TABDATFile::ReadLogicalField()
  * A date field is a 4 bytes binary value in which the first byte is
  * the day, followed by 1 byte for the month, and 2 bytes for the year.
  *
- * We return a 10 chars string in the format "YYYY/MM/DD"
+ * We return an 8 chars string in the format "YYYYMMDD"
  * 
  * Returns a reference to an internal buffer that will be valid only until
  * the next field is read, or "" if the operation failed, in which case
@@ -904,7 +907,7 @@ const char *TABDATFile::ReadDateField()
     // If current record has been deleted, then return an acceptable 
     // default value.
     if (m_bCurRecordDeletedFlag)
-        return "0000/00/00";
+        return "";
 
     if (m_poRecordBlock == NULL)
     {
@@ -917,10 +920,10 @@ const char *TABDATFile::ReadDateField()
     nMonth = m_poRecordBlock->ReadByte();
     nDay   = m_poRecordBlock->ReadByte();
 
-    if (CPLGetLastErrorNo() != 0)
+    if (CPLGetLastErrorNo() != 0 || (nYear==0 && nMonth==0 && nDay==0))
         return "";
 
-    sprintf(szBuf, "%4.4d/%2.2d/%2.2d", nYear, nMonth, nDay);
+    sprintf(szBuf, "%4.4d%2.2d%2.2d", nYear, nMonth, nDay);
 
     return szBuf;
 }
@@ -1122,10 +1125,25 @@ int TABDATFile::WriteDateField(const char *pszValue)
      * Try to automagically detect date format, one of:
      * "YYYY/MM/DD", "DD/MM/YYYY", or "YYYYMMDD"
      *----------------------------------------------------------------*/
-    papszTok = CSLTokenizeStringComplex(pszValue, "/", FALSE, FALSE);
     
-    if (strlen(pszValue) == 10 && CSLCount(papszTok) == 3 &&
-        (strlen(papszTok[0]) == 4 || strlen(papszTok[2]) == 4) )
+    if (strlen(pszValue) == 8)
+    {
+        /*-------------------------------------------------------------
+         * "YYYYMMDD"
+         *------------------------------------------------------------*/
+        char szBuf[9];
+        strcpy(szBuf, pszValue);
+        nDay = atoi(szBuf+6);
+        szBuf[6] = '\0';
+        nMonth = atoi(szBuf+4);
+        szBuf[4] = '\0';
+        nYear = atoi(szBuf);
+    }
+    else if (strlen(pszValue) == 10 &&
+             (papszTok = CSLTokenizeStringComplex(pszValue, "/", 
+                                                  FALSE, FALSE)) != NULL &&
+             CSLCount(papszTok) == 3 &&
+             (strlen(papszTok[0]) == 4 || strlen(papszTok[2]) == 4) )
     {
         /*-------------------------------------------------------------
          * Either "YYYY/MM/DD" or "DD/MM/YYYY"
@@ -1143,19 +1161,6 @@ int TABDATFile::WriteDateField(const char *pszValue)
             nDay = atoi(papszTok[0]);
         }
     }
-    else if (strlen(pszValue) == 8)
-    {
-        /*-------------------------------------------------------------
-         * "YYYYMMDD"
-         *------------------------------------------------------------*/
-        char szBuf[9];
-        strcpy(szBuf, pszValue);
-        nDay = atoi(szBuf+6);
-        szBuf[6] = '\0';
-        nMonth = atoi(szBuf+4);
-        szBuf[4] = '\0';
-        nYear = atoi(szBuf);
-    }
     else if (strlen(pszValue) == 0)
     {
         nYear = nMonth = nDay = 0;
@@ -1168,6 +1173,7 @@ int TABDATFile::WriteDateField(const char *pszValue)
         CSLDestroy(papszTok);
         return -1;
     }
+    CSLDestroy(papszTok);
 
     m_poRecordBlock->WriteInt16(nYear);
     m_poRecordBlock->WriteByte(nMonth);

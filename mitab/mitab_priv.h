@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.33 2002-04-22 13:49:09 julien Exp $
+ * $Id: mitab_priv.h,v 1.34 2002-04-25 16:05:24 julien Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.33  2002-04-22 13:49:09  julien
+ * Revision 1.34  2002-04-25 16:05:24  julien
+ * Disabled the overflow warning in SetCoordFilter() by adding bIgnoreOverflow
+ * variable in Coordsys2Int of the TABMAPFile class and TABMAPHeaderBlock class
+ *
+ * Revision 1.33  2002/04/22 13:49:09  julien
  * Add EOF validation in MIDDATAFile::GetLastLine() (Bug 819)
  *
  * Revision 1.32  2002/03/26 19:27:43  daniel
@@ -744,7 +748,8 @@ class TABMAPHeaderBlock: public TABRawBinBlock
     virtual int GetBlockClass() { return TABMAP_HEADER_BLOCK; };
 
     int         Int2Coordsys(GInt32 nX, GInt32 nY, double &dX, double &dY);
-    int         Coordsys2Int(double dX, double dY, GInt32 &nX, GInt32 &nY);
+    int         Coordsys2Int(double dX, double dY, GInt32 &nX, GInt32 &nY, 
+                             GBool bIgnoreOverflow=FALSE);
     int         ComprInt2Coordsys(GInt32 nCenterX, GInt32 nCenterY, 
                                   int nDeltaX, int nDeltaY, 
                                   double &dX, double &dY);
@@ -1183,7 +1188,8 @@ class TABMAPFile
     int         Close();
 
     int         Int2Coordsys(GInt32 nX, GInt32 nY, double &dX, double &dY);
-    int         Coordsys2Int(double dX, double dY, GInt32 &nX, GInt32 &nY);
+    int         Coordsys2Int(double dX, double dY, GInt32 &nX, GInt32 &nY, 
+                             GBool bIgnoreOveflow=FALSE);
     int         Int2CoordsysDist(GInt32 nX, GInt32 nY, double &dX, double &dY);
     int         Coordsys2IntDist(double dX, double dY, GInt32 &nX, GInt32 &nY);
     void        SetCoordFilter(TABVertex sMin, TABVertex sMax);

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.22 2002-03-26 01:48:40 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.23 2002-04-25 16:05:24 julien Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.22  2002-03-26 01:48:40  daniel
+ * Revision 1.23  2002-04-25 16:05:24  julien
+ * Disabled the overflow warning in SetCoordFilter() by adding bIgnoreOverflow
+ * variable in Coordsys2Int of the TABMAPFile class and TABMAPHeaderBlock class
+ *
+ * Revision 1.22  2002/03/26 01:48:40  daniel
  * Added Multipoint object type (V650)
  *
  * Revision 1.21  2001/12/05 22:23:06  daniel
@@ -383,7 +387,8 @@ int TABMAPHeaderBlock::Int2Coordsys(GInt32 nX, GInt32 nY,
  * Returns 0 on success, -1 on error.
  **********************************************************************/
 int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY, 
-                                    GInt32 &nX, GInt32 &nY)
+                                    GInt32 &nX, GInt32 &nY,
+                                    GBool bIgnoreOverflow /*=FALSE*/)
 {
     if (m_pabyBuf == NULL)
         return -1;
@@ -434,7 +439,7 @@ int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY,
         nY = 1000000000;
         bIntBoundsOverflow = TRUE;
     }
-    if (bIntBoundsOverflow)
+    if (bIntBoundsOverflow && !bIgnoreOverflow)
     {
         m_bIntBoundsOverflow = TRUE;
 #ifdef DEBUG

@@ -42,6 +42,9 @@ CHANGES - Current Version:
    It was screwing up transverse mercator with non-zero latitude when writing
    to tab, and wasn't being written properly to .mif. NFW
 
+ - mitab_feature.cpp: fixed C++ style true/false where TRUE/FALSE required.
+   As per GDAL bugzilla 311.  NFW
+
 
 Version 1.2.3 - (2002-10-15)
 ----------------------------
@@ -522,5 +525,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.109 2003-03-25 16:25:13 daniel Exp $
+$Id: HISTORY.TXT,v 1.110 2003-03-28 14:01:14 warmerda Exp $
 ------------

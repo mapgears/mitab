@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.10 1999-10-06 13:13:47 daniel Exp $
+ * $Id: mitab.h,v 1.11 1999-10-12 14:30:19 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.10  1999-10-06 13:13:47  daniel
+ * Revision 1.11  1999-10-12 14:30:19  daniel
+ * Added IMapInfoFile class to be used as a base for TABFile and MIFFile
+ *
+ * Revision 1.10  1999/10/06 13:13:47  daniel
  * Added several Get/Set() methods to feature classes.
  *
  * Revision 1.9  1999/09/29 04:27:14  daniel
@@ -74,12 +77,58 @@
 class TABFeature;
 
 /*---------------------------------------------------------------------
+ *                      class IMapInfoFile
+ *
+ * Virtual base class for the TABFile and MIFFile classes.
+ *
+ * This is the definition of the public interface methods that should
+ * be available for any type of MapInfo dataset.
+ *--------------------------------------------------------------------*/
+class IMapInfoFile
+{
+  public:
+    IMapInfoFile() {};
+    virtual ~IMapInfoFile() {};
+
+    virtual int Open(const char *pszFname, const char *pszAccess) = 0;
+    virtual int Close() = 0;
+
+    ///////////////
+    // Read access specific stuff
+    //
+    virtual int GetNextFeatureId(int nPrevId) = 0;
+    virtual TABFeature *GetFeatureRef(int nFeatureId) = 0;
+    virtual OGRFeatureDefn *GetFeatureDefn() = 0;
+
+    virtual TABFieldType GetNativeFieldType(int nFieldId) = 0;
+
+    virtual int GetBounds(double &dXMin, double &dYMin, 
+                          double &dXMax, double &dYMax) = 0;
+    
+    virtual OGRSpatialReference *GetSpatialRef() = 0;
+
+    ///////////////
+    // Write access specific stuff
+    //
+    virtual int SetBounds(double dXMin, double dYMin, 
+                          double dXMax, double dYMax) = 0;
+    virtual int SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
+                            TABFieldType *paeMapInfoNativeFieldTypes = NULL)=0;
+    virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
+                               int nWidth, int nPrecision=0) = 0;
+    virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef) = 0;
+
+    virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1) = 0;
+};
+
+/*---------------------------------------------------------------------
  *                      class TABFile
  *
- * Main class for the whole library... use this class to open
- * a TAB dataset and read/write features from/to it.
+ * The main class for TAB datasets.  External programs should use this
+ * class to open a TAB dataset and read/write features from/to it.
+ *
  *--------------------------------------------------------------------*/
-class TABFile
+class TABFile: public IMapInfoFile
 {
   private:
     char        *m_pszFname;
@@ -100,50 +149,50 @@ class TABFile
 
 
     ///////////////
-    // Read access specific stuff
+    // Private Read access specific stuff
     //
     int         ReadFeatureDefn();
     int         ParseTABFile();
 
     ///////////////
-    // Write access specific stuff
+    // Private Write access specific stuff
     //
     GBool       m_bBoundsSet;
     int         WriteTABFile();
 
   public:
     TABFile();
-    ~TABFile();
+    virtual ~TABFile();
 
-    int         Open(const char *pszFname, const char *pszAccess);
-    int         Close();
+    virtual int Open(const char *pszFname, const char *pszAccess);
+    virtual int Close();
 
     ///////////////
     // Read access specific stuff
     //
-    int         GetNextFeatureId(int nPrevId);
-    TABFeature *GetFeatureRef(int nFeatureId);
-    OGRFeatureDefn *GetFeatureDefn();
+    virtual int GetNextFeatureId(int nPrevId);
+    virtual TABFeature *GetFeatureRef(int nFeatureId);
+    virtual OGRFeatureDefn *GetFeatureDefn();
 
-    TABFieldType GetNativeFieldType(int nFieldId);
+    virtual TABFieldType GetNativeFieldType(int nFieldId);
 
-    int         GetBounds(double &dXMin, double &dYMin, 
+    virtual int GetBounds(double &dXMin, double &dYMin, 
                           double &dXMax, double &dYMax);
     
-    OGRSpatialReference *GetSpatialRef();
+    virtual OGRSpatialReference *GetSpatialRef();
 
     ///////////////
     // Write access specific stuff
     //
-    int         SetBounds(double dXMin, double dYMin, 
+    virtual int SetBounds(double dXMin, double dYMin, 
                           double dXMax, double dYMax);
-    int         SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
+    virtual int SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
                             TABFieldType *paeMapInfoNativeFieldTypes = NULL);
-    int         AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
+    virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                                int nWidth, int nPrecision=0);
-    int         SetSpatialRef(OGRSpatialReference *poSpatialRef);
+    virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef);
 
-    int         SetFeature(TABFeature *poFeature, int nFeatureId = -1);
+    virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1);
 
     ///////////////
     // semi-private.
@@ -156,6 +205,7 @@ class TABFile
     void Dump(FILE *fpOut = NULL);
 #endif
 };
+
 
 /*---------------------------------------------------------------------
  * Codes for the known MapInfo Geometry types
@@ -395,6 +445,14 @@ class TABFeature: public OGRFeature
 
     virtual int WriteRecordToDATFile(TABDATFile *poDATFile);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
+
+#ifdef __TODO__
+    virtual int ReadRecordFromMIDFile(FILE *fp);
+    virtual int ReadGeometryFromMIFFile(FILE *fp);
+
+    virtual int WriteRecordToMIDFile(FILE *fp);
+    virtual int WriteGeometryToMIFFile(FILE *fp);
+#endif
 
     void        SetMBR(double dXMin, double dYMin, 
                        double dXMax, double dYMax);

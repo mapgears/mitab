@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapcoordblock.cpp,v 1.3 1999-09-29 04:25:42 daniel Exp $
+ * $Id: mitab_mapcoordblock.cpp,v 1.4 1999-10-06 13:18:55 daniel Exp $
  *
  * Name:     mitab_mapcoordblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapcoordblock.cpp,v $
- * Revision 1.3  1999-09-29 04:25:42  daniel
+ * Revision 1.4  1999-10-06 13:18:55  daniel
+ * Fixed uninitialized class members
+ *
+ * Revision 1.3  1999/09/29 04:25:42  daniel
  * Fixed typo in GetFeatureMBR()
  *
  * Revision 1.2  1999/09/26 14:59:36  daniel
@@ -61,6 +64,15 @@ TABMAPCoordBlock::TABMAPCoordBlock(TABAccess eAccessMode /*= TABRead*/):
     m_numBlocksInChain = 1;  // Current block counts as 1
  
     m_poBlockManagerRef = NULL;
+
+    m_nTotalDataSize = 0;
+    m_nFeatureDataSize = 0;
+
+    m_nFeatureXMin = m_nMinX = 1000000000;
+    m_nFeatureYMin = m_nMinY = 1000000000;
+    m_nFeatureXMax = m_nMaxX = -1000000000;
+    m_nFeatureYMax = m_nMaxY = -1000000000;
+
 }
 
 /**********************************************************************
@@ -202,6 +214,14 @@ int     TABMAPCoordBlock::InitNewBlock(FILE *fpSrc, int nBlockSize,
  
     m_nCenterX = m_nCenterY = 0;
     m_numDataBytes = 0;
+
+    m_nTotalDataSize = 0;
+    m_nFeatureDataSize = 0;
+
+    m_nFeatureXMin = m_nMinX = 1000000000;
+    m_nFeatureYMin = m_nMinY = 1000000000;
+    m_nFeatureXMax = m_nMaxX = -1000000000;
+    m_nFeatureYMax = m_nMaxY = -1000000000;
 
     if (m_eAccess != TABRead)
     {

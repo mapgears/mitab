@@ -47,6 +47,8 @@ CHANGES - Current Version:
 - mitab_miffile.cpp: modified to return extents collected by PreParse.  Made
   distinction between extents and projection bounds explicit.  NFW
 
+- mitab_spatialref.cpp: added OGC name for datum 12. 
+
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -332,5 +334,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.66 2001-09-19 21:39:41 warmerda Exp $
+$Id: HISTORY.TXT,v 1.67 2001-10-25 16:23:41 warmerda Exp $
 ------------

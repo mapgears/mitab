@@ -55,6 +55,8 @@ CHANGES - Current Version:
 - Added what I hope to be working support for NonEarth translation 
   (into LOCAL_CS in WKT format) (NFW).
 
+- Initialize m_dWidth to 0 in TABText constructor. (NFW)
+
 
 Version 1.0.2 - (2000-10-03)
 ----------------------------
@@ -209,5 +211,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.29 2000-10-16 21:44:50 warmerda Exp $
+$Id: HISTORY.TXT,v 1.30 2000-10-18 03:23:38 warmerda Exp $
 ------------

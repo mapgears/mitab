@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.30 2000-10-03 19:29:51 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.31 2000-10-18 03:23:37 warmerda Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.30  2000-10-03 19:29:51  daniel
+ * Revision 1.31  2000-10-18 03:23:37  warmerda
+ * ensure TABText::m_dWidth is initialized in constructor
+ *
+ * Revision 1.30  2000/10/03 19:29:51  daniel
  * Include OGR StyleString stuff (implemented by Stephane)
  *
  * Revision 1.29  2000/09/19 17:23:52  daniel
@@ -4351,6 +4354,7 @@ TABText::TABText(OGRFeatureDefn *poDefnIn):
 
     m_nTextAlignment = 0;
     m_nFontStyle = 0;
+    m_dWidth = 0;
 }
 
 /**********************************************************************

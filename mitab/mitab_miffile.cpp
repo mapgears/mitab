@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.9 1999-12-19 01:10:36 stephane Exp $
+ * $Id: mitab_miffile.cpp,v 1.10 1999-12-19 17:40:53 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.9  1999-12-19 01:10:36  stephane
+ * Revision 1.10  1999-12-19 17:40:53  daniel
+ * Fixed memory leaks
+ *
+ * Revision 1.9  1999/12/19 01:10:36  stephane
  * Remove the automatic pre parsing for the GetBounds and GetFeatureCount
  *
  * Revision 1.8  1999/12/18 08:25:39  daniel
@@ -565,6 +568,8 @@ int  MIFFile::AddFields(const char *pszLine)
      * the next one.
      *----------------------------------------------------*/
     m_poDefn->AddFieldDefn(poFieldDefn);
+    if (poFieldDefn)
+        delete poFieldDefn;
     CSLDestroy(papszToken);
     
     return 0;
@@ -616,7 +621,7 @@ void MIFFile::ResetReading()
 
 void MIFFile::PreParseFile()
 {
-    char **papszToken;
+    char **papszToken = NULL;
     const char *pszLine;
     
     GBool bPLine = FALSE;
@@ -640,6 +645,7 @@ void MIFFile::PreParseFile()
 	    m_nFeatureCount++;
 	}
 
+        CSLDestroy(papszToken);
 	papszToken = CSLTokenizeString(pszLine);
 
 	if (EQUALN(pszLine,"POINT",5))
@@ -694,6 +700,8 @@ void MIFFile::PreParseFile()
 	}
 	
       }
+
+    CSLDestroy(papszToken);
     
     m_poMIFFile->Rewind();
 
@@ -791,8 +799,6 @@ int MIFFile::WriteMIFHeader()
  **********************************************************************/
 int MIFFile::Close()
 {
-    if (m_poMIDFile == NULL)
-        return 0;
 
     if (m_poMIDFile)
     {
@@ -825,7 +831,12 @@ int MIFFile::Close()
     if (m_poSpatialRef && m_poSpatialRef->Dereference() == 0)
         delete m_poSpatialRef;
     m_poSpatialRef = NULL;
-    
+
+    CPLFree(m_pszCoordSys);
+    m_pszCoordSys = NULL;
+
+    CPLFree(m_pszDelimiter);
+    m_pszDelimiter = NULL;
 
     CPLFree(m_pszFname);
     m_pszFname = NULL;
@@ -920,7 +931,6 @@ GBool MIFFile::NextFeature()
 TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
 {
     const char *pszLine;
-    char **papszToken;
     
     if (m_eAccessMode != TABRead)
     {
@@ -954,6 +964,10 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
      *----------------------------------------------------------------*/
     if ((pszLine = m_poMIFFile->GetLastLine()) != NULL)
     {
+        // Delete previous feature... we'll start we a clean one.
+        delete m_poCurFeature;
+        m_poCurFeature = NULL;
+
 	if (EQUALN(pszLine,"NONE",4))
 	{
 	    m_poCurFeature = new TABFeature(m_poDefn);
@@ -961,16 +975,20 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
 	else if (EQUALN(pszLine,"POINT",5))
 	{
 	    // Special case, we need to know two lines to decide the type
-
+            char **papszToken;
 	    papszToken = CSLTokenizeString(pszLine);
 	    
 	    if (CSLCount(papszToken) !=3)
-	      return NULL;
+            {
+                CSLDestroy(papszToken);
+                return NULL;
+            }
 	    
 	    m_poMIFFile->SaveLine(pszLine);
 
 	    if ((pszLine = m_poMIFFile->GetLine()) != NULL)
 	    {
+                CSLDestroy(papszToken);
 		papszToken = CSLTokenizeStringComplex(pszLine," ,()",
 						      TRUE,FALSE);
 		if (CSLCount(papszToken)> 0 &&EQUALN(papszToken[0],"SYMBOL",6))
@@ -987,11 +1005,13 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
 			m_poCurFeature = new TABCustomPoint(m_poDefn);
 			break;
 		      default:
+                        CSLDestroy(papszToken);
 			return NULL;
 			break;
 		    }
 		}
 	    }
+            CSLDestroy(papszToken);
 	}
 	else if (EQUALN(pszLine,"LINE",4) ||
 		 EQUALN(pszLine,"PLINE",5))

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.8 1999-12-19 01:02:50 stephane Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.9 1999-12-19 17:37:14 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.8  1999-12-19 01:02:50  stephane
+ * Revision 1.9  1999-12-19 17:37:14  daniel
+ * Fixed memory leaks
+ *
+ * Revision 1.8  1999/12/19 01:02:50  stephane
  * Add a test on the CENTER information
  *
  * Revision 1.7  1999/12/18 23:23:23  stephane
@@ -555,6 +558,7 @@ int TABPolyline::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 		poLine->setNumPoints(nNumPoints);
 		for (i=0;i<nNumPoints;i++)
 		{
+                    CSLDestroy(papszToken);
 		    papszToken = CSLTokenizeString(fp->GetLine());
 		    poLine->setPoint(i,fp->GetXTrans(atof(papszToken[0])),
 				     fp->GetYTrans(atof(papszToken[1])));
@@ -575,6 +579,7 @@ int TABPolyline::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	    poLine->setNumPoints(nNumPoints);
 	    for (i=0;i<nNumPoints;i++)
 	    {
+                CSLDestroy(papszToken);
 		papszToken = CSLTokenizeString(fp->GetLine());
     
 		if (CSLCount(papszToken) != 2)
@@ -590,7 +595,8 @@ int TABPolyline::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     }    
     
     CSLDestroy(papszToken);
-
+    papszToken = NULL;
+    
     while (((pszLine = fp->GetLine()) != NULL) && 
 	   fp->IsValidFeature(pszLine) == FALSE)
     {
@@ -735,7 +741,8 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     if (CSLCount(papszToken) ==2)
       numLineSections = atoi(papszToken[1]);
     CSLDestroy(papszToken);
-    
+    papszToken = NULL;
+
     /*-------------------------------------------------------------
      * For 1-ring regions, we return an OGRPolygon with one single
      * OGRLinearRing geometry. 
@@ -779,6 +786,7 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 		    poRing->setPoint(i, dX, dY);
 		}
 		CSLDestroy(papszToken);
+                papszToken = NULL;
 	    }	
 	}
 	poPolygon->addRingDirectly(poRing);
@@ -835,11 +843,11 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	    {
 		if (CSLCount(papszToken) == 3)
 		{
-		    OGRPoint *poPoint  = new OGRPoint;
-		    poPoint->setX(fp->GetXTrans(atof(papszToken[1])));
-		    poPoint->setY(fp->GetYTrans(atof(papszToken[2])));
+		    OGRPoint oPoint;
+		    oPoint.setX(fp->GetXTrans(atof(papszToken[1])));
+		    oPoint.setY(fp->GetYTrans(atof(papszToken[2])));
 		    if (poPolygon)
-		      poPolygon->Centroid(poPoint);
+		      poPolygon->Centroid(&oPoint);
 		    m_bCentroid = TRUE;
 		    m_dfCentroidX = fp->GetXTrans(atof(papszToken[1]));
 		    m_dfCentroidY = fp->GetYTrans(atof(papszToken[2]));
@@ -847,6 +855,7 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	    }
 	}
 	CSLDestroy(papszToken);
+        papszToken = NULL;
     }
     
     
@@ -986,6 +995,7 @@ int TABRectangle::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	}
     }
     CSLDestroy(papszToken);
+    papszToken = NULL;
 
     /*-----------------------------------------------------------------
      * Create and fill geometry object
@@ -1069,6 +1079,7 @@ int TABRectangle::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	   }
        }
        CSLDestroy(papszToken);
+       papszToken = NULL;
    }
  
    return 0; 
@@ -1158,6 +1169,7 @@ int TABEllipse::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     dYMax = fp->GetYTrans(atof(papszToken[4]));
 
     CSLDestroy(papszToken);
+    papszToken = NULL;
 
      /*-----------------------------------------------------------------
      * Save info about the ellipse def. inside class members
@@ -1223,6 +1235,7 @@ int TABEllipse::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	    }
 	}
 	CSLDestroy(papszToken);
+        papszToken = NULL;
     }
     return 0; 
 }
@@ -1285,9 +1298,13 @@ int TABArc::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	dYMin = fp->GetYTrans(atof(papszToken[2]));
 	dYMax = fp->GetYTrans(atof(papszToken[4]));
 
+        CSLDestroy(papszToken);
 	papszToken = CSLTokenizeString(fp->GetLine());
 	if (CSLCount(papszToken) != 2)
-	  return -1;
+        {
+            CSLDestroy(papszToken);
+            return -1;
+        }
 
 	m_dStartAngle = atof(papszToken[0]);
 	m_dEndAngle = atof(papszToken[1]);
@@ -1308,17 +1325,18 @@ int TABArc::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     }
 
     CSLDestroy(papszToken);
+    papszToken = NULL;
 
- /*-------------------------------------------------------------
-         * Start/End angles
-         * Since the angles are specified for integer coordinates, and
-         * that these coordinates can have the X axis reversed, we have to
-         * adjust the angle values for the change in the X axis
-         * direction.
-         *
-         * This should be necessary only when X axis is flipped.
-         * __TODO__ Why is order of start/end values reversed as well???
-         *------------------------------------------------------------*/
+    /*-------------------------------------------------------------
+     * Start/End angles
+     * Since the angles are specified for integer coordinates, and
+     * that these coordinates can have the X axis reversed, we have to
+     * adjust the angle values for the change in the X axis
+     * direction.
+     *
+     * This should be necessary only when X axis is flipped.
+     * __TODO__ Why is order of start/end values reversed as well???
+     *------------------------------------------------------------*/
 
     if (fp->GetXMultiplier() <= 0.0)
     {
@@ -1373,6 +1391,7 @@ int TABArc::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	    }
 	}
 	CSLDestroy(papszToken);
+        papszToken = NULL;
    }
    return 0; 
 }
@@ -1477,6 +1496,7 @@ int TABText::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 
     if (CSLCount(papszToken) == 1)
     {
+        CSLDestroy(papszToken);
 	papszToken = CSLTokenizeString(fp->GetLine());
 	if (CSLCount(papszToken) != 1)
  	{
@@ -1523,7 +1543,8 @@ int TABText::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     }
 
     CSLDestroy(papszToken);
-    
+    papszToken = NULL;
+
     /* Set/retrieve the MBR to make sure Mins are smaller than Maxs
      */
 
@@ -1638,6 +1659,7 @@ int TABText::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	    }
 	}
 	CSLDestroy(papszToken);
+        papszToken = NULL;
     }
     /*-----------------------------------------------------------------
      * Create an OGRPoint Geometry... 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_ogr_driver.h,v 1.4 1999-12-15 16:15:05 warmerda Exp $
+ * $Id: mitab_ogr_driver.h,v 1.5 1999-12-15 16:28:17 warmerda Exp $
  *
  * Name:     mitab_ogr_drive.h
  * Project:  Mid/mif tab ogr support
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_ogr_driver.h,v $
- * Revision 1.4  1999-12-15 16:15:05  warmerda
+ * Revision 1.5  1999-12-15 16:28:17  warmerda
+ * fixed a few type problems
+ *
+ * Revision 1.4  1999/12/15 16:15:05  warmerda
  * Avoid unused parameter warnings.
  *
  * Revision 1.3  1999/12/14 02:23:05  daniel
@@ -61,7 +64,7 @@ class OGRTABDataSource : public OGRDataSource
     
   public:
     OGRTABDataSource( const char * pszName,
-                      TABFile * poLayerIn );
+                      IMapInfoFile * poLayerIn );
     ~OGRTABDataSource();
 
     const char	*GetName() { return m_pszName; }

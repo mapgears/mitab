@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_ogr_driver.cpp,v 1.3 1999-12-14 02:22:29 daniel Exp $
+ * $Id: mitab_ogr_driver.cpp,v 1.4 1999-12-15 16:28:17 warmerda Exp $
  *
  * Name:     mitab_ogr_driver.cpp
  * Project:  MapInfo Mid/Mif, Tab ogr support
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_ogr_driver.cpp,v $
- * Revision 1.3  1999-12-14 02:22:29  daniel
+ * Revision 1.4  1999-12-15 16:28:17  warmerda
+ * fixed a few type problems
+ *
+ * Revision 1.3  1999/12/14 02:22:29  daniel
  * Merged TAB+MIF DataSource/Driver into ane using IMapInfoFile class
  *
  * Revision 1.2  1999/11/12 02:44:36  stephane
@@ -114,9 +117,8 @@ OGRDataSource *OGRTABDriver::Open( const char * pszFilename,
 /*      Create the layer object.                                        */
 /* -------------------------------------------------------------------- */
     IMapInfoFile *poLayer;
-    TABFile	*poLayer;
 
-    if ((poLayer = IMapInfoFile::SmartOpen( pszFilename, TRUE ) ==0)
+    if( (poLayer = IMapInfoFile::SmartOpen( pszFilename, TRUE )) ==0 )
          return new OGRTABDataSource( pszFilename, poLayer );
  
     return NULL;

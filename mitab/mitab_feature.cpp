@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.4 1999-09-26 14:59:36 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.5 1999-09-29 17:37:18 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.4  1999-09-26 14:59:36  daniel
+ * Revision 1.5  1999-09-29 17:37:18  daniel
+ * Fixed warnings
+ *
+ * Revision 1.4  1999/09/26 14:59:36  daniel
  * Implemented write support
  *
  * Revision 1.3  1999/09/16 02:39:16  daniel
@@ -773,8 +776,8 @@ int TABFontPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile)
      * structure to store the information inside the class so that the
      * ITABFeatureSymbol methods work properly for the class user.
      *----------------------------------------------------------------*/
-    poObjBlock->WriteByte(m_sSymbolDef.nSymbolNo);   // shape
-    poObjBlock->WriteByte(m_sSymbolDef.nPointSize);  // point size
+    poObjBlock->WriteByte((GByte)m_sSymbolDef.nSymbolNo);   // shape
+    poObjBlock->WriteByte((GByte)m_sSymbolDef.nPointSize);  // point size
 
     poObjBlock->WriteInt16(m_nFontStyle);            // font style
 

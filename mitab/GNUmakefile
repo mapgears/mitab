@@ -25,7 +25,7 @@ OGRTAB_OBJS = mitab_ogr_driver.o mitab_ogr_datasource.o
 MITABLIB_OBJS= $(TAB_OBJS)
 MITAB_LIB=      mitab.a
 
-LIBS =	$(MITAB_LIB) ../ogr/ogr.a ../cpl/cpl.a $(LIB_DBMALLOC)
+LIBS =	$(MITAB_LIB) ../ogr/ogr.a ../cpl/cpl.a $(LIB_DBMALLOC) -ldl
 
 
 default: $(MITAB_LIB) tab2tab ogrinfo mitabc_test

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.5 1999-09-28 02:53:09 warmerda Exp $
+ * $Id: mitab_priv.h,v 1.6 1999-10-01 03:45:27 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.5  1999-09-28 02:53:09  warmerda
+ * Revision 1.6  1999-10-01 03:45:27  daniel
+ * Small modifs for tuning of write mode
+ *
+ * Revision 1.5  1999/09/28 02:53:09  warmerda
  * Removed nMIDatumID.
  *
  * Revision 1.4  1999/09/26 14:59:37  daniel
@@ -442,7 +445,7 @@ class TABMAPHeaderBlock: public TABRawBinBlock
     GByte       m_nCoordPrecision;      // Num. decimal places on coord.
     GByte       m_nCoordOriginQuadrant;
     GByte       m_nReflectXAxisCoord;
-    GByte       m_nObjLenArraySize;     // See gabyObjLenArray[]
+    GByte       m_nMaxObjLenArrayId;     // See gabyObjLenArray[]
     GByte       m_numPenDefs;
     GByte       m_numBrushDefs;
     GByte       m_numSymbolDefs;
@@ -476,6 +479,8 @@ class TABMAPIndexBlock: public TABRawBinBlock
     GInt32      m_nMinY;
     GInt32      m_nMaxX;
     GInt32      m_nMaxY;
+
+    int         ReadAllEntries();
 
   public:
     TABMAPIndexBlock(TABAccess eAccessMode = TABRead);
@@ -752,7 +757,7 @@ class TABMAPFile
     GInt32      m_XMaxFilter;
     GInt32      m_YMaxFilter;
 
-    int         CommitObjBlock();
+    int         CommitObjBlock(GBool bInitNewBlock =TRUE);
 
     int         InitDrawingTools();
     int         CommitDrawingTools();

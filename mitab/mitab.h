@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.40 2000-10-03 22:11:43 daniel Exp $
+ * $Id: mitab.h,v 1.41 2000-10-19 20:15:41 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.40  2000-10-03 22:11:43  daniel
+ * Revision 1.41  2000-10-19 20:15:41  daniel
+ * Update MITAB_VERSION to 1.0.3
+ *
+ * Revision 1.40  2000/10/03 22:11:43  daniel
  * Added MITAB_VERSION
  *
  * Revision 1.39  2000/10/03 19:29:51  daniel
@@ -163,7 +166,7 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION "1.0.2 (2000-10-03)"
+#define MITAB_VERSION "1.0.3 (2000-10-19)"
 
 #ifndef PI
 #  define PI 3.14159265358979323846

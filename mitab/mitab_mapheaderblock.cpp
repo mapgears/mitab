@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.9 1999-10-19 16:27:10 warmerda Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.10 2000-01-15 05:37:47 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -9,7 +9,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, Daniel Morissette
+ * Copyright (c) 1999, 2000, Daniel Morissette
  *
  * All rights reserved.  This software may be copied or reproduced, in
  * all or in part, without the prior written consent of its author,
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.9  1999-10-19 16:27:10  warmerda
+ * Revision 1.10  2000-01-15 05:37:47  daniel
+ * Use a #define for default quadrant value in new files
+ *
+ * Revision 1.9  1999/10/19 16:27:10  warmerda
  * Default unitsid to 7 (meters) instead of 0 (miles).
  *
  * Revision 1.8  1999/10/19 06:05:35  daniel
@@ -66,6 +69,9 @@
 #define HDR_MAGIC_COOKIE        42424242
 #define HDR_VERSION_NUMBER      400
 #define HDR_BLOCK_SIZE          512
+
+#define HDR_DEF_ORG_QUADRANT    1       // N-E Quadrant
+#define HDR_DEF_REFLECTXAXIS    0
 
 /*---------------------------------------------------------------------
  * The header block starts with an array of map object lenght constants.
@@ -121,8 +127,8 @@ TABMAPHeaderBlock::TABMAPHeaderBlock(TABAccess eAccessMode /*= TABRead*/):
     m_nDistUnitsCode = 7;       // Meters
     m_nMaxSpIndexDepth = 0;
     m_nCoordPrecision = 3;      // ??? 3 Digits of precision
-    m_nCoordOriginQuadrant = 1; // ???
-    m_nReflectXAxisCoord = 0;
+    m_nCoordOriginQuadrant = HDR_DEF_ORG_QUADRANT; // ???
+    m_nReflectXAxisCoord = HDR_DEF_REFLECTXAXIS;
     m_nMaxObjLenArrayId = HDR_OBJ_LEN_ARRAY_SIZE-1;  // See gabyObjLenArray[]
     m_numPenDefs = 0;
     m_numBrushDefs = 0;
@@ -717,8 +723,8 @@ int     TABMAPHeaderBlock::InitNewBlock(FILE *fpSrc, int nBlockSize,
     m_nDistUnitsCode = 7;       // Meters
     m_nMaxSpIndexDepth = 0;
     m_nCoordPrecision = 3;      // ??? 3 digits of precision
-    m_nCoordOriginQuadrant = 1; // ??? N-E quadrant
-    m_nReflectXAxisCoord = 0;
+    m_nCoordOriginQuadrant = HDR_DEF_ORG_QUADRANT; // ??? N-E quadrant
+    m_nReflectXAxisCoord = HDR_DEF_REFLECTXAXIS;
     m_nMaxObjLenArrayId = HDR_OBJ_LEN_ARRAY_SIZE-1;  // See gabyObjLenArray[]
     m_numPenDefs = 0;
     m_numBrushDefs = 0;

@@ -1,4 +1,4 @@
-MITAB Library - Revision History
+\MITAB Library - Revision History
 ================================
 
 This is a human-readable revision history which will attempt to document
@@ -12,6 +12,8 @@ For a complete change history, please see the CVS log comments.
 
 CHANGES - Current Version:
 --------------------------
+
+ - Fixed internal integer coordinates rounding error (bug 894)
 
  - Fixed potential memory leaks in error conditions in mitab_feature.cpp
    and mitab_rawbinblock.cpp (bug 881)
@@ -604,5 +606,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.131 2004-12-01 18:25:03 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.132 2004-12-08 23:27:35 dmorissette Exp $
 ------------

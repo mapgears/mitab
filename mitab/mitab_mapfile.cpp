@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.6 1999-10-06 13:17:46 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.7 1999-10-19 22:57:17 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.6  1999-10-06 13:17:46  daniel
+ * Revision 1.7  1999-10-19 22:57:17  daniel
+ * Create m_poCurObjBlock only when needed to avoid empty blocks in files
+ * and problems with MBR in header block of files with only "NONE" geometries
+ *
+ * Revision 1.6  1999/10/06 13:17:46  daniel
  * Update m_nMaxCoordBufSize in header block
  *
  * Revision 1.5  1999/10/01 03:52:22  daniel
@@ -176,25 +180,22 @@ int TABMAPFile::Open(const char *pszFname, const char *pszAccess)
     m_pszFname = CPLStrdup(pszFname);
 
     /*-----------------------------------------------------------------
-     * Create a TABMAPObjectBlock.  
-     * A coord block will be created only if needed later.
+     * Create a TABMAPObjectBlock, in READ mode only.
+     *
+     * In WRITE mode, the object block will be created only when needed.
+     * We do not create the object block in the open() call because
+     * files that contained only "NONE" geometries ended up with empty
+     * object and spatial index blocks.
      *----------------------------------------------------------------*/
-    m_poCurObjBlock = new TABMAPObjectBlock(m_eAccessMode);
 
     if (m_eAccessMode == TABRead)
     {
+        m_poCurObjBlock = new TABMAPObjectBlock(m_eAccessMode);
         m_poCurObjBlock->InitNewBlock(m_fp, 512);
     }
     else
     {
-        int nBlockOffset = m_oBlockManager.AllocNewBlock();
-
-        m_poCurObjBlock->InitNewBlock(m_fp, 512, nBlockOffset);
-
-        // The reference to the first object block should 
-        // actually go through the index blocks... this will be 
-        // updated when file is closed.
-        m_poHeader->m_nFirstIndexBlock = nBlockOffset;
+        m_poCurObjBlock = NULL;
     }
 
     /*-----------------------------------------------------------------
@@ -271,6 +272,7 @@ int TABMAPFile::Close()
     if (m_eAccessMode == TABWrite)
     {
         // Start by committing current object and coord blocks
+        // Nothing happens if none has been created yet.
         CommitObjBlock(FALSE);
 
         // Write the drawing tools definitions now.
@@ -573,7 +575,7 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
     m_nCurObjPtr = m_nCurObjId = m_nCurObjType = -1;
 
     if (m_eAccessMode != TABWrite || 
-        m_poIdIndex == NULL || m_poCurObjBlock == NULL || m_poHeader == NULL)
+        m_poIdIndex == NULL || m_poHeader == NULL)
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
                  "PrepareNewObj() failed: file not opened for write access.");
@@ -649,6 +651,28 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
     else if (nObjType == TAB_GEOM_TEXT)
     {
         m_poHeader->m_numTextObjects++;
+    }
+
+    /*-----------------------------------------------------------------
+     * OK, looks like we will need object block... check if it exists and
+     * create it if it has not been created yet (first time for this file).
+     * We do not create the object block in the open() call because
+     * files that contained only "NONE" geometries ended up with empty
+     * object and spatial index blocks.
+     * Note: A coord block will be created only if needed later.
+     *----------------------------------------------------------------*/
+    if (m_poCurObjBlock == NULL)
+    {
+        m_poCurObjBlock = new TABMAPObjectBlock(m_eAccessMode);
+
+        int nBlockOffset = m_oBlockManager.AllocNewBlock();
+
+        m_poCurObjBlock->InitNewBlock(m_fp, 512, nBlockOffset);
+
+        // The reference to the first object block should 
+        // actually go through the index blocks... this will be 
+        // updated when file is closed.
+        m_poHeader->m_nFirstIndexBlock = nBlockOffset;
     }
 
     /*-----------------------------------------------------------------
@@ -734,6 +758,13 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
 int TABMAPFile::CommitObjBlock(GBool bInitNewBlock /*=TRUE*/)
 {
     int nStatus = 0;
+
+    /*-----------------------------------------------------------------
+     * First check that a objBlock has been created.  It is possible to have
+     * no object block in files that contain only "NONE" geometries.
+     *----------------------------------------------------------------*/
+    if (m_poCurObjBlock == NULL)
+        return 0; 
 
     if (m_eAccessMode != TABWrite)
     {

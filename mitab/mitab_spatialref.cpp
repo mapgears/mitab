@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.4 1999-09-24 04:01:28 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.5 1999-09-27 21:23:41 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.4  1999-09-24 04:01:28  warmerda
+ * Revision 1.5  1999-09-27 21:23:41  warmerda
+ * added more projections
+ *
+ * Revision 1.4  1999/09/24 04:01:28  warmerda
  * remember nMIDatumId changes
  *
  * Revision 1.3  1999/09/23 19:51:38  warmerda
@@ -244,6 +247,16 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         break;
 
         /*--------------------------------------------------------------
+         * Cylindrical Equal Area
+         *-------------------------------------------------------------*/
+      case 2:
+        m_poSpatialRef->SetCEA( sTABProj.adProjParams[2],
+                                sTABProj.adProjParams[0],
+                                sTABProj.adProjParams[4],
+                                sTABProj.adProjParams[5] );
+        break;
+
+        /*--------------------------------------------------------------
          * Lambert Conic Conformal
          *-------------------------------------------------------------*/
       case 3:
@@ -283,6 +296,20 @@ OGRSpatialReference *TABFile::GetSpatialRef()
                                sTABProj.adProjParams[0],
                                sTABProj.adProjParams[4],
                                sTABProj.adProjParams[5] );
+        break;
+
+        /*--------------------------------------------------------------
+         * Eckert IV
+         *-------------------------------------------------------------*/
+      case 14:
+        m_poSpatialRef->SetEckertIV( sTABProj.adProjParams[0], 0.0, 0.0 );
+        break;
+
+        /*--------------------------------------------------------------
+         * Eckert VI
+         *-------------------------------------------------------------*/
+      case 15:
+        m_poSpatialRef->SetEckertVI( sTABProj.adProjParams[0], 0.0, 0.0 );
         break;
 
         /*--------------------------------------------------------------
@@ -335,6 +362,13 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         break;
 
         /*--------------------------------------------------------------
+         * Mollweide
+         *-------------------------------------------------------------*/
+      case 13:
+        m_poSpatialRef->SetMollweide( sTABProj.adProjParams[0],
+                                      0.0, 0.0 );
+
+        /*--------------------------------------------------------------
          * Sinusoidal
          *-------------------------------------------------------------*/
       case 16:
@@ -357,6 +391,13 @@ OGRSpatialReference *TABFile::GetSpatialRef()
                                sTABProj.adProjParams[4] );
         break;
 
+        /*--------------------------------------------------------------
+         * Gall
+         *-------------------------------------------------------------*/
+      case 17:
+        m_poSpatialRef->SetGS( sTABProj.adProjParams[0], 0.0, 0.0 );
+        break;
+        
         /*--------------------------------------------------------------
          * New Zealand Map Grid
          *-------------------------------------------------------------*/
@@ -388,31 +429,6 @@ OGRSpatialReference *TABFile::GetSpatialRef()
                                           sTABProj.adProjParams[1],
                                           sTABProj.adProjParams[2] );
         break;
-
-        /*--------------------------------------------------------------
-         * Cylindrical Equal Area
-         *-------------------------------------------------------------*/
-      case 2:
-
-        /*--------------------------------------------------------------
-         * Mollweide
-         *-------------------------------------------------------------*/
-      case 13:
-
-        /*--------------------------------------------------------------
-         * Eckert IV
-         *-------------------------------------------------------------*/
-      case 14:
-
-        /*--------------------------------------------------------------
-         * Eckert VI
-         *-------------------------------------------------------------*/
-      case 15:
-
-        /*--------------------------------------------------------------
-         * Gall
-         *-------------------------------------------------------------*/
-      case 17:
 
       default:
         break;

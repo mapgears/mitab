@@ -41,6 +41,9 @@ CHANGES - Current Version:
   serious problems with access through IMapInfo::GetNextFeature() - this
   affects applications using the pure OGRLayer API to access mif files. NFW
 
+- mitab_middatafile.cpp: Use VSIRewind() instead of rewind() to ensure that
+  IO remains virtualized.  NFW
+
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -326,5 +329,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.64 2001-09-19 14:34:06 warmerda Exp $
+$Id: HISTORY.TXT,v 1.65 2001-09-19 14:50:22 warmerda Exp $
 ------------

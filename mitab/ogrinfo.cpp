@@ -1,12 +1,12 @@
 /******************************************************************************
- * $Id: ogrinfo.cpp,v 1.4 2002-03-26 19:27:43 daniel Exp $
+ * $Id: ogrinfo.cpp,v 1.5 2002-05-03 15:08:15 daniel Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Simple client for viewing OGR driver data.
  * Author:   Frank Warmerdam, warmerda@home.com
  *
  ******************************************************************************
- * Copyright (c) 1999, Frank Warmerdam
+ * Copyright (c) 1999-2002, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,10 @@
  ******************************************************************************
  *
  * $Log: ogrinfo.cpp,v $
- * Revision 1.4  2002-03-26 19:27:43  daniel
+ * Revision 1.5  2002-05-03 15:08:15  daniel
+ * Added #ifdef DEBUG around some Dump() calls
+ *
+ * Revision 1.4  2002/03/26 19:27:43  daniel
  * Got rid of tabs in source
  *
  * Revision 1.3  2001/09/14 03:21:35  warmerda
@@ -75,7 +78,7 @@
 #include "mitab_priv.h"
 #include "mitab_ogr_driver.h"
 
-CPL_CVSID("$Id: ogrinfo.cpp,v 1.4 2002-03-26 19:27:43 daniel Exp $");
+CPL_CVSID("$Id: ogrinfo.cpp,v 1.5 2002-05-03 15:08:15 daniel Exp $");
 
 int     bReadOnly = FALSE;
 int     bVerbose = TRUE;
@@ -273,7 +276,11 @@ static void DumpBlocks( TABMAPFile *poMF, int nFileOffset )
         TABMAPIndexBlock *poIndexBlock = (TABMAPIndexBlock *) poBlock;
         int i;
 
+#ifdef DEBUG
         poIndexBlock->Dump( stdout );
+#else
+        printf("poIndexBlock->Dump() available inly with -DDEBUG\n");
+#endif
 
         for( i = 0; i < poIndexBlock->GetNumEntries(); i++ )
         {
@@ -286,7 +293,11 @@ static void DumpBlocks( TABMAPFile *poMF, int nFileOffset )
     {
         TABMAPObjectBlock *poObjectBlock = (TABMAPObjectBlock *) poBlock;
 
+#ifdef DEBUG
         poObjectBlock->Dump( stdout );
+#else
+        printf("poObjectBlock->Dump() available inly with -DDEBUG\n");
+#endif
     }
 }
 

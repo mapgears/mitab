@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.10 2002-05-16 14:13:44 julien Exp $
+ * $Id: mitabc_test.c,v 1.11 2003-01-18 20:43:31 daniel Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -8,7 +8,7 @@
  * Author:   Frank Warmerdam, warmerda@home.com
  *
  **********************************************************************
- * Copyright (c) 2000, Frank Warmerdam
+ * Copyright (c) 2000-2003, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.10  2002-05-16 14:13:44  julien
+ * Revision 1.11  2003-01-18 20:43:31  daniel
+ * Added support for writing NONE geometries via the C API
+ *
+ * Revision 1.10  2002/05/16 14:13:44  julien
  * Add test for MultiPoint and Region with MultiPolygon
  *
  * Revision 1.9  2001/12/17 16:08:22  warmerda
@@ -206,6 +209,17 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     field_index = mitab_c_add_field( dataset, "TestString", TABFT_Char,
                                      10, 0 );
     assert( field_index == 2 );
+
+/* -------------------------------------------------------------------- */
+/*      Write a NONE feature (attributes only with no geometry)         */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_NoGeom );
+
+    mitab_c_set_field( feature, 0, "42" );
+    mitab_c_set_field( feature, 1, "123.45" );
+    mitab_c_set_field( feature, 2, "" );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
 
 /* -------------------------------------------------------------------- */
 /*      Write a point.                                                  */

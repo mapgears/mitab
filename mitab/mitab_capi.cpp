@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.27 2002-06-18 14:31:07 julien Exp $
+ * $Id: mitab_capi.cpp,v 1.28 2003-01-18 20:43:31 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -10,7 +10,7 @@
  * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  **********************************************************************
- * Copyright (c) 2000-2002, Frank Warmerdam
+ * Copyright (c) 2000-2003, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.27  2002-06-18 14:31:07  julien
+ * Revision 1.28  2003-01-18 20:43:31  daniel
+ * Added support for writing NONE geometries via the C API
+ *
+ * Revision 1.27  2002/06/18 14:31:07  julien
  * Change a function name to be consistent with other function in mitab_capi
  * (mitab_c_region_isinteriorring become mitab_c_is_interior_ring)
  *
@@ -522,10 +525,10 @@ mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
  * @param handle the handle of the dataset opened for write access.
  * @param feature_type the type of feature object to create.  At this point,
  *        only the following types can be created by this C API function:
- *        TABFC_Point (1), TABFC_FontPoint (2), TABFC_CustomPoint (3),
- *        TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6), 
- *        TABFC_Region (7), TABFC_Rectangle (8), TABFC_Ellipse (9) and
- *        TABFC_MultiPoint (10)
+ *        TABFC_NoGeom (0), TABFC_Point (1), TABFC_FontPoint (2), 
+ *        TABFC_CustomPoint (3), TABFC_Text (4), TABFC_Polyline (5), 
+ *        TABFC_Arc (6), TABFC_Region (7), TABFC_Rectangle (8), 
+ *        TABFC_Ellipse (9) and TABFC_MultiPoint (10)
  * @return the new mitab_feature object, or NULL if creation failed.  Note that
  *         the new object will have to be released using 
  *         mitab_c_destroy_feature().
@@ -544,7 +547,9 @@ mitab_c_create_feature( mitab_handle handle,
         poFile->AddFieldNative( "NDX", TABFInteger, 10, 0 );
     }
 
-    if( feature_type == TABFC_Point )
+    if( feature_type == TABFC_NoGeom )
+        poFeature = new TABFeature(poFile->GetLayerDefn());
+    else if( feature_type == TABFC_Point )
         poFeature = new TABPoint(poFile->GetLayerDefn());
     else if( feature_type == TABFC_FontPoint )
         poFeature = new TABFontPoint(poFile->GetLayerDefn());

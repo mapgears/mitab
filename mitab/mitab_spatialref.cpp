@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.6 1999-09-28 02:51:46 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.7 1999-09-28 04:52:17 daniel Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.6  1999-09-28 02:51:46  warmerda
+ * Revision 1.7  1999-09-28 04:52:17  daniel
+ * Added missing param in sprintf() format for szDatumName[]
+ *
+ * Revision 1.6  1999/09/28 02:51:46  warmerda
  * Added ellipsoid codes, and bulk of write implementation.
  *
  * Revision 1.5  1999/09/27 21:23:41  warmerda
@@ -565,7 +568,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     if( psDatumInfo == NULL )
     {
         sprintf( szDatumName,
-                 "DefDatum %d %.4g %.4g %.4g %.15g %.15g %.15g %.15g",
+                 "DefDatum %d %.4g %.4g %.4g %.15g %.15g %.15g %.15g %.15g",
                  sTABProj.nEllipsoidId,
                  sTABProj.dDatumShiftX, 
                  sTABProj.dDatumShiftY, 

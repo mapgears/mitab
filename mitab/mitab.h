@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.66 2002-06-28 18:32:37 julien Exp $
+ * $Id: mitab.h,v 1.67 2002-06-28 18:39:10 julien Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.66  2002-06-28 18:32:37  julien
+ * Revision 1.67  2002-06-28 18:39:10  julien
+ * Change version number (1.2.2-dev)
+ *
+ * Revision 1.66  2002/06/28 18:32:37  julien
  * Add SetSpatialFilter() in TABSeamless class (Bug 164, MapServer)
  * Use double for comparison in Coordsys2Int() in mitab_mapheaderblock.cpp
  *
@@ -156,7 +159,7 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION "1.2.1 (2002-05-08)"
+#define MITAB_VERSION "1.2.2-dev (2002-06-28)"
 
 #ifndef PI
 #  define PI 3.14159265358979323846

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_datfile.cpp,v 1.4 1999-10-01 02:02:36 warmerda Exp $
+ * $Id: mitab_datfile.cpp,v 1.5 1999-10-01 03:56:28 daniel Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,11 @@
  **********************************************************************
  *
  * $Log: mitab_datfile.cpp,v $
- * Revision 1.4  1999-10-01 02:02:36  warmerda
+ * Revision 1.5  1999-10-01 03:56:28  daniel
+ * Avoid multiple InitWriteHeader() calls (caused a leak) and added a fix
+ * in WriteCharField() to prevent reading bytes past end of string buffer
+ *
+ * Revision 1.4  1999/10/01 02:02:36  warmerda
  * Added assertions to try and track TABRawBinBlock leak.
  *
  * Revision 1.3  1999/09/26 14:59:36  daniel
@@ -317,6 +321,11 @@ int  TABDATFile::InitWriteHeader()
     m_poRecordBlock = new TABRawBinBlock(m_eAccessMode, FALSE);
     m_poRecordBlock->InitNewBlock(m_fp, m_nBlockSize);
     m_poRecordBlock->SetFirstBlockPtr(m_nFirstRecordPtr);
+
+    /*-------------------------------------------------------------
+     * Make sure this init. will be performed only once
+     *------------------------------------------------------------*/
+    m_bWriteHeaderInitialized = TRUE;
 
     return 0;
 }
@@ -952,8 +961,21 @@ int TABDATFile::WriteCharField(const char *pszStr, int nWidth)
                  "Illegal width for a char field: %d", nWidth);
         return -1;
     }
+    
+    //
+    // Write the buffer after making sure that we don't try to read
+    // past the end of the source buffer.  The rest of the field will
+    // be padded with zeros if source string is shorter than specified
+    // field width.
+    //
+    int nLen = strlen(pszStr);
+    nLen = MIN(nLen, nWidth);
 
-    return m_poRecordBlock->WriteBytes(nWidth, (GByte*)pszStr);
+    if ((nLen>0 && m_poRecordBlock->WriteBytes(nLen, (GByte*)pszStr) != 0) ||
+        (nWidth-nLen > 0 && m_poRecordBlock->WriteZeros(nWidth-nLen)!=0) )
+        return -1;
+
+    return 0;
 }
 
 /**********************************************************************

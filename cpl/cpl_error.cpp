@@ -4,7 +4,7 @@
  * Name:     cpl_error.cpp
  * Project:  CPL - Common Portability Library
  * Purpose:  Error handling functions.
- * Author:   Daniel Morissette, danmo@videotron.ca
+ * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
  *
  **********************************************************************
  * Copyright (c) 1998, Daniel Morissette

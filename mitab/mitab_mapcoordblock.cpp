@@ -1,12 +1,12 @@
 /**********************************************************************
- * $Id: mitab_mapcoordblock.cpp,v 1.12 2002-08-27 17:18:23 warmerda Exp $
+ * $Id: mitab_mapcoordblock.cpp,v 1.13 2004-06-30 20:29:04 dmorissette Exp $
  *
  * Name:     mitab_mapcoordblock.cpp
  * Project:  MapInfo TAB Read/Write library
  * Language: C++
  * Purpose:  Implementation of the TABMAPCoordBlock class used to handle
  *           reading/writing of the .MAP files' coordinate blocks
- * Author:   Daniel Morissette, danmo@videotron.ca
+ * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
  *
  **********************************************************************
  * Copyright (c) 1999-2001, Daniel Morissette
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapcoordblock.cpp,v $
- * Revision 1.12  2002-08-27 17:18:23  warmerda
+ * Revision 1.13  2004-06-30 20:29:04  dmorissette
+ * Fixed refs to old address danmo@videotron.ca
+ *
+ * Revision 1.12  2002/08/27 17:18:23  warmerda
  * improved CPL error testing
  *
  * Revision 1.11  2001/11/17 21:54:06  daniel

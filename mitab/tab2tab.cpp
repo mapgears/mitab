@@ -1,11 +1,11 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.11 2004-06-04 19:08:35 dmorissette Exp $
+ * $Id: tab2tab.cpp,v 1.12 2004-06-30 20:29:04 dmorissette Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
  * Language: C++
  * Purpose:  Copy features from a .TAB dataset to a new one.
- * Author:   Daniel Morissette, danmo@videotron.ca
+ * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
  *
  **********************************************************************
  * Copyright (c) 1999-2001, Daniel Morissette
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.11  2004-06-04 19:08:35  dmorissette
+ * Revision 1.12  2004-06-30 20:29:04  dmorissette
+ * Fixed refs to old address danmo@videotron.ca
+ *
+ * Revision 1.11  2004/06/04 19:08:35  dmorissette
  * Updated ref to lib's homepage in usage instructions
  *
  * Revision 1.10  2002/04/22 13:49:09  julien

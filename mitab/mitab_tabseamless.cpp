@@ -1,12 +1,12 @@
 /**********************************************************************
- * $Id: mitab_tabseamless.cpp,v 1.5 2004-03-12 16:29:05 dmorissette Exp $
+ * $Id: mitab_tabseamless.cpp,v 1.6 2004-06-30 20:29:04 dmorissette Exp $
  *
  * Name:     mitab_tabseamless.cpp
  * Project:  MapInfo TAB Read/Write library
  * Language: C++
  * Purpose:  Implementation of the TABSeamless class, used to handle seamless
  *           .TAB datasets.
- * Author:   Daniel Morissette, danmo@videotron.ca
+ * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
  *
  **********************************************************************
  * Copyright (c) 1999-2004, Daniel Morissette
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabseamless.cpp,v $
- * Revision 1.5  2004-03-12 16:29:05  dmorissette
+ * Revision 1.6  2004-06-30 20:29:04  dmorissette
+ * Fixed refs to old address danmo@videotron.ca
+ *
+ * Revision 1.5  2004/03/12 16:29:05  dmorissette
  * Fixed 2 memory leaks (bug 283)
  *
  * Revision 1.4  2002/06/28 18:32:37  julien

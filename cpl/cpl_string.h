@@ -4,7 +4,7 @@
  * Name:     cpl_string.h
  * Project:  CPL - Common Portability Library
  * Purpose:  String and StringList functions.
- * Author:   Daniel Morissette, danmo@videotron.ca
+ * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
  *
  **********************************************************************
  * Copyright (c) 1998, Daniel Morissette

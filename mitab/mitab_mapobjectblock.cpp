@@ -1,12 +1,12 @@
 /**********************************************************************
- * $Id: mitab_mapobjectblock.cpp,v 1.12 2002-03-26 01:48:40 daniel Exp $
+ * $Id: mitab_mapobjectblock.cpp,v 1.13 2004-06-30 20:29:04 dmorissette Exp $
  *
  * Name:     mitab_mapobjectblock.cpp
  * Project:  MapInfo TAB Read/Write library
  * Language: C++
  * Purpose:  Implementation of the TABMAPObjectBlock class used to handle
  *           reading/writing of the .MAP files' object data blocks
- * Author:   Daniel Morissette, danmo@videotron.ca
+ * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
  *
  **********************************************************************
  * Copyright (c) 1999-2001, Daniel Morissette
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapobjectblock.cpp,v $
- * Revision 1.12  2002-03-26 01:48:40  daniel
+ * Revision 1.13  2004-06-30 20:29:04  dmorissette
+ * Fixed refs to old address danmo@videotron.ca
+ *
+ * Revision 1.12  2002/03/26 01:48:40  daniel
  * Added Multipoint object type (V650)
  *
  * Revision 1.11  2001/12/05 22:40:27  daniel

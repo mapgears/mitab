@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.54 2004-05-20 13:49:46 fwarmerdam Exp $
+ * $Id: mitab_tabfile.cpp,v 1.55 2004-06-30 20:29:04 dmorissette Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -7,7 +7,7 @@
  * Purpose:  Implementation of the TABFile class, the main class of the lib.
  *           To be used by external programs to handle reading/writing of
  *           features from/to TAB datasets.
- * Author:   Daniel Morissette, danmo@videotron.ca
+ * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
  *
  **********************************************************************
  * Copyright (c) 1999-2003, Daniel Morissette
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.54  2004-05-20 13:49:46  fwarmerdam
+ * Revision 1.55  2004-06-30 20:29:04  dmorissette
+ * Fixed refs to old address danmo@videotron.ca
+ *
+ * Revision 1.54  2004/05/20 13:49:46  fwarmerdam
  * Removed special bailout for m_poMAPFile == NULL in TABFile::Close().
  * It is important to cleanup other used memory.
  *

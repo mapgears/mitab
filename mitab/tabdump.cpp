@@ -1,11 +1,11 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.12 2001-11-16 20:55:00 daniel Exp $
+ * $Id: tabdump.cpp,v 1.13 2004-06-30 20:29:04 dmorissette Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
  * Language: C++
  * Purpose:  Test various part of the lib., and generate binary dumps.
- * Author:   Daniel Morissette, danmo@videotron.ca
+ * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
  *
  **********************************************************************
  * Copyright (c) 1999-2001, Daniel Morissette
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.12  2001-11-16 20:55:00  daniel
+ * Revision 1.13  2004-06-30 20:29:04  dmorissette
+ * Fixed refs to old address danmo@videotron.ca
+ *
+ * Revision 1.12  2001/11/16 20:55:00  daniel
  * Added -d option: DumpMapFileBlockDetails()
  *
  * Revision 1.11  2001/09/19 14:33:19  warmerda

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.24 2004-06-03 23:10:11 dmorissette Exp $
+ * $Id: mitab_capi.h,v 1.25 2004-06-30 20:05:34 dmorissette Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -10,7 +10,7 @@
  * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  **********************************************************************
- * Copyright (c) 2000-2003, Frank Warmerdam
+ * Copyright (c) 2000-2004, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.24  2004-06-03 23:10:11  dmorissette
+ * Revision 1.25  2004-06-30 20:05:34  dmorissette
+ * Added mitab_c_load_coordsys_table() to C API (bug 469)
+ *
+ * Revision 1.24  2004/06/03 23:10:11  dmorissette
  * Added missing MITAB_DLL for mitab_c_get_extended_mif_coordsys()
  *
  * Revision 1.23  2003/08/12 20:20:49  dmorissette
@@ -317,6 +320,8 @@ const char MITAB_DLL * MITAB_STDCALL mitab_c_get_mif_coordsys( mitab_handle data
 const char MITAB_DLL * MITAB_STDCALL mitab_c_get_extended_mif_coordsys( mitab_handle dataset);
 
 int MITAB_DLL MITAB_STDCALL mitab_c_get_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l);
+
+int MITAB_DLL MITAB_STDCALL mitab_c_load_coordsys_table( const char *filename );
 
 int MITAB_DLL MITAB_STDCALL 
 mitab_c_is_interior_ring( mitab_feature feature, int requestedringindex );

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.32 2003-08-12 20:58:27 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.33 2004-06-30 20:05:34 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -10,7 +10,7 @@
  * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  **********************************************************************
- * Copyright (c) 2000-2003, Frank Warmerdam
+ * Copyright (c) 2000-2004, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.32  2003-08-12 20:58:27  dmorissette
+ * Revision 1.33  2004-06-30 20:05:34  dmorissette
+ * Added mitab_c_load_coordsys_table() to C API (bug 469)
+ *
+ * Revision 1.32  2003/08/12 20:58:27  dmorissette
  * Check for nAffineFlag==1 in mitab_c_get_extended_mif_coordsys() - Anthony D.
  *
  * Revision 1.31  2003/08/12 20:20:33  dmorissette
@@ -2438,6 +2441,37 @@ mitab_c_get_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l)
 
     return 0;
 }
+
+
+/**
+ * Load a Coordsys bounds lookup table from an external file.
+ *
+ * The entries from that table will be looked up in priority BEFORE the
+ * default bounds predefined for each coordsys inside the MITAB library.
+ * This allows users to override the default bounds for existing 
+ * projections, and to define bounds for new projections not already
+ * supported by MITAB.
+ *
+ * The format of the file is a simple text file with one CoordSys string
+ * per line.  The CoordSys lines should follow the MIF specs, and MUST 
+ * include the optional Bounds definition at the end of the line.
+ *
+ * e.g. 
+ *  CoordSys Earth Projection 8, 24, "m", -63, 0, 0.9996, 500000, 0 Bounds \
+ *  (-7746230.6469039, -9998287.383889269) (8746230.6469039, 9998287.383889269)
+ *
+ * @param filename the filename of the table to load. Path is relative to the 
+ *    current working directory or can be absolute.
+ *
+ * @return 0 on success, -1 on error.
+ */
+
+int MITAB_STDCALL
+mitab_c_load_coordsys_table( const char *filename )
+{
+    return MITABLoadCoordSysTable(filename);
+}
+
 
 /* ==================================================================== */
 /*                           Helper functions                           */

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.21 2000-11-23 20:47:46 daniel Exp $
+ * $Id: mitab_priv.h,v 1.22 2000-11-23 21:11:07 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.21  2000-11-23 20:47:46  daniel
+ * Revision 1.22  2000-11-23 21:11:07  daniel
+ * OOpps... VC++ didn't like the way TABPenDef, etc. were initialized
+ *
+ * Revision 1.21  2000/11/23 20:47:46  daniel
  * Use MI defaults for Pen, Brush, Font, Symbol instead of all zeros
  *
  * Revision 1.20  2000/11/15 04:13:50  daniel
@@ -270,7 +273,7 @@ typedef struct TABPenDef_t
 } TABPenDef;
 
 /* MI Default = PEN(1,2,0) */
-#define MITAB_PEN_DEFAULT (TABPenDef){0, 1, 2, 0, 0x000000}
+#define MITAB_PEN_DEFAULT {0, 1, 2, 0, 0x000000}
 
 /*---------------------------------------------------------------------
  * TABBrushDef - Brush definition information
@@ -285,7 +288,7 @@ typedef struct TABBrushDef_t
 } TABBrushDef;
 
 /* MI Default = BRUSH(2,16777215,16777215) */
-#define MITAB_BRUSH_DEFAULT (TABBrushDef){0, 2, 0, 0xffffff, 0xffffff}
+#define MITAB_BRUSH_DEFAULT {0, 2, 0, 0xffffff, 0xffffff}
 
 /*---------------------------------------------------------------------
  * TABFontDef - Font Name information
@@ -297,7 +300,7 @@ typedef struct TABFontDef_t
 } TABFontDef;
 
 /* MI Default = FONT("Arial",0,0,0) */
-#define MITAB_FONT_DEFAULT (TABFontDef){0, "Arial"}
+#define MITAB_FONT_DEFAULT {0, "Arial"}
 
 /*---------------------------------------------------------------------
  * TABSymbolDef - Symbol definition information
@@ -312,7 +315,7 @@ typedef struct TABSymbolDef_t
 } TABSymbolDef;
 
 /* MI Default = SYMBOL(35,0,12) */
-#define MITAB_SYMBOL_DEFAULT (TABSymbolDef){0, 35, 12, 0, 0x000000}
+#define MITAB_SYMBOL_DEFAULT {0, 35, 12, 0, 0x000000}
 
 /*---------------------------------------------------------------------
  *                      class TABToolDefTable

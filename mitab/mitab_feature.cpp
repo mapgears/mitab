@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.32 2000-11-23 20:47:45 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.33 2000-11-23 21:11:07 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.32  2000-11-23 20:47:45  daniel
+ * Revision 1.33  2000-11-23 21:11:07  daniel
+ * OOpps... VC++ didn't like the way TABPenDef, etc. were initialized
+ *
+ * Revision 1.32  2000/11/23 20:47:45  daniel
  * Use MI defaults for Pen, Brush, Font, Symbol instead of all zeros
  *
  * Revision 1.31  2000/10/18 03:23:37  warmerda
@@ -54,80 +57,7 @@
  * Revision 1.25  2000/02/28 16:44:10  daniel
  * Added support for indexed, unique, and for new V450 object types
  *
- * Revision 1.24  2000/02/05 19:33:04  daniel
- * Write regions with proper polygon/hole information in the coord. block
- * since MapInfo 5.0 appears to use that information for rendering of regions.
- *
- * Revision 1.23  2000/01/26 21:18:39  daniel
- * Fixed writing of arc angles... they were written in reversed order.
- *
- * Revision 1.22  2000/01/16 19:08:48  daniel
- * Added support for reading 'Table Type DBF' tables
- *
- * Revision 1.21  2000/01/15 22:30:43  daniel
- * Switch to MIT/X-Consortium OpenSource license
- *
- * Revision 1.20  2000/01/15 05:36:33  daniel
- * One more try to establish the way the quadrant setting affects the way to
- * read arc angles... hopefully it's right this time!
- *
- * Revision 1.19  2000/01/14 23:51:06  daniel
- * Fixed handling of "\n" in TABText strings... now the external interface
- * of the lib returns and expects escaped "\"+"n" as described in MIF specs
- *
- * Revision 1.18  1999/12/19 17:36:30  daniel
- * Fixed a problem with TABRegion::GetRingRef()
- *
- * Revision 1.17  1999/12/18 07:11:36  daniel
- * Return regions as OGRMultiPolygons instead of multiple rings OGRPolygons
- *
- * Revision 1.16  1999/12/16 17:15:50  daniel
- * Use addRing/GeometryDirectly() (prevents leak), and rounded rectangles
- * always return real corner radius from file even if it is bigger than MBR
- *
- * Revision 1.15  1999/12/14 02:04:54  daniel
- * Added CloneTABFeature() method
- *
- * Revision 1.14  1999/11/14 04:47:54  daniel
- * Fixed precision in writing angles.  Also changed the way ARCs start/end
- * angles are handled on read and write.
- *
- * Revision 1.13  1999/11/08 04:41:46  stephane
- * Modification in arc GeometryType
- *
- * Revision 1.12  1999/11/05 05:54:14  daniel
- * Fixed TABArc to expect wkbLineString instead of wkbPolygon geometry
- *
- * Revision 1.11  1999/10/19 06:13:38  daniel
- * Removed obsolete code and comments related to angles vs flipped axis
- *
- * Revision 1.10  1999/10/18 15:43:03  daniel
- * Several fixes/improvements mostly for writing of Arc/Ellipses/Text/Symbols
- *
- * Revision 1.9  1999/10/06 15:17:59  daniel
- * Fixed order of args in calls to GetFeatureMBR()
- *
- * Revision 1.8  1999/10/06 13:15:54  daniel
- * Added several Get/Set() methods to feature classes
- *
- * Revision 1.7  1999/10/01 03:54:46  daniel
- * Moved fix for writing string fields down in TABDATFile::WriteCharField()
- *
- * Revision 1.6  1999/10/01 02:09:25  warmerda
- * Ensure that WriteRecordToDATFile() doesn't try to write more bytes than
- * are returned by GetFieldAsString().
- *
- * Revision 1.5  1999/09/29 17:37:18  daniel
- * Fixed warnings
- *
- * Revision 1.4  1999/09/26 14:59:36  daniel
- * Implemented write support
- *
- * Revision 1.3  1999/09/16 02:39:16  daniel
- * Completed read support for most feature types
- *
- * Revision 1.2  1999/09/01 17:49:24  daniel
- * Changes to work with latest OGR
+ * ...
  *
  * Revision 1.1  1999/07/12 04:18:24  daniel
  * Initial checkin
@@ -5328,10 +5258,12 @@ void TABDebugFeature::DumpMIF(FILE *fpOut /*=NULL*/)
 
 ITABFeaturePen::ITABFeaturePen()
 {
+    static const TABPenDef csDefaultPen = MITAB_PEN_DEFAULT;
+
     m_nPenDefIndex=-1;
 
     /* MI default is PEN(1,2,0) */
-    m_sPenDef = MITAB_PEN_DEFAULT;
+    m_sPenDef = csDefaultPen;
 }
 
 
@@ -5575,10 +5507,12 @@ void ITABFeaturePen::DumpPenDef(FILE *fpOut /*=NULL*/)
 
 ITABFeatureBrush::ITABFeatureBrush()
 {
+    static const TABBrushDef csDefaultBrush = MITAB_BRUSH_DEFAULT;
+
     m_nBrushDefIndex=-1;
 
     /* MI default is BRUSH(2,16777215,16777215) */
-    m_sBrushDef = MITAB_BRUSH_DEFAULT;
+    m_sBrushDef = csDefaultBrush;
 }
 
 
@@ -5653,10 +5587,12 @@ void ITABFeatureBrush::DumpBrushDef(FILE *fpOut /*=NULL*/)
 
 ITABFeatureFont::ITABFeatureFont()
 {
+    static const TABFontDef csDefaultFont = MITAB_FONT_DEFAULT;
+
     m_nFontDefIndex=-1;
 
     /* MI default is Font("Arial",0,0,0) */
-    m_sFontDef = MITAB_FONT_DEFAULT;
+    m_sFontDef = csDefaultFont;
 }
 
 /**********************************************************************
@@ -5687,10 +5623,12 @@ void ITABFeatureFont::DumpFontDef(FILE *fpOut /*=NULL*/)
 
 ITABFeatureSymbol::ITABFeatureSymbol()
 {
+    static const TABSymbolDef csDefaultSymbol = MITAB_SYMBOL_DEFAULT;
+
     m_nSymbolDefIndex=-1;
 
     /* MI default is Symbol(35,0,12) */
-    m_sSymbolDef = MITAB_SYMBOL_DEFAULT;
+    m_sSymbolDef = csDefaultSymbol;
 }
 
 /**********************************************************************

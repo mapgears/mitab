@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.27 2000-01-16 19:08:48 daniel Exp $
+ * $Id: mitab.h,v 1.28 2000-01-18 23:12:18 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.27  2000-01-16 19:08:48  daniel
+ * Revision 1.28  2000-01-18 23:12:18  daniel
+ * Made AddFieldNative()'s width parameter optional
+ *
+ * Revision 1.27  2000/01/16 19:08:48  daniel
  * Added support for reading 'Table Type DBF' tables
  *
  * Revision 1.26  2000/01/15 22:30:43  daniel
@@ -217,7 +220,7 @@ class IMapInfoFile : public OGRLayer
     virtual int SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
                             TABFieldType *paeMapInfoNativeFieldTypes = NULL)=0;
     virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
-                               int nWidth, int nPrecision=0) = 0;
+                               int nWidth=0, int nPrecision=0) = 0;
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef) = 0;
 
     virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1) = 0;
@@ -313,7 +316,7 @@ class TABFile: public IMapInfoFile
     virtual int SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
                             TABFieldType *paeMapInfoNativeFieldTypes = NULL);
     virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
-                               int nWidth, int nPrecision=0);
+                               int nWidth=0, int nPrecision=0);
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef);
 
     virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1);
@@ -421,7 +424,7 @@ class TABView: public IMapInfoFile
                                                        {return -1;};
     virtual int AddFieldNative(const char * /*pszName*/,
                                TABFieldType /*eMapInfoType*/,
-                               int /*nWidth*/, int /*nPrecision*/=0)
+                               int /*nWidth*/=0, int /*nPrecision*/=0)
     							{return -1;};
     virtual int SetSpatialRef(OGRSpatialReference * /*poSpatialRef*/)
                                                        {return -1;};
@@ -551,7 +554,7 @@ class MIFFile: public IMapInfoFile
     virtual int SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
                             TABFieldType *paeMapInfoNativeFieldTypes = NULL);
     virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
-                               int nWidth, int nPrecision=0);
+                               int nWidth=0, int nPrecision=0);
     /* TODO */
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef);
 

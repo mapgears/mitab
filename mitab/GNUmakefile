@@ -36,25 +36,25 @@ $(TAB_OBJS):	$(TAB_HDRS)
 $(OGRTAB_OBJS):	mitab_ogr_driver.h
 
 tab2tab: tab2tab.o $(LIBS) mitab.h mitab_priv.h
-	$(CC) $(LFLAGS) -o tab2tab tab2tab.o $(LIBS) $(LIB_DBMALLOC) -lm
+	$(CXX) $(LFLAGS) -o tab2tab tab2tab.o $(LIBS) $(LIB_DBMALLOC) -lm 
 
 ogr2ogr: ogr2ogr.o $(OGRTAB_OBJS) $(LIBS) mitab.h mitab_priv.h
-	$(CC) $(LFLAGS) -o ogr2ogr ogr2ogr.o $(OGRTAB_OBJS) $(LIBS) \
+	$(CXX) $(LFLAGS) -o ogr2ogr ogr2ogr.o $(OGRTAB_OBJS) $(LIBS) \
 		$(LIB_DBMALLOC) -lm
 
 ogrinfo: ogrinfo.o $(OGRTAB_OBJS) $(LIBS) mitab.h mitab_priv.h
-	$(CC) $(LFLAGS) -o ogrinfo ogrinfo.o $(OGRTAB_OBJS) $(LIBS) \
+	$(CXX) $(LFLAGS) -o ogrinfo ogrinfo.o $(OGRTAB_OBJS) $(LIBS) \
 		$(LIB_DBMALLOC) -lm
 
 mitabc_test: mitabc_test.o $(LIBS) mitab.h mitab_priv.h mitab_capi.h
-	$(CC) $(LFLAGS) -o mitabc_test mitabc_test.o $(LIBS) \
+	$(CXX) $(LFLAGS) -o mitabc_test mitabc_test.o $(LIBS) \
 		$(LIB_DBMALLOC) -lm
 
 tabindex: tabindex.o $(LIBS) mitab.h mitab_priv.h
-	$(CC) $(LFLAGS) -o tabindex tabindex.o $(LIBS) $(LIB_DBMALLOC) -lm
+	$(CXX) $(LFLAGS) -o tabindex tabindex.o $(LIBS) $(LIB_DBMALLOC) -lm
 
 tabdump: tabdump.o $(LIBS) mitab.h mitab_priv.h
-	$(CC) $(LFLAGS) -o tabdump tabdump.o $(LIBS) $(LIB_DBMALLOC) -lm
+	$(CXX) $(LFLAGS) -o tabdump tabdump.o $(LIBS) $(LIB_DBMALLOC) -lm
 
 ../cpl/cpl.a:
 	(cd ../cpl; make)

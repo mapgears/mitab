@@ -7,7 +7,7 @@
 BYTE_ORDER_FL = -DCPL_LSB
 
 OPTFLAGS =	-g -Wall -DDEBUG $(BYTE_ORDER_FL)
-INCLUDE = 	-I.. -I../cpl 
+INCLUDE = 	-I. -I.. -I../cpl 
 #CXXFLAGS =	$(INCLUDE) -fPIC --no-rtti -fno-exceptions $(OPTFLAGS)
 CFLAGS =	$(INCLUDE) -fPIC $(OPTFLAGS)
 
@@ -26,8 +26,13 @@ else
     CC    =     egcs
     CXX   =     egcs
   else
-    CC  =       gcc
-    CXX =       gcc
+    ifneq ($(wildcard /usr/bin/c+?),)
+      CC    =     gcc
+      CXX   =     c++
+    else
+      CC  =       gcc
+      CXX =       gcc
+    endif
   endif
   CXXFLAGS =      $(INCLUDE) -fPIC --no-rtti -fno-exceptions $(OPTFLAGS)
 endif

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.17 1999-12-18 07:11:36 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.18 1999-12-19 17:36:30 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.17  1999-12-18 07:11:36  daniel
+ * Revision 1.18  1999-12-19 17:36:30  daniel
+ * Fixed a problem with TABRegion::GetRingRef()
+ *
+ * Revision 1.17  1999/12/18 07:11:36  daniel
  * Return regions as OGRMultiPolygons instead of multiple rings OGRPolygons
  *
  * Revision 1.16  1999/12/16 17:15:50  daniel
@@ -2448,13 +2451,13 @@ OGRLinearRing *TABRegion::GetRingRef(int nRequestedRingIndex)
             {
                 poRing = poPolygon->getExteriorRing();
             }
-            iCurRing++;
-            if (numIntRings > 0 && nRequestedRingIndex <= iCurRing+numIntRings)
-            {
+            else if (nRequestedRingIndex > iCurRing &&
+                     nRequestedRingIndex-(iCurRing+1) < numIntRings)
+           {
                 poRing = poPolygon->getInteriorRing(nRequestedRingIndex-
-                                                                iCurRing );
+                                                                (iCurRing+1) );
             }
-            iCurRing += numIntRings;
+            iCurRing += numIntRings+1;
         }
     }
 
@@ -3697,6 +3700,7 @@ TABText::TABText(OGRFeatureDefn *poDefnIn):
     m_pszString = NULL;
 
     m_dAngle = m_dHeight = 0.0;
+    m_dfLineX = m_dfLineY = 0.0;
 
     m_rgbForeground = 0x000000;
     m_rgbBackground = 0xffffff;

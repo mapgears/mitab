@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.26 2000-04-21 12:39:05 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.27 2000-07-10 14:56:25 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.26  2000-04-21 12:39:05  daniel
+ * Revision 1.27  2000-07-10 14:56:25  daniel
+ * Handle m_nOriginQuadrant==0 as quadrant 3 (reverse x and y axis)
+ *
+ * Revision 1.26  2000/04/21 12:39:05  daniel
  * Added TABPolyline::GetNumParts()/GetPartRef()
  *
  * Revision 1.25  2000/02/28 16:44:10  daniel
@@ -3682,8 +3685,15 @@ int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
          *
          * The ReflectXAxis flag seems to have no effect here...
          *------------------------------------------------------------*/
+
+        /*-------------------------------------------------------------
+         * In version 100 .tab files (version 400 .map), it is possible
+         * to have a quadrant value of 0 and it should be treated the 
+         * same way as quadrant 3
+         *------------------------------------------------------------*/
         if ( poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==1 ||
-             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3  )
+             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
+             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==0  )
         {
             // Quadrants 1 and 3 ... read order = start, end
             m_dStartAngle = poObjBlock->ReadInt16()/10.0;
@@ -3697,7 +3707,8 @@ int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         }
 
         if ( poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==2 ||
-             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3  )
+             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
+             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==0 )
         {
             // X axis direction is flipped... adjust angle
             m_dStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
@@ -3707,7 +3718,8 @@ int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile)
         }
 
         if (poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
-            poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==4)
+            poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==4 ||
+            poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==0 )
         {
             // Y axis direction is flipped... this reverses angle direction
             // Unfortunately we never found any file that contains this case,

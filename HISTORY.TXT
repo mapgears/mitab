@@ -29,6 +29,8 @@ CHANGES - Current Version:
   OGRSpatialReferences or in cases where the caller doesn't check ref counts.
   NFW.
 
+- TABPolyline::ValidateMapInfoType(): return TAB_GEOM_NONE if numpoints < 2
+
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -314,5 +316,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.60 2001-08-10 21:25:59 warmerda Exp $
+$Id: HISTORY.TXT,v 1.61 2001-09-05 13:37:42 daniel Exp $
 ------------

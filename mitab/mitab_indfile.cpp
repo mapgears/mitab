@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_indfile.cpp,v 1.2 1999-12-14 02:19:42 daniel Exp $
+ * $Id: mitab_indfile.cpp,v 1.3 1999-12-14 05:52:05 daniel Exp $
  *
  * Name:     mitab_indfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_indfile.cpp,v $
- * Revision 1.2  1999-12-14 02:19:42  daniel
+ * Revision 1.3  1999-12-14 05:52:05  daniel
+ * Fixed compile error on Windows
+ *
+ * Revision 1.2  1999/12/14 02:19:42  daniel
  * Completed .IND support for simple TABViews
  *
  * Revision 1.1  1999/11/20 15:49:07  daniel
@@ -987,9 +990,16 @@ void TABINDNode::Dump(FILE *fpOut /*=NULL*/)
                                         TABFIELDTYPE_2_STRING(m_eFieldType) );
         if (m_nSubTreeDepth > 0)
         {
-            GByte  aKeyValBuf[m_nKeyLength];
+            GByte  aKeyValBuf[255];
             GInt32 nRecordPtr, nValue;
             TABINDNode oChildNode;
+
+            if (m_nKeyLength > 254)
+            {
+                CPLError(CE_Failure, CPLE_NotSupported,
+                         "Dump() cannot handle keys longer than 254 chars.");
+                return;
+            }
 
             fprintf(fpOut, "\n");
             for (int i=0; i<m_numEntriesInNode; i++)

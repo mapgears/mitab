@@ -46,6 +46,9 @@ ToDo - Open Questions:
 
 CHANGES - Current Version:
 --------------------------
+- Modified mitab_imapinfofile.cpp so that variable width fields (nWidth=0)
+  is translated to 254 characters, instead of 255 so it will actually be
+  a legal field width in TAB.  (NFW)
 
 - Added a warning (TAB_WarningBoundsOverflow) on close of .MAP file if any 
   object was written with coordinates outside of the file's predefined 
@@ -245,5 +248,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.37 2000-11-23 20:47:46 daniel Exp $
+$Id: HISTORY.TXT,v 1.38 2000-11-30 20:27:56 warmerda Exp $
 ------------

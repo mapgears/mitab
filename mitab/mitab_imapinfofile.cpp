@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.8 2000-02-28 03:11:35 warmerda Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.9 2000-11-30 20:27:56 warmerda Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.8  2000-02-28 03:11:35  warmerda
+ * Revision 1.9  2000-11-30 20:27:56  warmerda
+ * make variable length string fields 254 wide, not 255
+ *
+ * Revision 1.8  2000/02/28 03:11:35  warmerda
  * fix support for zero width fields
  *
  * Revision 1.7  2000/02/02 20:14:03  warmerda
@@ -357,9 +360,9 @@ OGRErr IMapInfoFile::CreateField( OGRFieldDefn *poField, int bApproxOK )
     {
         eTABType = TABFChar;
         if( nWidth == 0 )
-            nWidth = 255;
+            nWidth = 254;
         else
-            nWidth = MIN(255,nWidth);
+            nWidth = MIN(254,nWidth);
     }
     else
     {

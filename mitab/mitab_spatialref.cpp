@@ -1,11 +1,11 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.5 1999-09-27 21:23:41 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.6 1999-09-28 02:51:46 warmerda Exp $
  *
- * Name:     mitab_tabfile.cpp
+ * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
  * Language: C++
  * Purpose:  Implementation of the SpatialRef stuff in the TABFile class.
- * Author:   Daniel Morissette, danmo@videotron.ca
+ * Author:   Frank Warmerdam, warmerda@home.com
  *
  **********************************************************************
  * Copyright (c) 1999, Daniel Morissette
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.5  1999-09-27 21:23:41  warmerda
+ * Revision 1.6  1999-09-28 02:51:46  warmerda
+ * Added ellipsoid codes, and bulk of write implementation.
+ *
+ * Revision 1.5  1999/09/27 21:23:41  warmerda
  * added more projections
  *
  * Revision 1.4  1999/09/24 04:01:28  warmerda
@@ -51,132 +54,134 @@
 typedef struct {
     int		nMapInfoDatumID;
     const char  *pszOGCDatumName;
+    int		nEllipsoid;
     double      dfShiftX;
     double	dfShiftY;
     double	dfShiftZ;
-    double	dfDatumParm0;
-    double	dfDatumParm1;
-    double	dfDatumParm2;
-    double	dfDatumParm3;
-    double	dfDatumParm4;
+    double	dfDatumParm0; /* RotX */
+    double	dfDatumParm1; /* RotY */
+    double	dfDatumParm2; /* RotZ */
+    double	dfDatumParm3; /* Scale Factor */
+    double	dfDatumParm4; /* Prime Meridian */
 } MapInfoDatumInfo;
 
 static MapInfoDatumInfo asDatumInfoList[] =
 {
-{104, "WGS_1984", 0, 0, 0, 0, 0, 0, 0, 0},
-{1, "Adindan", -162, -12, 206, 0, 0, 0, 0, 0},
-{2, "Afgooye", -43, -163, 45, 0, 0, 0, 0, 0},
-{3, "Ain_el_Abd_1970", -150, -251, -2, 0, 0, 0, 0, 0},
-{4, "", -491, -22, 435, 0, 0, 0, 0, 0},
-{5, "Arc_1950", -143, -90, -294, 0, 0, 0, 0, 0},
-{6, "Arc_1960", -160, -8, -300, 0, 0, 0, 0, 0},
-{7, "", -207, 107, 52, 0, 0, 0, 0, 0},
-{8, "", 145, 75, -272, 0, 0, 0, 0, 0},
-{9, "", 114, -116, -333, 0, 0, 0, 0, 0},
-{10, "", -320, 550, -494, 0, 0, 0, 0, 0},
-{11, "", 124, -234, -25, 0, 0, 0, 0, 0},
-{12, "", -133, -48, 148, 0, 0, 0, 0, 0},
-{13, "", -134, -48, 149, 0, 0, 0, 0, 0},
-{14, "", -127, -769, 472, 0, 0, 0, 0, 0},
-{15, "Bermuda_1957", -73, 213, 296, 0, 0, 0, 0, 0},
-{16, "Bogota", 307, 304, -318, 0, 0, 0, 0, 0},
-{17, "Campo_Inchanspe", -148, 136, 90, 0, 0, 0, 0, 0},
-{18, "", 298, -304, -375, 0, 0, 0, 0, 0},
-{19, "Cape", -136, -108, -292, 0, 0, 0, 0, 0},
-{20, "", -2, 150, 181, 0, 0, 0, 0, 0},
-{21, "Carthage", -263, 6, 431, 0, 0, 0, 0, 0},
-{22, "", 175, -38, 113, 0, 0, 0, 0, 0},
-{23, "Chua", -134, 229, -29, 0, 0, 0, 0, 0},
-{24, "Corrego_Alegre", -206, 172, -6, 0, 0, 0, 0, 0},
-{25, "Batavia", -377, 681, -50, 0, 0, 0, 0, 0},
-{26, "", 230, -199, -752, 0, 0, 0, 0, 0},
-{27, "", 211, 147, 111, 0, 0, 0, 0, 0},
-{28, "European_Datum_1950", -87, -98, -121, 0, 0, 0, 0, 0},
-{29, "European_Datum_1987", -86, -98, -119, 0, 0, 0, 0, 0},
-{30, "Gandajika_1970", -133, -321, 50, 0, 0, 0, 0, 0},
-{31, "", 84, -22, 209, 0, 0, 0, 0, 0},
-{32, "", 0, 0, 0, 0, 0, 0, 0, 0},
-{33, "", 0, 0, 0, 0, 0, 0, 0, 0},
-{34, "", -100, -248, 259, 0, 0, 0, 0, 0},
-{35, "", 252, -209, -751, 0, 0, 0, 0, 0},
-{36, "Hito_XVIII_1963", 16, 196, 93, 0, 0, 0, 0, 0},
-{37, "", -73, 46, -86, 0, 0, 0, 0, 0},
-{38, "", -156, -271, -189, 0, 0, 0, 0, 0},
-{39, "Hu_Tzu_Shan", -634, -549, -201, 0, 0, 0, 0, 0},
-{40, "", 214, 836, 303, 0, 0, 0, 0, 0},
-{41, "", 289, 734, 257, 0, 0, 0, 0, 0},
-{42, "", 506, -122, 611, 0, 0, 0, 0, 0},
-{43, "", 208, -435, -229, 0, 0, 0, 0, 0},
-{44, "", 191, -77, -204, 0, 0, 0, 0, 0},
-{45, "Kandawala", -97, 787, 86, 0, 0, 0, 0, 0},
-{46, "", 145, -187, 103, 0, 0, 0, 0, 0},
-{47, "Kertau", -11, 851, 5, 0, 0, 0, 0, 0},
-{48, "", 42, 124, 147, 0, 0, 0, 0, 0},
-{49, "Liberia_1964", -90, 40, 88, 0, 0, 0, 0, 0},
-{50, "", -133, -77, -51, 0, 0, 0, 0, 0},
-{51, "", -133, -79, -72, 0, 0, 0, 0, 0},
-{52, "Mahe_1971", 41, -220, -134, 0, 0, 0, 0, 0},
-{53, "", -289, -124, 60, 0, 0, 0, 0, 0},
-{54, "Massawa", 639, 405, 60, 0, 0, 0, 0, 0},
-{55, "", 31, 146, 47, 0, 0, 0, 0, 0},
-{56, "", 912, -58, 1227, 0, 0, 0, 0, 0},
-{57, "Minna", -92, -93, 122, 0, 0, 0, 0, 0},
-{58, "", -247, -148, 369, 0, 0, 0, 0, 0},
-{59, "", -249, -156, 381, 0, 0, 0, 0, 0},
-{60, "", -231, -196, 482, 0, 0, 0, 0, 0},
-{61, "Naparima_1972", -2, 374, 172, 0, 0, 0, 0, 0},
-{62, "North_American_Datum_1927", -8, 160, 176, 0, 0, 0, 0, 0},
-{63, "North_American_Datum_1927", -5, 135, 172, 0, 0, 0, 0, 0},
-{64, "North_American_Datum_1927", -4, 154, 178, 0, 0, 0, 0, 0},
-{65, "North_American_Datum_1927", 1, 140, 165, 0, 0, 0, 0, 0},
-{66, "North_American_Datum_1927", -10, 158, 187, 0, 0, 0, 0, 0},
-{67, "North_American_Datum_1927", 0, 125, 201, 0, 0, 0, 0, 0},
-{68, "North_American_Datum_1927", -7, 152, 178, 0, 0, 0, 0, 0},
-{69, "North_American_Datum_1927", 0, 125, 194, 0, 0, 0, 0, 0},
-{70, "North_American_Datum_1927", -9, 152, 178, 0, 0, 0, 0, 0},
-{71, "North_American_Datum_1927", 11, 114, 195, 0, 0, 0, 0, 0},
-{72, "North_American_Datum_1927", -12, 130, 190, 0, 0, 0, 0, 0},
-{73, "NAD_Michigan", -8, 160, 176, 0, 0, 0, 0, 0},
-{74, "North_American_Datum_1983", 0, 0, 0, 0, 0, 0, 0, 0},
-{75, "", -425, -169, 81, 0, 0, 0, 0, 0},
-{76, "", -130, 110, -13, 0, 0, 0, 0, 0},
-{77, "", 61, -285, -181, 0, 0, 0, 0, 0},
-{78, "", -346, -1, 224, 0, 0, 0, 0, 0},
-{79, "OSGB_1936", 375, -111, 431, 0, 0, 0, 0, 0},
-{80, "", -307, -92, 127, 0, 0, 0, 0, 0},
-{81, "", 185, 165, 42, 0, 0, 0, 0, 0},
-{82, "", -288, 175, -376, 0, 0, 0, 0, 0},
-{83, "Provisional_South_Americian_Datum_1956", 11, 72, -101, 0, 0, 0, 0, 0},
-{84, "", -128, -283, 22, 0, 0, 0, 0, 0},
-{85, "Qornoq", 164, 138, -189, 0, 0, 0, 0, 0},
-{86, "", 94, -948, -1262, 0, 0, 0, 0, 0},
-{87, "", -225, -65, 9, 0, 0, 0, 0, 0},
-{88, "", 170, 42, 84, 0, 0, 0, 0, 0},
-{89, "", -203, 141, 53, 0, 0, 0, 0, 0},
-{90, "Sapper_Hill_1943", -355, 16, 74, 0, 0, 0, 0, 0},
-{91, "Schwarzeck", 616, 97, -251, 0, 0, 0, 0, 0},
-{92, "South_American_Datum_1969", -57, 1, -41, 0, 0, 0, 0, 0},
-{93, "", 7, -10, -26, 0, 0, 0, 0, 0},
-{94, "", -499, -249, 314, 0, 0, 0, 0, 0},
-{95, "", -104, 167, -38, 0, 0, 0, 0, 0},
-{96, "Timbalai_1948", -689, 691, -46, 0, 0, 0, 0, 0},
-{97, "Tokyo", -128, 481, 664, 0, 0, 0, 0, 0},
-{98, "", -632, 438, -609, 0, 0, 0, 0, 0},
-{99, "", 51, 391, -36, 0, 0, 0, 0, 0},
-{100, "", 101, 52, -39, 0, 0, 0, 0, 0},
-{101, "", 0, 0, 0, 0, 0, 0, 0, 0},
-{102, "", 0, 0, 0, 0, 0, 0, 0, 0},
-{103, "WGS_1972", 0, 8, 10, 0, 0, 0, 0, 0},
-{105, "Yacare", -155, 171, 37, 0, 0, 0, 0, 0},
-{106, "Zanderij", -265, 120, -358, 0, 0, 0, 0, 0},
-{107, "Nouvelle_Triangulation_Francaise", -168, -60, 320, 0, 0, 0, 0, 0},
-{108, "", -83, -96, -113, 0, 0, 0, 0, 0},
-{109, "", 593, 26, 478, 0, 0, 0, 0, 0},
-{110, "", 81, 120, 129, 0, 0, 0, 0, 0},
-{111, "", -1, 15, 1, 0, 0, 0, 0, 0},
-{112, "", 498, -36, 568, 0, 0, 0, 0, 0},
-{113, "", -303, -62, 105, 0, 0, 0, 0, 0},
-{114, "", -223, 110, 37, 0, 0, 0, 0, 0},
+{104, "WGS_1984", 28, 0, 0, 0, 0, 0, 0, 0, 0},
+{1, "Adindan", 6, -162, -12, 206, 0, 0, 0, 0, 0},
+{2, "Afgooye", 3, -43, -163, 45, 0, 0, 0, 0, 0},
+{3, "Ain_el_Abd_1970", 4, -150, -251, -2, 0, 0, 0, 0, 0},
+{4, "", 2, -491, -22, 435, 0, 0, 0, 0, 0},
+{5, "Arc_1950", 15, -143, -90, -294, 0, 0, 0, 0, 0},
+{6, "Arc_1960", 6, -160, -8, -300, 0, 0, 0, 0, 0},
+{7, "", 4, -207, 107, 52, 0, 0, 0, 0, 0},
+{8, "", 4, 145, 75, -272, 0, 0, 0, 0, 0},
+{9, "", 4, 114, -116, -333, 0, 0, 0, 0, 0},
+{10, "", 4, -320, 550, -494, 0, 0, 0, 0, 0},
+{11, "", 4, 124, -234, -25, 0, 0, 0, 0, 0},
+{12, "", 2, -133, -48, 148, 0, 0, 0, 0, 0},
+{13, "", 2, -134, -48, 149, 0, 0, 0, 0, 0},
+{14, "", 4, -127, -769, 472, 0, 0, 0, 0, 0},
+{15, "Bermuda_1957", 7, -73, 213, 296, 0, 0, 0, 0, 0},
+{16, "Bogota", 4, 307, 304, -318, 0, 0, 0, 0, 0},
+{17, "Campo_Inchanspe", 4, -148, 136, 90, 0, 0, 0, 0, 0},
+{18, "", 4, 298, -304, -375, 0, 0, 0, 0, 0},
+{19, "Cape", 6, -136, -108, -292, 0, 0, 0, 0, 0},
+{20, "", 7, -2, 150, 181, 0, 0, 0, 0, 0},
+{21, "Carthage", 6, -263, 6, 431, 0, 0, 0, 0, 0},
+{22, "", 4, 175, -38, 113, 0, 0, 0, 0, 0},
+{23, "Chua", 4, -134, 229, -29, 0, 0, 0, 0, 0},
+{24, "Corrego_Alegre", 4, -206, 172, -6, 0, 0, 0, 0, 0},
+{25, "Batavia", 10, -377, 681, -50, 0, 0, 0, 0, 0},
+{26, "", 4, 230, -199, -752, 0, 0, 0, 0, 0},
+{27, "", 4, 211, 147, 111, 0, 0, 0, 0, 0},
+{28, "European_Datum_1950", 4, -87, -98, -121, 0, 0, 0, 0, 0},
+{29, "European_Datum_1987", 4, -86, -98, -119, 0, 0, 0, 0, 0},
+{30, "Gandajika_1970", 4, -133, -321, 50, 0, 0, 0, 0, 0},
+{31, "", 4, 84, -22, 209, 0, 0, 0, 0, 0},
+{32, "", 21, 0, 0, 0, 0, 0, 0, 0, 0},
+{33, "", 0, 0, 0, 0, 0, 0, 0, 0, 0},
+{34, "", 7, -100, -248, 259, 0, 0, 0, 0, 0},
+{35, "", 4, 252, -209, -751, 0, 0, 0, 0, 0},
+{36, "Hito_XVIII_1963", 4, 16, 196, 93, 0, 0, 0, 0, 0},
+{37, "", 4, -73, 46, -86, 0, 0, 0, 0, 0},
+{38, "", 4, -156, -271, -189, 0, 0, 0, 0, 0},
+{39, "Hu_Tzu_Shan", 4, -634, -549, -201, 0, 0, 0, 0, 0},
+{40, "", 11, 214, 836, 303, 0, 0, 0, 0, 0},
+{41, "", 11, 289, 734, 257, 0, 0, 0, 0, 0},
+{42, "", 13, 506, -122, 611, 0, 0, 0, 0, 0},
+{43, "", 4, 208, -435, -229, 0, 0, 0, 0, 0},
+{44, "", 4, 191, -77, -204, 0, 0, 0, 0, 0},
+{45, "Kandawala", 11, -97, 787, 86, 0, 0, 0, 0, 0},
+{46, "", 4, 145, -187, 103, 0, 0, 0, 0, 0},
+{47, "Kertau", 17, -11, 851, 5, 0, 0, 0, 0, 0},
+{48, "", 7, 42, 124, 147, 0, 0, 0, 0, 0},
+{49, "Liberia_1964", 6, -90, 40, 88, 0, 0, 0, 0, 0},
+{50, "", 7, -133, -77, -51, 0, 0, 0, 0, 0},
+{51, "", 7, -133, -79, -72, 0, 0, 0, 0, 0},
+{52, "Mahe_1971", 6, 41, -220, -134, 0, 0, 0, 0, 0},
+{53, "", 4, -289, -124, 60, 0, 0, 0, 0, 0},
+{54, "Massawa", 10, 639, 405, 60, 0, 0, 0, 0, 0},
+{55, "", 16, 31, 146, 47, 0, 0, 0, 0, 0},
+{56, "", 4, 912, -58, 1227, 0, 0, 0, 0, 0},
+{57, "Minna", 6, -92, -93, 122, 0, 0, 0, 0, 0},
+{58, "", 6, -247, -148, 369, 0, 0, 0, 0, 0},
+{59, "", 6, -249, -156, 381, 0, 0, 0, 0, 0},
+{60, "", 6, -231, -196, 482, 0, 0, 0, 0, 0},
+{61, "Naparima_1972", 4, -2, 374, 172, 0, 0, 0, 0, 0},
+{62, "North_American_Datum_1927", 7, -8, 160, 176, 0, 0, 0, 0, 0},
+{63, "North_American_Datum_1927", 7, -5, 135, 172, 0, 0, 0, 0, 0},
+{64, "North_American_Datum_1927", 7, -4, 154, 178, 0, 0, 0, 0, 0},
+{65, "North_American_Datum_1927", 7, 1, 140, 165, 0, 0, 0, 0, 0},
+{66, "North_American_Datum_1927", 7, -10, 158, 187, 0, 0, 0, 0, 0},
+{67, "North_American_Datum_1927", 7, 0, 125, 201, 0, 0, 0, 0, 0},
+{68, "North_American_Datum_1927", 7, -7, 152, 178, 0, 0, 0, 0, 0},
+{69, "North_American_Datum_1927", 7, 0, 125, 194, 0, 0, 0, 0, 0},
+{70, "North_American_Datum_1927", 7, -9, 152, 178, 0, 0, 0, 0, 0},
+{71, "North_American_Datum_1927", 7, 11, 114, 195, 0, 0, 0, 0, 0},
+{72, "North_American_Datum_1927", 7, -12, 130, 190, 0, 0, 0, 0, 0},
+{73, "NAD_Michigan", 8, -8, 160, 176, 0, 0, 0, 0, 0},
+{74, "North_American_Datum_1983", 0, 0, 0, 0, 0, 0, 0, 0, 0},
+{75, "", 4, -425, -169, 81, 0, 0, 0, 0, 0},
+{76, "", 22, -130, 110, -13, 0, 0, 0, 0, 0},
+{77, "", 7, 61, -285, -181, 0, 0, 0, 0, 0},
+{78, "", 6, -346, -1, 224, 0, 0, 0, 0, 0},
+{79, "OSGB_1936", 9, 375, -111, 431, 0, 0, 0, 0, 0},
+{80, "", 4, -307, -92, 127, 0, 0, 0, 0, 0},
+{81, "", 4, 185, 165, 42, 0, 0, 0, 0, 0},
+{82, "", 4, -288, 175, -376, 0, 0, 0, 0, 0},
+{83, "Provisional_South_Americian_Datum_1956", 7, 11, 72, -101, 0, 0, 0, 0, 0},
+{84, "", 4, -128, -283, 22, 0, 0, 0, 0, 0},
+{85, "Qornoq", 4, 164, 138, -189, 0, 0, 0, 0, 0},
+{86, "", 4, 94, -948, -1262, 0, 0, 0, 0, 0},
+{87, "", 4, -225, -65, 9, 0, 0, 0, 0, 0},
+{88, "", 4, 170, 42, 84, 0, 0, 0, 0, 0},
+{89, "", 4, -203, 141, 53, 0, 0, 0, 0, 0},
+{90, "Sapper_Hill_1943", 4, -355, 16, 74, 0, 0, 0, 0, 0},
+{91, "Schwarzeck", 14, 616, 97, -251, 0, 0, 0, 0, 0},
+{92, "South_American_Datum_1969", 24, -57, 1, -41, 0, 0, 0, 0, 0},
+{93, "", 19, 7, -10, -26, 0, 0, 0, 0, 0},
+{94, "", 4, -499, -249, 314, 0, 0, 0, 0, 0},
+{95, "", 4, -104, 167, -38, 0, 0, 0, 0, 0},
+{96, "Timbalai_1948", 11, -689, 691, -46, 0, 0, 0, 0, 0},
+{97, "Tokyo", 10, -128, 481, 664, 0, 0, 0, 0, 0},
+{98, "", 4, -632, 438, -609, 0, 0, 0, 0, 0},
+{99, "", 6, 51, 391, -36, 0, 0, 0, 0, 0},
+{100, "", 23, 101, 52, -39, 0, 0, 0, 0, 0},
+{101, "", 26, 0, 0, 0, 0, 0, 0, 0, 0},
+{102, "", 27, 0, 0, 0, 0, 0, 0, 0, 0},
+{104, "WGS_1984", 28, 0, 0, 0, 0, 0, 0, 0, 0},
+{103, "WGS_1972", 1, 0, 8, 10, 0, 0, 0, 0, 0},
+{105, "Yacare", 4, -155, 171, 37, 0, 0, 0, 0, 0},
+{106, "Zanderij", 4, -265, 120, -358, 0, 0, 0, 0, 0},
+{107, "Nouvelle_Triangulation_Francaise", 30, -168, -60, 320, 0, 0, 0, 0, 0},
+{108, "", 4, -83, -96, -113, 0, 0, 0, 0, 0},
+{109, "", 10, 593, 26, 478, 0, 0, 0, 0, 0},
+{110, "", 4, 81, 120, 129, 0, 0, 0, 0, 0},
+{111, "", 1, -1, 15, 1, 0, 0, 0, 0, 0},
+{112, "", 10, 498, -36, 568, 0, 0, 0, 0, 0},
+{113, "", 4, -303, -62, 105, 0, 0, 0, 0, 0},
+{114, "", 4, -223, 110, 37, 0, 0, 0, 0, 0},
 {-1, NULL, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
@@ -299,20 +304,6 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         break;
 
         /*--------------------------------------------------------------
-         * Eckert IV
-         *-------------------------------------------------------------*/
-      case 14:
-        m_poSpatialRef->SetEckertIV( sTABProj.adProjParams[0], 0.0, 0.0 );
-        break;
-
-        /*--------------------------------------------------------------
-         * Eckert VI
-         *-------------------------------------------------------------*/
-      case 15:
-        m_poSpatialRef->SetEckertVI( sTABProj.adProjParams[0], 0.0, 0.0 );
-        break;
-
-        /*--------------------------------------------------------------
          * Hotine Oblique Mercator
          *-------------------------------------------------------------*/
       case 7:
@@ -367,6 +358,20 @@ OGRSpatialReference *TABFile::GetSpatialRef()
       case 13:
         m_poSpatialRef->SetMollweide( sTABProj.adProjParams[0],
                                       0.0, 0.0 );
+
+        /*--------------------------------------------------------------
+         * Eckert IV
+         *-------------------------------------------------------------*/
+      case 14:
+        m_poSpatialRef->SetEckertIV( sTABProj.adProjParams[0], 0.0, 0.0 );
+        break;
+
+        /*--------------------------------------------------------------
+         * Eckert VI
+         *-------------------------------------------------------------*/
+      case 15:
+        m_poSpatialRef->SetEckertVI( sTABProj.adProjParams[0], 0.0, 0.0 );
+        break;
 
         /*--------------------------------------------------------------
          * Sinusoidal
@@ -559,20 +564,25 @@ OGRSpatialReference *TABFile::GetSpatialRef()
 
     if( psDatumInfo == NULL )
     {
-        sprintf( szDatumName, "(%.4f,%.4f,%.4f)",
+        sprintf( szDatumName,
+                 "DefDatum %d %.4g %.4g %.4g %.15g %.15g %.15g %.15g",
+                 sTABProj.nEllipsoidId,
                  sTABProj.dDatumShiftX, 
                  sTABProj.dDatumShiftY, 
-                 sTABProj.dDatumShiftZ );
+                 sTABProj.dDatumShiftZ,
+                 sTABProj.adDatumParams[0],
+                 sTABProj.adDatumParams[1],
+                 sTABProj.adDatumParams[2],
+                 sTABProj.adDatumParams[3],
+                 sTABProj.adDatumParams[4] );
         
         poDatum->AddChild( new OGR_SRSNode(szDatumName) );
 
-        sTABProj.nMIDatumId = 999;
         poHeader->SetProjInfo( &sTABProj );
     }
     else if( strlen(psDatumInfo->pszOGCDatumName) > 0 )
     {
         poDatum->AddChild( new OGR_SRSNode(psDatumInfo->pszOGCDatumName) );
-        sTABProj.nMIDatumId = psDatumInfo->nMapInfoDatumID;
         poHeader->SetProjInfo( &sTABProj );
     }
     else
@@ -580,7 +590,6 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         sprintf( szDatumName, "MapInfo %d", psDatumInfo->nMapInfoDatumID );
         
         poDatum->AddChild( new OGR_SRSNode(szDatumName) );
-        sTABProj.nMIDatumId = psDatumInfo->nMapInfoDatumID;
         poHeader->SetProjInfo( &sTABProj );
     }
 
@@ -657,13 +666,230 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     m_poSpatialRef->Reference();
 
     /*-----------------------------------------------------------------
-     * ... and transform it into a TABProjInfo
+     * Initialize TABProjInfo
      *----------------------------------------------------------------*/
     TABProjInfo     sTABProj;
 
-    // __TODO__ 
+    sTABProj.nProjId = 0;
+    sTABProj.nEllipsoidId = 0; /* how will we set this? */
+    sTABProj.nUnitsId = 0;
+    sTABProj.adProjParams[0] = sTABProj.adProjParams[1] = 0.0;
+    sTABProj.adProjParams[2] = sTABProj.adProjParams[3] = 0.0;
+    sTABProj.adProjParams[4] = sTABProj.adProjParams[5] = 0.0;
+    
+    sTABProj.dDatumShiftX = 0.0;
+    sTABProj.dDatumShiftY = 0.0;
+    sTABProj.dDatumShiftZ = 0.0;
+    sTABProj.adDatumParams[0] = 0.0;
+    sTABProj.adDatumParams[1] = 0.0;
+    sTABProj.adDatumParams[2] = 0.0;
+    sTABProj.adDatumParams[3] = 0.0;
+    sTABProj.adDatumParams[4] = 0.0;
+    
+    /*-----------------------------------------------------------------
+     * Transform the projection and projection parameters.
+     *----------------------------------------------------------------*/
+    const char *pszProjection = poSpatialRef->GetAttrValue("PROJECTION");
+    double	*parms = sTABProj.adProjParams;
 
+    if( EQUAL(pszProjection,SRS_PT_ALBERS_CONIC_EQUAL_AREA) )
+    {
+        sTABProj.nProjId = 9;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_CENTER,0.0);
+        parms[2] = poSpatialRef->GetProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0);
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_STANDARD_PARALLEL_2,0.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
 
+    else if( EQUAL(pszProjection,SRS_PT_AZIMUTHAL_EQUIDISTANT) )
+    {
+        sTABProj.nProjId = 5;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_CENTER,0.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_CYLINDRICAL_EQUAL_AREA) )
+    {
+        sTABProj.nProjId = 2;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[2] = poSpatialRef->GetProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_ECKERT_IV) )
+    {
+        sTABProj.nProjId = 14;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_ECKERT_VI) )
+    {
+        sTABProj.nProjId = 15;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_EQUIDISTANT_CONIC) )
+    {
+        sTABProj.nProjId = 6;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_CENTER,0.0);
+        parms[2] = poSpatialRef->GetProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0);
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_STANDARD_PARALLEL_2,0.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_GALL_STEREOGRAPHIC) )
+    {
+        sTABProj.nProjId = 17;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_HOTINE_OBLIQUE_MERCATOR) )
+    {
+        sTABProj.nProjId = 6;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_CENTER,0.0);
+        parms[2] = poSpatialRef->GetProjParm(SRS_PP_AZIMUTH,0.0);
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_SCALE_FACTOR,1.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_LAMBERT_AZIMUTHAL_EQUAL_AREA) )
+    {
+        sTABProj.nProjId = 4;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_CENTER,0.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_LAMBERT_CONFORMAL_CONIC_2SP) )
+    {
+        sTABProj.nProjId = 3;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[2] = poSpatialRef->GetProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0);
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_STANDARD_PARALLEL_2,0.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_MERCATOR_1SP) )
+    {
+        sTABProj.nProjId = 10;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_SCALE_FACTOR,1.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_MOLLWEIDE) )
+    {
+        sTABProj.nProjId = 13;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_NEW_ZEALAND_MAP_GRID) )
+    {
+        sTABProj.nProjId = 18;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_ROBINSON) )
+    {
+        sTABProj.nProjId = 12;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_SINUSOIDAL) )
+    {
+        sTABProj.nProjId = 16;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_STEREOGRAPHIC) )
+    {
+        sTABProj.nProjId = 20;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_SCALE_FACTOR,1.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_TRANSVERSE_MERCATOR) )
+    {
+        sTABProj.nProjId = 8;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_SCALE_FACTOR,1.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+    }
+
+    /*-----------------------------------------------------------------
+     * Translate Datum and Ellipsoid
+     *----------------------------------------------------------------*/
+    const char *pszWKTDatum = poSpatialRef->GetAttrValue("DATUM");
+    MapInfoDatumInfo *psDatumInfo = NULL;
+
+    if( EQUALN(pszWKTDatum,"Mapinfo ",8) )
+    {
+        int	i;
+
+        for( i = 0; asDatumInfoList[i].nMapInfoDatumID != -1; i++ )
+        {
+            if( atoi(pszWKTDatum+8) == asDatumInfoList[i].nMapInfoDatumID )
+            {
+                psDatumInfo = asDatumInfoList + i;
+                break;
+            }
+        }
+
+        if( psDatumInfo == NULL )
+            psDatumInfo = asDatumInfoList+0; /* WGS 84 */
+    }
+
+    else 
+    {
+        int	i;
+
+        for( i = 0; asDatumInfoList[i].nMapInfoDatumID != -1; i++ )
+        {
+            if( EQUAL(pszWKTDatum,asDatumInfoList[i].pszOGCDatumName) )
+            {
+                psDatumInfo = asDatumInfoList + i;
+                break;
+            }
+        }
+
+         if( psDatumInfo == NULL )
+            psDatumInfo = asDatumInfoList+0; /* WGS 84 */
+    }
+
+    sTABProj.nEllipsoidId = psDatumInfo->nEllipsoid;
+    sTABProj.dDatumShiftX = psDatumInfo->dfShiftX;
+    sTABProj.dDatumShiftY = psDatumInfo->dfShiftY;
+    sTABProj.dDatumShiftZ = psDatumInfo->dfShiftZ;
+    sTABProj.adDatumParams[0] = psDatumInfo->dfDatumParm0;
+    sTABProj.adDatumParams[1] = psDatumInfo->dfDatumParm1;
+    sTABProj.adDatumParams[2] = psDatumInfo->dfDatumParm2;
+    sTABProj.adDatumParams[3] = psDatumInfo->dfDatumParm3;
+    sTABProj.adDatumParams[4] = psDatumInfo->dfDatumParm4;
+    
     /*-----------------------------------------------------------------
      * Set the new parameters in the .MAP header.
      *----------------------------------------------------------------*/

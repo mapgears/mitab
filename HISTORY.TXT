@@ -22,6 +22,11 @@ Version 1.2.1 - (2002-05-08)
   instead of cdecl.  Should still work fine for C/C++ users, and will
   allow VB/Delphi users to use the same DLL with Bo T.'s interface files.
 
+- Treat Region as MultiPolygon in mitab_c_set_point() to support Region with 
+  many polygon and holes in each polygon. A part (Second parameter in 
+  mitab_c_set_point().) equal or lower to 0 must be past to add a new polygon.
+  Note that each part will always be add to the last polygon.
+
 
 Version 1.2.0 - (2002-05-03)
 ----------------------------
@@ -428,5 +433,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.87 2002-05-08 21:41:27 daniel Exp $
+$Id: HISTORY.TXT,v 1.88 2002-05-16 14:19:43 julien Exp $
 ------------

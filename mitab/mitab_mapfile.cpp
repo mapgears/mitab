@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.21 2001-11-17 21:54:06 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.22 2001-11-19 15:04:41 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -9,7 +9,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, 2000, Daniel Morissette
+ * Copyright (c) 1999-2001, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,9 +31,13 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.21  2001-11-17 21:54:06  daniel
- * Made several changes in order to support writing objects in 16 bits coordinate format.
- * New TABMAPObjHdr-derived classes are used to hold object info in mem until block is full.
+ * Revision 1.22  2001-11-19 15:04:41  daniel
+ * Prevent writing of coordinates outside of the +/-1e9 integer bounds.
+ *
+ * Revision 1.21  2001/11/17 21:54:06  daniel
+ * Made several changes in order to support writing objects in 16 bits 
+ * coordinate format. New TABMAPObjHdr-derived classes are used to hold 
+ * object info in mem until block is full.
  *
  * Revision 1.20  2001/09/18 20:33:52  warmerda
  * fixed case of spatial search on file with just one object block
@@ -383,29 +387,19 @@ int TABMAPFile::Close()
     
     // Check for overflow of internal coordinates and produce a warning
     // if that happened...
-    if (m_poHeader && (m_poHeader->m_nXMin < -1000000000 ||
-                       m_poHeader->m_nYMin < -1000000000 ||
-                       m_poHeader->m_nXMax > 1000000000 ||
-                       m_poHeader->m_nYMax > 1000000000 ) )
+    if (m_poHeader && m_poHeader->m_bIntBoundsOverflow)
     {
         double dBoundsMinX, dBoundsMinY, dBoundsMaxX, dBoundsMaxY;
-        double dDataMinX, dDataMinY, dDataMaxX, dDataMaxY;
         Int2Coordsys(-1000000000, -1000000000, dBoundsMinX, dBoundsMinY);
         Int2Coordsys(1000000000, 1000000000, dBoundsMaxX, dBoundsMaxY);
-        Int2Coordsys(m_poHeader->m_nXMin, m_poHeader->m_nYMin, 
-                     dDataMinX, dDataMinY);
-        Int2Coordsys(m_poHeader->m_nXMax, m_poHeader->m_nYMax, 
-                     dDataMaxX, dDataMaxY);
 
         CPLError(CE_Warning, TAB_WarningBoundsOverflow,
                  "Some objects were written outside of the file's "
                  "predefined bounds.\n"
                  "These objects may have invalid coordinates when the file "
                  "is reopened.\n"
-                 "Predefined bounds: (%.15g,%.15g)-(%.15g,%.15g)\n"
-                 "MBR of all objects written: (%.15g,%.15g)-(%.15g,%.15g)",
-                 dBoundsMinX, dBoundsMinY, dBoundsMaxX, dBoundsMaxY,
-                 dDataMinX, dDataMinY, dDataMaxX, dDataMaxY );
+                 "Predefined bounds: (%.15g,%.15g)-(%.15g,%.15g)\n",
+                 dBoundsMinX, dBoundsMinY, dBoundsMaxX, dBoundsMaxY );
     }
 
     // Delete all structures 

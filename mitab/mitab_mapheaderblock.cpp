@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.18 2000-12-07 03:58:20 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.19 2001-11-19 15:05:42 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -9,7 +9,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, 2000, Daniel Morissette
+ * Copyright (c) 1999-2001, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.18  2000-12-07 03:58:20  daniel
+ * Revision 1.19  2001-11-19 15:05:42  daniel
+ * Prevent writing of coordinates outside of the +/-1e9 integer bounds.
+ *
+ * Revision 1.18  2000/12/07 03:58:20  daniel
  * Pass first arg of pow() as double
  *
  * Revision 1.17  2000/09/19 19:35:53  daniel
@@ -393,6 +396,32 @@ int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY,
         nY = (GInt32)(dY*m_YScale + m_YDispl);
 
 //printf("Coordsys2Int: (%10g, %10g) -> (%d, %d)\n", dX, dY, nX, nY);
+
+    /*-----------------------------------------------------------------
+     * Make sure we'll never output coordinates outside of the valid
+     * integer coordinates range: (-1e9, -1e9) - (1e9, 1e9)
+     * Integer coordinates outside of that range will confuse MapInfo.
+     *----------------------------------------------------------------*/
+    if (nX < -1000000000)
+    {
+        nX = -1000000000;
+        m_bIntBoundsOverflow = TRUE;
+    }
+    if (nX > 1000000000)
+    {
+        nX = 1000000000;
+        m_bIntBoundsOverflow = TRUE;
+    }
+    if (nY < -1000000000)
+    {
+        nY = -1000000000;
+        m_bIntBoundsOverflow = TRUE;
+    }
+    if (nY > 1000000000)
+    {
+        nY = 1000000000;
+        m_bIntBoundsOverflow = TRUE;
+    }
 
     return 0;
 }

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.2 1999-09-20 14:27:49 warmerda Exp $
+ * $Id: tabdump.cpp,v 1.3 1999-12-14 02:24:41 daniel Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.2  1999-09-20 14:27:49  warmerda
+ * Revision 1.3  1999-12-14 02:24:41  daniel
+ * Use IMapInfoFile::SmartOpen()
+ *
+ * Revision 1.2  1999/09/20 14:27:49  warmerda
  * Use access of "rb" instead of "r".
  *
  * Revision 1.1  1999/07/12 04:18:26  daniel
@@ -42,6 +45,8 @@
 
 static int DumpMapFileBlocks(const char *pszFname);
 static int DumpMapFileObjects(const char *pszFname);
+
+static int DumpIndFileObjects(const char *pszFname);
 
 static int DumpTabFile(const char *pszFname);
 
@@ -85,6 +90,11 @@ int main(int argc, char *argv[])
         {
             DumpMapFileBlocks(pszFname);
         }
+        else if (strstr(pszFname, ".ind") != NULL ||
+                 strstr(pszFname, ".IND") != NULL)
+        {
+            DumpIndFileObjects(pszFname);
+        }
         else if (strstr(pszFname, ".otherextension") != NULL)
         {
             ;
@@ -106,6 +116,11 @@ int main(int argc, char *argv[])
                  strstr(pszFname, ".TAB") != NULL)
         {
             DumpTabFile(pszFname);
+        }
+        else if (strstr(pszFname, ".ind") != NULL ||
+                 strstr(pszFname, ".IND") != NULL)
+        {
+            DumpIndFileObjects(pszFname);
         }
     }
 /*---------------------------------------------------------------------
@@ -245,28 +260,28 @@ static int DumpMapFileObjects(const char *pszFname)
  **********************************************************************/
 static int DumpTabFile(const char *pszFname)
 {
-    TABFile  oFile;
+    IMapInfoFile  *poFile;
     int      nFeatureId;
     TABFeature *poFeature;
 
     /*---------------------------------------------------------------------
      * Try to open source file
      *--------------------------------------------------------------------*/
-    if (oFile.Open(pszFname, "rb") != 0)
+    if ((poFile = IMapInfoFile::SmartOpen(pszFname)) == NULL)
     {
         printf("Failed to open %s\n", pszFname);
         return -1;
     }
 
-    oFile.Dump();
+    poFile->Dump();
 
     /*---------------------------------------------------------------------
      * Read/Dump objects until EOF is reached
      *--------------------------------------------------------------------*/
     nFeatureId = -1;
-    while ( (nFeatureId = oFile.GetNextFeatureId(nFeatureId)) != -1 )
+    while ( (nFeatureId = poFile->GetNextFeatureId(nFeatureId)) != -1 )
     {
-        poFeature = oFile.GetFeatureRef(nFeatureId);
+        poFeature = poFile->GetFeatureRef(nFeatureId);
         if (poFeature)
         {
 //            poFeature->DumpReadable(stdout);
@@ -281,9 +296,47 @@ static int DumpTabFile(const char *pszFname)
     /*---------------------------------------------------------------------
      * Cleanup and exit.
      *--------------------------------------------------------------------*/
-    oFile.Close();
+    poFile->Close();
+
+    delete poFile;
 
     return 0;
 }
 
+
+/**********************************************************************
+ *                          DumpIndFileObjects()
+ *
+ * Read and dump a .IND file
+ **********************************************************************/
+static int DumpIndFileObjects(const char *pszFname)
+{
+    TABINDFile  oINDFile;
+
+    /*---------------------------------------------------------------------
+     * Try to open source file
+     *--------------------------------------------------------------------*/
+    if (oINDFile.Open(pszFname, "rb") != 0)
+    {
+        printf("Failed to open %s\n", pszFname);
+        return -1;
+    }
+
+    oINDFile.Dump();
+
+    /*---------------------------------------------------------------------
+     * Read/Dump objects until EOF is reached
+     *--------------------------------------------------------------------*/
+    while ( 0 )
+    {
+
+    }
+
+    /*---------------------------------------------------------------------
+     * Cleanup and exit.
+     *--------------------------------------------------------------------*/
+    oINDFile.Close();
+
+    return 0;
+}
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapobjectblock.cpp,v 1.4 1999-10-18 15:41:00 daniel Exp $
+ * $Id: mitab_mapobjectblock.cpp,v 1.5 1999-10-19 06:07:29 daniel Exp $
  *
  * Name:     mitab_mapobjectblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapobjectblock.cpp,v $
- * Revision 1.4  1999-10-18 15:41:00  daniel
+ * Revision 1.5  1999-10-19 06:07:29  daniel
+ * Removed obsolete comment.
+ *
+ * Revision 1.4  1999/10/18 15:41:00  daniel
  * Added WriteIntMBRCoord()
  *
  * Revision 1.3  1999/09/29 04:23:06  daniel
@@ -165,7 +168,6 @@ int     TABMAPObjectBlock::CommitToFile()
     WriteInt32(m_nCenterX);
     WriteInt32(m_nCenterY);
 
-    // __TODO__ Maintain and write first/last coord block references
     WriteInt32(m_nFirstCoordBlock);
     WriteInt32(m_nLastCoordBlock);
 

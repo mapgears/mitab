@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.10 2000-02-07 17:43:37 daniel Exp $
+ * $Id: mitab_coordsys.cpp,v 1.11 2000-03-19 23:26:27 daniel Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
- * Revision 1.10  2000-02-07 17:43:37  daniel
+ * Revision 1.11  2000-03-19 23:26:27  daniel
+ * Made MITABCoordSys2SpatialRef() remove leading spaces in coordsys string
+ * and produce a CPLError() if it fails parsing string.
+ *
+ * Revision 1.10  2000/02/07 17:43:37  daniel
  * Fixed offset in parsing of custom datum string in SetSpatialRef()
  *
  * Revision 1.9  2000/01/15 22:30:43  daniel
@@ -100,6 +104,7 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
 /* -------------------------------------------------------------------- */
 /*      Parse the passed string into words.                             */
 /* -------------------------------------------------------------------- */
+    while(*pszCoordSys == ' ') pszCoordSys++;  // Eat leading spaces
     if( EQUALN(pszCoordSys,"CoordSys",8) )
         pszCoordSys += 9;
     
@@ -137,6 +142,9 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
     }
     else
     {
+        if (CSLCount(papszFields) > 0)
+            CPLError(CE_Warning, CPLE_IllegalArg,
+                     "Failed parsing CoordSys: '%s'", pszCoordSys);
         CSLDestroy(papszFields);
         return NULL; // should we handle the units?
     }

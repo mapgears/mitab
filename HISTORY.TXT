@@ -46,8 +46,16 @@ ToDo - Open Questions:
 CHANGES - Current Version:
 --------------------------
 
-- Modified new table field name filtering to accept extended chars with
+
+Version 1.0.1 - (2000-04-21)
+----------------------------
+
+- Added C API documentation (mitab_capi.cpp) + functions to read vertices
+  and field information and included C API in public release.
+
+- Modified fltering of new table field name to accept extended chars with
   accents. 
+
 
 Version 1.0 - (2000-03-26)
 --------------------------
@@ -153,5 +161,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.16 2000-04-18 04:42:47 daniel Exp $
+$Id: HISTORY.TXT,v 1.17 2000-04-21 13:55:05 daniel Exp $
 ------------

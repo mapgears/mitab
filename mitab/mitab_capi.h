@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.15 2002-05-03 15:09:14 daniel Exp $
+ * $Id: mitab_capi.h,v 1.16 2002-05-08 19:59:23 daniel Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.15  2002-05-03 15:09:14  daniel
+ * Revision 1.16  2002-05-08 19:59:23  daniel
+ * Use stdcall by default for all public functions
+ *
+ * Revision 1.15  2002/05/03 15:09:14  daniel
  * Added mitab_c_get_field_width() and mitab_c_get_field_precision()
  *
  * Revision 1.14  2002/04/26 14:16:49  julien
@@ -93,8 +96,8 @@ extern "C" {
 #endif
 
 #ifdef _WIN32
-#define MITAB_DLL __declspec(dllexport) /* __stdcall */
-#define MITAB_STDCALL /* __stdcall */
+#define MITAB_DLL __declspec(dllexport) __stdcall
+#define MITAB_STDCALL __stdcall
 #else
 #define MITAB_DLL
 #define MITAB_STDCALL

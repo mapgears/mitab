@@ -13,6 +13,8 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+ - Do not output a BG color in style string for transparent brushes (bug 693)
+
  - mitab_tabfile.cpp: Several fixes for TABFile::Open() when loading the
    tabfile fails. (provided by Stephen Cheesman). 
 
@@ -587,5 +589,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.126 2004-10-11 20:00:49 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.127 2004-10-11 20:30:21 dmorissette Exp $
 ------------

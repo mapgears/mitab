@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.12 2000-02-07 17:41:02 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.13 2000-02-07 18:09:10 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.12  2000-02-07 17:41:02  daniel
+ * Revision 1.13  2000-02-07 18:09:10  daniel
+ * OOpppps ... test on version number was reversed!
+ *
+ * Revision 1.12  2000/02/07 17:41:02  daniel
  * Ignore the values of 5 last datum params in version=200 headers
  *
  * Revision 1.11  2000/01/15 22:30:44  daniel
@@ -281,7 +284,7 @@ int     TABMAPHeaderBlock::InitBlockFromData(GByte *pabyBuf, int nSize,
          * to 0 for the rest of the lib to be happy.
          */
         m_sProj.adDatumParams[i] = ReadDouble();
-        if (m_nVersionNumber > 200)
+        if (m_nVersionNumber <= 200)
             m_sProj.adDatumParams[i] = 0.0;
     }
 

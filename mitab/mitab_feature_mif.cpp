@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.11 2000-01-15 22:30:44 daniel Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.12 2000-02-28 16:56:32 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.11  2000-01-15 22:30:44  daniel
+ * Revision 1.12  2000-02-28 16:56:32  daniel
+ * Support pen width in points (width values 11 to 2047)
+ *
+ * Revision 1.11  2000/01/15 22:30:44  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.10  2000/01/14 23:51:37  daniel
@@ -619,7 +622,7 @@ int TABPolyline::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 		
 		if (CSLCount(papszToken) == 4)
 		{		    
-		    SetPenWidth(atoi(papszToken[1]));
+		    SetPenWidthMIF(atoi(papszToken[1]));
 		    SetPenPattern(atoi(papszToken[2]));
 		    SetPenColor(atoi(papszToken[3]));
 		}
@@ -711,7 +714,7 @@ int TABPolyline::WriteGeometryToMIFFile(MIDDATAFile *fp)
     }
     
     if (GetPenPattern())
-      fp->WriteLine("    Pen (%d,%d,%d)\n",GetPenWidth(),GetPenPattern(),
+      fp->WriteLine("    Pen (%d,%d,%d)\n",GetPenWidthMIF(),GetPenPattern(),
 		    GetPenColor());
     if (m_bSmooth)
       fp->WriteLine("    Smooth\n");
@@ -828,7 +831,7 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 		
 		if (CSLCount(papszToken) == 4)
 		{	    
-		    SetPenWidth(atoi(papszToken[1]));
+		    SetPenWidthMIF(atoi(papszToken[1]));
 		    SetPenPattern(atoi(papszToken[2]));
 		    SetPenColor(atoi(papszToken[3]));
 		}
@@ -923,7 +926,8 @@ int TABRegion::WriteGeometryToMIFFile(MIDDATAFile *fp)
         }
 	
 	if (GetPenPattern())
-	  fp->WriteLine("    Pen (%d,%d,%d)\n",GetPenWidth(),GetPenPattern(),
+	  fp->WriteLine("    Pen (%d,%d,%d)\n",
+                          GetPenWidthMIF(),GetPenPattern(),
 			  GetPenColor());
 	
 
@@ -1066,7 +1070,7 @@ int TABRectangle::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	   {       
 	       if (CSLCount(papszToken) == 4)
 	       {   
-		   SetPenWidth(atoi(papszToken[1]));
+		   SetPenWidthMIF(atoi(papszToken[1]));
 		   SetPenPattern(atoi(papszToken[2]));
 		   SetPenColor(atoi(papszToken[3]));
 	       }
@@ -1138,7 +1142,7 @@ int TABRectangle::WriteGeometryToMIFFile(MIDDATAFile *fp)
     }
     
     if (GetPenPattern())
-      fp->WriteLine("    Pen (%d,%d,%d)\n",GetPenWidth(),GetPenPattern(),
+      fp->WriteLine("    Pen (%d,%d,%d)\n",GetPenWidthMIF(),GetPenPattern(),
 		    GetPenColor());
 
     if (GetBrushPattern())
@@ -1221,7 +1225,7 @@ int TABEllipse::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 	    {       
 		if (CSLCount(papszToken) == 4)
 		{   
-		    SetPenWidth(atoi(papszToken[1]));
+		    SetPenWidthMIF(atoi(papszToken[1]));
 		    SetPenPattern(atoi(papszToken[2]));
 		   SetPenColor(atoi(papszToken[3]));
 		}
@@ -1272,7 +1276,7 @@ int TABEllipse::WriteGeometryToMIFFile(MIDDATAFile *fp)
 		  sEnvelope.MaxX,sEnvelope.MaxY);
     
     if (GetPenPattern())
-      fp->WriteLine("    Pen (%d,%d,%d)\n",GetPenWidth(),GetPenPattern(),
+      fp->WriteLine("    Pen (%d,%d,%d)\n",GetPenWidthMIF(),GetPenPattern(),
 		    GetPenColor());
     
     if (GetBrushPattern())
@@ -1392,7 +1396,7 @@ int TABArc::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 		
 		if (CSLCount(papszToken) == 4)
 		{    
-		    SetPenWidth(atoi(papszToken[1]));
+		    SetPenWidthMIF(atoi(papszToken[1]));
 		    SetPenPattern(atoi(papszToken[2]));
 		    SetPenColor(atoi(papszToken[3]));
 		}
@@ -1425,7 +1429,7 @@ int TABArc::WriteGeometryToMIFFile(MIDDATAFile *fp)
      fp->WriteLine("  %.16g %.16g\n",m_dStartAngle,m_dEndAngle); 
      
      if (GetPenPattern())
-       fp->WriteLine("    Pen (%d,%d,%d)\n",GetPenWidth(),GetPenPattern(),
+       fp->WriteLine("    Pen (%d,%d,%d)\n",GetPenWidthMIF(),GetPenPattern(),
 		     GetPenColor());
      
    

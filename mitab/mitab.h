@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.42 2000-11-15 04:35:35 daniel Exp $
+ * $Id: mitab.h,v 1.43 2000-11-22 04:04:04 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.42  2000-11-15 04:35:35  daniel
+ * Revision 1.43  2000-11-22 04:04:04  daniel
+ * Added TAB_WarningBoundsOverflow
+ *
+ * Revision 1.42  2000/11/15 04:35:35  daniel
  * MITAB_VERSION 1.0.4
  *
  * Revision 1.41  2000/10/19 20:15:41  daniel
@@ -80,7 +83,7 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION "1.0.4 (2000-11-14)"
+#define MITAB_VERSION "1.0.4 (2000-11-21)"
 
 #ifndef PI
 #  define PI 3.14159265358979323846
@@ -583,6 +586,7 @@ class MIFFile: public IMapInfoFile
  *--------------------------------------------------------------------*/
 #define TAB_WarningFeatureTypeNotSupported     501
 #define TAB_WarningInvalidFieldName            502
+#define TAB_WarningBoundsOverflow              503
 
 /*---------------------------------------------------------------------
  * Codes for the known MapInfo Geometry types

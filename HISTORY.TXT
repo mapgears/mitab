@@ -47,6 +47,10 @@ ToDo - Open Questions:
 CHANGES - Current Version:
 --------------------------
 
+- Added a warning (TAB_WarningBoundsOverflow) on close of .MAP file if any 
+  object was written with coordinates outside of the file's predefined 
+  bounds.  (Causing an overflow of the +/-1e9 integer coord. range)
+
 
 Version 1.0.4 - (2000-11-14)
 ----------------------------
@@ -236,5 +240,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.35 2000-11-15 04:15:32 daniel Exp $
+$Id: HISTORY.TXT,v 1.36 2000-11-22 04:06:46 daniel Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.24 2000-10-16 21:44:50 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.25 2000-12-05 14:56:55 daniel Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.24  2000-10-16 21:44:50  warmerda
+ * Revision 1.25  2000-12-05 14:56:55  daniel
+ * Added some missing unit names (aliases) in TABFile::SetSpatialRef()
+ *
+ * Revision 1.24  2000/10/16 21:44:50  warmerda
  * added nonearth support
  *
  * Revision 1.23  2000/10/16 18:01:20  warmerda
@@ -1172,11 +1175,14 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         sTABProj.nUnitsId = 13;
     else if( dfLinearConv == 1000.0 )
         sTABProj.nUnitsId = 1;
-    else if( dfLinearConv == 0.0254 )
+    else if( dfLinearConv == 0.0254 || EQUAL(pszLinearUnits,"Inch")
+             || EQUAL(pszLinearUnits,"IINCH") )
         sTABProj.nUnitsId = 2;
-    else if( EQUAL(pszLinearUnits,SRS_UL_FOOT) )
+    else if( dfLinearConv == atof(SRS_UL_FOOT_CONV)
+             || EQUAL(pszLinearUnits,SRS_UL_FOOT) )
         sTABProj.nUnitsId = 3;
-    else if( EQUAL(pszLinearUnits,"IYARD") || dfLinearConv == 0.9144 )
+    else if( EQUAL(pszLinearUnits,"YARD") || EQUAL(pszLinearUnits,"IYARD") 
+             || dfLinearConv == 0.9144 )
         sTABProj.nUnitsId = 4;
     else if( dfLinearConv == 0.001 )
         sTABProj.nUnitsId = 5;
@@ -1184,13 +1190,16 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         sTABProj.nUnitsId = 6;
     else if( dfLinearConv == 1.0 )
         sTABProj.nUnitsId = 7;
-    else if( EQUAL(pszLinearUnits,SRS_UL_US_FOOT) )
+    else if( dfLinearConv == atof(SRS_UL_US_FOOT_CONV)
+             || EQUAL(pszLinearUnits,SRS_UL_US_FOOT) )
         sTABProj.nUnitsId = 8;
     else if( EQUAL(pszLinearUnits,SRS_UL_NAUTICAL_MILE) )
         sTABProj.nUnitsId = 9;
-    else if( EQUAL(pszLinearUnits,SRS_UL_LINK) )
+    else if( EQUAL(pszLinearUnits,SRS_UL_LINK) 
+             || EQUAL(pszLinearUnits,"GUNTERLINK") )
         sTABProj.nUnitsId = 30;
-    else if( EQUAL(pszLinearUnits,SRS_UL_CHAIN) )
+    else if( EQUAL(pszLinearUnits,SRS_UL_CHAIN) 
+             || EQUAL(pszLinearUnits,"GUNTERCHAIN") )
         sTABProj.nUnitsId = 31;
     else if( EQUAL(pszLinearUnits,SRS_UL_ROD) )
         sTABProj.nUnitsId = 32;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.16 2000-07-10 14:56:52 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.17 2000-09-19 19:35:53 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.16  2000-07-10 14:56:52  daniel
+ * Revision 1.17  2000-09-19 19:35:53  daniel
+ * Set default scale/displacement when reading V100 headers
+ *
+ * Revision 1.16  2000/07/10 14:56:52  daniel
  * Handle m_nOriginQuadrant==0 as quadrant 3 (reverse x and y axis)
  *
  * Revision 1.15  2000/03/13 05:59:25  daniel
@@ -280,6 +283,15 @@ int     TABMAPHeaderBlock::InitBlockFromData(GByte *pabyBuf, int nSize,
     m_YScale = ReadDouble();
     m_XDispl = ReadDouble();
     m_YDispl = ReadDouble();
+
+    /* In V.100 files, the scale and displacement do not appear to be set.
+     * we'll use m_nCoordPrecision to define the scale factor instead.
+     */
+    if (m_nMAPVersionNumber <= 100)
+    {
+        m_XScale = m_YScale = pow(10, m_nCoordPrecision);
+        m_XDispl = m_YDispl = 0.0;
+    }
 
     for(i=0; i<6; i++)
         m_sProj.adProjParams[i] = ReadDouble();

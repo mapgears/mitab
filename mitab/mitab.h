@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.7 1999-09-28 02:52:47 warmerda Exp $
+ * $Id: mitab.h,v 1.8 1999-09-28 13:32:10 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.7  1999-09-28 02:52:47  warmerda
+ * Revision 1.8  1999-09-28 13:32:10  daniel
+ * Added TABFile::AddFieldNative()
+ *
+ * Revision 1.7  1999/09/28 02:52:47  warmerda
  * Added SetProjInfo().
  *
  * Revision 1.6  1999/09/26 14:59:36  daniel
@@ -56,6 +59,11 @@
 
 #include "mitab_priv.h"
 #include "ogr_feature.h"
+
+#ifndef PI
+#  define PI 3.14159265358979323846
+#endif
+
 
 class TABFeature;
 
@@ -122,6 +130,8 @@ class TABFile
                           double dXMax, double dYMax);
     int         SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
                             TABFieldType *paeMapInfoNativeFieldTypes = NULL);
+    int         AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
+                               int nWidth, int nPrecision=0);
     int         SetSpatialRef(OGRSpatialReference *poSpatialRef);
 
     int         SetFeature(TABFeature *poFeature, int nFeatureId = -1);
@@ -525,7 +535,7 @@ class TABRegion: public TABFeature,
  *     TAB_GEOM_ROUNDRECT_C    0x16
  *     TAB_GEOM_ROUNDRECT      0x17
  *
- * An ellipse is defined by the coords of its 2 opposite corners (the MBR)
+ * A rectangle is defined by the coords of its 2 opposite corners (the MBR)
  * Its corners can optionaly be rounded, in which case a X and Y rounding
  * radius will be defined.
  *

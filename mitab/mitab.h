@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.9 1999-09-29 04:27:14 daniel Exp $
+ * $Id: mitab.h,v 1.10 1999-10-06 13:13:47 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.9  1999-09-29 04:27:14  daniel
+ * Revision 1.10  1999-10-06 13:13:47  daniel
+ * Added several Get/Set() methods to feature classes.
+ *
+ * Revision 1.9  1999/09/29 04:27:14  daniel
  * Changed some TABFeatureClass names
  *
  * Revision 1.8  1999/09/28 13:32:10  daniel
@@ -124,6 +127,9 @@ class TABFile
 
     TABFieldType GetNativeFieldType(int nFieldId);
 
+    int         GetBounds(double &dXMin, double &dYMin, 
+                          double &dXMax, double &dYMax);
+    
     OGRSpatialReference *GetSpatialRef();
 
     ///////////////
@@ -263,6 +269,16 @@ class ITABFeaturePen
     int         GetPenDefIndex() {return m_nPenDefIndex;};
     TABPenDef  *GetPenDefRef() {return &m_sPenDef;};
 
+    GByte       GetPenWidth()   {return m_sPenDef.nLineWidth;};
+    GByte       GetPenPattern() {return m_sPenDef.nLinePattern;};
+    GByte       GetPenStyle()   {return m_sPenDef.nLineStyle;};
+    GInt32      GetPenColor()   {return m_sPenDef.rgbColor;};
+
+    void        SetPenWidth(GByte val)   {m_sPenDef.nLineWidth = val;};
+    void        SetPenPattern(GByte val) {m_sPenDef.nLinePattern=val;};
+    void        SetPenStyle(GByte val)   {m_sPenDef.nLineStyle = val;};
+    void        SetPenColor(GInt32 clr)  {m_sPenDef.rgbColor = clr;};
+
     void        DumpPenDef(FILE *fpOut = NULL);
 };
 
@@ -278,6 +294,17 @@ class ITABFeatureBrush
     int         GetBrushDefIndex() {return m_nBrushDefIndex;};
     TABBrushDef *GetBrushDefRef() {return &m_sBrushDef;};
 
+    GInt32      GetBrushFGColor()     {return m_sBrushDef.rgbFGColor;};
+    GInt32      GetBrushBGColor()     {return m_sBrushDef.rgbBGColor;};
+    GByte       GetBrushPattern()     {return m_sBrushDef.nFillPattern;};
+    GByte       GetBrushTransparent() {return m_sBrushDef.bTransparentFill;};
+
+    void        SetBrushFGColor(GInt32 clr)  { m_sBrushDef.rgbFGColor = clr;};
+    void        SetBrushBGColor(GInt32 clr)  { m_sBrushDef.rgbBGColor = clr;};
+    void        SetBrushPattern(GByte val)   { m_sBrushDef.nFillPattern=val;};
+    void        SetBrushTransparent(GByte val)
+                                          {m_sBrushDef.bTransparentFill=val;};
+
     void        DumpBrushDef(FILE *fpOut = NULL);
 };
 
@@ -292,7 +319,12 @@ class ITABFeatureFont
     ~ITABFeatureFont() {};
     int         GetFontDefIndex() {return m_nFontDefIndex;};
     TABFontDef *GetFontDefRef() {return &m_sFontDef;};
+
     const char *GetFontNameRef() {return m_sFontDef.szFontName;};
+
+    void        SetFontName(const char *pszName)
+                              { strncpy( m_sFontDef.szFontName, pszName, 32);
+                                m_sFontDef.szFontName[32] = '\0';  };
 
     void        DumpFontDef(FILE *fpOut = NULL);
 };
@@ -312,6 +344,10 @@ class ITABFeatureSymbol
     GInt16      GetSymbolNo()    {return m_sSymbolDef.nSymbolNo;};
     GInt16      GetSymbolSize()  {return m_sSymbolDef.nPointSize;};
     GInt32      GetSymbolColor() {return m_sSymbolDef.rgbColor;};
+
+    void        SetSymbolNo(GInt16 val)     { m_sSymbolDef.nSymbolNo = val;};
+    void        SetSymbolSize(GInt16 val)   { m_sSymbolDef.nPointSize = val;};
+    void        SetSymbolColor(GInt32 clr)  { m_sSymbolDef.rgbColor = clr;};
 
     void        DumpSymbolDef(FILE *fpOut = NULL);
 };
@@ -429,6 +465,8 @@ class TABFontPoint: public TABPoint,
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
 
     GBool       QueryFontStyle(TABFontStyle eStyleToQuery);
+
+    void        ToggleFontStyle(TABFontStyle eStyleToToggle, GBool bStatus);
 
     // GetSymbolAngle(): Return angle in degrees counterclockwise
     double      GetSymbolAngle()        {return m_dAngle;};
@@ -685,7 +723,6 @@ class TABText: public TABFeature,
     virtual void DumpMIF(FILE *fpOut = NULL);
 
     const char *GetTextString();
-    void        SetTextString(const char *pszStr);
     double      GetTextAngle();
     double      GetTextHeight();
     GInt32      GetFontFGColor();
@@ -695,6 +732,17 @@ class TABText: public TABFeature,
     TABTextSpacing  GetTextSpacing();
     TABTextLineType GetTextLineType();
     GBool       QueryFontStyle(TABFontStyle eStyleToQuery);
+
+    void        SetTextString(const char *pszStr);
+    void        SetTextAngle(double dAngle);
+    void        SetTextHeight(double dHeight);
+    void        SetFontFGColor(GInt32 rgbColor);
+    void        SetFontBGColor(GInt32 rgbColor);
+
+    void        SetTextJustification(TABTextJust eJust);
+    void        SetTextSpacing(TABTextSpacing eSpacing);
+    void        SetTextLineType(TABTextLineType eLineType);
+    void        ToggleFontStyle(TABFontStyle eStyleToToggle, GBool bStatus);
 };
 
 

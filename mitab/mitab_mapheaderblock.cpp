@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.20 2001-12-05 21:56:15 daniel Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.21 2001-12-05 22:23:06 daniel Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.20  2001-12-05 21:56:15  daniel
+ * Revision 1.21  2001-12-05 22:23:06  daniel
+ * Can't use rint() on Windows... replace rint() with (int)(val+0.5)
+ *
+ * Revision 1.20  2001/12/05 21:56:15  daniel
  * Mod. CoordSys2Int() to use rint() for double to integer coord. conversion.
  *
  * Revision 1.19  2001/11/19 15:05:42  daniel
@@ -389,15 +392,15 @@ int TABMAPHeaderBlock::Coordsys2Int(double dX, double dY,
 
     if (m_nCoordOriginQuadrant==2 || m_nCoordOriginQuadrant==3 ||
         m_nCoordOriginQuadrant==0 )
-        nX = (GInt32)rint(-1.0*dX*m_XScale - m_XDispl);
+        nX = (GInt32)((-1.0*dX*m_XScale - m_XDispl)+0.5);
     else
-        nX = (GInt32)rint(dX*m_XScale + m_XDispl);
+        nX = (GInt32)((dX*m_XScale + m_XDispl)+0.5);
 
     if (m_nCoordOriginQuadrant==3 || m_nCoordOriginQuadrant==4 ||
         m_nCoordOriginQuadrant==0 )
-        nY = (GInt32)rint(-1.0*dY*m_YScale - m_YDispl);
+        nY = (GInt32)((-1.0*dY*m_YScale - m_YDispl)+0.5);
     else
-        nY = (GInt32)rint(dY*m_YScale + m_YDispl);
+        nY = (GInt32)((dY*m_YScale + m_YDispl)+0.5);
 
 //printf("Coordsys2Int: (%10g, %10g) -> (%d, %d)\n", dX, dY, nX, nY);
 

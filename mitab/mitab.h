@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.26 2000-01-15 22:30:43 daniel Exp $
+ * $Id: mitab.h,v 1.27 2000-01-16 19:08:48 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.26  2000-01-15 22:30:43  daniel
+ * Revision 1.27  2000-01-16 19:08:48  daniel
+ * Added support for reading 'Table Type DBF' tables
+ *
+ * Revision 1.26  2000/01/15 22:30:43  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.25  1999/12/19 01:10:36  stephane
@@ -241,7 +244,7 @@ class TABFile: public IMapInfoFile
     char        *m_pszCharset;
     int         *m_panIndexNo;
     GBool       m_bBoundsSet;
-    
+    TABTableType m_eTableType;  // NATIVE (.DAT) or DBF
 
     TABDATFile  *m_poDATFile;   // Attributes file
     TABMAPFile  *m_poMAPFile;   // Object Geometry file
@@ -257,8 +260,8 @@ class TABFile: public IMapInfoFile
     ///////////////
     // Private Read access specific stuff
     //
-    int         ReadFeatureDefn();
-    int         ParseTABFile();
+    int         ParseTABFileFirstPass(GBool bTestOpenNoError);
+    int         ParseTABFileFields();
 
      ///////////////
     // Private Write access specific stuff

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.14 2000-01-15 22:30:44 daniel Exp $
+ * $Id: mitab_priv.h,v 1.15 2000-01-16 19:08:49 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.14  2000-01-15 22:30:44  daniel
+ * Revision 1.15  2000-01-16 19:08:49  daniel
+ * Added support for reading 'Table Type DBF' tables
+ *
+ * Revision 1.14  2000/01/15 22:30:44  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.13  1999/12/14 02:07:12  daniel
@@ -137,6 +140,16 @@ typedef struct TABVertex_t
     double x;
     double y;
 } TABVertex;
+
+/*---------------------------------------------------------------------
+ * TABTableType - Attribute table format
+ *--------------------------------------------------------------------*/
+typedef enum
+{
+    TABTableNative,     // The default
+    TABTableDBF,
+    TABTableAccess
+} TABTableType;
 
 /*---------------------------------------------------------------------
  * TABFieldType - Native MapInfo attribute field types
@@ -964,6 +977,7 @@ class TABDATFile
     char        *m_pszFname;
     FILE        *m_fp;
     TABAccess   m_eAccessMode;
+    TABTableType m_eTableType;
 
     TABRawBinBlock *m_poHeaderBlock;
     int         m_numFields;
@@ -986,7 +1000,8 @@ class TABDATFile
     TABDATFile();
     ~TABDATFile();
 
-    int         Open(const char *pszFname, const char *pszAccess);
+    int         Open(const char *pszFname, const char *pszAccess,
+                     TABTableType eTableType =TABTableNative);
     int         Close();
 
     int         GetNumFields();
@@ -1006,12 +1021,12 @@ class TABDATFile
     int         CommitRecordToFile();
 
     const char  *ReadCharField(int nWidth);
-    GInt32      ReadIntegerField();
-    GInt16      ReadSmallIntField();
-    double      ReadFloatField();
+    GInt32      ReadIntegerField(int nWidth);
+    GInt16      ReadSmallIntField(int nWidth);
+    double      ReadFloatField(int nWidth);
     double      ReadDecimalField(int nWidth);
-    const char  *ReadLogicalField();
-    const char  *ReadDateField();
+    const char  *ReadLogicalField(int nWidth);
+    const char  *ReadDateField(int nWidth);
 
     int         WriteCharField(const char *pszValue, int nWidth);
     int         WriteIntegerField(GInt32 nValue);

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.21 2000-01-15 22:30:43 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.22 2000-01-16 19:08:48 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.21  2000-01-15 22:30:43  daniel
+ * Revision 1.22  2000-01-16 19:08:48  daniel
+ * Added support for reading 'Table Type DBF' tables
+ *
+ * Revision 1.21  2000/01/15 22:30:43  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.20  2000/01/15 05:36:33  daniel
@@ -267,23 +270,28 @@ int TABFeature::ReadRecordFromDATFile(TABDATFile *poDATFile)
             SetField(iField, dValue);
             break;
           case TABFInteger:
-            nValue = poDATFile->ReadIntegerField();
+            nValue = poDATFile->ReadIntegerField(poDATFile->
+                                                 GetFieldWidth(iField));
             SetField(iField, nValue);
             break;
           case TABFSmallInt:
-            nValue = poDATFile->ReadSmallIntField();
+            nValue = poDATFile->ReadSmallIntField(poDATFile->
+                                                 GetFieldWidth(iField));
             SetField(iField, nValue);
             break;
           case TABFFloat:
-            dValue = poDATFile->ReadFloatField();
+            dValue = poDATFile->ReadFloatField(poDATFile->
+                                                 GetFieldWidth(iField));
             SetField(iField, dValue);
             break;
           case TABFLogical:
-            pszValue = poDATFile->ReadLogicalField();
+            pszValue = poDATFile->ReadLogicalField(poDATFile->
+                                                 GetFieldWidth(iField));
             SetField(iField, pszValue);
             break;
           case TABFDate:
-            pszValue = poDATFile->ReadDateField();
+            pszValue = poDATFile->ReadDateField(poDATFile->
+                                                 GetFieldWidth(iField));
             SetField(iField, pszValue);
             break;
           default:

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_datfile.cpp,v 1.11 2000-01-15 22:30:43 daniel Exp $
+ * $Id: mitab_datfile.cpp,v 1.12 2000-01-16 19:08:48 daniel Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_datfile.cpp,v $
- * Revision 1.11  2000-01-15 22:30:43  daniel
+ * Revision 1.12  2000-01-16 19:08:48  daniel
+ * Added support for reading 'Table Type DBF' tables
+ *
+ * Revision 1.11  2000/01/15 22:30:43  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.10  1999/12/20 18:59:20  daniel
@@ -92,6 +95,7 @@ TABDATFile::TABDATFile()
 {
     m_fp = NULL;
     m_pszFname = NULL;
+    m_eTableType = TABTableNative;
 
     m_poHeaderBlock = NULL;
     m_poRecordBlock = NULL;
@@ -123,9 +127,13 @@ TABDATFile::~TABDATFile()
  * Open a .DAT file, and initialize the structures to be ready to read
  * records from it.
  *
+ * We currently support NATIVE and DBF tables for reading, and only
+ * NATIVE tables for writing.
+ *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
-int TABDATFile::Open(const char *pszFname, const char *pszAccess)
+int TABDATFile::Open(const char *pszFname, const char *pszAccess,
+                     TABTableType eTableType /*=TABNativeTable*/)
 {
     int i;
 
@@ -139,12 +147,13 @@ int TABDATFile::Open(const char *pszFname, const char *pszAccess)
     /*-----------------------------------------------------------------
      * Validate access mode and make sure we use binary access.
      *----------------------------------------------------------------*/
-    if (EQUALN(pszAccess, "r", 1))
+    if (EQUALN(pszAccess, "r", 1) && (eTableType==TABTableNative ||
+                                      eTableType==TABTableDBF)  )
     {
         m_eAccessMode = TABRead;
         pszAccess = "rb";
     }
-    else if (EQUALN(pszAccess, "w", 1))
+    else if (EQUALN(pszAccess, "w", 1) && eTableType==TABTableNative)
     {
         m_eAccessMode = TABWrite;
         pszAccess = "wb";
@@ -161,6 +170,7 @@ int TABDATFile::Open(const char *pszFname, const char *pszAccess)
      *----------------------------------------------------------------*/
     m_pszFname = CPLStrdup(pszFname);
     m_fp = VSIFOpen(m_pszFname, pszAccess);
+    m_eTableType = eTableType;
 
     if (m_fp == NULL)
     {
@@ -573,6 +583,9 @@ int  TABDATFile::CommitRecordToFile()
  * handled in a special way... type 'C' fields are used to store binary 
  * values for most MapInfo types.
  *
+ * For TABTableDBF, we actually have no validation to do since all types
+ * are stored as strings internally, so we'll just convert from string.
+ *
  * Returns a value >= 0 if OK, -1 on error.
  **********************************************************************/
 int  TABDATFile::ValidateFieldInfoFromTAB(int iField, const char *pszName,
@@ -584,24 +597,35 @@ int  TABDATFile::ValidateFieldInfoFromTAB(int iField, const char *pszName,
     CPLAssert(m_pasFieldDef);
     CPLAssert(iField >= 0 && iField < m_numFields);
 
+
+    /*-----------------------------------------------------------------
+     * With all table types, we validate the field name
+     *
+     * With TABTableNative, we have to validate the field sizes as well
+     * because .DAT files use char fields to store binary values.
+     * With TABTableDBF, no need to validate field type since all
+     * fields are stored as strings internally.
+     *----------------------------------------------------------------*/
     if (m_pasFieldDef == NULL ||
         !EQUALN(pszName, 
-                m_pasFieldDef[i].szName, strlen(m_pasFieldDef[i].szName)) ||
-        (eType == TABFChar && (m_pasFieldDef[i].cType != 'C' ||
-                               m_pasFieldDef[i].byLength != nWidth )) ||
-        (eType == TABFDecimal && (m_pasFieldDef[i].cType != 'N' ||
+                 m_pasFieldDef[i].szName, strlen(m_pasFieldDef[i].szName)) ||
+
+        (m_eTableType == TABTableNative && 
+         ((eType == TABFChar && (m_pasFieldDef[i].cType != 'C' ||
+                                m_pasFieldDef[i].byLength != nWidth )) ||
+          (eType == TABFDecimal && (m_pasFieldDef[i].cType != 'N' ||
                                   m_pasFieldDef[i].byLength != nWidth||
-                                 m_pasFieldDef[i].byDecimals != nPrecision)) ||
-        (eType == TABFInteger && (m_pasFieldDef[i].cType != 'C' ||
-                                  m_pasFieldDef[i].byLength != 4  )) ||
-        (eType == TABFSmallInt && (m_pasFieldDef[i].cType != 'C' ||
-                                   m_pasFieldDef[i].byLength != 2 )) ||
-        (eType == TABFFloat && (m_pasFieldDef[i].cType != 'C' ||
-                                m_pasFieldDef[i].byLength != 8    )) ||
-        (eType == TABFDate && (m_pasFieldDef[i].cType != 'C' ||
-                               m_pasFieldDef[i].byLength != 4     )) ||
-        (eType == TABFLogical && (m_pasFieldDef[i].cType != 'L' ||
-                                  m_pasFieldDef[i].byLength != 1  ))   )
+                                   m_pasFieldDef[i].byDecimals!=nPrecision)) ||
+          (eType == TABFInteger && (m_pasFieldDef[i].cType != 'C' ||
+                                   m_pasFieldDef[i].byLength != 4  )) ||
+          (eType == TABFSmallInt && (m_pasFieldDef[i].cType != 'C' ||
+                                    m_pasFieldDef[i].byLength != 2 )) ||
+          (eType == TABFFloat && (m_pasFieldDef[i].cType != 'C' ||
+                                 m_pasFieldDef[i].byLength != 8    )) ||
+          (eType == TABFDate && (m_pasFieldDef[i].cType != 'C' ||
+                                m_pasFieldDef[i].byLength != 4     )) ||
+          (eType == TABFLogical && (m_pasFieldDef[i].cType != 'L' ||
+                                   m_pasFieldDef[i].byLength != 1  ))   ) ))
     {
         CPLError(CE_Failure, CPLE_FileIO,
                  "Definition of field %d (%s) from .TAB file does not match "
@@ -629,7 +653,8 @@ int  TABDATFile::ValidateFieldInfoFromTAB(int iField, const char *pszName,
 int  TABDATFile::AddField(const char *pszName, TABFieldType eType,
                           int nWidth, int nPrecision /*=0*/)
 {
-    if (m_eAccessMode != TABWrite || m_bWriteHeaderInitialized)
+    if (m_eAccessMode != TABWrite || m_bWriteHeaderInitialized ||
+        m_eTableType != TABTableNative)
     {
         CPLError(CE_Failure, CPLE_NotSupported,
                  "Addition of new table fields is not supported after the "
@@ -788,9 +813,11 @@ const char *TABDATFile::ReadCharField(int nWidth)
  * Read the integer field value at the current position in the data 
  * block.
  * 
+ * Note: nWidth is used only with TABTableDBF types.
+ *
  * CPLError() will have been called if something fails.
  **********************************************************************/
-GInt32 TABDATFile::ReadIntegerField()
+GInt32 TABDATFile::ReadIntegerField(int nWidth)
 {
     // If current record has been deleted, then return an acceptable 
     // default value.
@@ -803,6 +830,9 @@ GInt32 TABDATFile::ReadIntegerField()
                  "Can't read field value: file is not opened.");
         return 0;
     }
+
+    if (m_eTableType == TABTableDBF)
+        return atoi(ReadCharField(nWidth));
 
     return m_poRecordBlock->ReadInt32();
 }
@@ -813,9 +843,11 @@ GInt32 TABDATFile::ReadIntegerField()
  * Read the smallint field value at the current position in the data 
  * block.
  * 
+ * Note: nWidth is used only with TABTableDBF types.
+ *
  * CPLError() will have been called if something fails.
  **********************************************************************/
-GInt16 TABDATFile::ReadSmallIntField()
+GInt16 TABDATFile::ReadSmallIntField(int nWidth)
 {
     // If current record has been deleted, then return an acceptable 
     // default value.
@@ -828,6 +860,9 @@ GInt16 TABDATFile::ReadSmallIntField()
                  "Can't read field value: file is not opened.");
         return 0;
     }
+
+    if (m_eTableType == TABTableDBF)
+        return atoi(ReadCharField(nWidth));
 
     return m_poRecordBlock->ReadInt16();
 }
@@ -838,9 +873,11 @@ GInt16 TABDATFile::ReadSmallIntField()
  * Read the float field value at the current position in the data 
  * block.
  * 
+ * Note: nWidth is used only with TABTableDBF types.
+ *
  * CPLError() will have been called if something fails.
  **********************************************************************/
-double TABDATFile::ReadFloatField()
+double TABDATFile::ReadFloatField(int nWidth)
 {
     // If current record has been deleted, then return an acceptable 
     // default value.
@@ -853,6 +890,9 @@ double TABDATFile::ReadFloatField()
                  "Can't read field value: file is not opened.");
         return 0.0;
     }
+
+    if (m_eTableType == TABTableDBF)
+        return atof(ReadCharField(nWidth));
 
     return m_poRecordBlock->ReadDouble();
 }
@@ -866,9 +906,11 @@ double TABDATFile::ReadFloatField()
  * The file contains either 0 or 1, and we return a string with 
  * "F" (false) or "T" (true)
  * 
+ * Note: nWidth is used only with TABTableDBF types.
+ *
  * CPLError() will have been called if something fails.
  **********************************************************************/
-const char *TABDATFile::ReadLogicalField()
+const char *TABDATFile::ReadLogicalField(int nWidth)
 {
     GByte bValue;
 
@@ -884,7 +926,16 @@ const char *TABDATFile::ReadLogicalField()
         return "";
     }
 
-    bValue =  m_poRecordBlock->ReadByte();
+    if (m_eTableType == TABTableDBF)
+    {
+        const char *pszVal = ReadCharField(nWidth);
+        bValue = (pszVal && strchr("1YyTt", pszVal[0]) != NULL);
+    }
+    else
+    {
+        // In Native tables, we are guaranteed it is 1 byte with 0/1 value
+        bValue =  m_poRecordBlock->ReadByte();
+    }
 
     return bValue? "T":"F";
 }
@@ -900,11 +951,13 @@ const char *TABDATFile::ReadLogicalField()
  *
  * We return an 8 chars string in the format "YYYYMMDD"
  * 
+ * Note: nWidth is used only with TABTableDBF types.
+ *
  * Returns a reference to an internal buffer that will be valid only until
  * the next field is read, or "" if the operation failed, in which case
  * CPLError() will have been called.
  **********************************************************************/
-const char *TABDATFile::ReadDateField()
+const char *TABDATFile::ReadDateField(int nWidth)
 {
     int nDay, nMonth, nYear;
     static char szBuf[20];
@@ -920,6 +973,12 @@ const char *TABDATFile::ReadDateField()
                  "Can't read field value: file is not opened.");
         return "";
     }
+
+    // With .DBF files, there is nothing to do... the value should already
+    // be stored in YYYYMMDD format according to DBF specs.
+    if (m_eTableType == TABTableDBF)
+        return ReadCharField(nWidth);
+
 
     nYear  = m_poRecordBlock->ReadInt16();
     nMonth = m_poRecordBlock->ReadByte();

@@ -1,5 +1,5 @@
 '/**********************************************************************
-' * $Id: mitab_vb_test.vb,v 1.1 2002-09-07 17:58:01 daniel Exp $
+' * $Id: mitab_vb_test.vb,v 1.2 2003-09-09 21:22:41 dmorissette Exp $
 ' *
 ' * Name:     mitab_vb_test.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -8,7 +8,7 @@
 ' * Author:   Bo Thomsen, bvt@geocon.dk
 ' *
 ' **********************************************************************
-' * Copyright (c) 2002, Bo Thomsen 
+' * Copyright (c) 2002, Bo Thomsen
 ' *
 ' * Permission is hereby granted, free of charge, to any person obtaining a
 ' * copy of this software and associated documentation files (the "Software"),
@@ -16,25 +16,28 @@
 ' * the rights to use, copy, modify, merge, publish, distribute, sublicense,
 ' * and/or sell copies of the Software, and to permit persons to whom the
 ' * Software is furnished to do so, subject to the following conditions:
-' * 
+' *
 ' * The above copyright notice and this permission notice shall be included
 ' * in all copies or substantial portions of the Software.
-' * 
+' *
 ' * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 ' * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 ' * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
 ' * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 ' * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-' * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+' * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 ' * DEALINGS IN THE SOFTWARE.
 ' **********************************************************************
 ' *
 ' * $Log: mitab_vb_test.vb,v $
-' * Revision 1.1  2002-09-07 17:58:01  daniel
+' * Revision 1.2  2003-09-09 21:22:41  dmorissette
+' * Update from BVT to work with version 1.2.4
+' *
+' * Revision 1.1  2002/09/07 17:58:01  daniel
 ' * Initial revision (from BVT)
 ' *
 ' * Revision 1.0  2002/09/07 14:53:59  bvt
-' * translation of mitabc_test.c to Visual Basic 
+' * translation of mitabc_test.c to Visual Basic
 ' *
 ' */
 
@@ -43,7 +46,7 @@
 '/************************************************************************/
 
 Sub testReportfile()
-  Call ReportFile("F:\temp\readtest.tab", "f:\temp\readtest.txt")
+  Call ReportFile("c:\temp\testtab.tab", "c:\temp\testtab.txt")
 End Sub
 
 '/************************************************************************/
@@ -160,7 +163,7 @@ End Sub
 '/************************************************************************/
 
 Sub testWritefile()
-  Call WriteFile("F:\temp\writetest.tab", "tab")
+  Call WriteFile("c:\temp\testtab.tab", "tab")
 End Sub
 
 '/************************************************************************/
@@ -184,9 +187,9 @@ Sub WriteFile(ByVal pszDest As String, ByVal pszMifOrTab As String)
 '/* -------------------------------------------------------------------- */
 '/*      Add a text, float and integer field.                            */
 '/* -------------------------------------------------------------------- */
-    field_index = mitab_c_add_field(dataset, "TestInt", TABFT_Integer, 8, 0)
-    field_index = mitab_c_add_field(dataset, "TestFloat", TABFT_Float, 12, 2)
-    field_index = mitab_c_add_field(dataset, "TestString", TABFT_Char, 10, 0)
+    field_index = mitab_c_add_field(dataset, "TestInt", TABFT_Integer, 8, 0, 0, 0)
+    field_index = mitab_c_add_field(dataset, "TestFloat", TABFT_Float, 12, 2, 0, 0)
+    field_index = mitab_c_add_field(dataset, "TestString", TABFT_Char, 10, 0, 0, 0)
 
 '/* -------------------------------------------------------------------- */
 '/*      Write a point.                                                  */
@@ -468,8 +471,3 @@ Sub WriteFile(ByVal pszDest As String, ByVal pszMifOrTab As String)
     End If
 
 End Sub
-
-
-
-
-

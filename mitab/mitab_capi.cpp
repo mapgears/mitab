@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.31 2003-08-12 20:20:33 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.32 2003-08-12 20:58:27 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.31  2003-08-12 20:20:33  dmorissette
+ * Revision 1.32  2003-08-12 20:58:27  dmorissette
+ * Check for nAffineFlag==1 in mitab_c_get_extended_mif_coordsys() - Anthony D.
+ *
+ * Revision 1.31  2003/08/12 20:20:33  dmorissette
  * Changes from Anthony Dunk, Encom:
  * - Added ability to create a feature of type TABFC_NoGeom
  * - Added mitab_c_get_feature_count(), mitab_c_get_field_as_double() and
@@ -2380,7 +2383,7 @@ mitab_c_get_extended_mif_coordsys( mitab_handle dataset)
         spszCoordSys = MITABSpatialRef2CoordSys( poSRS );
 
         // Append extra stuff if necessary (Added by Encom 2003)
-        if (poSRS->nAffineFlag)
+        if (poSRS->nAffineFlag == 1)
         {
             int nAffineUnit = poSRS->nAffineUnit;
             if (nAffineUnit>32) nAffineUnit=7; // Use "m" if units out of range

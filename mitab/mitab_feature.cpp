@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.5 1999-09-29 17:37:18 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.6 1999-10-01 02:09:25 warmerda Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.5  1999-09-29 17:37:18  daniel
+ * Revision 1.6  1999-10-01 02:09:25  warmerda
+ * Ensure that WriteRecordToDATFile() doesn't try to write more bytes than
+ * are returned by GetFieldAsString().
+ *
+ * Revision 1.5  1999/09/29 17:37:18  daniel
  * Fixed warnings
  *
  * Revision 1.4  1999/09/26 14:59:36  daniel
@@ -192,8 +196,15 @@ int TABFeature::WriteRecordToDATFile(TABDATFile *poDATFile)
         switch(poDATFile->GetFieldType(iField))
         {
           case TABFChar:
-            nStatus = poDATFile->WriteCharField(GetFieldAsString(iField),
+            char      *pszPaddedString;
+
+            pszPaddedString = (char *) 
+                CPLMalloc(poDATFile->GetFieldWidth(iField)+1);
+            memset( pszPaddedString, 0, poDATFile->GetFieldWidth(iField)+1);
+            strcpy( pszPaddedString, GetFieldAsString(iField));
+            nStatus = poDATFile->WriteCharField(pszPaddedString,
                                       poDATFile->GetFieldWidth(iField));
+            CPLFree( pszPaddedString );
             break;
           case TABFDecimal:
             nStatus = poDATFile->WriteDecimalField(GetFieldAsDouble(iField),

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.4 1999-12-18 07:11:57 daniel Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.5 1999-12-18 07:21:30 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.4  1999-12-18 07:11:57  daniel
+ * Revision 1.5  1999-12-18 07:21:30  daniel
+ * Fixed test on geometry type when writing OGRMultiLineStrings
+ *
+ * Revision 1.4  1999/12/18 07:11:57  daniel
  * Return regions as OGRMultiPolygons instead of multiple rings OGRPolygons
  *
  * Revision 1.3  1999/12/16 17:16:44  daniel
@@ -652,7 +655,7 @@ int TABPolyline::WriteGeometryToMIFFile(MIDDATAFile *fp)
         for(iLine=0; iLine < numLines; iLine++)
         {
             poGeom = poMultiLine->getGeometryRef(iLine);
-            if (poGeom && poGeom->getGeometryType() != wkbLineString)
+            if (poGeom && poGeom->getGeometryType() == wkbLineString)
             { 
 		poLine = (OGRLineString*)poGeom;
 		nNumPoints = poLine->getNumPoints();

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.11 2000-01-15 22:30:44 daniel Exp $
+ * $Id: mitab_miffile.cpp,v 1.12 2000-01-18 23:13:41 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.11  2000-01-15 22:30:44  daniel
+ * Revision 1.12  2000-01-18 23:13:41  daniel
+ * Implemented AddFieldNative()
+ *
+ * Revision 1.11  2000/01/15 22:30:44  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.10  1999/12/19 17:40:53  daniel
@@ -495,87 +498,74 @@ int  MIFFile::AddFields(const char *pszLine)
 {
     char **papszToken;
     int nStatus = 0,numTok;
-    OGRFieldDefn *poFieldDefn = NULL;
 
-    CPLAssert(m_poDefn);
+    CPLAssert(m_bHeaderWrote == FALSE);
     papszToken = CSLTokenizeStringComplex(pszLine," (,)",TRUE,FALSE); 
     numTok = CSLCount(papszToken);
 
-                
     if (numTok >= 3 && EQUAL(papszToken[1], "char"))
     {
 	/*-------------------------------------------------
 	 * CHAR type
 	 *------------------------------------------------*/
-	poFieldDefn = new OGRFieldDefn(papszToken[0], OFTString);
-	poFieldDefn->SetWidth(atoi(papszToken[2]));
+        nStatus = AddFieldNative(papszToken[0], TABFChar,
+                                 atoi(papszToken[2]));
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "integer"))
     {
 	/*-------------------------------------------------
 	 * INTEGER type
 	 *------------------------------------------------*/
-	  poFieldDefn = new OGRFieldDefn(papszToken[0], OFTInteger);
+        nStatus = AddFieldNative(papszToken[0], TABFInteger);
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "smallint"))
     {
 	/*-------------------------------------------------
 	 * SMALLINT type
 	 *------------------------------------------------*/
-	poFieldDefn = new OGRFieldDefn(papszToken[0], OFTInteger);
+        nStatus = AddFieldNative(papszToken[0], TABFSmallInt);
     }
     else if (numTok >= 4 && EQUAL(papszToken[1], "decimal"))
     {
 	/*-------------------------------------------------
 	 * DECIMAL type
 	 *------------------------------------------------*/
-	poFieldDefn = new OGRFieldDefn(papszToken[0], OFTReal);
-	poFieldDefn->SetWidth(atoi(papszToken[2]));
-	poFieldDefn->SetPrecision(atoi(papszToken[3]));
+        nStatus = AddFieldNative(papszToken[0], TABFDecimal,
+                                 atoi(papszToken[2]), atoi(papszToken[3]));
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "float"))
     {
 	/*-------------------------------------------------
 	 * FLOAT type
 	 *------------------------------------------------*/
-	poFieldDefn = new OGRFieldDefn(papszToken[0], OFTReal);
+        nStatus = AddFieldNative(papszToken[0], TABFFloat);
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "date"))
     {
 	/*-------------------------------------------------
 	 * DATE type (returned as a string: "DD/MM/YYYY")
 	 *------------------------------------------------*/
-	poFieldDefn = new OGRFieldDefn(papszToken[0], OFTString);
-	poFieldDefn->SetWidth(10);
+        nStatus = AddFieldNative(papszToken[0], TABFDate);
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "logical"))
     {
 	/*-------------------------------------------------
 	 * LOGICAL type (value "T" or "F")
 	 *------------------------------------------------*/
-	poFieldDefn = new OGRFieldDefn(papszToken[0], OFTString);
-	poFieldDefn->SetWidth(1);
+        nStatus = AddFieldNative(papszToken[0], TABFLogical);
     }
     else 
       nStatus = -1; // Unrecognized field type or line corrupt
     
+    CSLDestroy(papszToken);
+    papszToken = NULL;
+
     if (nStatus != 0)
     {
 	CPLError(CE_Failure, CPLE_FileIO,
 		 "Failed to parse field definition in file %s", m_pszFname);
-	CSLDestroy(papszToken);
-	if (poFieldDefn)
-	  delete poFieldDefn;
 	return -1;
     }
-    /*-----------------------------------------------------
-     * Add the FieldDefn to the FeatureDefn and continue with
-     * the next one.
-     *----------------------------------------------------*/
-    m_poDefn->AddFieldDefn(poFieldDefn);
-    if (poFieldDefn)
-        delete poFieldDefn;
-    CSLDestroy(papszToken);
     
     return 0;
 }
@@ -1230,9 +1220,108 @@ int MIFFile::SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
  * Returns 0 on success, -1 on error.
  **********************************************************************/
 int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
-                            int nWidth, int nPrecision /*=0*/)
+                            int nWidth /*=0*/, int nPrecision /*=0*/)
 {
-    return -1;
+    OGRFieldDefn *poFieldDefn;
+    int nStatus = 0;
+
+    if (m_eAccessMode != TABWrite)
+    {
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "SetFeatureDefn() can be used only with Write access.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Check that call happens at the right time in dataset's life.
+     *----------------------------------------------------------------*/
+    if (m_bHeaderWrote)
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "AddFieldNative() must be called after opening a new "
+                 "dataset, but before writing the first feature to it.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Create new OGRFeatureDefn if not done yet...
+     *----------------------------------------------------------------*/
+    if (m_poDefn == NULL)
+    {
+        char *pszFeatureClassName = TABGetBasename(m_pszFname);
+        m_poDefn = new OGRFeatureDefn(pszFeatureClassName);
+        CPLFree(pszFeatureClassName);
+        // Ref count defaults to 0... set it to 1
+        m_poDefn->Reference();
+    }
+
+    /*-----------------------------------------------------------------
+     * Map MapInfo native types to OGR types
+     *----------------------------------------------------------------*/
+    poFieldDefn = NULL;
+
+    switch(eMapInfoType)
+    {
+      case TABFChar:
+        /*-------------------------------------------------
+         * CHAR type
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTString);
+        poFieldDefn->SetWidth(nWidth);
+        break;
+      case TABFInteger:
+        /*-------------------------------------------------
+         * INTEGER type
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTInteger);
+        break;
+      case TABFSmallInt:
+        /*-------------------------------------------------
+         * SMALLINT type
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTInteger);
+        break;
+      case TABFDecimal:
+        /*-------------------------------------------------
+         * DECIMAL type
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTReal);
+        poFieldDefn->SetWidth(nWidth);
+        poFieldDefn->SetPrecision(nPrecision);
+        break;
+      case TABFFloat:
+        /*-------------------------------------------------
+         * FLOAT type
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTReal);
+        break;
+      case TABFDate:
+        /*-------------------------------------------------
+         * DATE type (returned as a string: "DD/MM/YYYY")
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTString);
+        poFieldDefn->SetWidth(10);
+        break;
+      case TABFLogical:
+        /*-------------------------------------------------
+         * LOGICAL type (value "T" or "F")
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszName, OFTString);
+        poFieldDefn->SetWidth(1);
+        break;
+      default:
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "Unsupported type for field %s", pszName);
+        return -1;
+    }
+
+    /*-----------------------------------------------------
+     * Add the FieldDefn to the FeatureDefn 
+     *----------------------------------------------------*/
+    m_poDefn->AddFieldDefn(poFieldDefn);
+    delete poFieldDefn;
+
+    return nStatus;
 }
 
 

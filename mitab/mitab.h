@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.33 2000-04-21 12:40:01 daniel Exp $
+ * $Id: mitab.h,v 1.34 2000-06-28 00:30:25 warmerda Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.33  2000-04-21 12:40:01  daniel
+ * Revision 1.34  2000-06-28 00:30:25  warmerda
+ * added count of points, lines, egions and text for MIFFile
+ *
+ * Revision 1.33  2000/04/21 12:40:01  daniel
  * Added TABPolyline::GetNumParts()/GetPartRef()
  *
  * Revision 1.32  2000/02/28 16:41:48  daniel
@@ -528,6 +531,11 @@ class MIFFile: public IMapInfoFile
     double      m_dYMin;
     double      m_dXMax;
     double      m_dYMax;
+
+    int         m_nPoints;
+    int         m_nLines;
+    int         m_nRegions;
+    int         m_nTexts;
  
     MIDDATAFile  *m_poMIDFile;   // Mid file
     MIDDATAFile  *m_poMIFFile;   // Mif File

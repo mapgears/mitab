@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.6 2000-01-26 18:17:35 warmerda Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.7 2000-02-02 20:14:03 warmerda Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.6  2000-01-26 18:17:35  warmerda
+ * Revision 1.7  2000-02-02 20:14:03  warmerda
+ * made safer when encountering geometryless features
+ *
+ * Revision 1.6  2000/01/26 18:17:35  warmerda
  * added CreateField method
  *
  * Revision 1.5  2000/01/15 22:30:44  daniel
@@ -188,6 +191,7 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
 {
     TABFeature *poTABFeature;
     OGRGeometry   *poGeom;
+    OGRwkbGeometryType eGType;
 
     /*-----------------------------------------------------------------
      * MITAB won't accept new features unless they are in a type derived
@@ -195,8 +199,12 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
      * feature type based on the geometry type.
      *----------------------------------------------------------------*/
     poGeom = poFeature->GetGeometryRef();
+    if( poGeom != NULL )
+        eGType = poGeom->getGeometryType();
+    else
+        eGType = wkbNone;
 
-    switch (poGeom->getGeometryType())
+    switch (eGType)
     {
       /*-------------------------------------------------------------
        * POINT
@@ -248,7 +256,8 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
         break;
     }
 
-    poTABFeature->SetGeometryDirectly(poGeom->clone());
+    if( poGeom != NULL )
+        poTABFeature->SetGeometryDirectly(poGeom->clone());
     
     for (int i=0; i< poFeature->GetDefnRef()->GetFieldCount();i++)
     {

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrpolygon.cpp,v 1.17 2002/05/02 19:44:53 warmerda Exp $
+ * $Id: ogrpolygon.cpp,v 1.21 2003/06/09 13:48:54 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRPolygon geometry class.
@@ -28,6 +28,18 @@
  ******************************************************************************
  *
  * $Log: ogrpolygon.cpp,v $
+ * Revision 1.21  2003/06/09 13:48:54  warmerda
+ * added DB2 V7.2 byte order hack
+ *
+ * Revision 1.20  2003/05/28 19:16:43  warmerda
+ * fixed up argument names and stuff for docs
+ *
+ * Revision 1.19  2003/03/07 21:28:56  warmerda
+ * support 0x8000 style 3D WKB flags
+ *
+ * Revision 1.18  2002/09/11 13:47:17  warmerda
+ * preliminary set of fixes for 3D WKB enum
+ *
  * Revision 1.17  2002/05/02 19:44:53  warmerda
  * fixed 3D binary support for polygon/linearring
  *
@@ -84,7 +96,7 @@
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrpolygon.cpp,v 1.17 2002/05/02 19:44:53 warmerda Exp $");
+CPL_CVSID("$Id: ogrpolygon.cpp,v 1.21 2003/06/09 13:48:54 warmerda Exp $");
 
 /************************************************************************/
 /*                             OGRPolygon()                             */
@@ -158,7 +170,10 @@ void OGRPolygon::empty()
 OGRwkbGeometryType OGRPolygon::getGeometryType()
 
 {
-    return wkbPolygon;
+    if( getCoordinateDimension() == 3 )
+        return wkbPolygon25D;
+    else
+        return wkbPolygon;
 }
 
 /************************************************************************/
@@ -178,15 +193,13 @@ int OGRPolygon::getDimension()
 int OGRPolygon::getCoordinateDimension()
 
 {
-    int  nDimension = 2;
-
     for( int iRing = 0; iRing < nRingCount; iRing++ )
     {
         if( papoRings[iRing]->getCoordinateDimension() == 3 )
-            nDimension = 3;
+            return 3;
     }
 
-    return nDimension;
+    return 2;
 }
 
 /************************************************************************/
@@ -373,19 +386,19 @@ int OGRPolygon::WkbSize()
 /************************************************************************/
 
 OGRErr OGRPolygon::importFromWkb( unsigned char * pabyData,
-                                  int nBytesAvailable )
+                                  int nSize )
 
 {
     OGRwkbByteOrder     eByteOrder;
     int                 nDataOffset, b3D;
     
-    if( nBytesAvailable < 21 && nBytesAvailable != -1 )
+    if( nSize < 21 && nSize != -1 )
         return OGRERR_NOT_ENOUGH_DATA;
 
 /* -------------------------------------------------------------------- */
 /*      Get the byte order byte.                                        */
 /* -------------------------------------------------------------------- */
-    eByteOrder = (OGRwkbByteOrder) *pabyData;
+    eByteOrder = DB2_V72_FIX_BYTE_ORDER((OGRwkbByteOrder) *pabyData);
     CPLAssert( eByteOrder == wkbXDR || eByteOrder == wkbNDR );
 
 /* -------------------------------------------------------------------- */
@@ -405,12 +418,9 @@ OGRErr OGRPolygon::importFromWkb( unsigned char * pabyData,
 #endif    
 
     if( eByteOrder == wkbNDR )
-        b3D = pabyData[2];
+        b3D = pabyData[4] & 0x80 || pabyData[2] & 0x80;
     else
-        b3D = pabyData[3];
-
-    if( b3D )
-        CPLDebug( "OGRPolygon", "importFromWkb() - 3D Mode" );
+        b3D = pabyData[1] & 0x80 || pabyData[3] & 0x80;
 
 /* -------------------------------------------------------------------- */
 /*      Do we already have some rings?                                  */
@@ -435,8 +445,8 @@ OGRErr OGRPolygon::importFromWkb( unsigned char * pabyData,
     papoRings = (OGRLinearRing **) OGRMalloc(sizeof(void*) * nRingCount);
 
     nDataOffset = 9;
-    if( nBytesAvailable != -1 )
-        nBytesAvailable -= nDataOffset;
+    if( nSize != -1 )
+        nSize -= nDataOffset;
 
 /* -------------------------------------------------------------------- */
 /*      Get the rings.                                                  */
@@ -448,15 +458,15 @@ OGRErr OGRPolygon::importFromWkb( unsigned char * pabyData,
         papoRings[iRing] = new OGRLinearRing();
         eErr = papoRings[iRing]->_importFromWkb( eByteOrder, b3D,
                                                  pabyData + nDataOffset,
-                                                 nBytesAvailable );
+                                                 nSize );
         if( eErr != OGRERR_NONE )
         {
             nRingCount = iRing;
             return eErr;
         }
 
-        if( nBytesAvailable != -1 )
-            nBytesAvailable -= papoRings[iRing]->_WkbSize( b3D );
+        if( nSize != -1 )
+            nSize -= papoRings[iRing]->_WkbSize( b3D );
 
         nDataOffset += papoRings[iRing]->_WkbSize( b3D );
     }
@@ -477,9 +487,6 @@ OGRErr  OGRPolygon::exportToWkb( OGRwkbByteOrder eByteOrder,
     int         nOffset;
     int         b3D = getCoordinateDimension() == 3;
     
-    if( b3D )
-        CPLDebug( "OGRPolygon", "exportToWkb() - 3D Mode" );
-
 /* -------------------------------------------------------------------- */
 /*      Set the byte order.                                             */
 /* -------------------------------------------------------------------- */
@@ -488,20 +495,14 @@ OGRErr  OGRPolygon::exportToWkb( OGRwkbByteOrder eByteOrder,
 /* -------------------------------------------------------------------- */
 /*      Set the geometry feature type.                                  */
 /* -------------------------------------------------------------------- */
+    GUInt32 nGType = getGeometryType();
+    
     if( eByteOrder == wkbNDR )
-    {
-        pabyData[1] = wkbPolygon;
-        pabyData[2] = b3D ? 0x80 : 0;
-        pabyData[3] = 0;
-        pabyData[4] = 0;
-    }
+        nGType = CPL_LSBWORD32( nGType );
     else
-    {
-        pabyData[1] = 0;
-        pabyData[2] = 0;
-        pabyData[3] = b3D ? 0x80 : 0;
-        pabyData[4] = wkbPolygon;
-    }
+        nGType = CPL_MSBWORD32( nGType );
+
+    memcpy( pabyData + 1, &nGType, 4 );
     
 /* -------------------------------------------------------------------- */
 /*      Copy in the raw data.                                           */
@@ -646,7 +647,7 @@ OGRErr OGRPolygon::importFromWkt( char ** ppszInput )
 /*      equivelent.  This could be made alot more CPU efficient!        */
 /************************************************************************/
 
-OGRErr OGRPolygon::exportToWkt( char ** ppszReturn )
+OGRErr OGRPolygon::exportToWkt( char ** ppszDstText )
 
 {
     char        **papszRings;
@@ -672,26 +673,26 @@ OGRErr OGRPolygon::exportToWkt( char ** ppszReturn )
 /*      Allocate exactly the right amount of space for the              */
 /*      aggregated string.                                              */
 /* -------------------------------------------------------------------- */
-    *ppszReturn = (char *) VSIMalloc(nCumulativeLength + nRingCount + 11);
+    *ppszDstText = (char *) VSIMalloc(nCumulativeLength + nRingCount + 11);
 
-    if( *ppszReturn == NULL )
+    if( *ppszDstText == NULL )
         return OGRERR_NOT_ENOUGH_MEMORY;
 
 /* -------------------------------------------------------------------- */
 /*      Build up the string, freeing temporary strings as we go.        */
 /* -------------------------------------------------------------------- */
-    strcpy( *ppszReturn, "POLYGON (" );
+    strcpy( *ppszDstText, "POLYGON (" );
 
     for( iRing = 0; iRing < nRingCount; iRing++ )
     {                                                           
         if( iRing > 0 )
-            strcat( *ppszReturn, "," );
+            strcat( *ppszDstText, "," );
         
-        strcat( *ppszReturn, papszRings[iRing] + 11 );
+        strcat( *ppszDstText, papszRings[iRing] + 11 );
         VSIFree( papszRings[iRing] );
     }
 
-    strcat( *ppszReturn, ")" );
+    strcat( *ppszDstText, ")" );
 
     CPLFree( papszRings );
 
@@ -738,7 +739,7 @@ int OGRPolygon::PointOnSurface( OGRPoint * )
 /*                            getEnvelope()                             */
 /************************************************************************/
 
-void OGRPolygon::getEnvelope( OGREnvelope * poEnvelope )
+void OGRPolygon::getEnvelope( OGREnvelope * psEnvelope )
 
 {
     OGREnvelope         oRingEnv;
@@ -746,20 +747,20 @@ void OGRPolygon::getEnvelope( OGREnvelope * poEnvelope )
     if( nRingCount == 0 )
         return;
 
-    papoRings[0]->getEnvelope( poEnvelope );
+    papoRings[0]->getEnvelope( psEnvelope );
 
     for( int iRing = 1; iRing < nRingCount; iRing++ )
     {
         papoRings[iRing]->getEnvelope( &oRingEnv );
 
-        if( poEnvelope->MinX > oRingEnv.MinX )
-            poEnvelope->MinX = oRingEnv.MinX;
-        if( poEnvelope->MinY > oRingEnv.MinY )
-            poEnvelope->MinY = oRingEnv.MinY;
-        if( poEnvelope->MaxX < oRingEnv.MaxX )
-            poEnvelope->MaxX = oRingEnv.MaxX;
-        if( poEnvelope->MaxY < oRingEnv.MaxY )
-            poEnvelope->MaxY = oRingEnv.MaxY;
+        if( psEnvelope->MinX > oRingEnv.MinX )
+            psEnvelope->MinX = oRingEnv.MinX;
+        if( psEnvelope->MinY > oRingEnv.MinY )
+            psEnvelope->MinY = oRingEnv.MinY;
+        if( psEnvelope->MaxX < oRingEnv.MaxX )
+            psEnvelope->MaxX = oRingEnv.MaxX;
+        if( psEnvelope->MaxY < oRingEnv.MaxY )
+            psEnvelope->MaxY = oRingEnv.MaxY;
     }
 }
 

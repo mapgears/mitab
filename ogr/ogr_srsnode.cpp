@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogr_srsnode.cpp,v 1.21 2002/04/18 14:22:45 warmerda Exp $
+ * $Id: ogr_srsnode.cpp,v 1.26 2003/05/28 19:16:42 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGR_SRSNode class.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999,  Les Technologies SoftMap Inc.
@@ -28,6 +28,22 @@
  ******************************************************************************
  *
  * $Log: ogr_srsnode.cpp,v $
+ * Revision 1.26  2003/05/28 19:16:42  warmerda
+ * fixed up argument names and stuff for docs
+ *
+ * Revision 1.25  2003/03/12 14:25:31  warmerda
+ * Fixed bug 294 re: quoting of axis directions
+ *
+ * Revision 1.24  2003/01/08 18:14:28  warmerda
+ * added FixupOrdering()
+ *
+ * Revision 1.23  2002/12/10 04:06:57  warmerda
+ * Added support for a parent pointer in OGR_SRSNode.
+ * Ensure that authority codes are quoted (bugzilla 201)
+ *
+ * Revision 1.22  2002/07/25 13:13:36  warmerda
+ * fixed const correctness of some docs
+ *
  * Revision 1.21  2002/04/18 14:22:45  warmerda
  * made OGRSpatialReference and co 'const correct'
  *
@@ -97,7 +113,7 @@
 #include "ogr_spatialref.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogr_srsnode.cpp,v 1.21 2002/04/18 14:22:45 warmerda Exp $");
+CPL_CVSID("$Id: ogr_srsnode.cpp,v 1.26 2003/05/28 19:16:42 warmerda Exp $");
 
 /************************************************************************/
 /*                            OGR_SRSNode()                             */
@@ -118,6 +134,8 @@ OGR_SRSNode::OGR_SRSNode( const char * pszValueIn )
 
     nChildren = 0;
     papoChildNodes = NULL;
+
+    poParent = NULL;
 }
 
 /************************************************************************/
@@ -155,7 +173,7 @@ void OGR_SRSNode::ClearChildren()
 /************************************************************************/
 
 /**
- * \fn int OGR_SRSNode::GetChildCount();
+ * \fn int OGR_SRSNode::GetChildCount() const;
  *
  * Get number of children nodes.
  *
@@ -309,6 +327,7 @@ void OGR_SRSNode::InsertChild( OGR_SRSNode * poNew, int iChild )
              sizeof(void*) * (nChildren - iChild - 1) );
     
     papoChildNodes[iChild] = poNew;
+    poNew->poParent = this;
 }
 
 /************************************************************************/
@@ -372,7 +391,7 @@ int OGR_SRSNode::FindChild( const char * pszValue ) const
 /************************************************************************/
 
 /**
- * \fn const char *OGR_SRSNode::GetValue();
+ * \fn const char *OGR_SRSNode::GetValue() const;
  *
  * Fetch value string for this node.
  *
@@ -424,6 +443,44 @@ OGR_SRSNode *OGR_SRSNode::Clone() const
 }
 
 /************************************************************************/
+/*                            NeedsQuoting()                            */
+/*                                                                      */
+/*      Does this node need to be quoted when it is exported to Wkt?    */
+/************************************************************************/
+
+int OGR_SRSNode::NeedsQuoting() const
+
+{
+    // non-terminals are never quoted.
+    if( GetChildCount() != 0 )
+        return FALSE;
+
+    // As per bugzilla bug 201, the OGC spec says the authority code
+    // needs to be quoted even though it appears well behaved.
+    if( poParent != NULL && EQUAL(poParent->GetValue(),"AUTHORITY") )
+        return TRUE;
+    
+    // As per bugzilla bug 294, the OGC spec says the direction
+    // values for the AXIS keywords should *not* be quoted.
+    if( poParent != NULL && EQUAL(poParent->GetValue(),"AXIS") 
+        && this != poParent->GetChild(0) )
+        return FALSE;
+
+    // Non-numeric tokens are generally quoted while clean numeric values
+    // are generally not. 
+    for( int i = 0; pszValue[i] != '\0'; i++ )
+    {
+        if( (pszValue[i] < '0' || pszValue[i] > '9')
+            && pszValue[i] != '.'
+            && pszValue[i] != '-' && pszValue[i] != '+'
+            && pszValue[i] != 'e' && pszValue[i] != 'E' )
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+/************************************************************************/
 /*                            exportToWkt()                             */
 /************************************************************************/
 
@@ -465,29 +522,11 @@ OGRErr OGR_SRSNode::exportToWkt( char ** ppszResult ) const
     *ppszResult[0] = '\0';
     
 /* -------------------------------------------------------------------- */
-/*      Do we need to quote this value?  Determine whether or not       */
-/*      this is a terminal string value.                                */
-/* -------------------------------------------------------------------- */
-    int         bNeedQuoting = FALSE;
-
-    if( GetChildCount() == 0 )
-    {
-        for( i = 0; pszValue[i] != '\0'; i++ )
-        {
-            if( (pszValue[i] < '0' || pszValue[i] > '9')
-                && pszValue[i] != '.'
-                && pszValue[i] != '-' && pszValue[i] != '+'
-                && pszValue[i] != 'e' && pszValue[i] != 'E' )
-                bNeedQuoting = TRUE;
-        }
-    }
-
-/* -------------------------------------------------------------------- */
 /*      Capture this nodes value.  We put it in double quotes if        */
 /*      this is a leaf node, otherwise we assume it is a well formed    */
 /*      node name.                                                      */
 /* -------------------------------------------------------------------- */
-    if( bNeedQuoting )
+    if( NeedsQuoting() )
     {
         strcat( *ppszResult, "\"" );
         strcat( *ppszResult, pszValue ); /* should we do quoting? */
@@ -546,29 +585,11 @@ OGRErr OGR_SRSNode::exportToPrettyWkt( char ** ppszResult, int nDepth ) const
     *ppszResult[0] = '\0';
     
 /* -------------------------------------------------------------------- */
-/*      Do we need to quote this value?  Determine whether or not       */
-/*      this is a terminal string value.                                */
-/* -------------------------------------------------------------------- */
-    int         bNeedQuoting = FALSE;
-
-    if( GetChildCount() == 0 )
-    {
-        for( i = 0; pszValue[i] != '\0'; i++ )
-        {
-            if( (pszValue[i] < '0' || pszValue[i] > '9')
-                && pszValue[i] != '.'
-                && pszValue[i] != '-' && pszValue[i] != '+'
-                && pszValue[i] != 'e' && pszValue[i] != 'E' )
-                bNeedQuoting = TRUE;
-        }
-    }
-
-/* -------------------------------------------------------------------- */
 /*      Capture this nodes value.  We put it in double quotes if        */
 /*      this is a leaf node, otherwise we assume it is a well formed    */
 /*      node name.                                                      */
 /* -------------------------------------------------------------------- */
-    if( bNeedQuoting )
+    if( NeedsQuoting() )
     {
         strcat( *ppszResult, "\"" );
         strcat( *ppszResult, pszValue ); /* should we do quoting? */
@@ -791,11 +812,14 @@ void OGR_SRSNode::MakeValueSafe()
  *                (eg. "PROJECTION")
  * @param papszSrcValues a NULL terminated array of source string.  If the
  * node value matches one of these (case insensitive) then replacement occurs.
- * @param papszDstValue an array of destination strings.  On a match, the
+ * @param papszDstValues an array of destination strings.  On a match, the
  * one corresponding to a source value will be used to replace a node.
  * @param nStepSize increment when stepping through source and destination
  * arrays, allowing source and destination arrays to be one interleaved array
  * for instances.  Defaults to 1.
+ * @param bChildOfHit Only TRUE if we the current node is the child of a match,
+ * and so needs to be set.  Application code would normally pass FALSE for this
+ * argument.
  * 
  * @return returns OGRERR_NONE unless something bad happens.  There is no
  * indication returned about whether any replacement occured.  
@@ -870,3 +894,122 @@ void OGR_SRSNode::StripNodes( const char * pszName )
     for( int i = 0; i < GetChildCount(); i++ )
         GetChild(i)->StripNodes( pszName );
 }
+
+/************************************************************************/
+/*                           FixupOrdering()                            */
+/************************************************************************/
+
+/**
+ * Correct parameter ordering to match CT Specification.
+ *
+ * Some mechanisms to create WKT using OGRSpatialReference, and some
+ * imported WKT fail to maintain the order of parameters required according
+ * to the BNF definitions in the OpenGIS SF-SQL and CT Specifications.  This
+ * method attempts to massage things back into the required order.
+ *
+ * This method will reorder the children of the node it is invoked on and
+ * then recurse to all children to fix up their children.
+ *
+ * @return OGRERR_NONE on success or an error code if something goes 
+ * wrong.  
+ */
+
+static char *apszPROJCSRule[] = 
+{ "PROJCS", "GEOGCS", "PROJECTION", "PARAMETER", "UNIT", "AXIS", "AUTHORITY", 
+  NULL };
+
+static char *apszDATUMRule[] = 
+{ "DATUM", "SPHEROID", "TOWGS84", "AUTHORITY", NULL };
+
+static char *apszGEOGCSRule[] = 
+{ "GEOGCS", "DATUM", "PRIMEM", "UNIT", "AXIS", "AUTHORITY", NULL };
+
+static char **apszOrderingRules[] = {
+    apszPROJCSRule, apszGEOGCSRule, apszDATUMRule, NULL };
+
+OGRErr OGR_SRSNode::FixupOrdering()
+
+{
+    int    i;
+
+/* -------------------------------------------------------------------- */
+/*      Recurse ordering children.                                      */
+/* -------------------------------------------------------------------- */
+    for( i = 0; i < GetChildCount(); i++ )
+        GetChild(i)->FixupOrdering();
+
+    if( GetChildCount() < 3 )
+        return OGRERR_NONE;
+
+/* -------------------------------------------------------------------- */
+/*      Is this a node for which an ordering rule exists?               */
+/* -------------------------------------------------------------------- */
+    char **papszRule = NULL;
+
+    for( i = 0; apszOrderingRules[i] != NULL; i++ )
+    {
+        if( EQUAL(apszOrderingRules[i][0],pszValue) )
+        {
+            papszRule = apszOrderingRules[i] + 1;
+            break;
+        }
+    }
+
+    if( papszRule == NULL )
+        return OGRERR_NONE;
+
+/* -------------------------------------------------------------------- */
+/*      If we have a rule, apply it.  We create an array                */
+/*      (panChildPr) with the priority code for each child (derived     */
+/*      from the rule) and we then bubble sort based on this.           */
+/* -------------------------------------------------------------------- */
+    int  *panChildKey = (int *) CPLCalloc(sizeof(int),GetChildCount());
+
+    for( i = 1; i < GetChildCount(); i++ )
+    {
+        panChildKey[i] = CSLFindString( papszRule, GetChild(i)->GetValue() );
+        if( panChildKey[i] == -1 )
+        {
+            CPLDebug( "OGRSpatialReference", 
+                      "Found unexpected key %s when trying to order SRS nodes.",
+                      GetChild(i)->GetValue() );
+        }
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Sort - Note we don't try to do anything with the first child    */
+/*      which we assume is a name string.                               */
+/* -------------------------------------------------------------------- */
+    int j, bChange = TRUE;
+
+    for( i = 1; bChange && i < GetChildCount()-1; i++ )
+    {
+        bChange = FALSE;
+        for( j = 1; j < GetChildCount()-i; j++ )
+        {
+            if( panChildKey[j] == -1 || panChildKey[j+1] == -1 )
+                continue;
+
+            if( panChildKey[j] > panChildKey[j+1] )
+            {
+                OGR_SRSNode *poTemp = papoChildNodes[j];
+                int          nKeyTemp = panChildKey[j];
+
+                papoChildNodes[j] = papoChildNodes[j+1];
+                papoChildNodes[j+1] = poTemp;
+
+                nKeyTemp = panChildKey[j];
+                panChildKey[j] = panChildKey[j+1];
+                panChildKey[j+1] = nKeyTemp;
+
+                bChange = TRUE;
+            }
+        }
+    }
+
+    CPLFree( panChildKey );
+
+    return OGRERR_NONE;
+}
+
+

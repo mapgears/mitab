@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_feature.h,v 1.21 2001/11/01 16:54:16 warmerda Exp $
+ * $Id: ogr_feature.h,v 1.28 2003/05/28 19:16:42 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Class for representing a whole feature, and layer schemas.
@@ -28,6 +28,27 @@
  ******************************************************************************
  *
  * $Log: ogr_feature.h,v $
+ * Revision 1.28  2003/05/28 19:16:42  warmerda
+ * fixed up argument names and stuff for docs
+ *
+ * Revision 1.27  2003/04/08 20:57:28  warmerda
+ * added RemapFields on OGRFeature
+ *
+ * Revision 1.26  2003/03/04 05:46:31  warmerda
+ * added EvaluateAgainstIndices for OGRFeatureQuery
+ *
+ * Revision 1.25  2003/01/08 22:03:44  warmerda
+ * added StealGeometry() method on OGRFeature
+ *
+ * Revision 1.24  2002/10/09 14:31:06  warmerda
+ * dont permit negative widths to be assigned to field definition
+ *
+ * Revision 1.23  2002/09/26 18:13:17  warmerda
+ * moved some defs to ogr_core.h for sharing with ogr_api.h
+ *
+ * Revision 1.22  2002/08/07 21:37:47  warmerda
+ * added indirect OGRFeaturedefn constructor/destructor
+ *
  * Revision 1.21  2001/11/01 16:54:16  warmerda
  * added DestroyFeature
  *
@@ -108,79 +129,6 @@ class OGRStyleTable;
  * Simple feature classes.
  */
 
-/**
- * List of feature field types.  This list is likely to be extended in the
- * future ... avoid coding applications based on the assumption that all
- * field types can be known.
- */
-
-enum OGRFieldType
-{
-  /** Simple 32bit integer */                   OFTInteger = 0,
-  /** List of 32bit integers */                 OFTIntegerList = 1,
-  /** Double Precision floating point */        OFTReal = 2,
-  /** List of doubles */                        OFTRealList = 3,
-  /** String of ASCII chars */                  OFTString = 4,
-  /** Array of strings */                       OFTStringList = 5,
-  /** Double byte string (unsupported) */       OFTWideString = 6,
-  /** List of wide strings (unsupported) */     OFTWideStringList = 7,
-  /** Raw Binary data (unsupported) */          OFTBinary = 8
-};
-
-/**
- * Display justification for field values.
- */
-
-enum OGRJustification
-{
-    OJUndefined = 0,
-    OJLeft = 1,
-    OJRight = 2
-};
-
-#define OGRNullFID            -1
-#define OGRUnsetMarker        -21121
-
-/************************************************************************/
-/*                               OGRField                               */
-/************************************************************************/
-
-/**
- * OGRFeature field attribute value union.
- */
-
-typedef union {
-    int         Integer;
-    double      Real;
-    char       *String;
-    // wchar    *WideString;
-    
-    struct {
-        int     nCount;
-        int     *paList;
-    } IntegerList;
-    
-    struct {
-        int     nCount;
-        double  *paList;
-    } RealList;
-    
-    struct {
-        int     nCount;
-        char    **paList;
-    } StringList;
-
-//    union {
-//        int   nCount;
-//        wchar *paList;
-//    } WideStringList;
-
-    struct {
-        int     nMarker1;
-        int     nMarker2;
-    } Set;
-} OGRField;
-
 /************************************************************************/
 /*                             OGRFieldDefn                             */
 /************************************************************************/
@@ -218,7 +166,7 @@ class CPL_DLL OGRFieldDefn
                                                 { eJustify = eJustifyIn; }
 
     int                 GetWidth() { return nWidth; }
-    void                SetWidth( int nWidthIn ) { nWidth = nWidthIn; }
+    void                SetWidth( int nWidthIn ) { nWidth = MAX(0,nWidthIn); }
 
     int                 GetPrecision() { return nPrecision; }
     void                SetPrecision( int nPrecisionIn )
@@ -278,9 +226,14 @@ class CPL_DLL OGRFeatureDefn
     OGRwkbGeometryType GetGeomType() { return eGeomType; }
     void        SetGeomType( OGRwkbGeometryType );
 
+    OGRFeatureDefn *Clone();
+
     int         Reference() { return ++nRefCount; }
     int         Dereference() { return --nRefCount; }
     int         GetReferenceCount() { return nRefCount; }
+
+    static OGRFeatureDefn  *CreateFeatureDefn( const char *pszName = NULL );
+    static void         DestroyFeatureDefn( OGRFeatureDefn * );
 };
 
 /************************************************************************/
@@ -314,6 +267,7 @@ class CPL_DLL OGRFeature
     OGRErr              SetGeometryDirectly( OGRGeometry * );
     OGRErr              SetGeometry( OGRGeometry * );
     OGRGeometry        *GetGeometryRef() { return poGeometry; }
+    OGRGeometry        *StealGeometry();
 
     OGRFeature         *Clone();
     virtual OGRBoolean  Equal( OGRFeature * poFeature );
@@ -384,11 +338,14 @@ class CPL_DLL OGRFeature
                            { SetField( GetFieldIndex(pszFName), puValue ); }
 
     long                GetFID() { return nFID; }
-    virtual OGRErr      SetFID( long );
+    virtual OGRErr      SetFID( long nFID );
 
     void                DumpReadable( FILE * );
 
     OGRErr              SetFrom( OGRFeature *, int = TRUE);
+
+    OGRErr              RemapFields( OGRFeatureDefn *poNewDefn, 
+                                     int *panRemapSource );
 
     virtual const char *GetStyleString();
     virtual void        SetStyleString(const char *);
@@ -402,6 +359,8 @@ class CPL_DLL OGRFeature
 /*                           OGRFeatureQuery                            */
 /************************************************************************/
 
+class OGRLayer;
+
 class CPL_DLL OGRFeatureQuery
 {
   private:
@@ -414,6 +373,8 @@ class CPL_DLL OGRFeatureQuery
 
     OGRErr      Compile( OGRFeatureDefn *, const char * );
     int         Evaluate( OGRFeature * );
+
+    long       *EvaluateAgainstIndices( OGRLayer *, OGRErr * );
 };
 
 #endif /* ndef _OGR_FEATURE_H_INCLUDED */

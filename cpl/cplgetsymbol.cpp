@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cplgetsymbol.cpp,v 1.11 2001/07/18 04:00:49 warmerda Exp $
+ * $Id: cplgetsymbol.cpp,v 1.12 2002/11/20 17:16:48 warmerda Exp $
  *
  * Project:  Common Portability Library
  * Purpose:  Fetch a function pointer from a shared library / DLL.
@@ -28,6 +28,9 @@
  ******************************************************************************
  *
  * $Log: cplgetsymbol.cpp,v $
+ * Revision 1.12  2002/11/20 17:16:48  warmerda
+ * Added debug report from dummy CPLGetSymbol().
+ *
  * Revision 1.11  2001/07/18 04:00:49  warmerda
  * added CPL_CVSID
  *
@@ -65,7 +68,7 @@
 
 #include "cpl_conv.h"
 
-CPL_CVSID("$Id: cplgetsymbol.cpp,v 1.11 2001/07/18 04:00:49 warmerda Exp $");
+CPL_CVSID("$Id: cplgetsymbol.cpp,v 1.12 2002/11/20 17:16:48 warmerda Exp $");
 
 /* ==================================================================== */
 /*                  Unix Implementation                                 */
@@ -194,9 +197,12 @@ void *CPLGetSymbol( const char * pszLibrary, const char * pszSymbolName )
 /*      Dummy implementation.                                           */
 /************************************************************************/
 
-void *CPLGetSymbol(const char *, const char *)
+void *CPLGetSymbol(const char *pszLibrary, const char *pszEntryPoint)
 
 {
+    CPLDebug( "CPL", 
+              "CPLGetSymbol(%s,%s) called.  Failed as this is stub"
+              " implementation.", pszLibrary, pszEntryPoint );
     return NULL;
 }
 #endif

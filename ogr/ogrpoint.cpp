@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrpoint.cpp,v 1.18 2002/05/02 19:45:36 warmerda Exp $
+ * $Id: ogrpoint.cpp,v 1.23 2003/06/09 13:48:54 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The Point geometry class.
@@ -28,6 +28,21 @@
  ******************************************************************************
  *
  * $Log: ogrpoint.cpp,v $
+ * Revision 1.23  2003/06/09 13:48:54  warmerda
+ * added DB2 V7.2 byte order hack
+ *
+ * Revision 1.22  2003/05/28 19:16:43  warmerda
+ * fixed up argument names and stuff for docs
+ *
+ * Revision 1.21  2003/03/07 21:28:56  warmerda
+ * support 0x8000 style 3D WKB flags
+ *
+ * Revision 1.20  2003/02/08 00:37:14  warmerda
+ * try to improve documentation
+ *
+ * Revision 1.19  2002/09/11 13:47:17  warmerda
+ * preliminary set of fixes for 3D WKB enum
+ *
  * Revision 1.18  2002/05/02 19:45:36  warmerda
  * added flattenTo2D() method
  *
@@ -88,7 +103,7 @@
 #include "ogr_p.h"
 #include <assert.h>
 
-CPL_CVSID("$Id: ogrpoint.cpp,v 1.18 2002/05/02 19:45:36 warmerda Exp $");
+CPL_CVSID("$Id: ogrpoint.cpp,v 1.23 2003/06/09 13:48:54 warmerda Exp $");
 
 /************************************************************************/
 /*                              OGRPoint()                              */
@@ -234,18 +249,18 @@ int OGRPoint::WkbSize()
 /************************************************************************/
 
 OGRErr OGRPoint::importFromWkb( unsigned char * pabyData,
-                                int nBytesAvailable )
+                                int nSize )
 
 {
     OGRwkbByteOrder     eByteOrder;
     
-    if( nBytesAvailable < 21 && nBytesAvailable != -1 )
+    if( nSize < 21 && nSize != -1 )
         return OGRERR_NOT_ENOUGH_DATA;
 
 /* -------------------------------------------------------------------- */
 /*      Get the byte order byte.                                        */
 /* -------------------------------------------------------------------- */
-    eByteOrder = (OGRwkbByteOrder) *pabyData;
+    eByteOrder = DB2_V72_FIX_BYTE_ORDER((OGRwkbByteOrder) *pabyData);
     assert( eByteOrder == wkbXDR || eByteOrder == wkbNDR );
 
 /* -------------------------------------------------------------------- */
@@ -259,12 +274,12 @@ OGRErr OGRPoint::importFromWkb( unsigned char * pabyData,
     if( eByteOrder == wkbNDR )
     {
         eGeometryType = (OGRwkbGeometryType) pabyData[1];
-        bIs3D = pabyData[2] & 0x80;
+        bIs3D = pabyData[4] & 0x80 || pabyData[2] & 0x80;
     }
     else
     {
         eGeometryType = (OGRwkbGeometryType) pabyData[4];
-        bIs3D = pabyData[3] & 0x80;
+        bIs3D = pabyData[1] & 0x80 || pabyData[3] & 0x80;
     }
 
     assert( eGeometryType == wkbPoint );
@@ -313,30 +328,14 @@ OGRErr  OGRPoint::exportToWkb( OGRwkbByteOrder eByteOrder,
 /* -------------------------------------------------------------------- */
 /*      Set the geometry feature type.                                  */
 /* -------------------------------------------------------------------- */
+    GUInt32 nGType = getGeometryType();
+    
     if( eByteOrder == wkbNDR )
-    {
-        pabyData[1] = wkbPoint;
-
-        if( z == 0 )
-            pabyData[2] = 0;
-        else
-            pabyData[2] = 0x80;
-        
-        pabyData[3] = 0;
-        pabyData[4] = 0;
-    }
+        nGType = CPL_LSBWORD32( nGType );
     else
-    {
-        pabyData[1] = 0;
-        pabyData[2] = 0;
+        nGType = CPL_MSBWORD32( nGType );
 
-        if( z == 0 )
-            pabyData[3] = 0;
-        else
-            pabyData[3] = 0x80;
-        
-        pabyData[4] = wkbPoint;
-    }
+    memcpy( pabyData + 1, &nGType, 4 );
     
 /* -------------------------------------------------------------------- */
 /*      Copy in the raw data.                                           */
@@ -419,7 +418,7 @@ OGRErr OGRPoint::importFromWkt( char ** ppszInput )
 /*      equivelent.                                                     */
 /************************************************************************/
 
-OGRErr OGRPoint::exportToWkt( char ** ppszReturn )
+OGRErr OGRPoint::exportToWkt( char ** ppszDstText )
 
 {
     char        szTextEquiv[100];
@@ -427,7 +426,7 @@ OGRErr OGRPoint::exportToWkt( char ** ppszReturn )
 
     OGRMakeWktCoordinate(szCoordinate, x, y, z);
     sprintf( szTextEquiv, "POINT (%s)", szCoordinate );
-    *ppszReturn = CPLStrdup( szTextEquiv );
+    *ppszDstText = CPLStrdup( szTextEquiv );
     
     return OGRERR_NONE;
 }
@@ -436,11 +435,11 @@ OGRErr OGRPoint::exportToWkt( char ** ppszReturn )
 /*                            getEnvelope()                             */
 /************************************************************************/
 
-void OGRPoint::getEnvelope( OGREnvelope * poEnvelope )
+void OGRPoint::getEnvelope( OGREnvelope * psEnvelope )
 
 {
-    poEnvelope->MinX = poEnvelope->MaxX = getX();
-    poEnvelope->MinY = poEnvelope->MaxY = getY();
+    psEnvelope->MinX = psEnvelope->MaxX = getX();
+    psEnvelope->MinY = psEnvelope->MaxY = getY();
 }
 
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_error.cpp,v 1.21 2001/12/14 19:45:17 warmerda Exp $
+ * $Id: cpl_error.cpp,v 1.27 2003/05/27 20:44:16 warmerda Exp $
  *
  * Name:     cpl_error.cpp
  * Project:  CPL - Common Portability Library
@@ -29,6 +29,24 @@
  **********************************************************************
  *
  * $Log: cpl_error.cpp,v $
+ * Revision 1.27  2003/05/27 20:44:16  warmerda
+ * use VSI time services
+ *
+ * Revision 1.26  2003/05/08 21:51:14  warmerda
+ * added CPL{G,S}etConfigOption() usage
+ *
+ * Revision 1.25  2003/04/04 14:57:38  dron
+ * _vsnprintf() hack moved to the cpl_config.h.vc.
+ *
+ * Revision 1.24  2003/04/04 14:16:07  dron
+ * Use _vsnprintf() in Windows environment.
+ *
+ * Revision 1.23  2002/10/23 20:19:37  warmerda
+ * Modify log file naming convention as per patch from Dale.
+ *
+ * Revision 1.22  2002/08/01 20:02:54  warmerda
+ * added CPL_LOG_ERRORS support
+ *
  * Revision 1.21  2001/12/14 19:45:17  warmerda
  * Avoid use of errno in prototype.
  *
@@ -96,13 +114,11 @@
 
 #include "cpl_error.h"
 #include "cpl_vsi.h"
+#include "cpl_conv.h"
 
 #define TIMESTAMP_DEBUG
-#ifdef TIMESTAMP_DEBUG
-#include <time.h>
-#endif
 
-CPL_CVSID("$Id: cpl_error.cpp,v 1.21 2001/12/14 19:45:17 warmerda Exp $");
+CPL_CVSID("$Id: cpl_error.cpp,v 1.27 2003/05/27 20:44:16 warmerda Exp $");
 
 /* static buffer to store the last error message.  We'll assume that error
  * messages cannot be longer than 2000 chars... which is quite reasonable
@@ -178,7 +194,7 @@ void    CPLErrorV(CPLErr eErrClass, int err_no, const char *fmt, va_list args )
     /* Expand the error message 
      */
 #if defined(HAVE_VSNPRINTF)
-    vsnprintf(gszCPLLastErrMsg, sizeof(gszCPLLastErrMsg), fmt, args);
+    vsnprintf( gszCPLLastErrMsg, sizeof(gszCPLLastErrMsg), fmt, args );
 #else
     vsprintf(gszCPLLastErrMsg, fmt, args);
 #endif
@@ -188,6 +204,9 @@ void    CPLErrorV(CPLErr eErrClass, int err_no, const char *fmt, va_list args )
      */
     gnCPLLastErrNo = err_no;
     geCPLLastErrType = eErrClass;
+
+    if( CPLGetConfigOption("CPL_LOG_ERRORS",NULL) != NULL )
+        CPLDebug( "CPLError", "%s", gszCPLLastErrMsg );
 
     if( gpfnCPLErrorHandler )
         gpfnCPLErrorHandler(eErrClass, err_no, gszCPLLastErrMsg);
@@ -225,8 +244,8 @@ void CPLDebug( const char * pszCategory, const char * pszFormat, ... )
 
 {
     char        *pszMessage;
-    va_list args;
-    const char      *pszDebug = getenv("CPL_DEBUG");
+    va_list     args;
+    const char  *pszDebug = CPLGetConfigOption("CPL_DEBUG",NULL);
 
 #define ERROR_MAX 25000
 
@@ -253,7 +272,7 @@ void CPLDebug( const char * pszCategory, const char * pszFormat, ... )
 /* -------------------------------------------------------------------- */
 /*    Allocate a block for the error.                                   */
 /* -------------------------------------------------------------------- */
-    pszMessage = (char *) VSIMalloc(ERROR_MAX);
+    pszMessage = (char *) VSIMalloc( ERROR_MAX );
     if( pszMessage == NULL )
         return;
         
@@ -262,12 +281,11 @@ void CPLDebug( const char * pszCategory, const char * pszFormat, ... )
 /*      to ensure one is looking at what one should be looking at!      */
 /* -------------------------------------------------------------------- */
 
+    pszMessage[0] = '\0';
 #ifdef TIMESTAMP_DEBUG
+    if( CPLGetConfigOption( "CPL_TIMESTAMP", NULL ) != NULL )
     {
-        time_t ltime;
-    
-        time( &ltime );
-        strcpy( pszMessage, ctime( &ltime ) );
+        strcpy( pszMessage, VSICTime( VSITime(NULL) ) );
         
         // On windows anyway, ctime puts a \n at the end, but I'm not 
         // convinced this is standard behaviour, so we'll get rid of it
@@ -279,8 +297,6 @@ void CPLDebug( const char * pszCategory, const char * pszFormat, ... )
         }
         strcat( pszMessage, ": " );
     }
-#else
-    pszMessage[0] = '\0';
 #endif
 
 /* -------------------------------------------------------------------- */
@@ -402,9 +418,9 @@ void CPLDefaultErrorHandler( CPLErr eErrClass, int nError,
         bLogInit = TRUE;
 
         fpLog = stderr;
-        if( getenv( "CPL_LOG" ) != NULL )
+        if( CPLGetConfigOption( "CPL_LOG", NULL ) != NULL )
         {
-            fpLog = fopen( getenv("CPL_LOG"), "wt" );
+            fpLog = fopen( CPLGetConfigOption("CPL_LOG",""), "wt" );
             if( fpLog == NULL )
                 fpLog = stderr;
         }
@@ -447,10 +463,11 @@ void CPLLoggingErrorHandler( CPLErr eErrClass, int nError,
     {
         const char *cpl_log = NULL;
 
+        CPLSetConfigOption( "CPL_TIMESTAMP", "ON" );
+
         bLogInit = TRUE;
 
-        if( getenv("CPL_LOG") != NULL )
-            cpl_log = getenv("CPL_LOG");
+        cpl_log = CPLGetConfigOption("CPL_LOG", NULL );
 
         fpLog = stderr;
         if( cpl_log != NULL && EQUAL(cpl_log,"OFF") )
@@ -468,7 +485,24 @@ void CPLLoggingErrorHandler( CPLErr eErrClass, int nError,
             {
                 fclose( fpLog );
 
-                sprintf( path, "%s_%d", cpl_log, i++ );
+                /* generate sequenced log file names, inserting # before ext.*/
+                if (strrchr(cpl_log, '.') == NULL)
+                {
+                    sprintf( path, "%s_%d%s", cpl_log, i++,
+                             ".log" );
+                }
+                else
+                {
+                    int pos = 0;
+                    char *cpl_log_base = strdup(cpl_log);
+                    pos = strcspn(cpl_log_base, ".");
+                    if (pos > 0)
+                    {
+                        cpl_log_base[pos] = '\0';
+                    }
+                    sprintf( path, "%s_%d%s", cpl_log_base,
+                             i++, ".log" );
+                }
             }
 
             fpLog = fopen( path, "wt" );

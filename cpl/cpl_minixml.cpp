@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_minixml.cpp,v 1.13 2002/07/09 20:25:25 warmerda Exp $
+ * $Id: cpl_minixml.cpp,v 1.23 2003/05/21 03:32:43 warmerda Exp $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Implementation of MiniXML Parser and handling.
@@ -27,7 +27,50 @@
  * DEALINGS IN THE SOFTWARE.
  **********************************************************************
  *
+ * Independent Security Audit 2003/04/05 Andrey Kiselev:
+ *   Completed audit of this module. Any documents may be parsed without
+ *   buffer overflows and stack corruptions.
+ * 
+ * Security Audit 2003/03/28 warmerda:
+ *   Completed security audit.  I believe that this module may be safely used 
+ *   to parse, and serialize arbitrary documents provided by a potentially 
+ *   hostile source.
+ *
  * $Log: cpl_minixml.cpp,v $
+ * Revision 1.23  2003/05/21 03:32:43  warmerda
+ * expand tabs
+ *
+ * Revision 1.22  2003/04/05 07:12:25  dron
+ * Completed security audit.
+ *
+ * Revision 1.21  2003/03/28 17:38:39  warmerda
+ * Added NULL check in CPLParseXMLString().
+ *
+ * Revision 1.20  2003/03/28 05:05:18  warmerda
+ * Completed security audit. Several bugs related to possible buffer
+ * overruns correct, notably with regard to CPLError() calls.
+ *
+ * Revision 1.19  2003/03/27 18:12:41  warmerda
+ * Added NULL pszNameSpace support in namespace stripper (all namespaces).
+ * Added XML file read/write functions.
+ *
+ * Revision 1.18  2003/03/24 16:47:30  warmerda
+ * Added CPLStripXMLNamespace().
+ * CPLAddXMLChild() will now ensure that attributes are inserted before
+ * non-attributes nodes.
+ *
+ * Revision 1.17  2003/02/14 18:44:29  warmerda
+ * proper tokens may include a dash
+ *
+ * Revision 1.16  2002/11/16 20:42:40  warmerda
+ * improved inline comments
+ *
+ * Revision 1.15  2002/11/16 20:38:34  warmerda
+ * added support for literals like DOCTYPE
+ *
+ * Revision 1.14  2002/07/16 15:06:26  warmerda
+ * ensure that attributes are serialized properly regardless of their order
+ *
  * Revision 1.13  2002/07/09 20:25:25  warmerda
  * expand tabs
  *
@@ -74,7 +117,7 @@
 #include "cpl_conv.h"
 #include "cpl_string.h"
 
-CPL_CVSID("$Id: cpl_minixml.cpp,v 1.13 2002/07/09 20:25:25 warmerda Exp $");
+CPL_CVSID("$Id: cpl_minixml.cpp,v 1.23 2003/05/21 03:32:43 warmerda Exp $");
 
 typedef enum {
     TNone,
@@ -85,7 +128,8 @@ typedef enum {
     TToken,
     TSlashClose,
     TQuestionClose,
-    TComment
+    TComment,
+    TLiteral
 } TokenType;
 
 typedef struct {
@@ -210,6 +254,40 @@ static TokenType ReadToken( ParseContext *psContext )
         ReadChar(psContext);
     }
 /* -------------------------------------------------------------------- */
+/*      Handle DOCTYPE or other literals.                               */
+/* -------------------------------------------------------------------- */
+    else if( chNext == '<' 
+          && EQUALN(psContext->pszInput+psContext->nInputOffset,"!DOCTYPE",8) )
+    {
+        int   bInQuotes = FALSE;
+        psContext->eTokenType = TLiteral;
+        
+        AddToToken( psContext, '<' );
+        do { 
+            chNext = ReadChar(psContext);
+            if( chNext == '\0' )
+            {
+                CPLError( CE_Failure, CPLE_AppDefined, 
+                          "Parse error in DOCTYPE on or before line %d, "
+                          "reached end of file without '>'.", 
+                          psContext->nInputLine );
+                
+                break;
+            }
+
+            if( chNext == '\"' )
+                bInQuotes = !bInQuotes;
+
+             if( chNext == '>' && !bInQuotes )
+            {
+                AddToToken( psContext, '>' );
+                break;
+            }
+
+            AddToToken( psContext, chNext );
+        } while( TRUE );
+    }
+/* -------------------------------------------------------------------- */
 /*      Simple single tokens of interest.                               */
 /* -------------------------------------------------------------------- */
     else if( chNext == '<' && !psContext->bInElement )
@@ -237,18 +315,10 @@ static TokenType ReadToken( ParseContext *psContext )
              && psContext->pszInput[psContext->nInputOffset] == '>' )
     {
         chNext = ReadChar( psContext );
-        if( chNext != '>' )
-        {
-            psContext->eTokenType = TNone;
-            CPLError( CE_Failure, CPLE_AppDefined, 
-                      "Parse error at '/' on line %d, expected '>'.", 
-                      psContext->nInputLine );
-        }
-        else
-        {
-            psContext->eTokenType = TSlashClose;
-            psContext->bInElement = FALSE;
-        }
+        CPLAssert( chNext == '>' );
+
+        psContext->eTokenType = TSlashClose;
+        psContext->bInElement = FALSE;
     }
 /* -------------------------------------------------------------------- */
 /*      Handle the ?> token terminator.                                 */
@@ -257,18 +327,11 @@ static TokenType ReadToken( ParseContext *psContext )
              && psContext->pszInput[psContext->nInputOffset] == '>' )
     {
         chNext = ReadChar( psContext );
-        if( chNext != '>' )
-        {
-            psContext->eTokenType = TNone;
-            CPLError( CE_Failure, CPLE_AppDefined, 
-                      "Parse error at '?' on line %d, expected '>'.", 
-                      psContext->nInputLine );
-        }
-        else
-        {
-            psContext->eTokenType = TQuestionClose;
-            psContext->bInElement = FALSE;
-        }
+        
+        CPLAssert( chNext == '>' );
+
+        psContext->eTokenType = TQuestionClose;
+        psContext->bInElement = FALSE;
     }
 
 /* -------------------------------------------------------------------- */
@@ -317,6 +380,17 @@ static TokenType ReadToken( ParseContext *psContext )
                   "Parse error on line %d, reached EOF before closing quote.", 
                       psContext->nInputLine );
         }
+
+        /* Do we need to unescape it? */
+        if( strchr(psContext->pszToken,'&') != NULL )
+        {
+            int  nLength;
+            char *pszUnescaped = CPLUnescapeString( psContext->pszToken, 
+                                                    &nLength, CPLES_XML );
+            strcpy( psContext->pszToken, pszUnescaped );
+            CPLFree( pszUnescaped );
+            psContext->nTokenSize = strlen(psContext->pszToken );
+        }
     }
 
 /* -------------------------------------------------------------------- */
@@ -359,6 +433,7 @@ static TokenType ReadToken( ParseContext *psContext )
         for( chNext = ReadChar(psContext); 
              (chNext >= 'A' && chNext <= 'Z')
                  || (chNext >= 'a' && chNext <= 'z')
+                 || chNext == '-'
                  || chNext == '_'
                  || chNext == '.'
                  || chNext == ':'
@@ -440,6 +515,13 @@ CPLXMLNode *CPLParseXMLString( const char *pszString )
 
     CPLErrorReset();
 
+    if( pszString == NULL )
+    {
+        CPLError( CE_Failure, CPLE_AppDefined, 
+                  "CPLParseXMLString() called with NULL pointer." );
+        return NULL;
+    }
+
 /* -------------------------------------------------------------------- */
 /*      Initialize parse context.                                       */
 /* -------------------------------------------------------------------- */
@@ -493,7 +575,7 @@ CPLXMLNode *CPLParseXMLString( const char *pszString )
                          sContext.papsStack[sContext.nStackSize-1]->pszValue) )
                 {
                     CPLError( CE_Failure, CPLE_AppDefined, 
-                              "Line %d: <%s> doesn't have matching <%s>.",
+                              "Line %d: <%.500s> doesn't have matching <%.500s>.",
                               sContext.nInputLine,
                               sContext.pszToken, sContext.pszToken+1 );
                     break;
@@ -503,7 +585,7 @@ CPLXMLNode *CPLParseXMLString( const char *pszString )
                     if( ReadToken(&sContext) != TClose )
                     {
                         CPLError( CE_Failure, CPLE_AppDefined, 
-                                  "Line %d: Missing close angle bracket after <%s.",
+                                  "Line %d: Missing close angle bracket after <%.500s.",
                                   sContext.nInputLine,
                                   sContext.pszToken );
                         break;
@@ -528,8 +610,8 @@ CPLXMLNode *CPLParseXMLString( const char *pszString )
             if( ReadToken(&sContext) != TEqual )
             {
                 CPLError( CE_Failure, CPLE_AppDefined, 
-                          "Line %d: Didn't find expected '=' for attribute value.",
-                          sContext.nInputLine );
+                          "Line %d: Didn't find expected '=' for value of attribute '%.500s'.",
+                          sContext.nInputLine, psAttr->pszValue );
                 break;
             }
 
@@ -614,6 +696,17 @@ CPLXMLNode *CPLParseXMLString( const char *pszString )
         }
 
 /* -------------------------------------------------------------------- */
+/*      Handle literals.  They are returned without processing.         */
+/* -------------------------------------------------------------------- */
+        else if( sContext.eTokenType == TLiteral )
+        {
+            CPLXMLNode *psValue;
+
+            psValue = CPLCreateXMLNode(NULL, CXT_Literal, sContext.pszToken);
+            AttachNode( &sContext, psValue );
+        }
+
+/* -------------------------------------------------------------------- */
 /*      Add a text value node as a child of the current element.        */
 /* -------------------------------------------------------------------- */
         else if( sContext.eTokenType == TString && !sContext.bInElement )
@@ -629,7 +722,7 @@ CPLXMLNode *CPLParseXMLString( const char *pszString )
         else
         {
             CPLError( CE_Failure, CPLE_AppDefined, 
-                      "Parse error at line %d, unexpected token:%s\n", 
+                      "Parse error at line %d, unexpected token:%.500s\n", 
                       sContext.nInputLine, sContext.pszToken );
             break;
         }
@@ -642,7 +735,7 @@ CPLXMLNode *CPLParseXMLString( const char *pszString )
     {
         CPLError( CE_Failure, CPLE_AppDefined, 
                   "Parse error at EOF, not all elements have been closed,\n"
-                  "starting with %s\n",
+                  "starting with %.500s\n", 
                   sContext.papsStack[sContext.nStackSize-1]->pszValue );
     }
 
@@ -695,9 +788,8 @@ CPLSerializeXMLNode( CPLXMLNode *psNode, int nIndent,
 /*      string.                                                         */
 /* -------------------------------------------------------------------- */
     *pnLength += strlen(*ppszText + *pnLength);
-    if(strlen(psNode->pszValue) + *pnLength + 40 + nIndent > *pnMaxLength)
-        _GrowBuffer( strlen(psNode->pszValue) + *pnLength + 40 + nIndent, 
-                     ppszText, pnMaxLength );
+    _GrowBuffer( strlen(psNode->pszValue) + *pnLength + 40 + nIndent, 
+                 ppszText, pnMaxLength );
     
 /* -------------------------------------------------------------------- */
 /*      Text is just directly emitted.                                  */
@@ -708,6 +800,9 @@ CPLSerializeXMLNode( CPLXMLNode *psNode, int nIndent,
 
         CPLAssert( psNode->psChild == NULL );
 
+        /* Escaped text might be bigger than expected. */
+        _GrowBuffer( strlen(pszEscaped) + *pnLength,
+                     ppszText, pnMaxLength );
         strcat( *ppszText + *pnLength, pszEscaped );
 
         CPLFree( pszEscaped );
@@ -728,7 +823,7 @@ CPLSerializeXMLNode( CPLXMLNode *psNode, int nIndent,
     }
 
 /* -------------------------------------------------------------------- */
-/*      Attributes require a little formatting.                         */
+/*      Handle comment output.                                          */
 /* -------------------------------------------------------------------- */
     else if( psNode->eType == CXT_Comment )
     {
@@ -744,29 +839,49 @@ CPLSerializeXMLNode( CPLXMLNode *psNode, int nIndent,
     }
 
 /* -------------------------------------------------------------------- */
+/*      Handle literal output (like <!DOCTYPE...>)                      */
+/* -------------------------------------------------------------------- */
+    else if( psNode->eType == CXT_Literal )
+    {
+        int     i;
+
+        CPLAssert( psNode->psChild == NULL );
+
+        for( i = 0; i < nIndent; i++ )
+            (*ppszText)[(*pnLength)++] = ' ';
+
+        strcpy( *ppszText + *pnLength, psNode->pszValue );
+        strcat( *ppszText + *pnLength, "\n" );
+    }
+
+/* -------------------------------------------------------------------- */
 /*      Elements actually have to deal with general children, and       */
 /*      various formatting issues.                                      */
 /* -------------------------------------------------------------------- */
     else if( psNode->eType == CXT_Element )
     {
-        CPLXMLNode      *psChild = psNode->psChild;
-        char *pszIndent;
+        int             bHasNonAttributeChildren = FALSE;
+        CPLXMLNode      *psChild;
         
-        pszIndent =  (char *) CPLCalloc(nIndent + 1,1);
-        memset(pszIndent, ' ', nIndent );
-
-        strcat( *ppszText + *pnLength, pszIndent );
+        memset( *ppszText + *pnLength, ' ', nIndent );
         *pnLength += nIndent;
+        (*ppszText)[*pnLength] = '\0';
+
         sprintf( *ppszText + *pnLength, "<%s", psNode->pszValue );
-        
-        while( psChild != NULL && psChild->eType == CXT_Attribute )
+
+        /* Serialize *all* the attribute children, regardless of order */
+        for( psChild = psNode->psChild; 
+             psChild != NULL; 
+             psChild = psChild->psNext )
         {
-            CPLSerializeXMLNode( psChild, 0, ppszText, pnLength, 
-                                 pnMaxLength );
-            psChild = psChild->psNext;
+            if( psChild->eType == CXT_Attribute )
+                CPLSerializeXMLNode( psChild, 0, ppszText, pnLength, 
+                                     pnMaxLength );
+            else
+                bHasNonAttributeChildren = TRUE;
         }
         
-        if( psChild == NULL )
+        if( !bHasNonAttributeChildren )
         {
             if( psNode->pszValue[0] == '?' )
                 strcat( *ppszText + *pnLength, "?>\n" );
@@ -779,8 +894,13 @@ CPLSerializeXMLNode( CPLXMLNode *psNode, int nIndent,
 
             strcat( *ppszText + *pnLength, ">" );
 
-            while( psChild != NULL )
+            for( psChild = psNode->psChild; 
+                 psChild != NULL; 
+                 psChild = psChild->psNext )
             {
+                if( psChild->eType == CXT_Attribute )
+                    continue;
+
                 if( psChild->eType != CXT_Text && bJustText )
                 {
                     bJustText = FALSE;
@@ -789,21 +909,22 @@ CPLSerializeXMLNode( CPLXMLNode *psNode, int nIndent,
 
                 CPLSerializeXMLNode( psChild, nIndent + 2, ppszText, pnLength, 
                                      pnMaxLength );
-                psChild = psChild->psNext;
             }
-
-            if( strlen(psNode->pszValue)+*pnLength+40+nIndent > *pnMaxLength)
-                _GrowBuffer( strlen(psNode->pszValue)+*pnLength+40+nIndent, 
-                             ppszText, pnMaxLength );
+        
+            *pnLength += strlen(*ppszText + *pnLength);
+            _GrowBuffer( strlen(psNode->pszValue) + *pnLength + 40 + nIndent, 
+                         ppszText, pnMaxLength );
 
             if( !bJustText )
-                strcat( *ppszText + *pnLength, pszIndent );
+            {
+                memset( *ppszText + *pnLength, ' ', nIndent );
+                *pnLength += nIndent;
+                (*ppszText)[*pnLength] = '\0';
+            }
 
             *pnLength += strlen(*ppszText + *pnLength);
             sprintf( *ppszText + *pnLength, "</%s>\n", psNode->pszValue );
         }
-
-        CPLFree( pszIndent );
     }
 }
                                 
@@ -814,7 +935,7 @@ CPLSerializeXMLNode( CPLXMLNode *psNode, int nIndent,
 char *CPLSerializeXMLTree( CPLXMLNode *psNode )
 
 {
-    unsigned int nMaxLength = 10000, nLength = 0;
+    unsigned int nMaxLength = 100, nLength = 0;
     char *pszText = NULL;
     CPLXMLNode *psThis;
 
@@ -957,7 +1078,8 @@ const char *CPLGetXMLValue( CPLXMLNode *poRoot, const char *pszPath,
 /************************************************************************/
 /*                           CPLAddXMLChild()                           */
 /*                                                                      */
-/*      Add a node as a child of another.                               */
+/*      Add a node as a child of another.  Ensure that attributes       */
+/*      are inserted ahead of element children, or Text data.           */
 /************************************************************************/
 
 void CPLAddXMLChild( CPLXMLNode *psParent, CPLXMLNode *psChild )
@@ -974,9 +1096,30 @@ void CPLAddXMLChild( CPLXMLNode *psParent, CPLXMLNode *psChild )
         return;
     }
 
+    // Insert at head of list if first child is not attribute.
+    if( psChild->eType == CXT_Attribute 
+        && psParent->psChild->eType != CXT_Attribute )
+    {
+        psChild->psNext = psParent->psChild;
+        psParent->psChild = psChild;
+        return;
+    }
+
+    // Search for end of list.
     for( psSib = psParent->psChild; 
          psSib->psNext != NULL; 
-         psSib = psSib->psNext ) {}
+         psSib = psSib->psNext ) 
+    {
+        // Insert attributes if the next node is not an attribute.
+        if( psChild->eType == CXT_Attribute 
+            && psSib->psNext != NULL 
+            && psSib->psNext->eType != CXT_Attribute )
+        {
+            psChild->psNext = psSib->psNext;
+            psSib->psNext = psChild;
+            return;
+        }
+    }
 
     psSib->psNext = psChild;
 }
@@ -1099,4 +1242,166 @@ int CPLSetXMLValue( CPLXMLNode *psRoot,  const char *pszPath,
 
     return TRUE;
 }
+
+/************************************************************************/
+/*                        CPLStripXMLNamespace()                        */
+/************************************************************************/
+
+void CPLStripXMLNamespace( CPLXMLNode *psRoot, 
+                           const char *pszNamespace, 
+                           int bRecurse )
+
+{
+    if( psRoot == NULL )
+        return;
+
+    if( pszNamespace != NULL )
+    {
+        if( psRoot->eType == CXT_Element 
+            && EQUALN(pszNamespace,psRoot->pszValue,strlen(pszNamespace)) 
+            && psRoot->pszValue[strlen(pszNamespace)] == ':' )
+        {
+            char *pszNewValue = 
+                CPLStrdup(psRoot->pszValue+strlen(pszNamespace)+1);
+            
+            CPLFree( psRoot->pszValue );
+            psRoot->pszValue = pszNewValue;
+        }
+    }
+    else
+    {
+        const char *pszCheck;
+
+        for( pszCheck = psRoot->pszValue; *pszCheck != '\0'; pszCheck++ )
+        {
+            if( *pszCheck == ':' )
+            {
+                char *pszNewValue = CPLStrdup( pszCheck+1 );
+            
+                CPLFree( psRoot->pszValue );
+                psRoot->pszValue = pszNewValue;
+                break;
+            }
+        }
+    }
+
+    if( bRecurse )
+    {
+        if( psRoot->psChild != NULL )
+            CPLStripXMLNamespace( psRoot->psChild, pszNamespace, 1 );
+        if( psRoot->psNext != NULL )
+            CPLStripXMLNamespace( psRoot->psNext, pszNamespace, 1 );
+    }
+}
+
+/************************************************************************/
+/*                          CPLParseXMLFile()                           */
+/************************************************************************/
+
+CPLXMLNode *CPLParseXMLFile( const char *pszFilename )
+
+{
+    FILE        *fp;
+    int nLen;
+    char *pszDoc;
+    CPLXMLNode *psTree;
+
+/* -------------------------------------------------------------------- */
+/*      Read the file.                                                  */
+/* -------------------------------------------------------------------- */
+    fp = VSIFOpen( pszFilename, "rb" );
+    if( fp == NULL )
+    {
+        CPLError( CE_Failure, CPLE_OpenFailed, 
+                  "Failed to open %.500s to read.", pszFilename );
+        return NULL;
+    }
+
+    VSIFSeek( fp, 0, SEEK_END );
+    nLen = VSIFTell( fp );
+    VSIFSeek( fp, 0, SEEK_SET );
+    
+    pszDoc = (char *) VSIMalloc(nLen+1);
+    if( pszDoc == NULL )
+    {
+        CPLError( CE_Failure, CPLE_OutOfMemory, 
+                  "Out of memory allocating space for %d byte buffer in\n"
+                  "CPLParseXMLFile(%.500s).", 
+                  nLen+1, pszFilename );
+        VSIFClose( fp );
+        return NULL;
+    }
+    if( (int) VSIFRead( pszDoc, 1, nLen, fp ) < nLen )
+    {
+        CPLError( CE_Failure, CPLE_FileIO, 
+                  "VSIFRead() result short of expected %d bytes from %.500s.", 
+                  nLen, pszFilename );
+        pszDoc[0] = '\0';
+    }
+    VSIFClose( fp );
+
+    pszDoc[nLen] = '\0';
+
+/* -------------------------------------------------------------------- */
+/*      Parse it.                                                       */
+/* -------------------------------------------------------------------- */
+    psTree = CPLParseXMLString( pszDoc );
+    CPLFree( pszDoc );
+
+    return psTree;
+}
+
+/************************************************************************/
+/*                     CPLSerializeXMLTreeToFile()                      */
+/************************************************************************/
+
+int CPLSerializeXMLTreeToFile( CPLXMLNode *psTree, const char *pszFilename )
+
+{
+    char *pszDoc;
+    FILE *fp;
+    int  nLength;
+
+/* -------------------------------------------------------------------- */
+/*      Serialize document.                                             */
+/* -------------------------------------------------------------------- */
+    pszDoc = CPLSerializeXMLTree( psTree );
+    if( pszDoc == NULL )
+        return FALSE;
+
+    nLength = strlen(pszDoc);
+
+/* -------------------------------------------------------------------- */
+/*      Create file.                                                    */
+/* -------------------------------------------------------------------- */
+    fp = VSIFOpen( pszFilename, "wt" );
+    if( fp == NULL )
+    {
+        CPLError( CE_Failure, CPLE_OpenFailed, 
+                  "Failed to open %.500s to write.", pszFilename );
+        return FALSE;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Write file.                                                     */
+/* -------------------------------------------------------------------- */
+    if( (int) VSIFWrite( pszDoc, 1, nLength, fp ) != nLength )
+    {
+        CPLError( CE_Failure, CPLE_FileIO, 
+                  "Failed to write whole XML document (%.500s).",
+                  pszFilename );
+        VSIFClose( fp );
+        CPLFree( pszDoc );
+        return FALSE;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Cleanup                                                         */
+/* -------------------------------------------------------------------- */
+    VSIFClose( fp );
+    CPLFree( pszDoc );
+
+    return TRUE;
+}
+
 

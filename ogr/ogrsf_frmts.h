@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrsf_frmts.h,v 1.25 2002/04/25 03:42:04 warmerda Exp $
+ * $Id: ogrsf_frmts.h,v 1.38 2003/05/28 19:17:31 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Classes related to format registration, and file opening.
@@ -28,6 +28,45 @@
  ******************************************************************************
  *
  * $Log: ogrsf_frmts.h,v $
+ * Revision 1.38  2003/05/28 19:17:31  warmerda
+ * fixup stuff for docs
+ *
+ * Revision 1.37  2003/04/22 19:36:04  warmerda
+ * Added SyncToDisk
+ *
+ * Revision 1.36  2003/04/08 21:21:29  warmerda
+ * added OGRGetDriverByName
+ *
+ * Revision 1.35  2003/04/08 19:31:32  warmerda
+ * added CopyLayer and CopyDataSource entry points
+ *
+ * Revision 1.34  2003/03/20 20:21:48  warmerda
+ * added drop index
+ *
+ * Revision 1.33  2003/03/19 20:29:06  warmerda
+ * added shared access and reference counting
+ *
+ * Revision 1.32  2003/03/05 05:09:11  warmerda
+ * added GetLayerByName() method on OGRDataSource
+ *
+ * Revision 1.31  2003/03/04 05:47:23  warmerda
+ * added indexing support
+ *
+ * Revision 1.30  2003/03/03 05:06:08  warmerda
+ * added support for DeleteDataSource and DeleteLayer
+ *
+ * Revision 1.29  2003/02/03 21:16:49  warmerda
+ * added .rec driver
+ *
+ * Revision 1.28  2002/12/28 04:09:18  warmerda
+ * added Oracle support
+ *
+ * Revision 1.27  2002/09/26 18:15:31  warmerda
+ * moved capabilities macros to ogr_core.h for ogr_api.h
+ *
+ * Revision 1.26  2002/06/25 14:45:50  warmerda
+ * added RegisterOGRFME()
+ *
  * Revision 1.25  2002/04/25 03:42:04  warmerda
  * fixed spatial filter support on SQL results
  *
@@ -117,18 +156,7 @@
  * Classes related to registration of format support, and opening datasets.
  */
 
-#define OLCRandomRead          "RandomRead"
-#define OLCSequentialWrite     "SequentialWrite"
-#define OLCRandomWrite         "RandomWrite"
-#define OLCFastSpatialFilter   "FastSpatialFilter"
-#define OLCFastFeatureCount    "FastFeatureCount"
-#define OLCFastGetExtent       "FastGetExtent"
-#define OLCCreateField         "CreateField"
-#define OLCTransactions        "Transactions"
-
-#define ODsCCreateLayer        "CreateLayer"
-
-#define ODrCCreateDataSource   "CreateDataSource"
+class OGRLayerAttrIndex;
 
 /************************************************************************/
 /*                               OGRLayer                               */
@@ -170,6 +198,8 @@ class CPL_DLL OGRLayer
     virtual OGRErr      CreateField( OGRFieldDefn *poField,
                                      int bApproxOK = TRUE );
 
+    virtual OGRErr      SyncToDisk();
+
     OGRStyleTable       *GetStyleTable(){return m_poStyleTable;}
     void                 SetStyleTable(OGRStyleTable *poStyleTable){m_poStyleTable = poStyleTable;}
 
@@ -177,9 +207,20 @@ class CPL_DLL OGRLayer
     virtual OGRErr       CommitTransaction();
     virtual OGRErr       RollbackTransaction();
 
+    int                 Reference();
+    int                 Dereference();
+    int                 GetRefCount() const;
+    
+    /* consider these private */
+    OGRErr               InitializeIndexSupport( const char * );
+    OGRLayerAttrIndex   *GetIndex() { return m_poAttrIndex; }
+
  protected:
-    OGRStyleTable *m_poStyleTable;
-    OGRFeatureQuery *m_poAttrQuery;
+    OGRStyleTable       *m_poStyleTable;
+    OGRFeatureQuery     *m_poAttrQuery;
+    OGRLayerAttrIndex   *m_poAttrIndex;
+
+    int                  m_nRefCount;
 };
 
 
@@ -208,22 +249,39 @@ class CPL_DLL OGRDataSource
 
     virtual int         GetLayerCount() = 0;
     virtual OGRLayer    *GetLayer(int) = 0;
+    virtual OGRLayer    *GetLayerByName(const char *);
+    virtual OGRErr      DeleteLayer(int);
 
     virtual int         TestCapability( const char * ) = 0;
 
-    virtual OGRLayer    *CreateLayer( const char *, 
-                                      OGRSpatialReference * = NULL,
-                                      OGRwkbGeometryType = wkbUnknown,
-                                      char ** = NULL );
+    virtual OGRLayer   *CreateLayer( const char *pszName, 
+                                     OGRSpatialReference *poSpatialRef = NULL,
+                                     OGRwkbGeometryType eGType = wkbUnknown,
+                                     char ** papszOptions = NULL );
+    virtual OGRLayer   *CopyLayer( OGRLayer *poSrcLayer, 
+                                   const char *pszNewName, 
+                                   char **papszOptions = NULL );
     OGRStyleTable       *GetStyleTable(){return m_poStyleTable;}
 
-    virtual OGRLayer *  ExecuteSQL( const char *pszSQLCommand,
+    virtual OGRLayer *  ExecuteSQL( const char *pszStatement,
                                     OGRGeometry *poSpatialFilter,
                                     const char *pszDialect );
-    virtual void        ReleaseResultSet( OGRLayer * poLayer );
-    
+    virtual void        ReleaseResultSet( OGRLayer * poResultsSet );
+
+    virtual OGRErr      SyncToDisk();
+
+    int                 Reference();
+    int                 Dereference();
+    int                 GetRefCount() const;
+    int                 GetSummaryRefCount() const;
+
   protected:
-    OGRStyleTable *m_poStyleTable;
+
+    OGRErr              ProcessSQLCreateIndex( const char * );
+    OGRErr              ProcessSQLDropIndex( const char * );
+
+    OGRStyleTable      *m_poStyleTable;
+    int                 m_nRefCount;
 };
 
 /************************************************************************/
@@ -252,6 +310,11 @@ class CPL_DLL OGRSFDriver
 
     virtual OGRDataSource *CreateDataSource( const char *pszName,
                                              char ** = NULL );
+    virtual OGRErr      DeleteDataSource( const char *pszName );
+
+    virtual OGRDataSource *CopyDataSource( OGRDataSource *poSrcDS, 
+                                           const char *pszNewName, 
+                                           char **papszOptions = NULL );
 };
 
 
@@ -271,6 +334,11 @@ class CPL_DLL OGRSFDriverRegistrar
 
                 OGRSFDriverRegistrar();
 
+    int         nOpenDSCount;
+    char        **papszOpenDSRawName;
+    OGRDataSource **papoOpenDS;
+    OGRSFDriver **papoOpenDSDriver;
+
   public:
 
                 ~OGRSFDriverRegistrar();
@@ -279,11 +347,18 @@ class CPL_DLL OGRSFDriverRegistrar
     static OGRDataSource *Open( const char *pszName, int bUpdate=FALSE,
                                 OGRSFDriver ** ppoDriver = NULL );
 
-    void        RegisterDriver( OGRSFDriver * );
+    OGRDataSource *OpenShared( const char *pszName, int bUpdate=FALSE,
+                               OGRSFDriver ** ppoDriver = NULL );
+    OGRErr      ReleaseDataSource( OGRDataSource * );
+
+    void        RegisterDriver( OGRSFDriver * poDriver );
 
     int         GetDriverCount( void );
-    OGRSFDriver *GetDriver( int );
+    OGRSFDriver *GetDriver( int iDriver );
+    OGRSFDriver *GetDriverByName( const char * );
 
+    int         GetOpenDSCount() { return nOpenDSCount; } 
+    OGRDataSource *GetOpenDS( int );
 };
 
 /* -------------------------------------------------------------------- */
@@ -302,10 +377,14 @@ void CPL_DLL RegisterOGRTAB();
 void CPL_DLL RegisterOGRMIF();
 void CPL_DLL RegisterOGROGDI();
 void CPL_DLL RegisterOGRPG();
+void CPL_DLL RegisterOGROCI();
 void CPL_DLL RegisterOGRDGN();
 void CPL_DLL RegisterOGRGML();
 void CPL_DLL RegisterOGRAVCBin();
 void CPL_DLL RegisterOGRAVCE00();
+void CPL_DLL RegisterOGRFME();
+void CPL_DLL RegisterOGRREC();
+void CPL_DLL RegisterOGRMEM();
 CPL_C_END
 
 

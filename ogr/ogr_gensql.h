@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_gensql.h,v 1.3 2002/04/29 19:35:50 warmerda Exp $
+ * $Id: ogr_gensql.h,v 1.6 2003/03/20 19:13:21 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Classes related to generic implementation of ExecuteSQL().
@@ -28,6 +28,17 @@
  ******************************************************************************
  *
  * $Log: ogr_gensql.h,v $
+ * Revision 1.6  2003/03/20 19:13:21  warmerda
+ * Added ClearFilters() method to cleanup spatial or attribute filters on the
+ * target layer, and any joined layers.  Used in destructor and after all
+ * features have been read from source layer.
+ *
+ * Revision 1.5  2003/03/19 20:34:23  warmerda
+ * add support for tables from external datasources
+ *
+ * Revision 1.4  2003/03/05 05:10:17  warmerda
+ * implement join support
+ *
  * Revision 1.3  2002/04/29 19:35:50  warmerda
  * fixes for selecting FID
  *
@@ -55,6 +66,8 @@ class CPL_DLL OGRGenSQLResultsLayer : public OGRLayer
     OGRLayer    *poSrcLayer;
     void        *pSelectInfo;
 
+    OGRLayer   **papoTableLayers;
+
     OGRGeometry *poSpatialFilter;
 
     OGRFeatureDefn *poDefn;
@@ -71,11 +84,16 @@ class CPL_DLL OGRGenSQLResultsLayer : public OGRLayer
 
     OGRField    *pasOrderByIndex;
 
+    int         nExtraDSCount;
+    OGRDataSource **papoExtraDS;
+
     OGRFeature *TranslateFeature( OGRFeature * );
     void        CreateOrderByIndex();
     void        SortIndexSection( OGRField *pasIndexFields, 
                                   int nStart, int nEntries );
     int         Compare( OGRField *pasFirst, OGRField *pasSecond );
+
+    void        ClearFilters();
     
   public:
                 OGRGenSQLResultsLayer( OGRDataSource *poSrcDS, 

@@ -10,7 +10,9 @@ OBJ =	ogr_srsnode.obj ogrcurve.obj ogrfeature.obj ogrfeaturedefn.obj \
 	ogrlayer.obj ogrsfdriverregistrar.obj ogrfielddefn.obj \
 	ogrdatasource.obj ogrsfdriver.obj ogr_srs_proj4.obj \
 	ogrfeaturestyle.obj ogr_fromepsg.obj ogrfeaturequery.obj swq.obj \
-	ogrct.obj ogr_gensql.obj ogr_srs_xml.obj ogr_srs_esri.obj
+	ogrct.obj ogr_gensql.obj ogr_srs_xml.obj ogr_srs_esri.obj \
+	ogr_api.obj gml2ogrgeometry.obj ogr2gmlgeometry.obj \
+	ogr_miattrind.obj ogr_attrind.obj
 	
 LIB	=	ogr.lib
 

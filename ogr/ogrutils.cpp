@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrutils.cpp,v 1.7 2001/11/01 17:01:28 warmerda Exp $
+ * $Id: ogrutils.cpp,v 1.11 2003/01/06 17:57:18 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Utility functions for OGR classes, including some related to
@@ -29,6 +29,18 @@
  ******************************************************************************
  *
  * $Log: ogrutils.cpp,v $
+ * Revision 1.11  2003/01/06 17:57:18  warmerda
+ * Added some extra validation in OGRMakeWktCoordinate()
+ *
+ * Revision 1.10  2002/12/09 18:55:07  warmerda
+ * moved DMS stuff to gdal/port
+ *
+ * Revision 1.9  2002/12/09 16:10:39  warmerda
+ * added DMS translation
+ *
+ * Revision 1.8  2002/08/07 02:46:10  warmerda
+ * improved comments
+ *
  * Revision 1.7  2001/11/01 17:01:28  warmerda
  * pass output buffer into OGRMakeWktCoordinate
  *
@@ -56,7 +68,7 @@
 #include "ogr_p.h"
 #include <ctype.h>
 
-CPL_CVSID("$Id: ogrutils.cpp,v 1.7 2001/11/01 17:01:28 warmerda Exp $");
+CPL_CVSID("$Id: ogrutils.cpp,v 1.11 2003/01/06 17:57:18 warmerda Exp $");
 
 /************************************************************************/
 /*                        OGRMakeWktCoordinate()                        */
@@ -64,6 +76,9 @@ CPL_CVSID("$Id: ogrutils.cpp,v 1.7 2001/11/01 17:01:28 warmerda Exp $");
 /*      Format a well known text coordinate, trying to keep the         */
 /*      ASCII representation compact, but accurate.  These rules        */
 /*      will have to tighten up in the future.                          */
+/*                                                                      */
+/*      Currently a new point should require no more than 64            */
+/*      characters barring the X or Y value being extremely large.      */
 /************************************************************************/
 
 void OGRMakeWktCoordinate( char *pszTarget, double x, double y, double z )
@@ -87,6 +102,15 @@ void OGRMakeWktCoordinate( char *pszTarget, double x, double y, double z )
         else
             sprintf( pszTarget, "%.3f %.3f %.3f", x, y, z );
     }
+
+#ifdef DEBUG
+    if( strlen(pszTarget) > 48 )
+    {
+        CPLDebug( "OGR", 
+                  "Yow!  Got this big result in OGRMakeWktCoordinate()\n%s", 
+                  pszTarget );
+    }
+#endif
 }
 
 /************************************************************************/

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_geometry.h,v 1.32 2002/05/02 19:45:36 warmerda Exp $
+ * $Id: ogr_geometry.h,v 1.44 2003/05/28 19:16:42 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Classes for manipulating simple features that is not specific
@@ -29,6 +29,42 @@
  ******************************************************************************
  *
  * $Log: ogr_geometry.h,v $
+ * Revision 1.44  2003/05/28 19:16:42  warmerda
+ * fixed up argument names and stuff for docs
+ *
+ * Revision 1.43  2003/04/28 15:39:33  warmerda
+ * ryan added forceToMultiPolyline and forceToMultiPoint
+ *
+ * Revision 1.42  2003/03/06 20:29:27  warmerda
+ * added GML import/export entry points
+ *
+ * Revision 1.41  2003/01/14 22:13:35  warmerda
+ * added isClockwise() method on OGRLinearRing
+ *
+ * Revision 1.40  2003/01/08 22:04:11  warmerda
+ * added forceToPolygon and forceToMultiPolygon methods
+ *
+ * Revision 1.39  2003/01/07 16:44:27  warmerda
+ * added removeGeometry
+ *
+ * Revision 1.38  2003/01/02 21:45:23  warmerda
+ * move OGRBuildPolygonsFromEdges into C API
+ *
+ * Revision 1.37  2002/10/25 15:20:50  warmerda
+ * fixed MULTIPOINT WKT format
+ *
+ * Revision 1.36  2002/10/24 20:53:02  warmerda
+ * expand tabs
+ *
+ * Revision 1.35  2002/09/26 18:13:17  warmerda
+ * moved some defs to ogr_core.h for sharing with ogr_api.h
+ *
+ * Revision 1.34  2002/09/11 13:47:17  warmerda
+ * preliminary set of fixes for 3D WKB enum
+ *
+ * Revision 1.33  2002/08/12 15:02:18  warmerda
+ * added OGRRawPoint and OGREnvelope initializes
+ *
  * Revision 1.32  2002/05/02 19:45:36  warmerda
  * added flattenTo2D() method
  *
@@ -142,66 +178,19 @@
  */
 
 /**
- * List of well known binary geometry types.  These are used within the BLOBs
- * but are also returned from OGRGeometry::getGeometryType() to identify the
- * type of a geometry object.
- */
-
-enum OGRwkbGeometryType
-{
-    wkbUnknown = 0,             // non-standard
-    wkbPoint = 1,               // rest are standard WKB type codes
-    wkbLineString = 2,
-    wkbPolygon = 3,
-    wkbMultiPoint = 4,
-    wkbMultiLineString = 5,
-    wkbMultiPolygon = 6,
-    wkbGeometryCollection = 7,
-    wkbNone = 100,              // non-standard, for pure attribute records
-    wkbPoint25D = 0x8001,       // non-standard, 2.5D extension
-    wkbLineString25D = 0x8002,
-    wkbPolygon25D = 0x8003,
-    wkbMultiPoint25D = 0x8004,
-    wkbMultiLineString25D = 0x8005,
-    wkbMultiPolygon25D = 0x8006,
-    wkbGeometryCollection25D = 0x8007,
-};
-
-#define wkb25DBit 0x8000
-#define wkbFlatten(x)  ((x) & (~wkb25DBit))
-
-#define ogrZMarker 0x21125711
-
-const char CPL_DLL * OGRGeometryTypeToName( OGRwkbGeometryType );
-
-enum OGRwkbByteOrder
-{
-    wkbXDR = 0,         /* MSB/Sun/Motoroloa: Most Significant Byte First   */
-    wkbNDR = 1          /* LSB/Intel/Vax: Least Significant Byte First      */
-};
-
-/**
  * Simple container for a position.
  */
 class OGRRawPoint
 {
   public:
+          OGRRawPoint()
+          {
+                  x = y = 0.0;
+          }
     double      x;
     double      y;
 };
 
-/**
- * Simple container for a bounding region.
- */
-
-class OGREnvelope
-{
-  public:
-    double      MinX;
-    double      MaxX;
-    double      MinY;
-    double      MaxY;
-};
 
 /************************************************************************/
 /*                             OGRGeometry                              */
@@ -238,14 +227,15 @@ class CPL_DLL OGRGeometry
     virtual int WkbSize() = 0;
     virtual OGRErr importFromWkb( unsigned char *, int=-1 )=0;
     virtual OGRErr exportToWkb( OGRwkbByteOrder, unsigned char * ) = 0;
-    virtual OGRErr importFromWkt( char ** ) = 0;
-    virtual OGRErr exportToWkt( char ** ) = 0;
+    virtual OGRErr importFromWkt( char ** ppszInput ) = 0;
+    virtual OGRErr exportToWkt( char ** ppszDstText ) = 0;
     
     // non-standard
     virtual OGRwkbGeometryType getGeometryType() = 0;
     virtual const char *getGeometryName() = 0;
     virtual void   dumpReadable( FILE *, const char * = NULL );
     virtual void   flattenTo2D() = 0;
+    virtual char * exportToGML() const;
 
     void    assignSpatialReference( OGRSpatialReference * poSR );
     OGRSpatialReference *getSpatialReference( void ) { return poSRS; }
@@ -307,7 +297,7 @@ class CPL_DLL OGRPoint : public OGRGeometry
     virtual OGRErr importFromWkb( unsigned char *, int=-1 );
     virtual OGRErr exportToWkb( OGRwkbByteOrder, unsigned char * );
     virtual OGRErr importFromWkt( char ** );
-    virtual OGRErr exportToWkt( char ** );
+    virtual OGRErr exportToWkt( char ** ppszDstText );
     
     // IGeometry
     virtual int getDimension();
@@ -384,7 +374,7 @@ class CPL_DLL OGRLineString : public OGRCurve
     virtual OGRErr importFromWkb( unsigned char *, int = -1 );
     virtual OGRErr exportToWkb( OGRwkbByteOrder, unsigned char * );
     virtual OGRErr importFromWkt( char ** );
-    virtual OGRErr exportToWkt( char ** );
+    virtual OGRErr exportToWkt( char ** ppszDstText );
 
     // IGeometry interface
     virtual int getDimension();
@@ -459,6 +449,7 @@ class CPL_DLL OGRLinearRing : public OGRLineString
     // Non standard.
     virtual const char *getGeometryName();
     virtual OGRGeometry *clone();
+    virtual int isClockwise();
     
     // IWks Interface - Note this isnt really a first class object
     // for the purposes of WKB form.  These methods always fail since this
@@ -480,8 +471,8 @@ class CPL_DLL OGRSurface : public OGRGeometry
 {
   public:
     virtual double      get_Area() = 0;
-    virtual OGRErr      Centroid( OGRPoint * ) = 0;
-    virtual OGRErr      PointOnSurface( OGRPoint * ) = 0;
+    virtual OGRErr      Centroid( OGRPoint * poPoint ) = 0;
+    virtual OGRErr      PointOnSurface( OGRPoint * poPoint ) = 0;
 };
 
 /************************************************************************/
@@ -516,15 +507,15 @@ class CPL_DLL OGRPolygon : public OGRSurface
     
     // ISurface Interface
     virtual double      get_Area();
-    virtual int         Centroid( OGRPoint * );
-    virtual int         PointOnSurface( OGRPoint * );
+    virtual int         Centroid( OGRPoint * poPoint );
+    virtual int         PointOnSurface( OGRPoint * poPoint );
     
     // IWks Interface
     virtual int WkbSize();
     virtual OGRErr importFromWkb( unsigned char *, int = -1 );
     virtual OGRErr exportToWkb( OGRwkbByteOrder, unsigned char * );
     virtual OGRErr importFromWkt( char ** );
-    virtual OGRErr exportToWkt( char ** );
+    virtual OGRErr exportToWkt( char ** ppszDstText );
 
     // IGeometry
     virtual int getDimension();
@@ -560,6 +551,8 @@ class CPL_DLL OGRGeometryCollection : public OGRGeometry
 {
     int         nGeomCount;
     OGRGeometry **papoGeoms;
+
+    int         nCoordinateDimension;
     
   public:
                 OGRGeometryCollection();
@@ -578,7 +571,7 @@ class CPL_DLL OGRGeometryCollection : public OGRGeometry
     virtual OGRErr importFromWkb( unsigned char *, int = -1 );
     virtual OGRErr exportToWkb( OGRwkbByteOrder, unsigned char * );
     virtual OGRErr importFromWkt( char ** );
-    virtual OGRErr exportToWkt( char ** );
+    virtual OGRErr exportToWkt( char ** ppszDstText );
 
     // IGeometry methods
     virtual int getDimension();
@@ -595,6 +588,7 @@ class CPL_DLL OGRGeometryCollection : public OGRGeometry
     // Non standard
     virtual OGRErr addGeometry( OGRGeometry * );
     virtual OGRErr addGeometryDirectly( OGRGeometry * );
+    virtual OGRErr removeGeometry( int iIndex, int bDelete = TRUE );
 };
 
 /************************************************************************/
@@ -632,6 +626,9 @@ class CPL_DLL OGRMultiPolygon : public OGRGeometryCollection
 
 class CPL_DLL OGRMultiPoint : public OGRGeometryCollection
 {
+  private:
+    OGRErr  importFromWkt_Bracketed( char ** );
+
   public:
     // Non standard (OGRGeometry).
     virtual const char *getGeometryName();
@@ -682,15 +679,15 @@ class CPL_DLL OGRGeometryFactory
                                  OGRGeometry **, int = -1 );
     static OGRErr createFromWkt( char **, OGRSpatialReference *,
                                  OGRGeometry ** );
+    static OGRGeometry *createFromGML( const char * );
 
     static void   destroyGeometry( OGRGeometry * );
     static OGRGeometry *createGeometry( OGRwkbGeometryType );
-};
 
-OGRPolygon *OGRBuildPolygonFromEdges( OGRGeometryCollection * poLines,
-                                      int bBestEffort, 
-                                      int bAutoClose, 
-                                      double dfTolerance,
-                                      OGRErr * peErr = NULL );
+    static OGRGeometry * forceToPolygon( OGRGeometry * );
+    static OGRGeometry * forceToMultiPolygon( OGRGeometry * );
+    static OGRGeometry * forceToMultiPoint( OGRGeometry * );
+    static OGRGeometry * forceToMultiLineString( OGRGeometry * );
+};
 
 #endif /* ndef _OGR_GEOMETRY_H_INCLUDED */

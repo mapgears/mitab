@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrsfdriver.cpp,v 1.2 2001/07/18 04:55:16 warmerda Exp $
+ * $Id: ogrsfdriver.cpp,v 1.6 2003/05/21 04:54:29 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The generic portions of the OGRSFDriver class.
@@ -28,6 +28,18 @@
  ******************************************************************************
  *
  * $Log: ogrsfdriver.cpp,v $
+ * Revision 1.6  2003/05/21 04:54:29  warmerda
+ * avoid warnings about unused formal parameters and possibly uninit variables
+ *
+ * Revision 1.5  2003/04/08 19:31:58  warmerda
+ * added CopyLayer and CopyDataSource entry points
+ *
+ * Revision 1.4  2003/03/03 05:06:27  warmerda
+ * added support for DeleteDataSource and DeleteLayer
+ *
+ * Revision 1.3  2002/09/26 18:16:19  warmerda
+ * added C entry points
+ *
  * Revision 1.2  2001/07/18 04:55:16  warmerda
  * added CPL_CSVID
  *
@@ -37,9 +49,10 @@
  */
 
 #include "ogrsf_frmts.h"
+#include "ogr_api.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrsfdriver.cpp,v 1.2 2001/07/18 04:55:16 warmerda Exp $");
+CPL_CVSID("$Id: ogrsfdriver.cpp,v 1.6 2003/05/21 04:54:29 warmerda Exp $");
 
 /************************************************************************/
 /*                            ~OGRSFDriver()                            */
@@ -62,3 +75,127 @@ OGRDataSource *OGRSFDriver::CreateDataSource( const char *, char ** )
               
     return NULL;
 }
+
+/************************************************************************/
+/*                      OGR_Dr_CreateDataSource()                       */
+/************************************************************************/
+
+OGRDataSourceH OGR_Dr_CreateDataSource( OGRSFDriverH hDriver,
+                                        const char *pszName, 
+                                        char ** papszOptions )
+
+{
+    return ((OGRSFDriver *)hDriver)->CreateDataSource( pszName, 
+                                                       papszOptions );
+}
+
+/************************************************************************/
+/*                          DeleteDataSource()                          */
+/************************************************************************/
+
+OGRErr OGRSFDriver::DeleteDataSource( const char *pszDataSource )
+
+{
+    (void) pszDataSource;
+    CPLError( CE_Failure, CPLE_NotSupported,
+              "DeleteDataSource() not supported by this driver." );
+              
+    return OGRERR_UNSUPPORTED_OPERATION;
+}
+
+/************************************************************************/
+/*                      OGR_Dr_DeleteDataSource()                       */
+/************************************************************************/
+
+OGRErr OGR_Dr_DeleteDataSource( OGRSFDriverH hDriver, 
+                                const char *pszDataSource )
+
+{
+    return ((OGRSFDriver *) hDriver)->DeleteDataSource( pszDataSource );
+}
+
+/************************************************************************/
+/*                           OGR_Dr_GetName()                           */
+/************************************************************************/
+
+const char *OGR_Dr_GetName( OGRSFDriverH hDriver )
+
+{
+    return ((OGRSFDriver *) hDriver)->GetName();
+}
+
+/************************************************************************/
+/*                            OGR_Dr_Open()                             */
+/************************************************************************/
+
+OGRDataSourceH OGR_Dr_Open( OGRSFDriverH hDriver, const char *pszName, 
+                            int bUpdate )
+
+{
+    return ((OGRSFDriver *)hDriver)->Open( pszName, bUpdate );
+}
+
+/************************************************************************/
+/*                       OGR_Dr_TestCapability()                        */
+/************************************************************************/
+
+int OGR_Dr_TestCapability( OGRSFDriverH hDriver, const char *pszCap )
+
+{
+    return ((OGRSFDriver *) hDriver)->TestCapability( pszCap );
+}
+
+/************************************************************************/
+/*                           CopyDataSource()                           */
+/************************************************************************/
+
+OGRDataSource *OGRSFDriver::CopyDataSource( OGRDataSource *poSrcDS, 
+                                            const char *pszNewName,
+                                            char **papszOptions )
+
+{
+    if( !TestCapability( ODrCCreateDataSource ) )
+    {
+        CPLError( CE_Failure, CPLE_NotSupported, 
+                  "%s driver does not support data source creation.",
+                  GetName() );
+        return NULL;
+    }
+
+    OGRDataSource *poODS;
+
+    poODS = CreateDataSource( pszNewName, papszOptions );
+    if( poODS == NULL )
+        return NULL;
+
+/* -------------------------------------------------------------------- */
+/*      Process each data source layer.                                 */
+/* -------------------------------------------------------------------- */
+    for( int iLayer = 0; iLayer < poSrcDS->GetLayerCount(); iLayer++ )
+    {
+        OGRLayer        *poLayer = poSrcDS->GetLayer(iLayer);
+
+        if( poLayer == NULL )
+            continue;
+
+        poODS->CopyLayer( poLayer, poLayer->GetLayerDefn()->GetName(), 
+                          papszOptions );
+    }
+    
+    return poODS;
+}
+
+/************************************************************************/
+/*                       OGR_Dr_CopyDataSource()                        */
+/************************************************************************/
+
+OGRDataSourceH OGR_Dr_CopyDataSource( OGRSFDriverH hDriver, 
+                                      OGRDataSourceH hSrcDS, 
+                                      const char *pszNewName,
+                                      char **papszOptions )
+                                      
+{
+    return ((OGRSFDriver *) hDriver)->CopyDataSource( 
+        (OGRDataSource *) hSrcDS, pszNewName, papszOptions );
+}
+

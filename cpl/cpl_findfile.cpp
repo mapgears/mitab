@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_findfile.cpp,v 1.3 2001/07/18 04:00:49 warmerda Exp $
+ * $Id: cpl_findfile.cpp,v 1.4 2002/12/03 04:42:02 warmerda Exp $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Generic data file location finder, with application hooking.
@@ -28,6 +28,9 @@
  ******************************************************************************
  *
  * $Log: cpl_findfile.cpp,v $
+ * Revision 1.4  2002/12/03 04:42:02  warmerda
+ * improved finder cleanup support
+ *
  * Revision 1.3  2001/07/18 04:00:49  warmerda
  * added CPL_CVSID
  *
@@ -42,7 +45,7 @@
 #include "cpl_conv.h"
 #include "cpl_string.h"
 
-CPL_CVSID("$Id: cpl_findfile.cpp,v 1.3 2001/07/18 04:00:49 warmerda Exp $");
+CPL_CVSID("$Id: cpl_findfile.cpp,v 1.4 2002/12/03 04:42:02 warmerda Exp $");
 
 static int bFinderInitialized = FALSE;
 static int nFileFinders = 0;
@@ -63,6 +66,20 @@ static void CPLFinderInit()
         CPLPushFinderLocation( "/usr/local/share" );
         CPLPushFinderLocation( "." );
     }
+}
+
+/************************************************************************/
+/*                           CPLFinderClean()                           */
+/************************************************************************/
+
+void CPLFinderClean()
+
+{
+    while( CPLPopFileFinder() != NULL ) {}
+    while( papszFinderLocations != NULL )
+        CPLPopFinderLocation();
+
+    bFinderInitialized = FALSE;
 }
 
 /************************************************************************/
@@ -136,12 +153,22 @@ void CPLPushFileFinder( CPLFileFinder pfnFinder )
 CPLFileFinder CPLPopFileFinder()
 
 {
+    CPLFileFinder pfnReturn;
+
     CPLFinderInit();
 
     if( nFileFinders == 0 )
         return NULL;
 
-    return papfnFinders[--nFileFinders];
+    pfnReturn = papfnFinders[--nFileFinders];
+
+    if( nFileFinders == 0)
+    {
+        CPLFree( papfnFinders );
+        papfnFinders = NULL;
+    }
+
+    return pfnReturn;
 }
 
 /************************************************************************/
@@ -159,7 +186,7 @@ void CPLPushFinderLocation( const char *pszLocation )
 
 
 /************************************************************************/
-/*                       CPLPushFinderLocation()                        */
+/*                       CPLPopFinderLocation()                         */
 /************************************************************************/
 
 void CPLPopFinderLocation()
@@ -175,6 +202,10 @@ void CPLPopFinderLocation()
 
     CPLFree( papszFinderLocations[nCount-1] );
     papszFinderLocations[nCount-1] = NULL;
+
+    if( nCount == 1 )
+    {
+        CPLFree( papszFinderLocations );
+        papszFinderLocations = NULL;
+    }
 }
-
-

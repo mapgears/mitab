@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrgeometrycollection.cpp,v 1.16 2002/05/02 19:45:36 warmerda Exp $
+ * $Id: ogrgeometrycollection.cpp,v 1.22 2003/06/09 13:48:54 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRGeometryCollection class.
@@ -28,6 +28,24 @@
  ******************************************************************************
  *
  * $Log: ogrgeometrycollection.cpp,v $
+ * Revision 1.22  2003/06/09 13:48:54  warmerda
+ * added DB2 V7.2 byte order hack
+ *
+ * Revision 1.21  2003/05/28 19:16:42  warmerda
+ * fixed up argument names and stuff for docs
+ *
+ * Revision 1.20  2003/03/31 15:55:42  danmo
+ * Added C API function docs
+ *
+ * Revision 1.19  2003/03/07 21:32:52  warmerda
+ * fixed bug with coordinate dimension reading from WKB
+ *
+ * Revision 1.18  2003/01/07 16:44:27  warmerda
+ * added removeGeometry
+ *
+ * Revision 1.17  2002/09/11 13:47:17  warmerda
+ * preliminary set of fixes for 3D WKB enum
+ *
  * Revision 1.16  2002/05/02 19:45:36  warmerda
  * added flattenTo2D() method
  *
@@ -81,7 +99,7 @@
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrgeometrycollection.cpp,v 1.16 2002/05/02 19:45:36 warmerda Exp $");
+CPL_CVSID("$Id: ogrgeometrycollection.cpp,v 1.22 2003/06/09 13:48:54 warmerda Exp $");
 
 /************************************************************************/
 /*                       OGRGeometryCollection()                        */
@@ -96,6 +114,7 @@ OGRGeometryCollection::OGRGeometryCollection()
 {
     nGeomCount = 0;
     papoGeoms = NULL;
+    nCoordinateDimension = 2;
 }
 
 /************************************************************************/
@@ -106,6 +125,7 @@ OGRGeometryCollection::~OGRGeometryCollection()
 
 {
     empty();
+    nCoordinateDimension = 2;
 }
 
 /************************************************************************/
@@ -156,7 +176,10 @@ OGRGeometry *OGRGeometryCollection::clone()
 OGRwkbGeometryType OGRGeometryCollection::getGeometryType()
 
 {
-    return wkbGeometryCollection;
+    if( getCoordinateDimension() == 3 )
+        return wkbGeometryCollection25D;
+    else
+        return wkbGeometryCollection;
 }
 
 /************************************************************************/
@@ -166,7 +189,7 @@ OGRwkbGeometryType OGRGeometryCollection::getGeometryType()
 int OGRGeometryCollection::getDimension()
 
 {
-    return 2;
+    return 2; // This isn't strictly correct.  It should be based on members.
 }
 
 /************************************************************************/
@@ -179,13 +202,16 @@ int OGRGeometryCollection::getDimension()
 int OGRGeometryCollection::getCoordinateDimension()
 
 {
-    int nDimension = 2;
+    if( nCoordinateDimension == 0 )
+    {
+        nCoordinateDimension = 2;
 
-    for( int i = 0; i < nGeomCount; i++ )
-        if( papoGeoms[i]->getCoordinateDimension() == 3 )
-            nDimension = 3;
+        for( int i = 0; i < nGeomCount; i++ )
+            if( papoGeoms[i]->getCoordinateDimension() == 3 )
+                nCoordinateDimension = 3;
+    }
 
-    return nDimension;
+    return nCoordinateDimension;
 }
 
 /************************************************************************/
@@ -197,6 +223,8 @@ void OGRGeometryCollection::flattenTo2D()
 {
     for( int i = 0; i < nGeomCount; i++ )
         papoGeoms[i]->flattenTo2D();
+
+    nCoordinateDimension = 2;
 }
 
 /************************************************************************/
@@ -273,6 +301,8 @@ OGRGeometry * OGRGeometryCollection::getGeometryRef( int i )
  *
  * There is no SFCOM analog to this method.
  *
+ * This method is the same as the C function OGR_G_AddGeometry().
+ *
  * @param poNewGeom geometry to add to the container.
  *
  * @return OGRERR_NONE if successful, or OGRERR_UNSUPPORTED_GEOMETRY_TYPE if
@@ -308,6 +338,8 @@ OGRErr OGRGeometryCollection::addGeometry( OGRGeometry * poNewGeom )
  * geometry is taken by the container rather than cloning as addGeometry()
  * does.
  *
+ * This method is the same as the C function OGR_G_AddGeometryDirectly().
+ *
  * There is no SFCOM analog to this method.
  *
  * @param poNewGeom geometry to add to the container.
@@ -325,6 +357,59 @@ OGRErr OGRGeometryCollection::addGeometryDirectly( OGRGeometry * poNewGeom )
     papoGeoms[nGeomCount] = poNewGeom;
 
     nGeomCount++;
+
+    if( poNewGeom->getCoordinateDimension() == 3 )
+        nCoordinateDimension = 3;
+
+    return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                           removeGeometry()                           */
+/************************************************************************/
+
+/**
+ * Remove a geometry from the container.
+ *
+ * Removing a geometry will cause the geometry count to drop by one, and all
+ * "higher" geometries will shuffle down one in index.
+ *
+ * There is no SFCOM analog to this method.
+ *
+ * This method is the same as the C function OGR_G_RemoveGeometry().
+ *
+ * @param iGeom the index of the geometry to delete.  A value of -1 is a
+ * special flag meaning that all geometries should be removed.
+ *
+ * @param bDelete if TRUE the geometry will be deallocated, otherwise it will
+ * not.  The default is TRUE as the container is considered to own the
+ * geometries in it. 
+ *
+ * @return OGRERR_NONE if successful, or OGRERR_FAILURE if the index is
+ * out of range.
+ */
+
+OGRErr OGRGeometryCollection::removeGeometry( int iGeom, int bDelete )
+
+{
+    if( iGeom < -1 || iGeom >= nGeomCount )
+        return OGRERR_FAILURE;
+
+    // Special case.
+    if( iGeom == -1 )
+    {
+        while( nGeomCount > 0 )
+            removeGeometry( nGeomCount-1, bDelete );
+        return OGRERR_NONE;
+    }
+
+    if( bDelete )
+        delete papoGeoms[iGeom];
+
+    memmove( papoGeoms + iGeom, papoGeoms + iGeom + 1, 
+             sizeof(void*) * (nGeomCount-iGeom-1) );
+
+    nGeomCount--;
 
     return OGRERR_NONE;
 }
@@ -357,19 +442,19 @@ int OGRGeometryCollection::WkbSize()
 /************************************************************************/
 
 OGRErr OGRGeometryCollection::importFromWkb( unsigned char * pabyData,
-                                             int nBytesAvailable )
+                                             int nSize )
 
 {
     OGRwkbByteOrder     eByteOrder;
     int                 nDataOffset;
     
-    if( nBytesAvailable < 9 && nBytesAvailable != -1 )
+    if( nSize < 9 && nSize != -1 )
         return OGRERR_NOT_ENOUGH_DATA;
 
 /* -------------------------------------------------------------------- */
 /*      Get the byte order byte.                                        */
 /* -------------------------------------------------------------------- */
-    eByteOrder = (OGRwkbByteOrder) *pabyData;
+    eByteOrder = DB2_V72_FIX_BYTE_ORDER((OGRwkbByteOrder) *pabyData);
     CPLAssert( eByteOrder == wkbXDR || eByteOrder == wkbNDR );
 
 /* -------------------------------------------------------------------- */
@@ -379,11 +464,15 @@ OGRErr OGRGeometryCollection::importFromWkb( unsigned char * pabyData,
 /* -------------------------------------------------------------------- */
 #ifdef DEBUG
     OGRwkbGeometryType eGeometryType;
-    
+
     if( eByteOrder == wkbNDR )
+    {
         eGeometryType = (OGRwkbGeometryType) pabyData[1];
+    }
     else
+    {
         eGeometryType = (OGRwkbGeometryType) pabyData[4];
+    }
 
     CPLAssert( eGeometryType == wkbGeometryCollection
                || eGeometryType == wkbMultiPolygon 
@@ -414,8 +503,10 @@ OGRErr OGRGeometryCollection::importFromWkb( unsigned char * pabyData,
     papoGeoms = (OGRGeometry **) OGRMalloc(sizeof(void*) * nGeomCount);
 
     nDataOffset = 9;
-    if( nBytesAvailable != -1 )
-        nBytesAvailable -= nDataOffset;
+    if( nSize != -1 )
+        nSize -= nDataOffset;
+
+    nCoordinateDimension = 0; // unknown
 
 /* -------------------------------------------------------------------- */
 /*      Get the Geoms.                                                  */
@@ -426,7 +517,7 @@ OGRErr OGRGeometryCollection::importFromWkb( unsigned char * pabyData,
 
         eErr = OGRGeometryFactory::
             createFromWkb( pabyData + nDataOffset, NULL,
-                           papoGeoms + iGeom, nBytesAvailable );
+                           papoGeoms + iGeom, nSize );
 
         if( eErr != OGRERR_NONE )
         {
@@ -434,8 +525,8 @@ OGRErr OGRGeometryCollection::importFromWkb( unsigned char * pabyData,
             return eErr;
         }
 
-        if( nBytesAvailable != -1 )
-            nBytesAvailable -= papoGeoms[iGeom]->WkbSize();
+        if( nSize != -1 )
+            nSize -= papoGeoms[iGeom]->WkbSize();
 
         nDataOffset += papoGeoms[iGeom]->WkbSize();
     }
@@ -461,22 +552,17 @@ OGRErr  OGRGeometryCollection::exportToWkb( OGRwkbByteOrder eByteOrder,
     pabyData[0] = (unsigned char) eByteOrder;
 
 /* -------------------------------------------------------------------- */
-/*      Set the geometry feature type.                                  */
+/*      Set the geometry feature type, ensuring that 3D flag is         */
+/*      preserved.                                                      */
 /* -------------------------------------------------------------------- */
+    GUInt32 nGType = getGeometryType();
+    
     if( eByteOrder == wkbNDR )
-    {
-        pabyData[1] = getGeometryType();
-        pabyData[2] = 0;
-        pabyData[3] = 0;
-        pabyData[4] = 0;
-    }
+        nGType = CPL_LSBWORD32( nGType );
     else
-    {
-        pabyData[1] = 0;
-        pabyData[2] = 0;
-        pabyData[3] = 0;
-        pabyData[4] = getGeometryType();
-    }
+        nGType = CPL_MSBWORD32( nGType );
+
+    memcpy( pabyData + 1, &nGType, 4 );
     
 /* -------------------------------------------------------------------- */
 /*      Copy in the raw data.                                           */
@@ -590,7 +676,7 @@ OGRErr OGRGeometryCollection::importFromWkt( char ** ppszInput )
 /*      equivelent.  This could be made alot more CPU efficient!        */
 /************************************************************************/
 
-OGRErr OGRGeometryCollection::exportToWkt( char ** ppszReturn )
+OGRErr OGRGeometryCollection::exportToWkt( char ** ppszDstText )
 
 {
     char        **papszGeoms;
@@ -614,27 +700,27 @@ OGRErr OGRGeometryCollection::exportToWkt( char ** ppszReturn )
 /* -------------------------------------------------------------------- */
 /*      Allocate the right amount of space for the aggregated string    */
 /* -------------------------------------------------------------------- */
-    *ppszReturn = (char *) VSIMalloc(nCumulativeLength + nGeomCount + 23);
+    *ppszDstText = (char *) VSIMalloc(nCumulativeLength + nGeomCount + 23);
 
-    if( *ppszReturn == NULL )
+    if( *ppszDstText == NULL )
         return OGRERR_NOT_ENOUGH_MEMORY;
 
 /* -------------------------------------------------------------------- */
 /*      Build up the string, freeing temporary strings as we go.        */
 /* -------------------------------------------------------------------- */
-    strcpy( *ppszReturn, getGeometryName() );
-    strcat( *ppszReturn, " (" );
+    strcpy( *ppszDstText, getGeometryName() );
+    strcat( *ppszDstText, " (" );
 
     for( iGeom = 0; iGeom < nGeomCount; iGeom++ )
     {                                                           
         if( iGeom > 0 )
-            strcat( *ppszReturn, "," );
+            strcat( *ppszDstText, "," );
         
-        strcat( *ppszReturn, papszGeoms[iGeom] );
+        strcat( *ppszDstText, papszGeoms[iGeom] );
         VSIFree( papszGeoms[iGeom] );
     }
 
-    strcat( *ppszReturn, ")" );
+    strcat( *ppszDstText, ")" );
 
     CPLFree( papszGeoms );
 
@@ -645,7 +731,7 @@ OGRErr OGRGeometryCollection::exportToWkt( char ** ppszReturn )
 /*                            getEnvelope()                             */
 /************************************************************************/
 
-void OGRGeometryCollection::getEnvelope( OGREnvelope * poEnvelope )
+void OGRGeometryCollection::getEnvelope( OGREnvelope * psEnvelope )
 
 {
     OGREnvelope         oGeomEnv;
@@ -653,20 +739,20 @@ void OGRGeometryCollection::getEnvelope( OGREnvelope * poEnvelope )
     if( nGeomCount == 0 )
         return;
 
-    papoGeoms[0]->getEnvelope( poEnvelope );
+    papoGeoms[0]->getEnvelope( psEnvelope );
 
     for( int iGeom = 1; iGeom < nGeomCount; iGeom++ )
     {
         papoGeoms[iGeom]->getEnvelope( &oGeomEnv );
 
-        if( poEnvelope->MinX > oGeomEnv.MinX )
-            poEnvelope->MinX = oGeomEnv.MinX;
-        if( poEnvelope->MinY > oGeomEnv.MinY )
-            poEnvelope->MinY = oGeomEnv.MinY;
-        if( poEnvelope->MaxX < oGeomEnv.MaxX )
-            poEnvelope->MaxX = oGeomEnv.MaxX;
-        if( poEnvelope->MaxY < oGeomEnv.MaxY )
-            poEnvelope->MaxY = oGeomEnv.MaxY;
+        if( psEnvelope->MinX > oGeomEnv.MinX )
+            psEnvelope->MinX = oGeomEnv.MinX;
+        if( psEnvelope->MinY > oGeomEnv.MinY )
+            psEnvelope->MinY = oGeomEnv.MinY;
+        if( psEnvelope->MaxX < oGeomEnv.MaxX )
+            psEnvelope->MaxX = oGeomEnv.MaxX;
+        if( psEnvelope->MaxY < oGeomEnv.MaxY )
+            psEnvelope->MaxY = oGeomEnv.MaxY;
     }
 }
 

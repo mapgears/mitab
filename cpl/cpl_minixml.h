@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_minixml.h,v 1.5 2002/05/24 04:09:10 warmerda Exp $
+ * $Id: cpl_minixml.h,v 1.8 2003/03/27 18:12:41 warmerda Exp $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Declarations for MiniXML Handler.
@@ -28,6 +28,16 @@
  **********************************************************************
  *
  * $Log: cpl_minixml.h,v $
+ * Revision 1.8  2003/03/27 18:12:41  warmerda
+ * Added NULL pszNameSpace support in namespace stripper (all namespaces).
+ * Added XML file read/write functions.
+ *
+ * Revision 1.7  2003/03/24 16:46:48  warmerda
+ * added CPLStripXMLNamespace
+ *
+ * Revision 1.6  2002/11/16 20:38:34  warmerda
+ * added support for literals like DOCTYPE
+ *
  * Revision 1.5  2002/05/24 04:09:10  warmerda
  * added clone and SetXMLValue functions
  *
@@ -57,7 +67,8 @@ typedef enum
     CXT_Element = 0,
     CXT_Text = 1,
     CXT_Attribute = 2,
-    CXT_Comment = 3
+    CXT_Comment = 3,
+    CXT_Literal = 4
 } CPLXMLNodeType;
 
 typedef struct _CPLXMLNode
@@ -90,6 +101,13 @@ CPLXMLNode CPL_DLL *CPLCreateXMLElementAndValue( CPLXMLNode *psParent,
 CPLXMLNode CPL_DLL *CPLCloneXMLTree( CPLXMLNode *psTree );
 int        CPL_DLL CPLSetXMLValue( CPLXMLNode *psRoot,  const char *pszPath,
                                    const char *pszValue );
+void       CPL_DLL CPLStripXMLNamespace( CPLXMLNode *psRoot, 
+                                         const char *pszNameSpace, 
+                                         int bRecurse );
+
+CPLXMLNode CPL_DLL *CPLParseXMLFile( const char *pszFilename );
+int        CPL_DLL CPLSerializeXMLTreeToFile( CPLXMLNode *psTree, 
+                                              const char *pszFilename );
 
 CPL_C_END
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_path.cpp,v 1.9 2001/08/30 21:20:49 warmerda Exp $
+ * $Id: cpl_path.cpp,v 1.14 2003/05/28 19:22:38 warmerda Exp $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Portable filename/path parsing, and forming ala "Glob API".
@@ -28,6 +28,22 @@
  **********************************************************************
  *
  * $Log: cpl_path.cpp,v $
+ * Revision 1.14  2003/05/28 19:22:38  warmerda
+ * fixed docs
+ *
+ * Revision 1.13  2003/04/04 09:11:35  dron
+ * strcpy() and strcat() replaced by strncpy() and strncat().
+ * A lot of assertion on string sizes added.
+ *
+ * Revision 1.12  2002/12/13 06:14:17  warmerda
+ * fixed bug with IsRelative function
+ *
+ * Revision 1.11  2002/12/13 06:00:54  warmerda
+ * added CPLProjectRelativeFilename() and CPLIsFilenameRelative()
+ *
+ * Revision 1.10  2002/08/15 09:23:24  dron
+ * Added CPLGetDirname() function
+ *
  * Revision 1.9  2001/08/30 21:20:49  warmerda
  * expand tabs
  *
@@ -60,11 +76,20 @@
 #include "cpl_conv.h"
 #include "cpl_string.h"
 
-CPL_CVSID("$Id: cpl_path.cpp,v 1.9 2001/08/30 21:20:49 warmerda Exp $");
+CPL_CVSID("$Id: cpl_path.cpp,v 1.14 2003/05/28 19:22:38 warmerda Exp $");
 
 
-static char     szStaticResult[1024]; /* should be size of larged possible
-                                         filename */
+/* should be size of larged possible filename */
+#define CPL_PATH_BUF_SIZE 2048
+static char     szStaticResult[CPL_PATH_BUF_SIZE]; 
+
+#ifdef WIN32        
+#define SEP_CHAR '\\'
+#define SEP_STRING "\\"
+#else
+#define SEP_CHAR '/'
+#define SEP_STRING "/"
+#endif
 
 /************************************************************************/
 /*                        CPLFindFilenameStart()                        */
@@ -97,9 +122,10 @@ static int CPLFindFilenameStart( const char * pszFilename )
  *
  * <pre>
  * CPLGetPath( "abc/def.xyz" ) == "abc"
- * CPLGetPath( "/abc/def/" ) == "abc/def"
+ * CPLGetPath( "/abc/def/" ) == "/abc/def"
  * CPLGetPath( "/" ) == "/"
  * CPLGetPath( "/abc/def" ) == "/abc"
+ * CPLGetPath( "abc" ) == ""
  * </pre>
  *
  * @param pszFilename the filename potentially including a path.
@@ -114,9 +140,61 @@ const char *CPLGetPath( const char *pszFilename )
 {
     int         iFileStart = CPLFindFilenameStart(pszFilename);
 
+    CPLAssert( iFileStart < CPL_PATH_BUF_SIZE );
+
     if( iFileStart == 0 )
     {
         strcpy( szStaticResult, "" );
+        return szStaticResult;
+    }
+
+    strncpy( szStaticResult, pszFilename, iFileStart );
+    szStaticResult[iFileStart] = '\0';
+
+    if( iFileStart > 1
+        && (szStaticResult[iFileStart-1] == '/'
+            || szStaticResult[iFileStart-1] == '\\') )
+        szStaticResult[iFileStart-1] = '\0';
+
+    return szStaticResult;
+}
+
+/************************************************************************/
+/*                             CPLGetDirname()                          */
+/************************************************************************/
+
+/**
+ * Extract directory path portion of filename.
+ *
+ * Returns a string containing the directory path portion of the passed
+ * filename.  If there is no path in the passed filename the dot will be
+ * returned.  It is the only difference from CPLGetPath().
+ *
+ * <pre>
+ * CPLGetDirname( "abc/def.xyz" ) == "abc"
+ * CPLGetDirname( "/abc/def/" ) == "/abc/def"
+ * CPLGetDirname( "/" ) == "/"
+ * CPLGetDirname( "/abc/def" ) == "/abc"
+ * CPLGetDirname( "abc" ) == "."
+ * </pre>
+ *
+ * @param pszFilename the filename potentially including a path.
+ *
+ * @return Path in an internal string which must not be freed.  The string
+ * may be destroyed by the next CPL filename handling call.  The returned
+ * will generally not contain a trailing path separator.
+ */
+
+const char *CPLGetDirname( const char *pszFilename )
+
+{
+    int         iFileStart = CPLFindFilenameStart(pszFilename);
+
+    CPLAssert( iFileStart < CPL_PATH_BUF_SIZE );
+
+    if( iFileStart == 0 )
+    {
+        strcpy( szStaticResult, "." );
         return szStaticResult;
     }
 
@@ -160,7 +238,8 @@ const char *CPLGetFilename( const char *pszFullFilename )
 {
     int iFileStart = CPLFindFilenameStart( pszFullFilename );
 
-    strcpy( szStaticResult, pszFullFilename + iFileStart );
+    strncpy( szStaticResult, pszFullFilename + iFileStart, CPL_PATH_BUF_SIZE );
+    szStaticResult[CPL_PATH_BUF_SIZE - 1] = '\0';
 
     return szStaticResult;
 }
@@ -203,6 +282,8 @@ const char *CPLGetBasename( const char *pszFullFilename )
         iExtStart = strlen(pszFullFilename);
 
     nLength = iExtStart - iFileStart;
+
+    CPLAssert( nLength < CPL_PATH_BUF_SIZE );
 
     strncpy( szStaticResult, pszFullFilename + iFileStart, nLength );
     szStaticResult[nLength] = '\0';
@@ -247,7 +328,8 @@ const char *CPLGetExtension( const char *pszFullFilename )
     if( iExtStart == iFileStart )
         iExtStart = strlen(pszFullFilename)-1;
 
-    strcpy( szStaticResult, pszFullFilename+iExtStart+1 );
+    strncpy( szStaticResult, pszFullFilename+iExtStart+1, CPL_PATH_BUF_SIZE );
+    szStaticResult[CPL_PATH_BUF_SIZE - 1] = '\0';
 
     return szStaticResult;
 }
@@ -260,7 +342,7 @@ const char *CPLGetExtension( const char *pszFullFilename )
  * Replace the extension with the provided one.
  *
  * @param pszPath the input path, this string is not altered.
- * @param pszExtension the new extension to apply to the given path.
+ * @param pszExt the new extension to apply to the given path.
  *
  * @return an altered filename with the new extension.    Do not
  * modify or free the returned string.  The string may be destroyed by the
@@ -275,8 +357,9 @@ const char *CPLResetExtension( const char *pszPath, const char *pszExt )
 /* -------------------------------------------------------------------- */
 /*      First, try and strip off any existing extension.                */
 /* -------------------------------------------------------------------- */
-    strcpy( szStaticResult, pszPath );
-    for( i = strlen(szStaticResult)-1; i > 0; i-- )
+    strncpy( szStaticResult, pszPath, CPL_PATH_BUF_SIZE );
+    szStaticResult[CPL_PATH_BUF_SIZE - 1] = '\0';
+    for( i = strlen(szStaticResult) - 1; i > 0; i-- )
     {
         if( szStaticResult[i] == '.' )
         {
@@ -292,6 +375,8 @@ const char *CPLResetExtension( const char *pszPath, const char *pszExt )
 /* -------------------------------------------------------------------- */
 /*      Append the new extension.                                       */
 /* -------------------------------------------------------------------- */
+    CPLAssert( strlen(pszExt) + 2 < CPL_PATH_BUF_SIZE );
+    
     strcat( szStaticResult, "." );
     strcat( szStaticResult, pszExt );
 
@@ -343,21 +428,23 @@ const char *CPLFormFilename( const char * pszPath,
     else if( strlen(pszPath) > 0
              && pszPath[strlen(pszPath)-1] != '/'
              && pszPath[strlen(pszPath)-1] != '\\' )
-#ifdef WIN32        
-        pszAddedPathSep = "\\";
-#else    
-        pszAddedPathSep = "/";
-#endif        
+        pszAddedPathSep = SEP_STRING;
 
     if( pszExtension == NULL )
         pszExtension = "";
     else if( pszExtension[0] != '.' && strlen(pszExtension) > 0 )
         pszAddedExtSep = ".";
 
-    sprintf( szStaticResult, "%s%s%s%s%s",
-             pszPath, pszAddedPathSep,
-             pszBasename,
-             pszAddedExtSep, pszExtension );
+    CPLAssert( strlen(pszPath) + strlen(pszAddedPathSep) +
+               strlen(pszBasename) + strlen(pszAddedExtSep) +
+               strlen(pszExtension) + 1 < CPL_PATH_BUF_SIZE );
+
+    strncpy( szStaticResult, pszPath, CPL_PATH_BUF_SIZE );
+    strncat( szStaticResult, pszAddedPathSep, CPL_PATH_BUF_SIZE);
+    strncat( szStaticResult, pszBasename, CPL_PATH_BUF_SIZE);
+    strncat( szStaticResult, pszAddedExtSep, CPL_PATH_BUF_SIZE);
+    strncat( szStaticResult, pszExtension, CPL_PATH_BUF_SIZE);
+    szStaticResult[CPL_PATH_BUF_SIZE - 1] = '\0';
 
     return szStaticResult;
 }
@@ -452,4 +539,90 @@ const char *CPLFormCIFilename( const char * pszPath,
 
     return pszFullPath;
 #endif
+}
+
+/************************************************************************/
+/*                     CPLProjectRelativeFilename()                     */
+/************************************************************************/
+
+/**
+ * Find a file relative to a project file. 
+ *
+ * Given the path to a "project" directory, and a path to a secondary file
+ * referenced from that project, build a path to the secondary file
+ * that the current application can use.  If the secondary path is already
+ * absolute, rather than relative, then it will be returned unaltered. 
+ * 
+ * Examples:
+ * <pre>
+ * CPLProjectRelativeFilename("abc/def","tmp/abc.gif") == "abc/def/tmp/abc.gif"
+ * CPLProjectRelativeFilename("abc/def","/tmp/abc.gif") == "/tmp/abc.gif"
+ * CPLProjectRelativeFilename("/xy", "abc.gif") == "/xy/abc.gif"
+ * CPLProjectRelativeFilename("/abc/def","../abc.gif") == "/abc/def/../abc.gif"
+ * CPLProjectRelativeFilename("C:\WIN","abc.gif") == "C:\WIN\abc.gif"
+ * </pre>
+ *
+ * @param pszProjectDir the directory relative to which the secondary files 
+ * path should be interpreted.
+ * @param pszSecondaryFilename the filename (potentially with path) that
+ * is to be interpreted relative to the project directory.
+ *
+ * @return a composed path to the secondary file.  The returned string is
+ * internal and should not be altered, freed, or depending on past the next
+ * CPL call. 
+ */
+
+const char *CPLProjectRelativeFilename( const char *pszProjectDir, 
+                                        const char *pszSecondaryFilename )
+
+{
+    if( !CPLIsFilenameRelative( pszSecondaryFilename ) )
+        return pszSecondaryFilename;
+
+    if( pszProjectDir == NULL || strlen(pszProjectDir) == 0 )
+        return pszSecondaryFilename;
+
+    strncpy( szStaticResult, pszProjectDir, CPL_PATH_BUF_SIZE );
+    szStaticResult[CPL_PATH_BUF_SIZE - 1] = '\0';
+
+    if( pszProjectDir[strlen(pszProjectDir)-1] != '/' 
+        && pszProjectDir[strlen(pszProjectDir)-1] != '\\' )
+    {
+        CPLAssert( strlen(SEP_STRING) + 1 < CPL_PATH_BUF_SIZE );
+
+        strcat( szStaticResult, SEP_STRING );
+    }
+
+    CPLAssert( strlen(pszSecondaryFilename) + 1 < CPL_PATH_BUF_SIZE );
+
+    strcat( szStaticResult, pszSecondaryFilename );
+        
+    return szStaticResult;
+}
+
+/************************************************************************/
+/*                       CPLIsFilenameRelative()                        */
+/************************************************************************/
+
+/**
+ * Is filename relative or absolute?
+ *
+ * The test is filesystem convention agnostic.  That is it will test for
+ * Unix style and windows style path conventions regardless of the actual
+ * system in use.  
+ *
+ * @param pszFilename the filename with path to test.
+ *
+ * @return TRUE if the filename is relative or FALSE if it is absolute. 
+ */
+
+int CPLIsFilenameRelative( const char *pszFilename )
+
+{
+    if( (strlen(pszFilename) > 2 && strncmp(pszFilename+1,":\\",2) == 0)
+        || pszFilename[0] == '\\'
+        || pszFilename[0] == '/' )
+        return FALSE;
+    else
+        return TRUE;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_port.h,v 1.31 2002/07/15 13:31:46 warmerda Exp $
+ * $Id: cpl_port.h,v 1.33 2003/05/12 14:52:56 warmerda Exp $
  *
  * Project:  CPL - Common Portability Library
  * Author:   Frank Warmerdam, warmerdam@pobox.com
@@ -42,6 +42,12 @@
  ******************************************************************************
  *
  * $Log: cpl_port.h,v $
+ * Revision 1.33  2003/05/12 14:52:56  warmerda
+ * Use _MSC_VER to test for Microsoft Visual C++ compiler.
+ *
+ * Revision 1.32  2002/10/24 20:24:40  warmerda
+ * avoid using variable names likely to conflict in macros
+ *
  * Revision 1.31  2002/07/15 13:31:46  warmerda
  * CPL_SWAPDOUBLE had alignment problem, use CPL_SWAP64PTR
  *
@@ -180,7 +186,7 @@ typedef int             GBool;
 /*      64bit support                                                   */
 /* -------------------------------------------------------------------- */
 
-#ifdef WIN32
+#if defined(WIN32) && defined(_MSC_VER)
 
 #define VSI_LARGE_API_SUPPORTED
 typedef __int64          GIntBig;
@@ -210,7 +216,7 @@ typedef unsigned long    GUIntBig;
 #endif
 
 #ifndef CPL_DLL
-#if defined(WIN32) && !defined(CPL_DISABLE_DLL)
+#if defined(_MSC_VER) && !defined(CPL_DISABLE_DLL)
 #  define CPL_DLL     __declspec(dllexport)
 #else
 #  define CPL_DLL
@@ -280,12 +286,12 @@ char * strdup (char *instr);
             (((GUInt16)(x) & 0xff00U) >> 8) ))
 
 #define CPL_SWAP16PTR(x) \
-{                                                               \
-    GByte       byTemp, *pabyData = (GByte *) (x);              \
-                                                                \
-    byTemp = pabyData[0];                                       \
-    pabyData[0] = pabyData[1];                                  \
-    pabyData[1] = byTemp;                                       \
+{                                                                 \
+    GByte       byTemp, *_pabyDataT = (GByte *) (x);              \
+                                                                  \
+    byTemp = _pabyDataT[0];                                       \
+    _pabyDataT[0] = _pabyDataT[1];                                \
+    _pabyDataT[1] = byTemp;                                       \
 }                                                                    
                                                             
 #define CPL_SWAP32(x) \
@@ -296,33 +302,33 @@ char * strdup (char *instr);
             (((GUInt32)(x) & (GUInt32)0xff000000UL) >> 24) ))
 
 #define CPL_SWAP32PTR(x) \
-{                                                               \
-    GByte       byTemp, *pabyData = (GByte *) (x);              \
-                                                                \
-    byTemp = pabyData[0];                                       \
-    pabyData[0] = pabyData[3];                                  \
-    pabyData[3] = byTemp;                                       \
-    byTemp = pabyData[1];                                       \
-    pabyData[1] = pabyData[2];                                  \
-    pabyData[2] = byTemp;                                       \
+{                                                                 \
+    GByte       byTemp, *_pabyDataT = (GByte *) (x);              \
+                                                                  \
+    byTemp = _pabyDataT[0];                                       \
+    _pabyDataT[0] = _pabyDataT[3];                                \
+    _pabyDataT[3] = byTemp;                                       \
+    byTemp = _pabyDataT[1];                                       \
+    _pabyDataT[1] = _pabyDataT[2];                                \
+    _pabyDataT[2] = byTemp;                                       \
 }                                                                    
                                                             
 #define CPL_SWAP64PTR(x) \
-{                                                               \
-    GByte       byTemp, *pabyData = (GByte *) (x);              \
-                                                                \
-    byTemp = pabyData[0];                                       \
-    pabyData[0] = pabyData[7];                                  \
-    pabyData[7] = byTemp;                                       \
-    byTemp = pabyData[1];                                       \
-    pabyData[1] = pabyData[6];                                  \
-    pabyData[6] = byTemp;                                       \
-    byTemp = pabyData[2];                                       \
-    pabyData[2] = pabyData[5];                                  \
-    pabyData[5] = byTemp;                                       \
-    byTemp = pabyData[3];                                       \
-    pabyData[3] = pabyData[4];                                  \
-    pabyData[4] = byTemp;                                       \
+{                                                                 \
+    GByte       byTemp, *_pabyDataT = (GByte *) (x);              \
+                                                                  \
+    byTemp = _pabyDataT[0];                                       \
+    _pabyDataT[0] = _pabyDataT[7];                                \
+    _pabyDataT[7] = byTemp;                                       \
+    byTemp = _pabyDataT[1];                                       \
+    _pabyDataT[1] = _pabyDataT[6];                                \
+    _pabyDataT[6] = byTemp;                                       \
+    byTemp = _pabyDataT[2];                                       \
+    _pabyDataT[2] = _pabyDataT[5];                                \
+    _pabyDataT[5] = byTemp;                                       \
+    byTemp = _pabyDataT[3];                                       \
+    _pabyDataT[3] = _pabyDataT[4];                                \
+    _pabyDataT[4] = byTemp;                                       \
 }                                                                    
                                                             
 

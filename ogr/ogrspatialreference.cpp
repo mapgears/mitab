@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrspatialreference.cpp,v 1.51 2002/04/25 20:56:28 warmerda Exp $
+ * $Id: ogrspatialreference.cpp,v 1.77 2003/06/19 17:10:26 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRSpatialReference class.
@@ -28,6 +28,85 @@
  ******************************************************************************
  *
  * $Log: ogrspatialreference.cpp,v $
+ * Revision 1.77  2003/06/19 17:10:26  warmerda
+ * a couple fixes in last commit
+ *
+ * Revision 1.76  2003/06/18 18:24:17  warmerda
+ * added projection specific set methods to C API
+ *
+ * Revision 1.75  2003/05/30 18:34:41  warmerda
+ * clear existing authority node in SetLinearUnits if one exists
+ *
+ * Revision 1.74  2003/05/28 19:16:43  warmerda
+ * fixed up argument names and stuff for docs
+ *
+ * Revision 1.73  2003/04/01 14:34:45  warmerda
+ * Clarify SetUTM() documentation.
+ *
+ * Revision 1.72  2003/03/28 17:42:05  warmerda
+ * fixed reference/dereference problem
+ *
+ * Revision 1.71  2003/02/25 04:55:41  warmerda
+ * Added SetGeogCSFrom() method. Modified SetWellKnownGeogCS() to use it.
+ * Modfied SetGeogCS() to replace an existing GEOGCS node if there is one.
+ *
+ * Revision 1.70  2003/02/14 22:15:04  warmerda
+ * expand tabs
+ *
+ * Revision 1.69  2003/02/08 00:37:15  warmerda
+ * try to improve documentation
+ *
+ * Revision 1.68  2003/02/06 04:53:12  warmerda
+ * added Fixup() method
+ *
+ * Revision 1.67  2003/01/31 02:27:08  warmerda
+ * modified SetFromUserInput() to avoid large buffer on stack
+ *
+ * Revision 1.66  2003/01/08 18:14:28  warmerda
+ * added FixupOrdering()
+ *
+ * Revision 1.65  2002/12/21 17:29:38  warmerda
+ * fixed default degree/radian problem for GEOGCS
+ *
+ * Revision 1.64  2002/12/16 17:08:44  warmerda
+ * added GetPrimeMeridian() method, and fiddled with OGRPrintDouble
+ *
+ * Revision 1.63  2002/12/16 14:41:19  warmerda
+ * implement normalized Get/Set ProjParm
+ *
+ * Revision 1.62  2002/12/15 23:42:59  warmerda
+ * added initial support for normalizing proj params
+ *
+ * Revision 1.61  2002/12/14 22:59:14  warmerda
+ * added Krovak in ESRI compatible way
+ *
+ * Revision 1.60  2002/12/10 04:06:00  warmerda
+ * updated well known GEOGCS descriptions
+ *
+ * Revision 1.59  2002/12/09 16:11:32  warmerda
+ * fixed constness of get authority calls
+ *
+ * Revision 1.58  2002/12/01 21:16:10  warmerda
+ * added Get/set angular units methods
+ *
+ * Revision 1.57  2002/12/01 20:22:39  warmerda
+ * preserve a little more precision in projection parameters
+ *
+ * Revision 1.56  2002/11/30 16:44:08  warmerda
+ * fixed some functions that claimed to use node paths, so they work
+ *
+ * Revision 1.55  2002/11/30 15:45:49  warmerda
+ * be more careful about how AUTHORITY is fetched, to not get wrong one
+ *
+ * Revision 1.54  2002/11/25 16:12:54  warmerda
+ * added GetAuthorityCode/Name
+ *
+ * Revision 1.53  2002/07/25 15:58:02  warmerda
+ * Fixed docs for how to compute inverse flattening.
+ *
+ * Revision 1.52  2002/07/25 13:13:36  warmerda
+ * fixed const correctness of some docs
+ *
  * Revision 1.51  2002/04/25 20:56:28  warmerda
  * expanded tabs
  *
@@ -54,144 +133,32 @@
  *
  * Revision 1.43  2002/01/18 04:51:05  warmerda
  * added PROJ.4 support to SetFromUserInput()
- *
- * Revision 1.42  2001/12/06 18:18:47  warmerda
- * added preliminary xml srs support
- *
- * Revision 1.41  2001/11/15 16:26:03  warmerda
- * added check in StripCTParms
- *
- * Revision 1.40  2001/11/09 21:05:07  warmerda
- * fixed local_cs stripping
- *
- * Revision 1.39  2001/10/19 15:38:04  warmerda
- * fixed well known geogcses to use degree instead of DMSH
- *
- * Revision 1.38  2001/10/11 19:27:12  warmerda
- * upgraded validation infrastructure
- *
- * Revision 1.37  2001/10/10 20:42:43  warmerda
- * added ESRI WKT morphing support
- *
- * Revision 1.36  2001/09/21 16:29:21  warmerda
- * fixed typos in docs
- *
- * Revision 1.35  2001/09/21 16:21:02  warmerda
- * added Clear(), and SetFromUserInput() methods
- *
- * Revision 1.34  2001/09/11 19:04:59  warmerda
- * fixed logic in GetLinearUnits() to work on nodes with authority defn
- *
- * Revision 1.33  2001/08/13 11:23:58  warmerda
- * improved IsSame() test
- *
- * Revision 1.32  2001/07/19 18:25:07  warmerda
- * expanded tabs
- *
- * Revision 1.31  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.30  2001/07/16 03:34:55  warmerda
- * various fixes, and improvements suggested by Ben Driscoe on gdal list
- *
- * Revision 1.29  2001/07/13 12:33:10  warmerda
- * Fixed crash on OGRSpatialReference if PROJECTION missing.
- *
- * Revision 1.28  2001/04/04 16:09:57  warmerda
- * clarify units and definition of TOWGS84
- *
- * Revision 1.27  2001/01/22 13:59:55  warmerda
- * added SetSOC
- *
- * Revision 1.26  2001/01/19 22:14:49  warmerda
- * fixed SetNode to replace existing value properly if it exists
- *
- * Revision 1.25  2001/01/19 21:10:47  warmerda
- * replaced tabs
- *
- * Revision 1.24  2000/11/17 17:26:02  warmerda
- * set a name in SetUTM()
- *
- * Revision 1.23  2000/11/09 06:21:32  warmerda
- * added limited ESRI prj support
- *
- * Revision 1.22  2000/10/20 04:20:17  warmerda
- * overwrite existing linear units node if one exists
- *
- * Revision 1.21  2000/10/16 21:26:07  warmerda
- * added some level of LOCAL_CS support
- *
- * Revision 1.20  2000/10/13 20:59:49  warmerda
- * ensure we can set the PROJCS name on an existing PROJCS
- *
- * Revision 1.19  2000/07/09 20:49:54  warmerda
- * added exportToPrettyWkt()
- *
- * Revision 1.18  2000/06/09 13:26:03  warmerda
- * avoid using an inverse flattening of zero
- *
- * Revision 1.17  2000/05/30 22:45:45  warmerda
- * added OSRCloneGeogCS()
- *
- * Revision 1.16  2000/03/24 14:49:56  warmerda
- * added WGS84 related methods
- *
- * Revision 1.15  2000/03/22 01:09:43  warmerda
- * added SetProjCS and SetWellKnownTextCS
- *
- * Revision 1.14  2000/03/20 22:40:59  warmerda
- * Added C API and some documentation.
- *
- * Revision 1.13  2000/03/20 14:58:39  warmerda
- * added CloneGeogCS, IsProjected, isGeogCS, and GeogCSMatch
- *
- * Revision 1.12  2000/03/16 19:04:55  warmerda
- * added SetTMG(), SetAuthority() and StripCTParms()
- *
- * Revision 1.11  2000/02/25 13:23:25  warmerda
- * removed include of ogr_geometry.h
- *
- * Revision 1.10  2000/01/11 22:12:39  warmerda
- * Ensure GEOGCS node is always at position 1 under PROJCS
- *
- * Revision 1.9  2000/01/06 19:46:10  warmerda
- * added special logic for setting, and recognising UTM
- *
- * Revision 1.8  1999/11/18 19:02:19  warmerda
- * expanded tabs
- *
- * Revision 1.7  1999/10/05 17:53:11  warmerda
- * GetLinearUnits() should look for UNIT not UNITS.
- *
- * Revision 1.6  1999/09/29 16:37:05  warmerda
- * added several new projection set methods
- *
- * Revision 1.5  1999/09/17 16:15:15  warmerda
- * Added angular units to SetGeogCS().  Use OGRPrintDouble(). Added SetLCC1SP().
- *
- * Revision 1.4  1999/07/29 17:29:45  warmerda
- * added various help methods for projections
- *
- * Revision 1.3  1999/07/14 05:23:38  warmerda
- * Added projection set methods, and #defined tokens
- *
- * Revision 1.2  1999/07/05 17:19:26  warmerda
- * initial implementation
- *
- * Revision 1.1  1999/06/25 20:20:54  warmerda
- * New
- *
  */
 
 #include "ogr_spatialref.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrspatialreference.cpp,v 1.51 2002/04/25 20:56:28 warmerda Exp $");
+CPL_CVSID("$Id: ogrspatialreference.cpp,v 1.77 2003/06/19 17:10:26 warmerda Exp $");
+
+/************************************************************************/
+/*                           OGRPrintDouble()                           */
+/************************************************************************/
 
 static void OGRPrintDouble( char * pszStrBuf, double dfValue )
 
 {
-    sprintf( pszStrBuf, "%.15g", dfValue );
+    sprintf( pszStrBuf, "%.16g", dfValue );
+
+    int nLen = strlen(pszStrBuf);
+
+    // The following hack is intended to truncate some "precision" in cases
+    // that appear to be roundoff error. 
+    if( nLen > 15 
+        && (strcmp(pszStrBuf+nLen-6,"999999") == 0
+            || strcmp(pszStrBuf+nLen-6,"000001") == 0) )
+    {
+        sprintf( pszStrBuf, "%.15g", dfValue );
+    }
 }
 
 /************************************************************************/
@@ -217,6 +184,7 @@ static void OGRPrintDouble( char * pszStrBuf, double dfValue )
 OGRSpatialReference::OGRSpatialReference( const char * pszWKT )
 
 {
+    bNormInfoSet = FALSE;
     nRefCount = 1;
     poRoot = NULL;
 
@@ -256,6 +224,7 @@ OGRSpatialReferenceH OSRNewSpatialReference( const char *pszWKT )
 OGRSpatialReference::OGRSpatialReference(const OGRSpatialReference &oOther)
 
 {
+    bNormInfoSet = FALSE;
     nRefCount = 1;
     poRoot = NULL;
 
@@ -387,7 +356,7 @@ int OGRSpatialReference::Dereference()
 int OSRDereference( OGRSpatialReferenceH hSRS )
 
 {
-    return ((OGRSpatialReference *) hSRS)->Reference();
+    return ((OGRSpatialReference *) hSRS)->Dereference();
 }
 
 /************************************************************************/
@@ -395,7 +364,7 @@ int OSRDereference( OGRSpatialReferenceH hSRS )
 /************************************************************************/
 
 /**
- * \fn int OGRSpatialReference::GetReferenceCount();
+ * \fn int OGRSpatialReference::GetReferenceCount() const;
  *
  * Fetch current reference count.
  *
@@ -674,6 +643,8 @@ OGRErr OGRSpatialReference::importFromWkt( char ** ppszInput )
     if( poRoot != NULL )
         delete poRoot;
 
+    bNormInfoSet = FALSE;
+
     poRoot = new OGR_SRSNode();
 
     return poRoot->importFromWkt( ppszInput );
@@ -790,10 +761,139 @@ OGRErr OGRSpatialReference::SetNode( const char *pszNodePath,
     if( ABS(dfValue - (int) dfValue) == 0.0 )
         sprintf( szValue, "%d", (int) dfValue );
     else
-        // notdef: sprintf( szValue, "%.12f", dfValue );
+        // notdef: sprintf( szValue, "%.16g", dfValue );
         OGRPrintDouble( szValue, dfValue );
 
     return SetNode( pszNodePath, szValue );
+}
+
+/************************************************************************/
+/*                          SetAngularUnits()                           */
+/************************************************************************/
+
+/**
+ * Set the angular units for the geographic coordinate system.
+ *
+ * This method creates a UNITS subnode with the specified values as a
+ * child of the GEOGCS node. 
+ *
+ * This method does the same as the C function OSRSetAngularUnits(). 
+ *
+ * @param pszUnitsName the units name to be used.  Some preferred units
+ * names can be found in ogr_srs_api.h such as SRS_UA_DEGREE. 
+ *
+ * @param dfInRadians the value to multiple by an angle in the indicated
+ * units to transform to radians.  Some standard conversion factors can
+ * be found in ogr_srs_api.h. 
+ *
+ * @return OGRERR_NONE on success.
+ */
+
+OGRErr OGRSpatialReference::SetAngularUnits( const char * pszUnitsName,
+                                             double dfInRadians )
+
+{
+    OGR_SRSNode *poCS;
+    OGR_SRSNode *poUnits;
+    char        szValue[128];
+
+    bNormInfoSet = FALSE;
+
+    poCS = GetAttrNode( "GEOGCS" );
+
+    if( poCS == NULL )
+        return OGRERR_FAILURE;
+
+    OGRPrintDouble( szValue, dfInRadians );
+
+    if( poCS->FindChild( "UNIT" ) >= 0 )
+    {
+        poUnits = poCS->GetChild( poCS->FindChild( "UNIT" ) );
+        poUnits->GetChild(0)->SetValue( pszUnitsName );
+        poUnits->GetChild(1)->SetValue( szValue );
+    }
+    else
+    {
+        poUnits = new OGR_SRSNode( "UNIT" );
+        poUnits->AddChild( new OGR_SRSNode( pszUnitsName ) );
+        poUnits->AddChild( new OGR_SRSNode( szValue ) );
+        
+        poCS->AddChild( poUnits );
+    }
+
+    return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                         OSRSetAngularUnits()                         */
+/************************************************************************/
+
+OGRErr OSRSetAngularUnits( OGRSpatialReferenceH hSRS, 
+                           const char * pszUnits, double dfInRadians )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetAngularUnits( pszUnits, 
+                                                            dfInRadians );
+}
+
+/************************************************************************/
+/*                          GetAngularUnits()                           */
+/************************************************************************/
+
+/**
+ * Fetch angular geographic coordinate system units.
+ *
+ * If no units are available, a value of "degree" and SRS_UA_DEGREE_CONV 
+ * will be assumed.  This method only checks directly under the GEOGCS node
+ * for units.
+ *
+ * This method does the same thing as the C function OSRGetAngularUnits()/
+ *
+ * @param ppszName a pointer to be updated with the pointer to the 
+ * units name.  The returned value remains internal to the OGRSpatialReference
+ * and shouldn't be freed, or modified.  It may be invalidated on the next
+ * OGRSpatialReference call. 
+ *
+ * @return the value to multiply by angular distances to transform them to 
+ * radians.
+ */
+
+double OGRSpatialReference::GetAngularUnits( char ** ppszName ) const
+
+{
+    const OGR_SRSNode *poCS = GetAttrNode( "GEOGCS" );
+
+    if( ppszName != NULL )
+        *ppszName = "degree";
+        
+    if( poCS == NULL )
+        return atof(SRS_UA_DEGREE_CONV);
+
+    for( int iChild = 0; iChild < poCS->GetChildCount(); iChild++ )
+    {
+        const OGR_SRSNode     *poChild = poCS->GetChild(iChild);
+        
+        if( EQUAL(poChild->GetValue(),"UNIT")
+            && poChild->GetChildCount() >= 2 )
+        {
+            if( ppszName != NULL )
+                *ppszName = (char *) poChild->GetChild(0)->GetValue();
+            
+            return atof( poChild->GetChild(1)->GetValue() );
+        }
+    }
+
+    return 1.0;
+}
+
+/************************************************************************/
+/*                         OSRGetAngularUnits()                         */
+/************************************************************************/
+
+double OSRGetAngularUnits( OGRSpatialReferenceH hSRS, char ** ppszName )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->GetAngularUnits( ppszName );
 }
 
 /************************************************************************/
@@ -804,8 +904,7 @@ OGRErr OGRSpatialReference::SetNode( const char *pszNodePath,
  * Set the linear units for the projection.
  *
  * This method creates a UNITS subnode with the specified values as a
- * child of the PROJCS or LOCAL_CS node.  It does not currently check for an 
- * existing node and override it, but it should!
+ * child of the PROJCS or LOCAL_CS node. 
  *
  * This method does the same as the C function OSRSetLinearUnits(). 
  *
@@ -828,6 +927,8 @@ OGRErr OGRSpatialReference::SetLinearUnits( const char * pszUnitsName,
     OGR_SRSNode *poUnits;
     char        szValue[128];
 
+    bNormInfoSet = FALSE;
+
     poCS = GetAttrNode( "PROJCS" );
     if( poCS == NULL )
         poCS = GetAttrNode( "LOCAL_CS" );
@@ -838,7 +939,7 @@ OGRErr OGRSpatialReference::SetLinearUnits( const char * pszUnitsName,
     if( dfInMeters == (int) dfInMeters )
         sprintf( szValue, "%d", (int) dfInMeters );
     else
-        //notdef: sprintf( szValue, "%.12f", dfInMeters );
+        //notdef: sprintf( szValue, "%.16g", dfInMeters );
         OGRPrintDouble( szValue, dfInMeters );
 
     if( poCS->FindChild( "UNIT" ) >= 0 )
@@ -846,6 +947,8 @@ OGRErr OGRSpatialReference::SetLinearUnits( const char * pszUnitsName,
         poUnits = poCS->GetChild( poCS->FindChild( "UNIT" ) );
         poUnits->GetChild(0)->SetValue( pszUnitsName );
         poUnits->GetChild(1)->SetValue( szValue );
+        if( poUnits->FindChild( "AUTHORITY" ) != -1 )
+            poUnits->DestroyChild( poUnits->FindChild( "AUTHORITY" ) );
     }
     else
     {
@@ -935,6 +1038,60 @@ double OSRGetLinearUnits( OGRSpatialReferenceH hSRS, char ** ppszName )
 }
 
 /************************************************************************/
+/*                          GetPrimeMeridian()                          */
+/************************************************************************/
+
+/**
+ * Fetch prime meridian info.
+ *
+ * Returns the offset of the prime meridian from greenwich in degrees,
+ * and the prime meridian name (if requested).   If no PRIMEM value exists
+ * in the coordinate system definition a value of "Greenwich" and an
+ * offset of 0.0 is assumed.
+ *
+ * If the prime meridian name is returned, the pointer is to an internal
+ * copy of the name. It should not be freed, altered or depended on after
+ * the next OGR call.
+ *
+ * This method is the same as the C function OSRGetPrimeMeridian().
+ *
+ * @param ppszName return location for prime meridian name.  If NULL, name
+ * is not returned.
+ *
+ * @return the offset to the GEOGCS prime meridian from greenwich in decimal
+ * degrees.
+ */
+
+double OGRSpatialReference::GetPrimeMeridian( char **ppszName ) const 
+
+{
+    const OGR_SRSNode *poPRIMEM = GetAttrNode( "PRIMEM" );
+
+    if( poPRIMEM != NULL && poPRIMEM->GetChildCount() >= 2 
+        && atof(poPRIMEM->GetChild(1)->GetValue()) != 0.0 )
+    {
+        if( ppszName != NULL )
+            *ppszName = (char *) poPRIMEM->GetChild(0)->GetValue();
+        return atof(poPRIMEM->GetChild(1)->GetValue());
+    }
+    
+    if( ppszName != NULL )
+        *ppszName = SRS_PM_GREENWICH;
+
+    return 0.0;
+}
+
+/************************************************************************/
+/*                        OSRGetPrimeMeridian()                         */
+/************************************************************************/
+
+double OSRGetPrimeMeridian( OGRSpatialReferenceH hSRS, char **ppszName )
+
+{
+    return ((OGRSpatialReference *) hSRS)->GetPrimeMeridian( ppszName );
+}
+
+/************************************************************************/
 /*                             SetGeogCS()                              */
 /************************************************************************/
 
@@ -962,7 +1119,7 @@ double OSRGetLinearUnits( OGRSpatialReferenceH hSRS, char ** ppszName )
  * 
  * @param dfInvFlattening the inverse flattening for the spheroid.
  * This can be computed from the semi minor axis as 
- * 1/f = 1 / (semimajor/semiminor - 1.0).
+ * 1/f = 1.0 / (1.0 - semiminor/semimajor).
  *
  * @param pszPMName the name of the prime merdidian (not to serve as a key)
  * If this is NULL a default value of "Greenwich" will be used. 
@@ -990,6 +1147,24 @@ OGRSpatialReference::SetGeogCS( const char * pszGeogName,
                                 double dfConvertToRadians )
 
 {
+    bNormInfoSet = FALSE;
+
+/* -------------------------------------------------------------------- */
+/*      Do we already have a GEOGCS?  If so, blow it away so it can     */
+/*      be properly replaced.                                           */
+/* -------------------------------------------------------------------- */
+    if( GetAttrNode( "GEOGCS" ) != NULL )
+    {
+        OGR_SRSNode *poPROJCS;
+
+        if( EQUAL(GetRoot()->GetValue(),"GEOGCS") )
+            Clear();
+        else if( (poPROJCS = GetAttrNode( "PROJCS" )) != NULL
+                 && poPROJCS->FindChild( "GEOGCS" ) != -1 )
+            poPROJCS->DestroyChild( poPROJCS->FindChild( "GEOGCS" ) );
+        else
+            return OGRERR_FAILURE;
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Set defaults for various parameters.                            */
@@ -1027,11 +1202,9 @@ OGRSpatialReference::SetGeogCS( const char * pszGeogName,
     poSpheroid = new OGR_SRSNode( "SPHEROID" );
     poSpheroid->AddChild( new OGR_SRSNode( pszSpheroidName ) );
 
-    //notdef: sprintf( szValue, "%.3f", dfSemiMajor );
     OGRPrintDouble( szValue, dfSemiMajor );
     poSpheroid->AddChild( new OGR_SRSNode(szValue) );
 
-    //notdef: sprintf( szValue, "%.14f", dfInvFlattening );
     OGRPrintDouble( szValue, dfInvFlattening );
     poSpheroid->AddChild( new OGR_SRSNode(szValue) );
 
@@ -1048,7 +1221,6 @@ OGRSpatialReference::SetGeogCS( const char * pszGeogName,
     if( dfPMOffset == 0.0 )
         strcpy( szValue, "0" );
     else
-        //notdef: sprintf( szValue, "%.16f", dfPMOffset );
         OGRPrintDouble( szValue, dfPMOffset );
     
     poPM = new OGR_SRSNode( "PRIMEM" );
@@ -1133,23 +1305,14 @@ OGRErr OSRSetGeogCS( OGRSpatialReferenceH hSRS,
 OGRErr OGRSpatialReference::SetWellKnownGeogCS( const char * pszName )
 
 {
-    OGR_SRSNode  *poGeogCS = NULL;
-    OGRErr       eErr = OGRERR_FAILURE;
-    char         *pszWKT = NULL;
-
-/* -------------------------------------------------------------------- */
-/*      Do we already have a GEOGCS?                                    */
-/* -------------------------------------------------------------------- */
-    if( GetAttrNode( "GEOGCS" ) != NULL )
-        return OGRERR_FAILURE;
+    OGRSpatialReference   oSRS2;
+    OGRErr eErr;
 
 /* -------------------------------------------------------------------- */
 /*      Check for EPSG authority numbers.                               */
 /* -------------------------------------------------------------------- */
     if( EQUALN(pszName, "EPSG:",5) )
     {
-        OGRSpatialReference   oSRS2;
-
         eErr = oSRS2.importFromEPSG( atoi(pszName+5) );
         if( eErr != OGRERR_NONE )
             return eErr;
@@ -1157,42 +1320,40 @@ OGRErr OGRSpatialReference::SetWellKnownGeogCS( const char * pszName )
         if( !oSRS2.IsGeographic() )
             return OGRERR_FAILURE;
 
-        poGeogCS = oSRS2.GetRoot()->Clone();
+        return CopyGeogCSFrom( &oSRS2 );
     }
 
 /* -------------------------------------------------------------------- */
 /*      Check for simple names.                                         */
 /* -------------------------------------------------------------------- */
+    char         *pszWKT = NULL;
+
     if( EQUAL(pszName, "WGS84") )
-        pszWKT = "GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",7030]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY[\"EPSG\",6326]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",8901]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",9108]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",4326]]";
+        pszWKT = "GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9108\"]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",\"4326\"]]";
 
     else if( EQUAL(pszName, "WGS72") )
-        pszWKT = "GEOGCS[\"WGS 72\",DATUM[\"WGS_1972\",SPHEROID[\"WGS 72\",6378135,298.26,AUTHORITY[\"EPSG\",7043]],TOWGS84[0,0,4.5,0,0,0.554,0.2263],AUTHORITY[\"EPSG\",6322]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",8901]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",9108]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",4322]]";
+        pszWKT = "GEOGCS[\"WGS 72\",DATUM[\"WGS_1972\",SPHEROID[\"WGS 72\",6378135,298.26,AUTHORITY[\"EPSG\",\"7043\"]],TOWGS84[0,0,4.5,0,0,0.554,0.2263],AUTHORITY[\"EPSG\",\"6322\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9108\"]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",\"4322\"]]";
 
     else if( EQUAL(pszName, "NAD27") )
-        pszWKT = "GEOGCS[\"NAD27\",DATUM[\"North_American_Datum_1927\",SPHEROID[\"Clarke 1866\",6378206.4,294.978698213898,AUTHORITY[\"EPSG\",7008]],TOWGS84[-3,142,183,0,0,0,0],AUTHORITY[\"EPSG\",6267]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",8901]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",9108]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",4267]]";
+        pszWKT = "GEOGCS[\"NAD27\",DATUM[\"North_American_Datum_1927\",SPHEROID[\"Clarke 1866\",6378206.4,294.978698213898,AUTHORITY[\"EPSG\",\"7008\"]],TOWGS84[-3,142,183,0,0,0,0],AUTHORITY[\"EPSG\",\"6267\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9108\"]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",\"4267\"]]";
         
     else if( EQUAL(pszName, "NAD83") )
-        pszWKT = "GEOGCS[\"NAD83\",DATUM[\"North_American_Datum_1983\",SPHEROID[\"GRS 1980\",6378137,298.257222101,AUTHORITY[\"EPSG\",7019]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY[\"EPSG\",6269]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",8901]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",9108]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",4269]]";
+        pszWKT = "GEOGCS[\"NAD83\",DATUM[\"North_American_Datum_1983\",SPHEROID[\"GRS 1980\",6378137,298.257222101,AUTHORITY[\"EPSG\",\"7019\"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY[\"EPSG\",\"6269\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9108\"]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",\"4269\"]]";
 
-    if( pszWKT != NULL )
-    {
-        poGeogCS = new OGR_SRSNode;
-        poGeogCS->importFromWkt(&pszWKT);
-    }
-
-    if( poGeogCS == NULL )
+    else
         return OGRERR_FAILURE;
 
 /* -------------------------------------------------------------------- */
-/*      Attach below the PROJCS if there is one, or make this the root. */
+/*      Import the WKT                                                  */
 /* -------------------------------------------------------------------- */
-    if( GetRoot() != NULL && EQUAL(GetRoot()->GetValue(),"PROJCS") )
-        poRoot->InsertChild( poGeogCS, 1 );
-    else
-        SetRoot( poGeogCS );
+    eErr = oSRS2.importFromWkt( &pszWKT );
+    if( eErr != OGRERR_NONE )
+        return eErr;
 
-    return OGRERR_NONE;
+/* -------------------------------------------------------------------- */
+/*      Copy over.                                                      */
+/* -------------------------------------------------------------------- */
+    return CopyGeogCSFrom( &oSRS2 );
 }
 
 /************************************************************************/
@@ -1203,6 +1364,78 @@ OGRErr OSRSetWellKnownGeogCS( OGRSpatialReferenceH hSRS, const char *pszName )
 
 {
     return ((OGRSpatialReference *) hSRS)->SetWellKnownGeogCS( pszName );
+}
+
+/************************************************************************/
+/*                           CopyGeogCSFrom()                           */
+/************************************************************************/
+
+/**
+ * Copy GEOGCS from another OGRSpatialReference.
+ *
+ * The GEOGCS information is copied into this OGRSpatialReference from another.
+ * If this object has a PROJCS root already, the GEOGCS is installed within
+ * it, otherwise it is installed as the root.
+ * 
+ * @param poSrcSRS the spatial reference to copy the GEOGCS information from.
+ * 
+ * @return OGRERR_NONE on success or an error code.
+ */
+
+
+OGRErr OGRSpatialReference::CopyGeogCSFrom( 
+    const OGRSpatialReference * poSrcSRS )
+
+{
+    const OGR_SRSNode  *poGeogCS = NULL;
+
+    bNormInfoSet = FALSE;
+
+/* -------------------------------------------------------------------- */
+/*      Do we already have a GEOGCS?  If so, blow it away so it can     */
+/*      be properly replaced.                                           */
+/* -------------------------------------------------------------------- */
+    if( GetAttrNode( "GEOGCS" ) != NULL )
+    {
+        OGR_SRSNode *poPROJCS;
+
+        if( EQUAL(GetRoot()->GetValue(),"GEOGCS") )
+            Clear();
+        else if( (poPROJCS = GetAttrNode( "PROJCS" )) != NULL
+                 && poPROJCS->FindChild( "GEOGCS" ) != -1 )
+            poPROJCS->DestroyChild( poPROJCS->FindChild( "GEOGCS" ) );
+        else
+            return OGRERR_FAILURE;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Find the GEOGCS node on the source.                             */
+/* -------------------------------------------------------------------- */
+    poGeogCS = poSrcSRS->GetAttrNode( "GEOGCS" );
+    if( poGeogCS == NULL )
+        return OGRERR_FAILURE;
+
+/* -------------------------------------------------------------------- */
+/*      Attach below the PROJCS if there is one, or make this the root. */
+/* -------------------------------------------------------------------- */
+    if( GetRoot() != NULL && EQUAL(GetRoot()->GetValue(),"PROJCS") )
+        poRoot->InsertChild( poGeogCS->Clone(), 1 );
+    else
+        SetRoot( poGeogCS->Clone() );
+
+    return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                         OSRCopyGeogCSFrom()                          */
+/************************************************************************/
+
+OGRErr OSRCopyGeogCSFrom( OGRSpatialReferenceH hSRS, 
+                          OGRSpatialReferenceH hSrcSRS )
+
+{
+    return ((OGRSpatialReference *) hSRS)->CopyGeogCSFrom( 
+        (const OGRSpatialReference *) hSrcSRS );
 }
 
 /************************************************************************/
@@ -1291,44 +1524,49 @@ OGRErr OGRSpatialReference::SetFromUserInput( const char * pszDefinition )
 /*      Try to open it as a file.                                       */
 /* -------------------------------------------------------------------- */
     FILE        *fp;
-    char        szBuffer[100000], *pszBufPtr;
+    int         nBufMax = 100000;
+    char        *pszBufPtr, *pszBuffer;
     int         nBytes;
 
     fp = VSIFOpen( pszDefinition, "rt" );
     if( fp == NULL )
         return OGRERR_CORRUPT_DATA;
 
-    nBytes = VSIFRead( szBuffer, 1, sizeof(szBuffer), fp );
+    pszBuffer = (char *) CPLMalloc(nBufMax);
+    nBytes = VSIFRead( pszBuffer, 1, nBufMax-1, fp );
     VSIFClose( fp );
 
-    if( nBytes == sizeof(szBuffer) )
+    if( nBytes == nBufMax-1 )
     {
         CPLDebug( "OGR", 
                   "OGRSpatialReference::SetFromUserInput(%s), opened file\n"
                   "but it is to large for our generous buffer.  Is it really\n"
                   "just a WKT definition?" );
+        CPLFree( pszBuffer );
         return OGRERR_FAILURE;
     }
 
-    szBuffer[nBytes] = '\0';
+    pszBuffer[nBytes] = '\0';
 
-    pszBufPtr = szBuffer;
+    pszBufPtr = pszBuffer;
     while( pszBufPtr[0] == ' ' || pszBufPtr[0] == '\n' )
         pszBufPtr++;
 
-    if( szBuffer[0] == '<' )
-        return importFromXML( pszBufPtr );
-    else if( strstr(szBuffer,"+proj") != NULL 
-             || strstr(szBuffer,"+init") != NULL )
-        return importFromProj4( pszBufPtr );
+    if( pszBufPtr[0] == '<' )
+        err = importFromXML( pszBufPtr );
+    else if( strstr(pszBuffer,"+proj") != NULL 
+             || strstr(pszBuffer,"+init") != NULL )
+        err = importFromProj4( pszBufPtr );
     else
     {
         err = importFromWkt( &pszBufPtr );
         if( err == OGRERR_NONE && bESRI )
             err = morphFromESRI();
-
-        return err;
     }
+
+    CPLFree( pszBuffer );
+
+    return err;
 }
 
 /************************************************************************/
@@ -1779,6 +2017,127 @@ double OSRGetProjParm( OGRSpatialReferenceH hSRS, const char *pszName,
 }
 
 /************************************************************************/
+/*                          GetNormProjParm()                           */
+/************************************************************************/
+
+/**
+ * Fetch a normalized projection parameter value.                      
+ *
+ * This method is the same as GetProjParm() except that the value of
+ * the parameter is "normalized" into degrees or meters depending on 
+ * whether it is linear or angular, and if it is a longitude it is made
+ * relative to Greenwich.
+ *
+ * This method is the same as the C function OSRGetNormProjParm().
+ *
+ * @param pszName the name of the parameter to fetch, from the set of 
+ * SRS_PP codes in ogr_srs_api.h.
+ *
+ * @param dfDefaultValue the value to return if this parameter doesn't exist.
+ *
+ * @param pnErr place to put error code on failure.  Ignored if NULL.
+ *
+ * @return value of parameter.
+ */
+
+double OGRSpatialReference::GetNormProjParm( const char * pszName,
+                                             double dfDefaultValue,
+                                             OGRErr *pnErr ) const
+
+{
+    double dfRawResult;
+    OGRErr nError;
+
+    if( pnErr == NULL )
+        pnErr = &nError;
+
+    GetNormInfo();
+
+    dfRawResult = GetProjParm( pszName, dfDefaultValue, pnErr );
+
+    // If we got the default just return it unadjusted.
+    if( *pnErr != OGRERR_NONE )
+        return dfRawResult;
+
+    if( dfToDegrees != 1.0 && IsAngularParameter(pszName) )
+        dfRawResult *= dfToDegrees;
+
+    if( dfFromGreenwich != 0.0 && IsLongitudeParameter( pszName ) )
+        return dfRawResult + dfFromGreenwich;
+    else if( dfToMeter != 1.0 && IsLinearParameter( pszName ) )
+        return dfRawResult * dfToMeter;
+    else
+        return dfRawResult;
+}
+
+/************************************************************************/
+/*                         OSRGetNormProjParm()                         */
+/************************************************************************/
+
+double OSRGetNormProjParm( OGRSpatialReferenceH hSRS, const char *pszName,
+                           double dfDefaultValue, OGRErr *pnErr )
+
+{
+    return ((OGRSpatialReference *) hSRS)->
+        GetNormProjParm(pszName, dfDefaultValue, pnErr);
+}
+
+/************************************************************************/
+/*                          SetNormProjParm()                           */
+/************************************************************************/
+
+/**
+ * Set a projection parameter with a normalized value.
+ *
+ * This method is the same as SetProjParm() except that the value of
+ * the parameter passed in is assumed to be in "normalized" form (decimal
+ * degrees for angular values, meters for linear values, and relative to
+ * greenwich for longitudinal values.  The values are converted in a form
+ * suitable for the GEOGCS and linear units in effect.
+ *
+ * This method is the same as the C function OSRSetNormProjParm().
+ *
+ * @param pszName the parameter name, which should be selected from
+ * the macros in ogr_srs_api.h, such as SRS_PP_CENTRAL_MERIDIAN. 
+ *
+ * @param dfValue value to assign. 
+ * 
+ * @return OGRERR_NONE on success.
+ */
+
+OGRErr OGRSpatialReference::SetNormProjParm( const char * pszName,
+                                             double dfValue )
+
+{
+    GetNormInfo();
+
+    if( (dfToDegrees != 1.0 || dfFromGreenwich != 0.0) 
+        && IsAngularParameter(pszName) )
+    {
+        if( dfFromGreenwich != 0.0 && IsLongitudeParameter( pszName ) )
+            dfValue -= dfFromGreenwich;
+
+        dfValue /= dfToDegrees;
+    }
+    else if( dfToMeter != 1.0 && IsLinearParameter( pszName ) )
+        dfValue /= dfToMeter;
+
+    return SetProjParm( pszName, dfValue );
+}
+
+/************************************************************************/
+/*                         OSRSetNormProjParm()                         */
+/************************************************************************/
+
+OGRErr OSRSetNormProjParm( OGRSpatialReferenceH hSRS, 
+                           const char * pszParmName, double dfValue )
+
+{
+    return ((OGRSpatialReference *) hSRS)->
+        SetNormProjParm( pszParmName, dfValue );
+}
+
+/************************************************************************/
 /*                               SetTM()                                */
 /************************************************************************/
 
@@ -1789,13 +2148,30 @@ OGRErr OGRSpatialReference::SetTM( double dfCenterLat, double dfCenterLong,
 
 {
     SetProjection( SRS_PT_TRANSVERSE_MERCATOR );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_SCALE_FACTOR, dfScale );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_SCALE_FACTOR, dfScale );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                              OSRSetTM()                              */
+/************************************************************************/
+
+OGRErr OSRSetTM( OGRSpatialReferenceH hSRS, 
+                 double dfCenterLat, double dfCenterLong,
+                 double dfScale,
+                 double dfFalseEasting,
+                 double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetTM( 
+        dfCenterLat, dfCenterLong, 
+        dfScale, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1809,13 +2185,30 @@ OGRErr OGRSpatialReference::SetTMSO( double dfCenterLat, double dfCenterLong,
 
 {
     SetProjection( SRS_PT_TRANSVERSE_MERCATOR_SOUTH_ORIENTED );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_SCALE_FACTOR, dfScale );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_SCALE_FACTOR, dfScale );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetTMSO()                             */
+/************************************************************************/
+
+OGRErr OSRSetTMSO( OGRSpatialReferenceH hSRS, 
+                 double dfCenterLat, double dfCenterLong,
+                 double dfScale,
+                 double dfFalseEasting,
+                 double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetTMSO( 
+        dfCenterLat, dfCenterLong, 
+        dfScale, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1828,12 +2221,27 @@ OGRSpatialReference::SetTMG( double dfCenterLat, double dfCenterLong,
     
 {
     SetProjection( SRS_PT_TUNISIA_MINING_GRID );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetTMG()                              */
+/************************************************************************/
+
+OGRErr OSRSetTMG( OGRSpatialReferenceH hSRS, 
+                 double dfCenterLat, double dfCenterLong,
+                 double dfFalseEasting,
+                 double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetTMG( 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1847,14 +2255,31 @@ OGRErr OGRSpatialReference::SetACEA( double dfStdP1, double dfStdP2,
 
 {
     SetProjection( SRS_PT_ALBERS_CONIC_EQUAL_AREA );
-    SetProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
-    SetProjParm( SRS_PP_STANDARD_PARALLEL_2, dfStdP2 );
-    SetProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
-    SetProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
+    SetNormProjParm( SRS_PP_STANDARD_PARALLEL_2, dfStdP2 );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetACEA()                             */
+/************************************************************************/
+
+OGRErr OSRSetACEA( OGRSpatialReferenceH hSRS, 
+                   double dfStdP1, double dfStdP2,
+                   double dfCenterLat, double dfCenterLong,
+                   double dfFalseEasting,
+                   double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetACEA( 
+        dfStdP1, dfStdP2, 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1867,12 +2292,27 @@ OGRErr OGRSpatialReference::SetAE( double dfCenterLat, double dfCenterLong,
 
 {
     SetProjection( SRS_PT_AZIMUTHAL_EQUIDISTANT );
-    SetProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
-    SetProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                              OSRSetAE()                              */
+/************************************************************************/
+
+OGRErr OSRSetAE( OGRSpatialReferenceH hSRS, 
+                 double dfCenterLat, double dfCenterLong,
+                 double dfFalseEasting,
+                 double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetAE( 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1885,12 +2325,26 @@ OGRErr OGRSpatialReference::SetCEA( double dfStdP1, double dfCentralMeridian,
 
 {
     SetProjection( SRS_PT_CYLINDRICAL_EQUAL_AREA );
-    SetProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetCEA()                              */
+/************************************************************************/
+
+OGRErr OSRSetCEA( OGRSpatialReferenceH hSRS, 
+                  double dfStdP1, double dfCentralMeridian,
+                  double dfFalseEasting, double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetCEA( 
+        dfStdP1, dfCentralMeridian,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1903,12 +2357,27 @@ OGRErr OGRSpatialReference::SetCS( double dfCenterLat, double dfCenterLong,
 
 {
     SetProjection( SRS_PT_CASSINI_SOLDNER );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                              OSRSetCS()                              */
+/************************************************************************/
+
+OGRErr OSRSetCS( OGRSpatialReferenceH hSRS, 
+                 double dfCenterLat, double dfCenterLong,
+                 double dfFalseEasting,
+                 double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetCS( 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1922,14 +2391,31 @@ OGRErr OGRSpatialReference::SetEC( double dfStdP1, double dfStdP2,
 
 {
     SetProjection( SRS_PT_EQUIDISTANT_CONIC );
-    SetProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
-    SetProjParm( SRS_PP_STANDARD_PARALLEL_2, dfStdP2 );
-    SetProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
-    SetProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
+    SetNormProjParm( SRS_PP_STANDARD_PARALLEL_2, dfStdP2 );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                              OSRSetEC()                              */
+/************************************************************************/
+
+OGRErr OSRSetEC( OGRSpatialReferenceH hSRS, 
+                 double dfStdP1, double dfStdP2,
+                 double dfCenterLat, double dfCenterLong,
+                 double dfFalseEasting,
+                 double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetEC( 
+        dfStdP1, dfStdP2, 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1942,11 +2428,26 @@ OGRErr OGRSpatialReference::SetEckertIV( double dfCentralMeridian,
 
 {
     SetProjection( SRS_PT_ECKERT_IV );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                           OSRSetEckertIV()                           */
+/************************************************************************/
+
+OGRErr OSRSetEckertIV( OGRSpatialReferenceH hSRS, 
+                       double dfCentralMeridian,
+                       double dfFalseEasting,
+                       double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetEckertIV( 
+        dfCentralMeridian,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1959,11 +2460,26 @@ OGRErr OGRSpatialReference::SetEckertVI( double dfCentralMeridian,
 
 {
     SetProjection( SRS_PT_ECKERT_VI );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                           OSRSetEckertVI()                           */
+/************************************************************************/
+
+OGRErr OSRSetEckertVI( OGRSpatialReferenceH hSRS, 
+                       double dfCentralMeridian,
+                       double dfFalseEasting,
+                       double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetEckertVI( 
+        dfCentralMeridian,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1977,12 +2493,27 @@ OGRErr OGRSpatialReference::SetEquirectangular(
 
 {
     SetProjection( SRS_PT_EQUIRECTANGULAR );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                       OSRSetEquirectangular()                        */
+/************************************************************************/
+
+OGRErr OSRSetEquirectangular( OGRSpatialReferenceH hSRS, 
+                              double dfCenterLat, double dfCenterLong,
+                              double dfFalseEasting,
+                              double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetEquirectangular( 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -1995,11 +2526,26 @@ OGRErr OGRSpatialReference::SetGS( double dfCentralMeridian,
 
 {
     SetProjection( SRS_PT_GALL_STEREOGRAPHIC );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                              OSRSetGS()                              */
+/************************************************************************/
+
+OGRErr OSRSetGS( OGRSpatialReferenceH hSRS, 
+                 double dfCentralMeridian,
+                 double dfFalseEasting,
+                 double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetGS( 
+        dfCentralMeridian,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2013,12 +2559,27 @@ OGRErr OGRSpatialReference::SetGnomonic(
 
 {
     SetProjection( SRS_PT_GNOMONIC );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                           OSRSetGnomonic()                           */
+/************************************************************************/
+
+OGRErr OSRSetGnomonic( OGRSpatialReferenceH hSRS, 
+                       double dfCenterLat, double dfCenterLong,
+                       double dfFalseEasting,
+                       double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetGnomonic( 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2033,15 +2594,77 @@ OGRErr OGRSpatialReference::SetHOM( double dfCenterLat, double dfCenterLong,
 
 {
     SetProjection( SRS_PT_HOTINE_OBLIQUE_MERCATOR );
-    SetProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
-    SetProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
-    SetProjParm( SRS_PP_AZIMUTH, dfAzimuth );
-    SetProjParm( SRS_PP_RECTIFIED_GRID_ANGLE, dfRectToSkew );
-    SetProjParm( SRS_PP_SCALE_FACTOR, dfScale );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
+    SetNormProjParm( SRS_PP_AZIMUTH, dfAzimuth );
+    SetNormProjParm( SRS_PP_RECTIFIED_GRID_ANGLE, dfRectToSkew );
+    SetNormProjParm( SRS_PP_SCALE_FACTOR, dfScale );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetHOM()                              */
+/************************************************************************/
+
+OGRErr OSRSetHOM( OGRSpatialReferenceH hSRS, 
+                  double dfCenterLat, double dfCenterLong,
+                  double dfAzimuth, double dfRectToSkew, 
+                  double dfScale,
+                  double dfFalseEasting,
+                  double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetHOM( 
+        dfCenterLat, dfCenterLong, 
+        dfAzimuth, dfRectToSkew, 
+        dfScale,
+        dfFalseEasting, dfFalseNorthing );
+}
+
+/************************************************************************/
+/*                             SetKrovak()                              */
+/************************************************************************/
+
+OGRErr OGRSpatialReference::SetKrovak( double dfCenterLat, double dfCenterLong,
+                                       double dfAzimuth, 
+                                       double dfPseudoStdParallel1,
+                                       double dfScale,
+                                       double dfFalseEasting,
+                                       double dfFalseNorthing )
+
+{
+    SetProjection( SRS_PT_KROVAK );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
+    SetNormProjParm( SRS_PP_AZIMUTH, dfAzimuth );
+    SetNormProjParm( SRS_PP_PSEUDO_STD_PARALLEL_1, dfPseudoStdParallel1 );
+    SetNormProjParm( SRS_PP_SCALE_FACTOR, dfScale );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+
+    return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                            OSRSetKrovak()                            */
+/************************************************************************/
+
+OGRErr OSRSetKrovak( OGRSpatialReferenceH hSRS, 
+                     double dfCenterLat, double dfCenterLong,
+                     double dfAzimuth, double dfPseudoStdParallel1,
+                     double dfScale,
+                     double dfFalseEasting,
+                     double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetKrovak( 
+        dfCenterLat, dfCenterLong, 
+        dfAzimuth, dfPseudoStdParallel1,
+        dfScale,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2054,12 +2677,26 @@ OGRErr OGRSpatialReference::SetLAEA( double dfCenterLat, double dfCenterLong,
 
 {
     SetProjection( SRS_PT_LAMBERT_AZIMUTHAL_EQUAL_AREA );
-    SetProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
-    SetProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetLAEA()                             */
+/************************************************************************/
+
+OGRErr OSRSetLAEA( OGRSpatialReferenceH hSRS, 
+                   double dfCenterLat, double dfCenterLong,
+                   double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetLAEA( 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2073,14 +2710,30 @@ OGRErr OGRSpatialReference::SetLCC( double dfStdP1, double dfStdP2,
 
 {
     SetProjection( SRS_PT_LAMBERT_CONFORMAL_CONIC_2SP );
-    SetProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
-    SetProjParm( SRS_PP_STANDARD_PARALLEL_2, dfStdP2 );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
+    SetNormProjParm( SRS_PP_STANDARD_PARALLEL_2, dfStdP2 );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetLCC()                              */
+/************************************************************************/
+
+OGRErr OSRSetLCC( OGRSpatialReferenceH hSRS, 
+                  double dfStdP1, double dfStdP2, 
+                  double dfCenterLat, double dfCenterLong,
+                  double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetLCC( 
+        dfStdP1, dfStdP2, 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2094,13 +2747,29 @@ OGRErr OGRSpatialReference::SetLCC1SP( double dfCenterLat, double dfCenterLong,
 
 {
     SetProjection( SRS_PT_LAMBERT_CONFORMAL_CONIC_1SP );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_SCALE_FACTOR, dfScale );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_SCALE_FACTOR, dfScale );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                            OSRSetLCC1SP()                            */
+/************************************************************************/
+
+OGRErr OSRSetLCC1SP( OGRSpatialReferenceH hSRS, 
+                     double dfCenterLat, double dfCenterLong,
+                     double dfScale,
+                     double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetLCC1SP( 
+        dfCenterLat, dfCenterLong, 
+        dfScale,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2114,14 +2783,30 @@ OGRErr OGRSpatialReference::SetLCCB( double dfStdP1, double dfStdP2,
 
 {
     SetProjection( SRS_PT_LAMBERT_CONFORMAL_CONIC_2SP_BELGIUM );
-    SetProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
-    SetProjParm( SRS_PP_STANDARD_PARALLEL_2, dfStdP2 );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
+    SetNormProjParm( SRS_PP_STANDARD_PARALLEL_2, dfStdP2 );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetLCCB()                             */
+/************************************************************************/
+
+OGRErr OSRSetLCCB( OGRSpatialReferenceH hSRS, 
+                   double dfStdP1, double dfStdP2, 
+                   double dfCenterLat, double dfCenterLong,
+                   double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetLCCB( 
+        dfStdP1, dfStdP2, 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2134,12 +2819,26 @@ OGRErr OGRSpatialReference::SetMC( double dfCenterLat, double dfCenterLong,
 
 {
     SetProjection( SRS_PT_MILLER_CYLINDRICAL );
-    SetProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
-    SetProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_CENTER, dfCenterLat );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                              OSRSetMC()                              */
+/************************************************************************/
+
+OGRErr OSRSetMC( OGRSpatialReferenceH hSRS, 
+                 double dfCenterLat, double dfCenterLong,
+                 double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetMC( 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2153,13 +2852,29 @@ OGRErr OGRSpatialReference::SetMercator( double dfCenterLat, double dfCenterLong
 
 {
     SetProjection( SRS_PT_MERCATOR_1SP );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_SCALE_FACTOR, dfScale );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_SCALE_FACTOR, dfScale );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                           OSRSetMercator()                           */
+/************************************************************************/
+
+OGRErr OSRSetMercator( OGRSpatialReferenceH hSRS, 
+                       double dfCenterLat, double dfCenterLong,
+                       double dfScale,
+                       double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetMercator( 
+        dfCenterLat, dfCenterLong, 
+        dfScale,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2172,11 +2887,25 @@ OGRErr OGRSpatialReference::SetMollweide( double dfCentralMeridian,
 
 {
     SetProjection( SRS_PT_MOLLWEIDE );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                          OSRSetMollweide()                           */
+/************************************************************************/
+
+OGRErr OSRSetMollweide( OGRSpatialReferenceH hSRS, 
+                        double dfCentralMeridian,
+                        double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetMollweide( 
+        dfCentralMeridian,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2189,12 +2918,26 @@ OGRErr OGRSpatialReference::SetNZMG( double dfCenterLat, double dfCenterLong,
 
 {
     SetProjection( SRS_PT_NEW_ZEALAND_MAP_GRID );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetNZMG()                             */
+/************************************************************************/
+
+OGRErr OSRSetNZMG( OGRSpatialReferenceH hSRS, 
+                   double dfCenterLat, double dfCenterLong,
+                   double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetNZMG( 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2208,13 +2951,29 @@ OGRErr OGRSpatialReference::SetOS( double dfOriginLat, double dfCMeridian,
 
 {
     SetProjection( SRS_PT_OBLIQUE_STEREOGRAPHIC );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfOriginLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCMeridian );
-    SetProjParm( SRS_PP_SCALE_FACTOR, dfScale );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfOriginLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCMeridian );
+    SetNormProjParm( SRS_PP_SCALE_FACTOR, dfScale );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                              OSRSetOS()                              */
+/************************************************************************/
+
+OGRErr OSRSetOS( OGRSpatialReferenceH hSRS, 
+                 double dfOriginLat, double dfCMeridian,
+                 double dfScale,
+                 double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetOS( 
+        dfOriginLat, dfCMeridian,
+        dfScale,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2227,12 +2986,26 @@ OGRErr OGRSpatialReference::SetOrthographic(
 
 {
     SetProjection( SRS_PT_ORTHOGRAPHIC );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                         OSRSetOrthographic()                         */
+/************************************************************************/
+
+OGRErr OSRSetOrthographic( OGRSpatialReferenceH hSRS, 
+                           double dfCenterLat, double dfCenterLong,
+                           double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetOrthographic( 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2248,12 +3021,26 @@ OGRErr OGRSpatialReference::SetPolyconic(
     //       scale_factor parameter.
     
     SetProjection( SRS_PT_POLYCONIC );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                          OSRSetPolyconic()                           */
+/************************************************************************/
+
+OGRErr OSRSetPolyconic( OGRSpatialReferenceH hSRS, 
+                        double dfCenterLat, double dfCenterLong,
+                        double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetPolyconic( 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2267,13 +3054,29 @@ OGRErr OGRSpatialReference::SetPS(
 
 {
     SetProjection( SRS_PT_POLAR_STEREOGRAPHIC );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
-    SetProjParm( SRS_PP_SCALE_FACTOR, dfScale );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_SCALE_FACTOR, dfScale );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                              OSRSetPS()                              */
+/************************************************************************/
+
+OGRErr OSRSetPS( OGRSpatialReferenceH hSRS, 
+                 double dfCenterLat, double dfCenterLong,
+                 double dfScale,
+                 double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetPS( 
+        dfCenterLat, dfCenterLong, 
+        dfScale,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2286,11 +3089,25 @@ OGRErr OGRSpatialReference::SetRobinson( double dfCenterLong,
 
 {
     SetProjection( SRS_PT_ROBINSON );
-    SetProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                           OSRSetRobinson()                           */
+/************************************************************************/
+
+OGRErr OSRSetRobinson( OGRSpatialReferenceH hSRS, 
+                        double dfCenterLong,
+                        double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetRobinson( 
+        dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2303,11 +3120,25 @@ OGRErr OGRSpatialReference::SetSinusoidal( double dfCenterLong,
 
 {
     SetProjection( SRS_PT_SINUSOIDAL );
-    SetProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_CENTER, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                          OSRSetSinusoidal()                          */
+/************************************************************************/
+
+OGRErr OSRSetSinusoidal( OGRSpatialReferenceH hSRS, 
+                         double dfCenterLong,
+                         double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetSinusoidal( 
+        dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2322,13 +3153,29 @@ OGRErr OGRSpatialReference::SetStereographic(
 
 {
     SetProjection( SRS_PT_STEREOGRAPHIC );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfOriginLat );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCMeridian );
-    SetProjParm( SRS_PP_SCALE_FACTOR, dfScale );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfOriginLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCMeridian );
+    SetNormProjParm( SRS_PP_SCALE_FACTOR, dfScale );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                        OSRSetStereographic()                         */
+/************************************************************************/
+
+OGRErr OSRSetStereographic( OGRSpatialReferenceH hSRS, 
+                            double dfOriginLat, double dfCMeridian,
+                            double dfScale,
+                            double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetStereographic( 
+        dfOriginLat, dfCMeridian,
+        dfScale,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2342,12 +3189,26 @@ OGRErr OGRSpatialReference::SetSOC( double dfLatitudeOfOrigin,
 
 {
     SetProjection( SRS_PT_SWISS_OBLIQUE_CYLINDRICAL );
-    SetProjParm( SRS_PP_LATITUDE_OF_CENTER, dfLatitudeOfOrigin );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_CENTER, dfLatitudeOfOrigin );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCentralMeridian );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetSOC()                              */
+/************************************************************************/
+
+OGRErr OSRSetSOC( OGRSpatialReferenceH hSRS, 
+                  double dfLatitudeOfOrigin, double dfCentralMeridian,
+                  double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetSOC( 
+        dfLatitudeOfOrigin, dfCentralMeridian,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2360,11 +3221,25 @@ OGRErr OGRSpatialReference::SetVDG( double dfCMeridian,
 
 {
     SetProjection( SRS_PT_VANDERGRINTEN );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCMeridian );
-    SetProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
-    SetProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCMeridian );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetVDG()                              */
+/************************************************************************/
+
+OGRErr OSRSetVDG( OGRSpatialReferenceH hSRS, 
+                  double dfCentralMeridian,
+                  double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetVDG( 
+        dfCentralMeridian,
+        dfFalseEasting, dfFalseNorthing );
 }
 
 /************************************************************************/
@@ -2376,6 +3251,8 @@ OGRErr OGRSpatialReference::SetVDG( double dfCMeridian,
  *
  * This will generate a projection definition with the full set of 
  * transverse mercator projection parameters for the given UTM zone.
+ * If no PROJCS[] description is set yet, one will be set to look
+ * like "UTM Zone %d, {Northern, Southern} Hemisphere". 
  *
  * This method is the same as the C function OSRSetUTM().
  *
@@ -2391,15 +3268,15 @@ OGRErr OGRSpatialReference::SetUTM( int nZone, int bNorth )
 
 {
     SetProjection( SRS_PT_TRANSVERSE_MERCATOR );
-    SetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, 0 );
-    SetProjParm( SRS_PP_CENTRAL_MERIDIAN, nZone * 6 - 183 );
-    SetProjParm( SRS_PP_SCALE_FACTOR, 0.9996 );
-    SetProjParm( SRS_PP_FALSE_EASTING, 500000.0 );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, 0 );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, nZone * 6 - 183 );
+    SetNormProjParm( SRS_PP_SCALE_FACTOR, 0.9996 );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, 500000.0 );
 
     if( bNorth )
-        SetProjParm( SRS_PP_FALSE_NORTHING, 0 );
+        SetNormProjParm( SRS_PP_FALSE_NORTHING, 0 );
     else
-        SetProjParm( SRS_PP_FALSE_NORTHING, 10000000 );
+        SetNormProjParm( SRS_PP_FALSE_NORTHING, 10000000 );
 
     if( EQUAL(GetAttrValue("PROJCS"),"unnamed") )
     {
@@ -2452,16 +3329,16 @@ int OGRSpatialReference::GetUTMZone( int * pbNorth ) const
         || !EQUAL(pszProjection,SRS_PT_TRANSVERSE_MERCATOR) )
         return 0;
 
-    if( GetProjParm( SRS_PP_LATITUDE_OF_ORIGIN, 0.0 ) != 0.0 )
+    if( GetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, 0.0 ) != 0.0 )
         return 0;
 
     if( GetProjParm( SRS_PP_SCALE_FACTOR, 1.0 ) != 0.9996 )
         return 0;
           
-    if( GetProjParm( SRS_PP_FALSE_EASTING, 0.0 ) != 500000 )
+    if( GetNormProjParm( SRS_PP_FALSE_EASTING, 0.0 ) != 500000 )
         return 0;
 
-    double      dfFalseNorthing = GetProjParm( SRS_PP_FALSE_NORTHING, 0.0 );
+    double      dfFalseNorthing = GetNormProjParm( SRS_PP_FALSE_NORTHING, 0.0);
 
     if( dfFalseNorthing != 0.0 && dfFalseNorthing != 10000000 )
         return 0;
@@ -2469,7 +3346,8 @@ int OGRSpatialReference::GetUTMZone( int * pbNorth ) const
     if( pbNorth != NULL )
         *pbNorth = (dfFalseNorthing == 0);
 
-    double      dfCentralMeridian = GetProjParm( SRS_PP_CENTRAL_MERIDIAN, 0.0);
+    double      dfCentralMeridian = GetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, 
+                                                     0.0);
     double      dfZone = (dfCentralMeridian+183) / 6.0 + 0.000000001;
 
     if( ABS(dfZone - (int) dfZone) > 0.00001
@@ -2514,23 +3392,10 @@ OGRErr OGRSpatialReference::SetAuthority( const char *pszTargetKey,
                                           int nCode )
 
 {
-    OGR_SRSNode  *poNode;
-    char         **papszNodePath;
-    int          iPath;
-
 /* -------------------------------------------------------------------- */
 /*      Find the node below which the authority should be put.          */
 /* -------------------------------------------------------------------- */
-    papszNodePath = CSLTokenizeStringComplex( pszTargetKey,"|",FALSE,FALSE);
-
-    for( poNode = GetRoot(), iPath = 0; 
-         poNode != NULL && papszNodePath[iPath] != NULL; 
-         iPath++ )
-    {
-        poNode = poNode->GetNode( papszNodePath[iPath] );
-    }
-
-    CSLDestroy( papszNodePath );
+    OGR_SRSNode  *poNode = GetAttrNode( pszTargetKey );
 
     if( poNode == NULL )
         return OGRERR_FAILURE;
@@ -2574,8 +3439,148 @@ OGRErr OSRSetAuthority( OGRSpatialReferenceH hSRS,
 }
 
 /************************************************************************/
+/*                          GetAuthorityCode()                          */
+/************************************************************************/
+
+/**
+ * Get the authority code for a node.
+ *
+ * This method is used to query an AUTHORITY[] node from within the 
+ * WKT tree, and fetch the code value.  
+ *
+ * While in theory values may be non-numeric, for the EPSG authority all
+ * code values should be integral.
+ *
+ * This method is the same as the C function OSRGetAuthorityCode().
+ *
+ * @param pszTargetKey the partial or complete path to the node to 
+ * set an authority on.  ie. "PROJCS", "GEOGCS" or "GEOGCS|UNIT".
+ *
+ * @return value code from authority node, or NULL on failure.  The value
+ * returned is internal and should not be freed or modified.
+ */
+
+const char *
+OGRSpatialReference::GetAuthorityCode( const char *pszTargetKey ) const
+
+{
+/* -------------------------------------------------------------------- */
+/*      Find the node below which the authority should be put.          */
+/* -------------------------------------------------------------------- */
+    OGR_SRSNode  *poNode = 
+        ((OGRSpatialReference *) this)->GetAttrNode( pszTargetKey );
+
+    if( poNode == NULL )
+        return NULL;
+
+/* -------------------------------------------------------------------- */
+/*      Fetch AUTHORITY child if there is one.                          */
+/* -------------------------------------------------------------------- */
+    if( poNode->FindChild("AUTHORITY") == -1 )
+        return NULL;
+        
+    poNode = poNode->GetChild(poNode->FindChild("AUTHORITY"));
+
+/* -------------------------------------------------------------------- */
+/*      Create a new authority node.                                    */
+/* -------------------------------------------------------------------- */
+    if( poNode->GetChildCount() < 2 )
+        return NULL;
+
+    return poNode->GetChild(1)->GetValue();
+}
+
+/************************************************************************/
+/*                          OSRGetAuthorityCode()                       */
+/************************************************************************/
+
+const char *OSRGetAuthorityCode( OGRSpatialReferenceH hSRS, 
+                                 const char *pszTargetKey )
+
+{
+    return ((OGRSpatialReference *) hSRS)->GetAuthorityCode( pszTargetKey );
+}
+
+/************************************************************************/
+/*                          GetAuthorityName()                          */
+/************************************************************************/
+
+/**
+ * Get the authority name for a node.
+ *
+ * This method is used to query an AUTHORITY[] node from within the 
+ * WKT tree, and fetch the authority name value.  
+ *
+ * The most common authority is "EPSG".
+ *
+ * This method is the same as the C function OSRGetAuthorityName().
+ *
+ * @param pszTargetKey the partial or complete path to the node to 
+ * set an authority on.  ie. "PROJCS", "GEOGCS" or "GEOGCS|UNIT".
+ *
+ * @return value code from authority node, or NULL on failure. The value
+ * returned is internal and should not be freed or modified.
+ */
+
+const char *
+OGRSpatialReference::GetAuthorityName( const char *pszTargetKey ) const
+
+{
+/* -------------------------------------------------------------------- */
+/*      Find the node below which the authority should be put.          */
+/* -------------------------------------------------------------------- */
+    OGR_SRSNode  *poNode = 
+        ((OGRSpatialReference *) this)->GetAttrNode( pszTargetKey );
+
+    if( poNode == NULL )
+        return NULL;
+
+/* -------------------------------------------------------------------- */
+/*      Fetch AUTHORITY child if there is one.                          */
+/* -------------------------------------------------------------------- */
+    if( poNode->FindChild("AUTHORITY") == -1 )
+        return NULL;
+        
+    poNode = poNode->GetChild(poNode->FindChild("AUTHORITY"));
+
+/* -------------------------------------------------------------------- */
+/*      Create a new authority node.                                    */
+/* -------------------------------------------------------------------- */
+    if( poNode->GetChildCount() < 2 )
+        return NULL;
+
+    return poNode->GetChild(0)->GetValue();
+}
+
+/************************************************************************/
+/*                        OSRGetAuthorityName()                         */
+/************************************************************************/
+
+const char *OSRGetAuthorityName( OGRSpatialReferenceH hSRS, 
+                                 const char *pszTargetKey )
+
+{
+    return ((OGRSpatialReference *) hSRS)->GetAuthorityName( pszTargetKey );
+}
+
+/************************************************************************/
 /*                            StripCTParms()                            */
 /************************************************************************/
+
+/** 
+ * Strip OGC CT Parameters.
+ *
+ * This method will remove all components of the coordinate system
+ * that are specific to the OGC CT Specification.  That is it will attempt
+ * to strip it down to being compatible with the Simple Features 1.0 
+ * specification.
+ *
+ * This method is the same as the C function OSRStripCTParms().
+ *
+ * @param poCurrent node to operate on.  NULL to operate on whole tree.
+ *
+ * @return OGRERR_NONE on success or an error code.
+ */
 
 OGRErr OGRSpatialReference::StripCTParms( OGR_SRSNode * poCurrent )
 
@@ -2602,6 +3607,16 @@ OGRErr OGRSpatialReference::StripCTParms( OGR_SRSNode * poCurrent )
     poCurrent->StripNodes( "AXIS" );
 
     return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                          OSRStripCTParms()                           */
+/************************************************************************/
+
+OGRErr OSRStripCTParms( OGRSpatialReferenceH hSRS )
+
+{
+    return ((OGRSpatialReference *) hSRS)->StripCTParms( NULL );
 }
 
 /************************************************************************/
@@ -3044,3 +4059,184 @@ OGRErr OSRGetTOWGS84( OGRSpatialReferenceH hSRS,
 {
     return ((OGRSpatialReference *) hSRS)->GetTOWGS84( padfCoeff, nCoeffCount);
 }
+
+/************************************************************************/
+/*                         IsAngularParameter()                         */
+/*                                                                      */
+/*      Is the passed projection parameter an angular one?              */
+/************************************************************************/
+
+int OGRSpatialReference::IsAngularParameter( const char *pszParameterName )
+
+{
+    if( EQUALN(pszParameterName,"long",4)
+        || EQUALN(pszParameterName,"lati",4)
+        || EQUAL(pszParameterName,SRS_PP_CENTRAL_MERIDIAN)
+        || EQUALN(pszParameterName,"standard_parallel",17)
+        || EQUAL(pszParameterName,SRS_PP_AZIMUTH)
+        || EQUAL(pszParameterName,SRS_PP_RECTIFIED_GRID_ANGLE) )
+        return TRUE;
+    else
+        return FALSE;
+}
+
+/************************************************************************/
+/*                        IsLongitudeParameter()                        */
+/*                                                                      */
+/*      Is the passed projection parameter an angular longitude         */
+/*      (relative to a prime meridian)?                                 */
+/************************************************************************/
+
+int OGRSpatialReference::IsLongitudeParameter( const char *pszParameterName )
+
+{
+    if( EQUALN(pszParameterName,"long",4)
+        || EQUAL(pszParameterName,SRS_PP_CENTRAL_MERIDIAN) )
+        return TRUE;
+    else
+        return FALSE;
+}
+
+/************************************************************************/
+/*                         IsLinearParameter()                          */
+/*                                                                      */
+/*      Is the passed projection parameter an linear one measured in    */
+/*      meters or some similar linear measure.                          */
+/************************************************************************/
+
+int OGRSpatialReference::IsLinearParameter( const char *pszParameterName )
+
+{
+    if( EQUALN(pszParameterName,"false_",6) )
+        return TRUE;
+    else
+        return FALSE;
+}
+
+/************************************************************************/
+/*                            GetNormInfo()                             */
+/*                                                                      */
+/*      Set the internal information for normalizing linear, and        */
+/*      angular values.                                                 */
+/************************************************************************/
+
+void OGRSpatialReference::GetNormInfo(void) const
+
+{
+    if( bNormInfoSet )
+        return;
+
+/* -------------------------------------------------------------------- */
+/*      Initialize values.                                              */
+/* -------------------------------------------------------------------- */
+    OGRSpatialReference *poThis = (OGRSpatialReference *) this;
+
+    poThis->bNormInfoSet = TRUE;
+
+    poThis->dfFromGreenwich = GetPrimeMeridian(NULL);
+    poThis->dfToMeter = GetLinearUnits(NULL);
+    poThis->dfToDegrees = GetAngularUnits(NULL) / atof(SRS_UA_DEGREE_CONV);
+    if( fabs(poThis->dfToDegrees-1.0) < 0.000000001 )
+        poThis->dfToDegrees = 1.0;
+}
+
+/************************************************************************/
+/*                           FixupOrdering()                            */
+/************************************************************************/
+
+/**
+ * Correct parameter ordering to match CT Specification.
+ *
+ * Some mechanisms to create WKT using OGRSpatialReference, and some
+ * imported WKT fail to maintain the order of parameters required according
+ * to the BNF definitions in the OpenGIS SF-SQL and CT Specifications.  This
+ * method attempts to massage things back into the required order.
+ *
+ * This method is the same as the C function OSRFixupOrdering().
+ *
+ * @return OGRERR_NONE on success or an error code if something goes 
+ * wrong.  
+ */
+
+OGRErr OGRSpatialReference::FixupOrdering()
+
+{
+    if( GetRoot() != NULL )
+        return GetRoot()->FixupOrdering();
+    else
+        return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                          OSRFixupOrdering()                          */
+/************************************************************************/
+
+OGRErr OSRFixupOrdering( OGRSpatialReferenceH hSRS )
+
+{
+    return ((OGRSpatialReference *) hSRS)->FixupOrdering();
+}
+
+/************************************************************************/
+/*                               Fixup()                                */
+/************************************************************************/
+
+/**
+ * Fixup as needed.
+ *
+ * Some mechanisms to create WKT using OGRSpatialReference, and some
+ * imported WKT, are not valid according to the OGC CT specification.  This
+ * method attempts to fill in any missing defaults that are required, and
+ * fixup ordering problems (using OSRFixupOrdering()) so that the resulting
+ * WKT is valid. 
+ *
+ * This method should be expected to evolve over time to as problems are
+ * discovered.  The following are amoung the fixup actions this method will
+ * take:
+ *
+ * - Fixup the ordering of nodes to match the BNF WKT ordering, using
+ * the FixupOrdering() method. 
+ *
+ * - Add missing linear or angular units nodes.  
+ *
+ * This method is the same as the C function OSRFixup().
+ *
+ * @return OGRERR_NONE on success or an error code if something goes 
+ * wrong.  
+ */
+
+OGRErr OGRSpatialReference::Fixup()
+
+{
+/* -------------------------------------------------------------------- */
+/*      Ensure linear units defaulted to METER if missing for PROJCS    */
+/*      or LOCAL_CS.                                                    */
+/* -------------------------------------------------------------------- */
+    const OGR_SRSNode *poCS = GetAttrNode( "PROJCS" );
+
+    if( poCS == NULL )
+        poCS = GetAttrNode( "LOCAL_CS" );
+
+    if( poCS != NULL && poCS->FindChild( "UNIT" ) == -1 )
+        SetLinearUnits( SRS_UL_METER, 1.0 );
+
+/* -------------------------------------------------------------------- */
+/*      Ensure angular units defaulted to degrees on the GEOGCS.        */
+/* -------------------------------------------------------------------- */
+    poCS = GetAttrNode( "GEOGCS" );
+    if( poCS != NULL && poCS->FindChild( "UNIT" ) == -1 )
+        SetAngularUnits( SRS_UA_DEGREE, atof(SRS_UA_DEGREE_CONV) );
+
+    return FixupOrdering();
+}
+
+/************************************************************************/
+/*                              OSRFixup()                              */
+/************************************************************************/
+
+OGRErr OSRFixup( OGRSpatialReferenceH hSRS )
+
+{
+    return ((OGRSpatialReference *) hSRS)->Fixup();
+}
+

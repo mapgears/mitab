@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrmultipoint.cpp,v 1.9 2001/12/19 22:44:14 warmerda Exp $
+ * $Id: ogrmultipoint.cpp,v 1.14 2003/05/28 19:16:43 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRMultiPoint class.
@@ -28,6 +28,21 @@
  ******************************************************************************
  *
  * $Log: ogrmultipoint.cpp,v $
+ * Revision 1.14  2003/05/28 19:16:43  warmerda
+ * fixed up argument names and stuff for docs
+ *
+ * Revision 1.13  2003/04/28 15:28:53  warmerda
+ * Ryan Proulx fixed WKT MULTIPOINT format
+ *
+ * Revision 1.12  2002/10/25 15:20:50  warmerda
+ * fixed MULTIPOINT WKT format
+ *
+ * Revision 1.11  2002/09/11 13:47:17  warmerda
+ * preliminary set of fixes for 3D WKB enum
+ *
+ * Revision 1.10  2002/08/06 21:16:41  warmerda
+ * fixed possible overrun error in exportToWkt()
+ *
  * Revision 1.9  2001/12/19 22:44:14  warmerda
  * fixed bug in conversion to WKT
  *
@@ -61,7 +76,7 @@
 #include "ogr_p.h"
 #include <assert.h>
 
-CPL_CVSID("$Id: ogrmultipoint.cpp,v 1.9 2001/12/19 22:44:14 warmerda Exp $");
+CPL_CVSID("$Id: ogrmultipoint.cpp,v 1.14 2003/05/28 19:16:43 warmerda Exp $");
 
 /************************************************************************/
 /*                          getGeometryType()                           */
@@ -70,7 +85,10 @@ CPL_CVSID("$Id: ogrmultipoint.cpp,v 1.9 2001/12/19 22:44:14 warmerda Exp $");
 OGRwkbGeometryType OGRMultiPoint::getGeometryType()
 
 {
-    return wkbMultiPoint;
+    if( getCoordinateDimension() == 3 )
+        return wkbMultiPoint25D;
+    else
+        return wkbMultiPoint;
 }
 
 /************************************************************************/
@@ -128,42 +146,46 @@ OGRGeometry *OGRMultiPoint::clone()
 /*      equivelent.  This could be made alot more CPU efficient!        */
 /************************************************************************/
 
-OGRErr OGRMultiPoint::exportToWkt( char ** ppszReturn )
+OGRErr OGRMultiPoint::exportToWkt( char ** ppszDstText )
 
 {
-    int         nMaxString = getNumGeometries() * 16 * 2 + 20;
+    int         nMaxString = getNumGeometries() * 20 + 128;
     int         nRetLen = 0;
 
-    *ppszReturn = (char *) VSIMalloc( nMaxString );
-    if( *ppszReturn == NULL )
+    *ppszDstText = (char *) VSIMalloc( nMaxString );
+    if( *ppszDstText == NULL )
         return OGRERR_NOT_ENOUGH_MEMORY;
 
-    sprintf( *ppszReturn, "%s (", getGeometryName() );
+    sprintf( *ppszDstText, "%s (", getGeometryName() );
 
     for( int i = 0; i < getNumGeometries(); i++ )
     {
         OGRPoint        *poPoint = (OGRPoint *) getGeometryRef( i );
 
-        assert( nMaxString > (int) strlen(*ppszReturn+nRetLen) + 32 + nRetLen);
-        
         if( i > 0 )
-            strcat( *ppszReturn + nRetLen, "," );
+            strcat( *ppszDstText + nRetLen, "," );
 
-        nRetLen += strlen(*ppszReturn + nRetLen);
+        nRetLen += strlen(*ppszDstText + nRetLen);
 
+        if( nMaxString < nRetLen + 100 )
+        {
+            nMaxString = nMaxString * 2;
+            *ppszDstText = (char *) CPLRealloc(*ppszDstText,nMaxString);
+        }
+        
         if( poPoint->getCoordinateDimension() == 3 )
-            OGRMakeWktCoordinate( *ppszReturn + nRetLen,
+            OGRMakeWktCoordinate( *ppszDstText + nRetLen,
                                   poPoint->getX(), 
                                   poPoint->getY(),
                                   poPoint->getZ() );
         else
-            OGRMakeWktCoordinate( *ppszReturn + nRetLen,
+            OGRMakeWktCoordinate( *ppszDstText + nRetLen,
                                   poPoint->getX(), 
                                   poPoint->getY(),
                                   0.0 );
     }
 
-    strcat( *ppszReturn+nRetLen, ")" );
+    strcat( *ppszDstText+nRetLen, ")" );
 
     return OGRERR_NONE;
 }
@@ -195,6 +217,29 @@ OGRErr OGRMultiPoint::importFromWkt( char ** ppszInput )
     if( !EQUAL(szToken,getGeometryName()) )
         return OGRERR_CORRUPT_DATA;
 
+/* -------------------------------------------------------------------- */
+/*      Do we have the format where each point is bracketed?            */
+/* -------------------------------------------------------------------- */
+    const char *pszPreScan = pszInput;
+
+    // skip white space. 
+    while( *pszPreScan == ' ' || *pszPreScan == '\t' )
+        pszPreScan++;
+
+    // Skip outer bracket.
+    if( *pszPreScan != '(' )
+        return OGRERR_CORRUPT_DATA;
+
+    pszPreScan++;
+
+    // skip white space.
+    while( *pszPreScan == ' ' || *pszPreScan == '\t' )
+        pszPreScan++;
+
+    // Do we have an inner bracket? 
+    if( *pszPreScan == '(' )
+        return importFromWkt_Bracketed( ppszInput );
+    
 /* -------------------------------------------------------------------- */
 /*      Read the point list which should consist of exactly one point.  */
 /* -------------------------------------------------------------------- */
@@ -231,6 +276,76 @@ OGRErr OGRMultiPoint::importFromWkt( char ** ppszInput )
 
     if( eErr != OGRERR_NONE )
         return eErr;
+
+    *ppszInput = (char *) pszInput;
+    
+    return OGRERR_NONE;
+}
+
+
+/************************************************************************/
+/*                      importFromWkt_Bracketed()                       */
+/*                                                                      */
+/*      This operates similar to importFromWkt(), but reads a format    */
+/*      with brackets around each point.  This is the form defined      */
+/*      in the BNF of the SFSQL spec.  It is called from                */
+/*      importFromWkt().                                                */
+/************************************************************************/
+
+OGRErr OGRMultiPoint::importFromWkt_Bracketed( char ** ppszInput )
+
+{
+
+    char        szToken[OGR_WKT_TOKEN_MAX];
+    const char  *pszInput = *ppszInput;
+    OGRErr      eErr = OGRERR_NONE;
+
+/* -------------------------------------------------------------------- */
+/*      Skip MULTIPOINT keyword.                                        */
+/* -------------------------------------------------------------------- */
+    pszInput = OGRWktReadToken( pszInput, szToken );
+
+/* -------------------------------------------------------------------- */
+/*      Read points till we get to the closing bracket.                 */
+/* -------------------------------------------------------------------- */
+    int                 nMaxPoint = 0;
+    int                 nPointCount = 0;
+    OGRRawPoint         *paoPoints = NULL;
+    double              *padfZ = NULL;
+
+    while( (pszInput = OGRWktReadToken( pszInput, szToken ))
+           && (EQUAL(szToken,"(") || EQUAL(szToken,",")) )
+    {
+        OGRGeometry     *poGeom;
+
+        pszInput = OGRWktReadPoints( pszInput, &paoPoints, &padfZ, &nMaxPoint,
+                                     &nPointCount );
+
+        if( pszInput == NULL || nPointCount != 1 )
+            return OGRERR_CORRUPT_DATA;
+
+        if( padfZ )
+            poGeom = new OGRPoint( paoPoints[0].x, 
+                                   paoPoints[0].y, 
+                                   padfZ[0] );
+        else
+            poGeom =  new OGRPoint( paoPoints[0].x, 
+                                    paoPoints[0].y );
+
+        eErr = addGeometryDirectly( poGeom );
+        if( eErr != OGRERR_NONE )
+            return eErr;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Cleanup.                                                        */
+/* -------------------------------------------------------------------- */
+    OGRFree( paoPoints );
+    if( padfZ )
+        OGRFree( padfZ );
+
+    if( !EQUAL(szToken,")") )
+        return OGRERR_CORRUPT_DATA;
 
     *ppszInput = (char *) pszInput;
     

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrlinearring.cpp,v 1.10 2002/05/02 19:44:53 warmerda Exp $
+ * $Id: ogrlinearring.cpp,v 1.14 2003/07/08 13:59:35 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRLinearRing geometry class.
@@ -28,6 +28,18 @@
  ******************************************************************************
  *
  * $Log: ogrlinearring.cpp,v $
+ * Revision 1.14  2003/07/08 13:59:35  warmerda
+ * added poSrcRing check in copy constructor, bug 361
+ *
+ * Revision 1.13  2003/05/28 19:16:42  warmerda
+ * fixed up argument names and stuff for docs
+ *
+ * Revision 1.12  2003/01/14 22:13:35  warmerda
+ * added isClockwise() method on OGRLinearRing
+ *
+ * Revision 1.11  2002/10/24 20:38:45  warmerda
+ * fixed bug byte swapping point count in exporttowkb
+ *
  * Revision 1.10  2002/05/02 19:44:53  warmerda
  * fixed 3D binary support for polygon/linearring
  *
@@ -63,7 +75,7 @@
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrlinearring.cpp,v 1.10 2002/05/02 19:44:53 warmerda Exp $");
+CPL_CVSID("$Id: ogrlinearring.cpp,v 1.14 2003/07/08 13:59:35 warmerda Exp $");
 
 /************************************************************************/
 /*                           OGRLinearRing()                            */
@@ -81,6 +93,12 @@ OGRLinearRing::OGRLinearRing()
 OGRLinearRing::OGRLinearRing( OGRLinearRing * poSrcRing )
 
 {
+    if( poSrcRing == NULL )
+    {
+        CPLDebug( "OGR", "OGRLinearRing::OGRLinearRing(OGRLinearRing*poSrcRing) - passed in ring is NULL!" );
+        return;
+    }
+
     setNumPoints( poSrcRing->getNumPoints() );
 
     memcpy( paoPoints, poSrcRing->paoPoints,
@@ -121,9 +139,12 @@ int OGRLinearRing::WkbSize()
 /*      Disable method for this class.                                  */
 /************************************************************************/
 
-OGRErr OGRLinearRing::importFromWkb( unsigned char *, int )
+OGRErr OGRLinearRing::importFromWkb( unsigned char *pabyData, int nSize )
 
 {
+    (void) pabyData;
+    (void) nSize;
+
     return OGRERR_UNSUPPORTED_OPERATION;
 }
 
@@ -133,9 +154,13 @@ OGRErr OGRLinearRing::importFromWkb( unsigned char *, int )
 /*      Disable method for this class.                                  */
 /************************************************************************/
 
-OGRErr OGRLinearRing::exportToWkb( OGRwkbByteOrder, unsigned char * )
+OGRErr OGRLinearRing::exportToWkb( OGRwkbByteOrder eByteOrder, 
+                                   unsigned char * pabyData )
 
 {
+    (void) eByteOrder;
+    (void) pabyData;
+
     return OGRERR_UNSUPPORTED_OPERATION;
 }
 
@@ -257,7 +282,7 @@ OGRErr  OGRLinearRing::_exportToWkb( OGRwkbByteOrder eByteOrder,
         int     nCount;
 
         nCount = CPL_SWAP32( nPointCount );
-        memcpy( pabyData+4, &nCount, 4 );
+        memcpy( pabyData, &nCount, 4 );
 
         for( i = 0; i < nWords; i++ )
         {
@@ -302,3 +327,31 @@ OGRGeometry *OGRLinearRing::clone()
 
     return poNewLinearRing;
 }
+
+/************************************************************************/
+/*                            isClockwise()                             */
+/************************************************************************/
+
+/**
+ * Returns TRUE if the ring has clockwise winding.
+ *
+ * @return TRUE if clockwise otherwise FALSE.
+ */
+
+int OGRLinearRing::isClockwise()
+
+{
+    double dfSum = 0.0;
+
+    for( int iVert = 0; iVert < nPointCount-1; iVert++ )
+    {
+        dfSum += paoPoints[iVert].x * paoPoints[iVert+1].y
+            - paoPoints[iVert].y * paoPoints[iVert+1].x;
+    }
+
+    dfSum += paoPoints[nPointCount-1].x * paoPoints[0].y
+        - paoPoints[nPointCount-1].y * paoPoints[0].x;
+
+    return dfSum < 0.0;
+}
+

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_string.cpp,v 1.24 2002/07/12 22:37:05 warmerda Exp $
+ * $Id: cpl_string.cpp,v 1.35 2003/07/17 10:15:40 dron Exp $
  *
  * Name:     cpl_string.cpp
  * Project:  CPL - Common Portability Library
@@ -28,7 +28,58 @@
  * DEALINGS IN THE SOFTWARE.
  **********************************************************************
  *
+ * Independent Security Audit 2003/04/04 Andrey Kiselev:
+ *   Completed audit of this module. All functions may be used without buffer
+ *   overflows and stack corruptions with any kind of input data strings with
+ *   except of CPLSPrintf() and CSLAppendPrintf() (see note below).
+ * 
+ * Security Audit 2003/03/28 warmerda:
+ *   Completed security audit.  I believe that this module may be safely used 
+ *   to parse tokenize arbitrary input strings, assemble arbitrary sets of
+ *   names values into string lists, unescape and escape text even if provided
+ *   by a potentially hostile source.   
+ *
+ *   CPLSPrintf() and CSLAppendPrintf() may not be safely invoked on 
+ *   arbitrary length inputs since it has a fixed size output buffer on system 
+ *   without vsnprintf(). 
+ *
  * $Log: cpl_string.cpp,v $
+ * Revision 1.35  2003/07/17 10:15:40  dron
+ * CSLTestBoolean() added.
+ *
+ * Revision 1.34  2003/05/28 19:22:38  warmerda
+ * fixed docs
+ *
+ * Revision 1.33  2003/05/21 04:20:30  warmerda
+ * avoid warnings
+ *
+ * Revision 1.32  2003/04/04 14:57:38  dron
+ * _vsnprintf() hack moved to the cpl_config.h.vc.
+ *
+ * Revision 1.31  2003/04/04 14:16:07  dron
+ * Use _vsnprintf() in Windows environment.
+ *
+ * Revision 1.30  2003/03/28 05:29:53  warmerda
+ * Fixed buffer overflow risk in escaping code (for XML method).  Avoid
+ * use of CPLSPrintf() for name/value list assembly to avoid risk with long
+ * key names or values.  Use vsnprintf() in CPLSPrintf() on platforms where it
+ * is available.  Security audit complete.
+ *
+ * Revision 1.29  2003/03/27 21:32:08  warmerda
+ * Fixed bug with escaped spaces.
+ *
+ * Revision 1.28  2003/03/11 21:33:02  warmerda
+ * added URL encode/decode support, untested
+ *
+ * Revision 1.27  2003/01/30 19:15:55  warmerda
+ * added some docs
+ *
+ * Revision 1.26  2003/01/14 14:31:16  warmerda
+ * Added "OFF" as a negative response to CSLFetchBoolean().
+ *
+ * Revision 1.25  2002/10/07 19:35:38  dron
+ * Fixed description for CSLFetchBoolean()
+ *
  * Revision 1.24  2002/07/12 22:37:05  warmerda
  * added CSLFetchBoolean
  *
@@ -107,7 +158,7 @@
 #include "cpl_string.h"
 #include "cpl_vsi.h"
 
-CPL_CVSID("$Id: cpl_string.cpp,v 1.24 2002/07/12 22:37:05 warmerda Exp $");
+CPL_CVSID("$Id: cpl_string.cpp,v 1.35 2003/07/17 10:15:40 dron Exp $");
 
 /*=====================================================================
                     StringList manipulation functions.
@@ -251,7 +302,7 @@ char    **CSLDuplicate(char **papszStrList)
  *
  * Load a test file into a stringlist.
  *
- * Lines are limited in length by the size fo the CPLReadLine() buffer.
+ * Lines are limited in length by the size of the CPLReadLine() buffer.
  **********************************************************************/
 char **CSLLoad(const char *pszFname)
 {
@@ -296,7 +347,7 @@ char **CSLLoad(const char *pszFname)
 int  CSLSave(char **papszStrList, const char *pszFname)
 {
     FILE    *fp;
-    int     nLines=0;
+    int     nLines = 0;
 
     if (papszStrList)
     {
@@ -683,7 +734,7 @@ char ** CSLTokenizeString2( const char * pszString,
                 pszString++;
             }
 
-            if( nTokenLen >= nTokenMax-2 )
+            if( nTokenLen >= nTokenMax-3 )
             {
                 nTokenMax = nTokenMax * 2 + 10;
                 pszToken = (char *) CPLRealloc( pszToken, nTokenMax );
@@ -740,7 +791,12 @@ const char *CPLSPrintf(char *fmt, ...)
     va_list args;
 
     va_start(args, fmt);
+#if defined(HAVE_VSNPRINTF)
+    vsnprintf(gszCPLSPrintfBuffer[gnCPLSPrintfBuffer], CPLSPrintf_BUF_SIZE-1,
+              fmt, args);
+#else
     vsprintf(gszCPLSPrintfBuffer[gnCPLSPrintfBuffer], fmt, args);
+#endif
     va_end(args);
     
    int nCurrent = gnCPLSPrintfBuffer;
@@ -763,7 +819,12 @@ char **CSLAppendPrintf(char **papszStrList, char *fmt, ...)
     va_list args;
 
     va_start(args, fmt);
+#if defined(HAVE_VSNPRINTF)
+    vsnprintf(gszCPLSPrintfBuffer[gnCPLSPrintfBuffer], CPLSPrintf_BUF_SIZE-1,
+              fmt, args);
+#else
     vsprintf(gszCPLSPrintfBuffer[gnCPLSPrintfBuffer], fmt, args);
+#endif
     va_end(args);
 
     int nCurrent = gnCPLSPrintfBuffer;
@@ -774,7 +835,35 @@ char **CSLAppendPrintf(char **papszStrList, char *fmt, ...)
     return CSLAddString(papszStrList, gszCPLSPrintfBuffer[nCurrent]);
 }
 
+/************************************************************************/
+/*                         CSLTestBoolean()                             */
+/************************************************************************/
+
 /**
+ * Test what boolean value contained in the string.
+ *
+ * If pszValue is "NO", "FALSE", "OFF" or "0" will be returned FALSE.
+ * Otherwise, TRUE will be returned.
+ *
+ * @param pszValue the string should be tested.
+ * 
+ * @return TRUE or FALSE.
+ */
+
+int CSLTestBoolean( const char *pszValue )
+{
+    if( EQUAL(pszValue,"NO")
+        || EQUAL(pszValue,"FALSE") 
+        || EQUAL(pszValue,"OFF") 
+        || EQUAL(pszValue,"0") )
+        return FALSE;
+    else
+        return TRUE;
+}
+
+/**********************************************************************
+ *                       CSLFetchBoolean()
+ *
  * Check for boolean key value.
  *
  * In a StringList of "Name=Value" pairs, look to see if there is a key
@@ -802,12 +891,8 @@ int CSLFetchBoolean( char **papszStrList, const char *pszKey, int bDefault )
     pszValue = CSLFetchNameValue(papszStrList, pszKey );
     if( pszValue == NULL )
         return bDefault;
-    else if( EQUAL(pszValue,"NO") 
-             || EQUAL(pszValue,"FALSE") 
-             || EQUAL(pszValue,"0") )
-        return FALSE;
-    else
-        return TRUE;
+    else 
+        return CSLTestBoolean( pszValue );
 }
 
 /**********************************************************************
@@ -898,7 +983,6 @@ const char *CPLParseNameValue(const char *pszNameValue, char **ppszKey )
 
             return pszValue;
         }
-
     }
 
     return NULL;
@@ -960,18 +1044,25 @@ char **CSLFetchNameValueMultiple(char **papszStrList, const char *pszName)
 char **CSLAddNameValue(char **papszStrList, 
                     const char *pszName, const char *pszValue)
 {
-    const char *pszLine;
+    char *pszLine;
 
     if (pszName == NULL || pszValue==NULL)
         return papszStrList;
 
-    pszLine = CPLSPrintf("%s=%s", pszName, pszValue);
+    pszLine = (char *) CPLMalloc(strlen(pszName)+strlen(pszValue)+2);
+    sprintf( pszLine, "%s=%s", pszName, pszValue );
+    papszStrList = CSLAddString(papszStrList, pszLine);
+    CPLFree( pszLine );
 
-    return CSLAddString(papszStrList, pszLine);
+    return papszStrList;
 }
 
-/**********************************************************************
- *                       CSLSetNameValue()
+/************************************************************************/
+/*                          CSLSetNameValue()                           */
+/************************************************************************/
+
+/**
+ * Assign value to name in StringList.
  *
  * Set the value for a given name in a StringList of "Name=Value" pairs
  * ("Name:Value" pairs are also supported for backward compatibility
@@ -980,10 +1071,17 @@ char **CSLAddNameValue(char **papszStrList,
  * If there is already a value for that name in the list then the value
  * is changed, otherwise a new "Name=Value" pair is added.
  *
- * Returns the modified stringlist.
- **********************************************************************/
+ * @param papszList the original list, the modified version is returned.
+ * @param pszName the name to be assigned a value.  This should be a well
+ * formed token (no spaces or very special characters). 
+ * @param pszValue the value to assign to the name.  This should not contain
+ * any newlines (CR or LF) but is otherwise pretty much unconstrained.
+ *
+ * @return modified stringlist.
+ */
+
 char **CSLSetNameValue(char **papszList, 
-                    const char *pszName, const char *pszValue)
+                       const char *pszName, const char *pszValue)
 {
     char **papszPtr;
     int nLen;
@@ -1005,10 +1103,9 @@ char **CSLSetNameValue(char **papszList,
             char cSep;
             cSep = (*papszPtr)[nLen];
 
-            free(*papszPtr);
-            *papszPtr = CPLStrdup(CPLSPrintf("%s%c%s", pszName,
-                                                       cSep, pszValue));
-
+            CPLFree(*papszPtr);
+            *papszPtr = (char *) CPLMalloc(strlen(pszName)+strlen(pszValue)+2);
+            sprintf( *papszPtr, "%s%c%s", pszName, cSep, pszValue );
             return papszList;
         }
         papszPtr++;
@@ -1016,8 +1113,7 @@ char **CSLSetNameValue(char **papszList,
 
     /* The name does not exist yet... create a new entry
      */
-    return CSLAddString(papszList, 
-                           CPLSPrintf("%s=%s", pszName, pszValue));
+    return CSLAddNameValue(papszList, pszName, pszValue);
 }
 
 /************************************************************************/
@@ -1051,14 +1147,14 @@ void CSLSetNameValueSeparator( char ** papszList, const char *pszSeparator )
 
     for( iLine = 0; iLine < nLines; iLine++ )
     {
-        char    *pszKey = NULL;
-        const char *pszValue;
-        char    *pszNewLine;
+        char        *pszKey = NULL;
+        const char  *pszValue;
+        char        *pszNewLine;
 
         pszValue = CPLParseNameValue( papszList[iLine], &pszKey );
         
-        pszNewLine = (char *) CPLMalloc(strlen(pszValue)+strlen(pszKey)
-                                        +strlen(pszSeparator)+1);
+        pszNewLine = (char *) CPLMalloc( strlen(pszValue) + strlen(pszKey)
+                                         + strlen(pszSeparator) + 1 );
         strcpy( pszNewLine, pszKey );
         strcat( pszNewLine, pszSeparator );
         strcat( pszNewLine, pszValue );
@@ -1090,7 +1186,12 @@ void CSLSetNameValueSeparator( char ** papszList, const char *pszSeparator )
  * to embed as CDATA within an XML element.  The '\0' is not escaped and 
  * should not be included in the input.
  *
- * @param pszString the string to escape.  
+ * CPLES_URL(2): Everything except alphanumerics and the underscore are 
+ * converted to a percent followed by a two digit hex encoding of the character
+ * (leading zero supplied if needed).  This is the mechanism used for encoding
+ * values to be passed in URLs.
+ *
+ * @param pszInput the string to escape.  
  * @param nLength The number of bytes of data to preserve.  If this is -1
  * the strlen(pszString) function will be used to compute the length.
  * @param nScheme the encoding scheme to use.  
@@ -1109,7 +1210,7 @@ char *CPLEscapeString( const char *pszInput, int nLength,
     if( nLength == -1 )
         nLength = strlen(pszInput);
 
-    pszOutput = (char *) CPLMalloc(nLength * 5 + 50);
+    pszOutput = (char *) CPLMalloc( nLength * 6 + 1 );
     
     if( nScheme == CPLES_BackslashQuotable )
     {
@@ -1134,6 +1235,27 @@ char *CPLEscapeString( const char *pszInput, int nLength,
             }
             else
                 pszOutput[iOut++] = pszInput[iIn];
+        }
+        pszOutput[iOut] = '\0';
+    }
+    else if( nScheme == CPLES_URL ) /* Untested at implementation */
+    {
+        int iOut = 0, iIn;
+
+        for( iIn = 0; iIn < nLength; iIn++ )
+        {
+            if( (pszInput[iIn] >= 'a' && pszInput[iIn] <= 'z')
+                || (pszInput[iIn] >= 'A' && pszInput[iIn] <= 'Z')
+                || (pszInput[iIn] >= '0' && pszInput[iIn] <= '9')
+                || pszInput[iIn] == '_' )
+            {
+                pszOutput[iOut++] = pszInput[iIn];
+            }
+            else
+            {
+                sprintf( pszOutput, "%%%02X", pszInput[iIn] );
+                iOut += 3;
+            }
         }
         pszOutput[iOut] = '\0';
     }
@@ -1181,7 +1303,10 @@ char *CPLEscapeString( const char *pszInput, int nLength,
     }
     else
     {
-        strcpy( pszOutput, "Unrecognised Escaping Scheme" );
+        pszOutput[0] = '\0';
+        CPLError( CE_Failure, CPLE_AppDefined, 
+                  "Undefined escaping scheme (%d) in CPLEscapeString()",
+                  nScheme );
     }
 
     pszShortOutput = CPLStrdup( pszOutput );
@@ -1250,6 +1375,51 @@ char *CPLUnescapeString( const char *pszInput, int *pnLength, int nScheme )
             }
         }
     }
+    else if( nScheme == CPLES_URL )
+    {
+        for( iIn = 0; pszInput[iIn] != '\0'; iIn++ )
+        {
+            if( pszInput[iIn] == '%' 
+                && pszInput[iIn+1] != '\0' 
+                && pszInput[iIn+2] != '\0' )
+            {
+                int nHexChar = 0;
+
+                if( pszInput[iIn+1] >= 'A' && pszInput[iIn+1] <= 'F' )
+                    nHexChar += 16 * (pszInput[iIn+1] - 'A' + 10);
+                else if( pszInput[iIn+1] >= 'a' && pszInput[iIn+1] <= 'f' )
+                    nHexChar += 16 * (pszInput[iIn+1] - 'a' + 10);
+                else if( pszInput[iIn+1] >= '0' && pszInput[iIn+1] <= '9' )
+                    nHexChar += 16 * (pszInput[iIn+1] - '0');
+                else
+                    CPLDebug( "CPL", 
+                              "Error unescaping CPLES_URL text, percent not "
+                              "followed by two hex digits." );
+                    
+                if( pszInput[iIn+2] >= 'A' && pszInput[iIn+2] <= 'F' )
+                    nHexChar += pszInput[iIn+2] - 'A' + 10;
+                else if( pszInput[iIn+2] >= 'a' && pszInput[iIn+2] <= 'f' )
+                    nHexChar += pszInput[iIn+2] - 'a' + 10;
+                else if( pszInput[iIn+2] >= '0' && pszInput[iIn+2] <= '9' )
+                    nHexChar += pszInput[iIn+2] - '0';
+                else
+                    CPLDebug( "CPL", 
+                              "Error unescaping CPLES_URL text, percent not "
+                              "followed by two hex digits." );
+
+                pszOutput[iOut++] = (char) nHexChar;
+                iIn += 2;
+            }
+            else if( pszInput[iIn] == '+' )
+            {
+                pszOutput[iOut++] = ' ';
+            }   
+            else
+            {
+                pszOutput[iOut++] = pszInput[iIn];
+            }
+        }
+    }
     else /* if( nScheme == CPLES_BackslashQuoteable ) */
     {
         for( iIn = 0; pszInput[iIn] != '\0'; iIn++ )
@@ -1259,6 +1429,8 @@ char *CPLUnescapeString( const char *pszInput, int *pnLength, int nScheme )
                 iIn++;
                 if( pszInput[iIn] == 'n' )
                     pszOutput[iOut++] = '\n';
+                else if( pszInput[iIn] == '0' )
+                    pszOutput[iOut++] = '\0';
                 else 
                     pszOutput[iOut++] = pszInput[iIn];
             }

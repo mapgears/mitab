@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.25 2000-02-28 16:44:10 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.26 2000-04-21 12:39:05 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.25  2000-02-28 16:44:10  daniel
+ * Revision 1.26  2000-04-21 12:39:05  daniel
+ * Added TABPolyline::GetNumParts()/GetPartRef()
+ *
+ * Revision 1.25  2000/02/28 16:44:10  daniel
  * Added support for indexed, unique, and for new V450 object types
  *
  * Revision 1.24  2000/02/05 19:33:04  daniel
@@ -1327,6 +1330,77 @@ TABFeature *TABPolyline::CloneTABFeature(OGRFeatureDefn *poNewDefn/*=NULL*/)
     poNew->m_bSmooth = m_bSmooth;
 
     return poNew;
+}
+
+/**********************************************************************
+ *                   TABPolyline::GetNumParts()
+ *
+ * Return the total number of parts in this object.
+ *
+ * Returns 0 if the geometry contained in the object is invalid or missing.
+ **********************************************************************/
+int TABPolyline::GetNumParts()
+{
+    OGRGeometry         *poGeom;
+    int                 numParts = 0;
+
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbLineString)
+    {
+        /*-------------------------------------------------------------
+         * Simple polyline
+         *------------------------------------------------------------*/
+        numParts = 1;
+    }
+    else if (poGeom && poGeom->getGeometryType() == wkbMultiLineString)
+    {
+        /*-------------------------------------------------------------
+         * Multiple polyline
+         *------------------------------------------------------------*/
+        OGRMultiLineString *poMultiLine = (OGRMultiLineString*)poGeom;
+        numParts = poMultiLine->getNumGeometries();
+    }
+
+    return numParts;
+}
+
+/**********************************************************************
+ *                   TABPolyline::GetPartRef()
+ *
+ * Returns a reference to the specified OGRLineString number, hiding the
+ * complexity of dealing with OGRMultiLineString vs OGRLineString cases.
+ *
+ * Returns NULL if the geometry contained in the object is invalid or 
+ * missing or if the specified part index is invalid.
+ **********************************************************************/
+OGRLineString *TABPolyline::GetPartRef(int nPartIndex)
+{
+    OGRGeometry         *poGeom;
+
+    poGeom = GetGeometryRef();
+    if (poGeom && poGeom->getGeometryType() == wkbLineString && nPartIndex==0)
+    {
+        /*-------------------------------------------------------------
+         * Simple polyline
+         *------------------------------------------------------------*/
+        return (OGRLineString *)poGeom;
+    }
+    else if (poGeom && poGeom->getGeometryType() == wkbMultiLineString)
+    {
+        /*-------------------------------------------------------------
+         * Multiple polyline
+         *------------------------------------------------------------*/
+        OGRMultiLineString *poMultiLine = (OGRMultiLineString*)poGeom;
+        if (nPartIndex >= 0 &&
+            nPartIndex < poMultiLine->getNumGeometries())
+        {
+            return (OGRLineString*)poMultiLine->getGeometryRef(nPartIndex);
+        }
+        else
+            return NULL;
+    }
+
+    return NULL;
 }
 
 /**********************************************************************

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.32 2000-02-28 16:41:48 daniel Exp $
+ * $Id: mitab.h,v 1.33 2000-04-21 12:40:01 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.32  2000-02-28 16:41:48  daniel
+ * Revision 1.33  2000-04-21 12:40:01  daniel
+ * Added TABPolyline::GetNumParts()/GetPartRef()
+ *
+ * Revision 1.32  2000/02/28 16:41:48  daniel
  * Added support for indexed, unique, and for new V450 object types
  *
  * Revision 1.31  2000/02/18 20:39:46  daniel
@@ -674,15 +677,15 @@ class MIFFile: public IMapInfoFile
 typedef enum
 {
     TABFCNoGeomFeature = 0,
-    TABFCPoint,
-    TABFCFontPoint,
-    TABFCCustomPoint,
-    TABFCText,
-    TABFCPolyline,
-    TABFCArc,
-    TABFCRegion,
-    TABFCRectangle,
-    TABFCEllipse,
+    TABFCPoint = 1,
+    TABFCFontPoint = 2,
+    TABFCCustomPoint = 3,
+    TABFCText = 4,
+    TABFCPolyline = 5,
+    TABFCArc = 6,
+    TABFCRegion = 7,
+    TABFCRectangle = 8,
+    TABFCEllipse = 9,
     TABFCDebugFeature
 } TABFeatureClass;
 
@@ -691,21 +694,21 @@ typedef enum
  *--------------------------------------------------------------------*/
 typedef enum TABTextJust_t
 {
-    TABTJLeft,          // Default: Left Justification
+    TABTJLeft = 0,      // Default: Left Justification
     TABTJCenter,
     TABTJRight
 } TABTextJust;
 
 typedef enum TABTextSpacing_t
 {
-    TABTSSingle,        // Default: Single spacing
+    TABTSSingle = 0,    // Default: Single spacing
     TABTS1_5,           // 1.5
     TABTSDouble
 } TABTextSpacing;
 
 typedef enum TABTextLineType_t
 {
-    TABTLNoLine,        // Default: No line
+    TABTLNoLine = 0,    // Default: No line
     TABTLSimple,
     TABTLArrow
 } TABTextLineType;
@@ -1092,6 +1095,11 @@ class TABPolyline: public TABFeature,
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
+    /* 2 methods to simplify access to rings in a multiple polyline
+     */
+    int                 GetNumParts();
+    OGRLineString      *GetPartRef(int nPartIndex);
+
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);
 
@@ -1149,7 +1157,7 @@ class TABRegion: public TABFeature,
 
     virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
 
-    /* 2 methods to make the REGION's gomeetry look like a single collection
+    /* 2 methods to make the REGION's geometry look like a single collection
      * of OGRLinearRings 
      */
     int                 GetNumRings();

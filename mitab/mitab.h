@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.17 1999-11-12 05:51:12 daniel Exp $
+ * $Id: mitab.h,v 1.18 1999-11-14 04:42:19 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.17  1999-11-12 05:51:12  daniel
+ * Revision 1.18  1999-11-14 04:42:19  daniel
+ * Added ROUND_INT()
+ *
+ * Revision 1.17  1999/11/12 05:51:12  daniel
  * Added MITABExtractMIFCoordSysBounds()
  *
  * Revision 1.16  1999/11/10 20:13:12  warmerda
@@ -91,6 +94,10 @@
 
 #ifndef PI
 #  define PI 3.14159265358979323846
+#endif
+
+#ifndef ROUND_INT
+#  define ROUND_INT(dX) ((int)((dX) < 0.0 ? (dX)-0.5 : (dX)+0.5 ))
 #endif
 
 class TABFeature;

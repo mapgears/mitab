@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.38 2000-10-18 03:53:16 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.39 2000-12-15 05:32:31 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.38  2000-10-18 03:53:16  daniel
+ * Revision 1.39  2000-12-15 05:32:31  daniel
+ * Handle table type LINKED the same way as table type NATIVE.
+ * Make sure max char field width is 254 in AddFieldNative().
+ *
+ * Revision 1.38  2000/10/18 03:53:16  daniel
  * GetBounds() now calculates bounds based on +/- 1e9 integer coordinates limit
  *
  * Revision 1.37  2000/09/20 18:32:02  daniel
@@ -242,6 +246,7 @@ int TABFile::Open(const char *pszFname, const char *pszAccess,
     char *pszTmpFname = NULL;
     int nFnameLen = 0;
 
+    CPLErrorReset();
    
     if (m_poMAPFile)
     {
@@ -566,7 +571,7 @@ int TABFile::ParseTABFileFirstPass(GBool bTestOpenNoError)
         else if (bInsideTableDef && !bFoundTableFields &&
                  (EQUAL(papszTok[0], "Type") || EQUAL(papszTok[0],"FORMAT:")) )
         {
-            if (EQUAL(papszTok[1], "NATIVE"))
+            if (EQUAL(papszTok[1], "NATIVE") || EQUAL(papszTok[1], "LINKED"))
                 m_eTableType = TABTableNative;
             else if (EQUAL(papszTok[1], "DBF"))
                 m_eTableType = TABTableDBF;
@@ -1540,6 +1545,25 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         // Ref count defaults to 0... set it to 1
         m_poDefn->Reference();
     }
+
+    /*-----------------------------------------------------------------
+     * Validate field width... must be <= 254
+     *----------------------------------------------------------------*/
+    if (nWidth > 254)
+    {
+        CPLError(CE_Warning, CPLE_IllegalArg,
+                 "Invalid size (%d) for field '%s'.  "
+                 "Size must be 254 or less.", nWidth, pszName);
+        nWidth=254;
+    }
+
+    /*-----------------------------------------------------------------
+     * Map fields with width=0 (variable length in OGR) to a valid default
+     *----------------------------------------------------------------*/
+    if (eMapInfoType == TABFDecimal && nWidth == 0)
+        nWidth=20;
+    else if (nWidth == 0)
+        nWidth=254; /* char fields */
 
     /*-----------------------------------------------------------------
      * Make sure field name is valid... check for special chars, etc.

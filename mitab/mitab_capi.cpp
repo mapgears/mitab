@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.19 2002-04-26 14:16:49 julien Exp $
+ * $Id: mitab_capi.cpp,v 1.20 2002-05-03 15:09:14 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.19  2002-04-26 14:16:49  julien
+ * Revision 1.20  2002-05-03 15:09:14  daniel
+ * Added mitab_c_get_field_width() and mitab_c_get_field_precision()
+ *
+ * Revision 1.19  2002/04/26 14:16:49  julien
  * Finishing the implementation of Multipoint (support for MIF)
  *
  * Revision 1.18  2002/03/26 19:27:43  daniel
@@ -185,15 +188,16 @@ mitab_c_getlasterrormsg()
 /************************************************************************/
 
 /**
- * Get the last error message.
+ * Get the last error message (VB Version).
  *
  * Fetches the last error message posted with CPLError(), that hasn't
  * been cleared by CPLErrorReset().  The returned pointer is to an internal
  * string that should not be altered or freed.
  *
- * @param errormsg the last error message, or an empty string if there is no posted
- *         error message.
- * @param l the maximum length of the errormessage string including terminating null.
+ * @param errormsg string buffer to return the last error message (will
+ *         return an empty string if there is no posted error message).
+ * @param l the maximum length of the errormessage string including 
+ *         terminating null.
  * @return the length of the last error message, or zero if there is no posted
  *         error message.
  */
@@ -812,10 +816,10 @@ mitab_c_get_text( mitab_feature feature )
 /************************************************************************/
 
 /**
- * Get the text string on a TABFC_Text object.
+ * Get the text string on a TABFC_Text object (VB Version).
  *
  * @param feature the mitab_feature object.
- * @param text the text string in the object.
+ * @param text string buffer to return the text string in the object.
  * @param l the maximum length of the text string including terminating null.
  * @return the length of the text string in the object.
  */
@@ -1132,10 +1136,10 @@ mitab_c_get_font( mitab_feature feature )
 /************************************************************************/
 
 /** 
- * Get a TABFC_Text object's font name.
+ * Get a TABFC_Text object's font name. (VB Version)
  *
  * @param feature the mitab_feature object.
- * @param font the text font name.
+ * @param font string buffer to return the text font name.
  * @param l the maximum lentgh of the text string including terminating null.
  * @return the length of the text font name.
  */
@@ -1771,7 +1775,7 @@ mitab_c_get_field_count( mitab_handle handle )
 /************************************************************************/
 
 /**
- * Return the type of an attribute fields in a datase's schemat.
+ * Return the type of an attribute field in a dataset's schema.
  *
  * @param handle the dataset's handle.
  * @param field the index of the field to look at, with 0 being the first 
@@ -1797,7 +1801,7 @@ mitab_c_get_field_type( mitab_handle handle, int field )
 /************************************************************************/
 
 /**
- * Return the name of an attribute fields in a dataset's schema.
+ * Return the name of an attribute field in a dataset's schema.
  *
  * @param handle the dataset's handle.
  * @param field the index of the field to look at, with 0 being the first 
@@ -1828,12 +1832,12 @@ mitab_c_get_field_name( mitab_handle handle, int field )
 /************************************************************************/
 
 /**
- * Return the name of an attribute fields in a dataset's schema.
+ * Return the name of an attribute field in a dataset's schema (VB version).
  *
  * @param handle the dataset's handle.
  * @param field the index of the field to look at, with 0 being the first 
  *        field.
- * @param name the field name. 
+ * @param name string buffer to return the field name. 
  * @param l the maximum lenght of the name string including terminating null. 
  * @return the length of the field name.
  */
@@ -1855,6 +1859,66 @@ mitab_c_get_field_name_vb( mitab_handle handle, int field, char * name, int l )
     return 0;
 }
 
+
+/************************************************************************/
+/*                       mitab_c_get_field_width()                      */
+/************************************************************************/
+
+/**
+ * Return the width of an attribute field in a dataset's schema.
+ *
+ * @param handle the dataset's handle.
+ * @param field the index of the field to look at, with 0 being the first 
+ *        field.
+ * @return the field width.
+ */
+
+int MITAB_STDCALL 
+mitab_c_get_field_width( mitab_handle handle, int field )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+    OGRFeatureDefn      *poDefn;
+    OGRFieldDefn        *poFDefn;
+
+    if (poFile && 
+        (poDefn = poFile->GetLayerDefn()) != NULL &&
+        (poFDefn = poDefn->GetFieldDefn(field)) != NULL)
+    {
+        return poFDefn->GetWidth();
+    }
+
+    return 0;
+}
+
+/************************************************************************/
+/*                       mitab_c_get_field_precision()                  */
+/************************************************************************/
+
+/**
+ * Return the precision of an attribute field in a dataset's schema.
+ *
+ * @param handle the dataset's handle.
+ * @param field the index of the field to look at, with 0 being the first 
+ *        field.
+ * @return the field precision.
+ */
+
+int MITAB_STDCALL 
+mitab_c_get_field_precision( mitab_handle handle, int field )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+    OGRFeatureDefn      *poDefn;
+    OGRFieldDefn        *poFDefn;
+
+    if (poFile && 
+        (poDefn = poFile->GetLayerDefn()) != NULL &&
+        (poFDefn = poDefn->GetFieldDefn(field)) != NULL)
+    {
+        return poFDefn->GetPrecision();
+    }
+
+    return 0;
+}
 
 
 /************************************************************************/
@@ -1893,16 +1957,16 @@ mitab_c_get_field_as_string( mitab_feature feature, int field )
 /************************************************************************/
 
 /**
- * Fetch an attribute field value in a mitab_feature as a string.
+ * Fetch an attribute field value in a mitab_feature as a string (VB Version).
  *
- * The function returns a reference to an internal string buffer that contains
- * the string representation of the attribute field's value (integer
- * and floating point values are converted to string using sprintf()).
+ * The function returns a reference to the string representation of the 
+ * attribute field's value (integer and floating point values are converted 
+ * to string using sprintf()).
  *
  * @param feature the mitab_feature object.
  * @param field the index of the field to look at, with 0 being the first 
  *        field.
- * @param value a string containing the value of the field.
+ * @param value string buffer to return the value of the field.
  * @param l the maximum lenght of the value string including terminating null. 
  * @return the length of the string containing the value of the field.
  */
@@ -2015,16 +2079,17 @@ mitab_c_get_mif_coordsys( mitab_handle dataset)
 /************************************************************************/
 
 /**
- * Get the MIF CoordSys string from an opened dataset.
+ * Get the MIF CoordSys string from an opened dataset (VB Version).
  *
  * @param dataset the mitab_handle of the source dataset.
- * @param coordsys a string with the dataset coordinate system definition in MIF
- *    CoordSys format.  This value can be passed to mitab_c_create() to 
- *    create new datasets with the same coordinate system.
- *    Returns NULL if the information could not be read.
- * @param l the maximum length of the coordsys string including terminating null.
- * @return the length of the string in coordsys or zero if the information could
- *    not be read
+ * @param coordsys a string buffer to return the dataset coordinate system 
+ *    definition in MIF CoordSys format.  This value can then be passed 
+ *    to mitab_c_create() to create new datasets with the same coordinate
+ *    system.  Returns empty string if the information could not be read.
+ * @param l the maximum length of the coordsys string including terminating 
+ *    null.
+ * @return the length of the string in coordsys or zero if the information 
+ *    could not be read
  */
 
 int MITAB_STDCALL

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.14 2002-04-26 14:16:49 julien Exp $
+ * $Id: mitab_capi.h,v 1.15 2002-05-03 15:09:14 daniel Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -10,7 +10,7 @@
  * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  **********************************************************************
- * Copyright (c) 2000-2001, Frank Warmerdam
+ * Copyright (c) 2000-2002, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.14  2002-04-26 14:16:49  julien
+ * Revision 1.15  2002-05-03 15:09:14  daniel
+ * Added mitab_c_get_field_width() and mitab_c_get_field_precision()
+ *
+ * Revision 1.14  2002/04/26 14:16:49  julien
  * Finishing the implementation of Multipoint (support for MIF)
  *
  * Revision 1.13  2002/02/22 13:50:28  daniel
@@ -256,6 +259,8 @@ int MITAB_DLL mitab_c_get_field_count( mitab_handle handle );
 int MITAB_DLL mitab_c_get_field_type( mitab_handle handle, int field );
 const char MITAB_DLL *mitab_c_get_field_name(mitab_handle handle, int field);
 int MITAB_DLL mitab_c_get_field_name_vb( mitab_handle handle, int field, char * name, int l );
+int MITAB_DLL mitab_c_get_field_width( mitab_handle handle, int field );
+int MITAB_DLL mitab_c_get_field_precision( mitab_handle handle, int field );
 
 
 const char MITAB_DLL *mitab_c_get_field_as_string( mitab_feature feature, 

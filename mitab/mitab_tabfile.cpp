@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.16 1999-11-08 19:18:09 stephane Exp $
+ * $Id: mitab_tabfile.cpp,v 1.17 1999-11-09 07:36:34 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.16  1999-11-08 19:18:09  stephane
+ * Revision 1.17  1999-11-09 07:36:34  daniel
+ * Modif. GetNextFeatureId() to skip deleted features when reading
+ *
+ * Revision 1.16  1999/11/08 19:18:09  stephane
  * remove multiply definition
  *
  * Revision 1.15  1999/11/08 04:36:28  stephane
@@ -698,6 +701,8 @@ int TABFile::Close()
  **********************************************************************/
 int TABFile::GetNextFeatureId(int nPrevId)
 {
+    int nFeatureId = -1;
+
     if (m_eAccessMode != TABRead)
     {
         CPLError(CE_Failure, CPLE_NotSupported,
@@ -705,14 +710,47 @@ int TABFile::GetNextFeatureId(int nPrevId)
         return -1;
     }
 
+    /*-----------------------------------------------------------------
+     * Establish what the next logical feature ID should be
+     *----------------------------------------------------------------*/
     if (nPrevId <= 0 && m_nLastFeatureId > 0)
-        return 1;       // Feature Ids start at 1
+        nFeatureId = 1;       // Feature Ids start at 1
     else if (nPrevId > 0 && nPrevId < m_nLastFeatureId)
-        return nPrevId + 1;
+        nFeatureId = nPrevId + 1;
     else
+    {
+        // This was the last feature
         return -1;
+    }
 
-    return 0;
+    /*-----------------------------------------------------------------
+     * Skip any feature with NONE geometry and a deleted attribute record
+     *----------------------------------------------------------------*/
+    while(nFeatureId <= m_nLastFeatureId)
+    {
+        if ( m_poMAPFile->MoveToObjId(nFeatureId) != 0 ||
+             m_poDATFile->GetRecordBlock(nFeatureId) == NULL )
+        {
+            CPLError(CE_Failure, CPLE_IllegalArg,
+                     "GetNextFeatureId() failed: unable to set read pointer "
+                     "to feature id %d",  nFeatureId);
+            return -1;
+        }
+
+        if (m_poMAPFile->GetCurObjType() != TAB_GEOM_NONE ||
+            m_poDATFile->IsCurrentRecordDeleted() == FALSE)
+        {
+            // This feature contains at least a geometry or some attributes...
+            // return its id.
+            return nFeatureId;
+        }
+
+        nFeatureId++;
+    }
+
+    // If we reached this point, then we kept skipping deleted features
+    // and stopped when EOF was reached.
+    return -1;
 }
 
 /**********************************************************************

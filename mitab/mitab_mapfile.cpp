@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.12 2000-03-13 05:58:01 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.13 2000-05-19 06:44:55 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.12  2000-03-13 05:58:01  daniel
+ * Revision 1.13  2000-05-19 06:44:55  daniel
+ * Modified generation of spatial index to split index nodes and produce a
+ * more balanced tree.
+ *
+ * Revision 1.12  2000/03/13 05:58:01  daniel
  * Create 1024 bytes V500 .MAP header + limit m_nMaxCoordBufSize for V450 obj.
  *
  * Revision 1.11  2000/02/28 17:00:00  daniel
@@ -155,7 +159,7 @@ int TABMAPFile::Open(const char *pszFname, const char *pszAccess,
     else if (EQUALN(pszAccess, "w", 1))
     {
         m_eAccessMode = TABWrite;
-        pszAccess = "wb";
+        pszAccess = "wb+";
     }
     else
     {
@@ -900,49 +904,39 @@ int TABMAPFile::CommitObjBlock(GBool bInitNewBlock /*=TRUE*/)
     }
 
     /*-----------------------------------------------------------------
+     * Commit the obj block.
+     *----------------------------------------------------------------*/
+    if (nStatus == 0)
+        nStatus = m_poCurObjBlock->CommitToFile();
+
+    /*-----------------------------------------------------------------
      * Update the spatial index
      *
      * Spatial index will be created here if it was not done yet.
-     *
-     * __TODO__ The current procedure creates more a linked list of
-     *          index blocks than a quad tree... this should be sufficient
-     *          for now, but we should look at producing a balanced
-     *          tree at some point.
      *----------------------------------------------------------------*/
     if (nStatus == 0)
     {
         GInt32 nXMin, nYMin, nXMax, nYMax;
 
-        if (m_poSpIndex == NULL || m_poSpIndex->GetNumFreeEntries() == 0)
+        if (m_poSpIndex == NULL)
         {
-            int nBlockOffset = m_oBlockManager.AllocNewBlock();
-            TABMAPIndexBlock *poNewIndex = new TABMAPIndexBlock(m_eAccessMode);
+            // Spatial Index not created yet...
+            m_poSpIndex = new TABMAPIndexBlock(m_eAccessMode);
 
-            poNewIndex->InitNewBlock(m_fp, 512, nBlockOffset);
+            m_poSpIndex->InitNewBlock(m_fp, 512, 
+                                      m_oBlockManager.AllocNewBlock());
+            m_poSpIndex->SetMAPBlockManagerRef(&m_oBlockManager);
 
-            if (m_poSpIndex)
-            {
-                m_poSpIndex->GetMBR(nXMin, nYMin, nXMax, nYMax);
-                poNewIndex->AddEntry(nXMin, nYMin, nXMax, nYMax,
-                                     m_poSpIndex->GetStartAddress(),
-                                     m_poSpIndex);
-            }
-
-            m_poSpIndex = poNewIndex;
-            m_poHeader->m_nFirstIndexBlock = nBlockOffset;
+            m_poHeader->m_nFirstIndexBlock = m_poSpIndex->GetNodeBlockPtr();
         }
 
         m_poCurObjBlock->GetMBR(nXMin, nYMin, nXMax, nYMax);
-        m_poSpIndex->AddEntry(nXMin, nYMin, nXMax, nYMax,
-                                     m_poCurObjBlock->GetStartAddress(),
-                                     NULL);
-    }
+        nStatus = m_poSpIndex->AddEntry(nXMin, nYMin, nXMax, nYMax,
+                                        m_poCurObjBlock->GetStartAddress());
 
-    /*-----------------------------------------------------------------
-     * Commit the obj block.
-     *----------------------------------------------------------------*/
-    if (nStatus == 0)
-        nStatus = m_poCurObjBlock->CommitToFile();
+        m_poHeader->m_nMaxSpIndexDepth = MAX(m_poHeader->m_nMaxSpIndexDepth,
+                                             m_poSpIndex->GetCurMaxDepth()+1);
+    }
 
     /*-----------------------------------------------------------------
      * Reinitialize the obj block only if requested
@@ -1477,7 +1471,8 @@ int TABMAPFile::CommitSpatialIndex()
      * (it's children will be recursively committed as well)
      *------------------------------------------------------------*/
     // Add 1 to Spatial Index Depth to account to the MapObjectBlocks
-    m_poHeader->m_nMaxSpIndexDepth = m_poSpIndex->GetMaxDepth()+1;
+    m_poHeader->m_nMaxSpIndexDepth = MAX(m_poHeader->m_nMaxSpIndexDepth,
+                                         m_poSpIndex->GetCurMaxDepth()+1);
 
     m_poSpIndex->GetMBR(m_poHeader->m_nXMin, m_poHeader->m_nYMin,
                         m_poHeader->m_nXMax, m_poHeader->m_nYMax);

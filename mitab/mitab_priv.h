@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.17 2000-03-01 00:30:03 daniel Exp $
+ * $Id: mitab_priv.h,v 1.18 2000-05-19 06:45:25 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.17  2000-03-01 00:30:03  daniel
+ * Revision 1.18  2000-05-19 06:45:25  daniel
+ * Modified generation of spatial index to split index nodes and produce a
+ * more balanced tree.
+ *
+ * Revision 1.17  2000/03/01 00:30:03  daniel
  * Completed support for joined tables
  *
  * Revision 1.16  2000/02/28 16:53:23  daniel
@@ -129,7 +133,6 @@ typedef enum
  *
  * We will use this struct to rebuild the geographic index in memory
  *--------------------------------------------------------------------*/
-
 typedef struct TABMAPIndexEntry_t
 {
     // These members refer to the info we find in the file
@@ -138,10 +141,9 @@ typedef struct TABMAPIndexEntry_t
     GInt32      XMax;
     GInt32      YMax;
     GInt32      nBlockPtr;
-
-    // Ptr to the actual index block or NULL if not loaded
-    TABMAPIndexBlock *poBlock;  
 }TABMAPIndexEntry;
+
+#define TAB_MAX_ENTRIES_INDEX_BLOCK     ((512-4)/20)
 
 
 /*---------------------------------------------------------------------
@@ -541,7 +543,7 @@ class TABMAPIndexBlock: public TABRawBinBlock
 {
   protected:
     int         m_numEntries;
-    TABMAPIndexEntry **m_papsEntries;
+    TABMAPIndexEntry m_pasEntries[TAB_MAX_ENTRIES_INDEX_BLOCK];
 
     int         ReadNextEntry(TABMAPIndexEntry *psEntry);
     int         WriteNextEntry(TABMAPIndexEntry *psEntry);
@@ -551,6 +553,14 @@ class TABMAPIndexBlock: public TABRawBinBlock
     GInt32      m_nMinY;
     GInt32      m_nMaxX;
     GInt32      m_nMaxY;
+
+    TABBinBlockManager *m_poBlockManagerRef;
+
+    // Info about child currently loaded
+    TABMAPIndexBlock *m_poCurChild;
+    int         m_nCurChildIndex;
+    // Also need to know about its parent
+    TABMAPIndexBlock *m_poParentRef;
 
     int         ReadAllEntries();
 
@@ -567,13 +577,28 @@ class TABMAPIndexBlock: public TABRawBinBlock
     virtual int GetBlockClass() { return TABMAP_INDEX_BLOCK; };
 
     int         GetNumFreeEntries();
+    int         GetNumEntries()         {return m_numEntries;};
     int         AddEntry(GInt32 XMin, GInt32 YMin,
                          GInt32 XMax, GInt32 YMax,
-                         GInt32 nBlockPtr, TABMAPIndexBlock *poBlock=NULL);
-    int         GetMaxDepth();
+                         GInt32 nBlockPtr,
+                         GBool bAddInThisNodeOnly=FALSE);
+    int         GetCurMaxDepth();
     void        GetMBR(GInt32 &nXMin, GInt32 &nYMin, 
                        GInt32 &nXMax, GInt32 &nYMax);
+    GInt32      GetNodeBlockPtr() { return GetStartAddress();};
 
+    void        SetMAPBlockManagerRef(TABBinBlockManager *poBlockMgr);
+    void        SetParentRef(TABMAPIndexBlock *poParent);
+    void        SetCurChildRef(TABMAPIndexBlock *poChild, int nChildIndex);
+
+    int         SplitNode(int nNewEntryX, int nNewEntryY);
+    int         SplitRootNode(int nNewEntryX, int nNewEntryY);
+    void        UpdateCurChildMBR(GInt32 nXMin, GInt32 nYMin,
+                                  GInt32 nXMax, GInt32 nYMax,
+                                  GInt32 nBlockPtr);
+    void        RecomputeMBR();
+    int         InsertEntry(GInt32 XMin, GInt32 YMin,
+                            GInt32 XMax, GInt32 YMax, GInt32 nBlockPtr);
 #ifdef DEBUG
     virtual void Dump(FILE *fpOut = NULL);
 #endif

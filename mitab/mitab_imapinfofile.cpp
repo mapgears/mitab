@@ -1,8 +1,8 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.1 1999-11-08 04:17:27 stephane Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.2 1999-11-08 19:15:44 stephane Exp $
  *
  * Name:     mitab_imapinfo
- * Project:  MapInfo mid/mif Read/Write library
+ * Project:  MapInfo mid/mif Tab Read/Write library
  * Language: C++
  * Purpose:  Implementation of the IMapInfoFile class, super class of
  *           of MIFFile and TABFile
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.1  1999-11-08 04:17:27  stephane
+ * Revision 1.2  1999-11-08 19:15:44  stephane
+ * Add headers method
+ *
+ * Revision 1.1  1999/11/08 04:17:27  stephane
  * First Revision
  *
  *
@@ -37,12 +40,23 @@
 
 #include "mitab.h"
 
+
+/**********************************************************************
+ *                   IMapInfoFile::IMapInfoFile()
+ *
+ * Constructor.
+ **********************************************************************/
 IMapInfoFile::IMapInfoFile()
 {
-    m_poFilterGeom = NULL;
-    
+    m_poFilterGeom = NULL;    
 }
 
+
+/**********************************************************************
+ *                   IMapInfoFile::~IMapInfoFile()
+ *
+ * Destructor.
+ **********************************************************************/
 IMapInfoFile::~IMapInfoFile()
 {
     if( m_poFilterGeom != NULL )
@@ -52,6 +66,12 @@ IMapInfoFile::~IMapInfoFile()
     }
 }
 
+/**********************************************************************
+ *                   IMapInfoFile::GetNextFeature()
+ *
+ * Standard OGR GetNextFeature implementation.  This methode is used
+ * to retreive the next OGRFeature.
+ **********************************************************************/
 OGRFeature *IMapInfoFile::GetNextFeature()
 {
     OGRFeature *poFeature, *poFeatureRef;
@@ -67,6 +87,12 @@ OGRFeature *IMapInfoFile::GetNextFeature()
       return NULL;
 }
 
+/**********************************************************************
+ *                   IMapInfoFile::CreateFeature()
+ *
+ * Standard OGR CreateFeature implementation.  This methode is used
+ * to create a new feature in current dataset 
+ **********************************************************************/
 OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
 {
     TABFeature *poTABFeature;
@@ -109,6 +135,13 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
       return OGRERR_FAILURE;
 }
 
+/**********************************************************************
+ *                   IMapInfoFile::GetFeature()
+ *
+ * Standard OGR GetFeature implementation.  This methode is used
+ * to get the wanted (nFeatureId) feature, a NULL value will be 
+ * returned on error.
+ **********************************************************************/
 OGRFeature *IMapInfoFile::GetFeature(long nFeatureId)
 {
     OGRFeature *poFeature, *poFeatureRef;
@@ -126,11 +159,24 @@ OGRFeature *IMapInfoFile::GetFeature(long nFeatureId)
       return NULL;
 }
 
+/**********************************************************************
+ *                   IMapInfoFile::GetSpatialFilter()
+ *
+ * Standard OGR GetSpatialFilter implementation.  This methode is used
+ * to retreive the SpacialFilter object.
+ **********************************************************************/
 OGRGeometry *IMapInfoFile::GetSpatialFilter()
 {
     return m_poFilterGeom;
 }
 
+
+/**********************************************************************
+ *                   IMapInfoFile::SetSpatialFilter()
+ *
+ * Standard OGR SetSpatialFiltere implementation.  This methode is used
+ * to set a SpatialFilter for this OGRLayer
+ **********************************************************************/
 void IMapInfoFile::SetSpatialFilter (OGRGeometry * poGeomIn )
 
 {
@@ -143,5 +189,6 @@ void IMapInfoFile::SetSpatialFilter (OGRGeometry * poGeomIn )
     if( poGeomIn != NULL )
         m_poFilterGeom = poGeomIn->clone();
 }
+
 
 

@@ -5,6 +5,10 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+- Implement SetMIFCoordSys in mitab_capi.cpp in the MIFFile class. The coordsys
+  was not written in mitab_c_create because SetMIFCoordSys always return -1
+  (Bug 984).
+
 
 Version 1.2.0 - (2002-05-03)
 ----------------------------
@@ -411,5 +415,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.84 2002-05-03 15:09:41 daniel Exp $
+$Id: HISTORY.TXT,v 1.85 2002-05-08 15:10:48 julien Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.62 2002-05-03 15:09:41 daniel Exp $
+ * $Id: mitab.h,v 1.63 2002-05-08 15:10:48 julien Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.62  2002-05-03 15:09:41  daniel
+ * Revision 1.63  2002-05-08 15:10:48  julien
+ * Implement MIFFile::SetMIFCoordSys in mitab_capi.cpp (Bug 984)
+ *
+ * Revision 1.62  2002/05/03 15:09:41  daniel
  * Version 1.2.0
  *
  * Revision 1.61  2002/03/26 19:27:43  daniel
@@ -755,7 +758,7 @@ class MIFFile: public IMapInfoFile
     /*  { return m_poMAPFile->GetHeaderBlock()->GetProjInfo( poPI ); }*/
     virtual int  SetProjInfo(TABProjInfo * /*poPI*/){return -1;}
     /*  { return m_poMAPFile->GetHeaderBlock()->SetProjInfo( poPI ); }*/
-    virtual int  SetMIFCoordSys(const char * /*pszMIFCoordSys*/) {return -1;};
+    virtual int  SetMIFCoordSys(const char * pszMIFCoordSys);
 
 #ifdef DEBUG
     virtual void Dump(FILE * /*fpOut*/ = NULL) {};

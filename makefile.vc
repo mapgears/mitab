@@ -1,0 +1,31 @@
+#
+# VC++ makefile to build the MITAB library and test programs
+#
+
+default:
+	cd cpl
+	nmake -f makefile.vc
+	cd ..\ogr
+	nmake -f makefile.vc
+	cd ..\mitab
+	nmake -f makefile.vc
+
+##
+## Use 'cdecl' target if you want to build mitab_cdecl.dll 
+## otherwise the default is to build mitab.dll with stdcall
+##
+cdecl:
+	cd cpl
+	nmake -f makefile.vc
+	cd ..\ogr
+	nmake -f makefile.vc
+	cd ..\mitab
+	nmake -f makefile.vc MITAB_CDECL=1
+
+clean:
+	cd cpl
+	nmake -f makefile.vc clean
+	cd ..\ogr
+	nmake -f makefile.vc clean
+	cd ..\mitab
+	nmake -f makefile.vc clean

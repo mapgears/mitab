@@ -1,0 +1,14 @@
+
+INC	=	-I../ogr -I../cpl
+OPTFLAGS=	/Zi /nologo
+
+CFLAGS	=	$(OPTFLAGS) $(INC) $(EXTRAFLAGS)
+MAKE	=	nmake /nologo
+
+CC	=	cl
+
+.c.obj:	
+	$(CC) $(CFLAGS) /c $*.c
+
+.cpp.obj:	
+	$(CC) $(CFLAGS) /c $*.cpp

@@ -13,6 +13,9 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+ - Added initial version of .NET bindings, contributed by Graham Sims in
+   mitab/contrib/dotnet directory (bug 992)
+
  - Added support for Datum Id field in .MAP header, this is new in MapInfo
    7.8+ and solves problem with multiple datums with same params (bug 910) 
 
@@ -609,5 +612,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.133 2005-03-22 23:25:38 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.134 2005-03-23 19:57:01 dmorissette Exp $
 ------------

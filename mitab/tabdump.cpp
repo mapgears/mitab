@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.10 2001-09-17 19:52:50 daniel Exp $
+ * $Id: tabdump.cpp,v 1.11 2001-09-19 14:33:19 warmerda Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.10  2001-09-17 19:52:50  daniel
+ * Revision 1.11  2001-09-19 14:33:19  warmerda
+ * support mif files for dumping with -all
+ *
+ * Revision 1.10  2001/09/17 19:52:50  daniel
  * Added DumpViaSpatialIndex()
  *
  * Revision 1.9  2001/07/04 14:13:24  daniel
@@ -165,7 +168,9 @@ int main(int argc, char *argv[])
     {
 
         if (strstr(pszFname, ".tab") != NULL ||
-            strstr(pszFname, ".TAB") != NULL)
+            strstr(pszFname, ".TAB") != NULL ||
+            strstr(pszFname, ".mif") != NULL ||
+            strstr(pszFname, ".MIF") != NULL)
         {
             DumpTabFile(pszFname);
         }

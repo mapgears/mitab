@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.6 2000-02-28 17:20:34 daniel Exp $
+ * $Id: mitabc_test.c,v 1.7 2000-04-21 12:53:41 daniel Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.6  2000-02-28 17:20:34  daniel
+ * Revision 1.7  2000-04-21 12:53:41  daniel
+ * Added funcs to fetch feature coordinates and attributes
+ *
+ * Revision 1.6  2000/02/28 17:20:34  daniel
  * Removed style param to mitab_c_set_pen() since this param is actually
  * used inside the format to define pen width in points (version 450)
  *
@@ -69,7 +72,7 @@ static void ReportFile( const char * pszFilename )
 
 {
     mitab_handle	dataset;
-    int			feature_id;
+    int			feature_id, num_fields;
     
     dataset = mitab_c_open( pszFilename );
 
@@ -80,12 +83,18 @@ static void ReportFile( const char * pszFilename )
         exit( 1 );
     }
 
+    num_fields = mitab_c_get_field_count(dataset);
+
     for( feature_id = mitab_c_next_feature_id(dataset,-1);
          feature_id != -1;
          feature_id = mitab_c_next_feature_id(dataset,feature_id) )
     {
         mitab_feature	feature;
+        int feature_type, num_parts, partno, pointno, fieldno;
 
+/* -------------------------------------------------------------------- */
+/*      Read next feature object                                        */
+/* -------------------------------------------------------------------- */
         feature = mitab_c_read_feature( dataset, feature_id );
         if( feature == NULL )
         {
@@ -94,8 +103,43 @@ static void ReportFile( const char * pszFilename )
             exit( 1 );
         }
 
-        printf( "Read feature %d.\n", feature_id );
+        feature_type = mitab_c_get_type(feature);
+        num_parts = mitab_c_get_parts(feature);
 
+        printf( "Read feature %d: type=%d, num_parts=%d.\n", 
+                feature_id, feature_type, num_parts  );
+
+/* -------------------------------------------------------------------- */
+/*      Dump the feature attributes...                                  */
+/* -------------------------------------------------------------------- */
+        for(fieldno = 0; fieldno < num_fields; fieldno++)
+        {
+            printf("  %s = %s\n", 
+                     mitab_c_get_field_name(dataset, fieldno),
+                     mitab_c_get_field_as_string(feature, fieldno) );
+        }
+
+/* -------------------------------------------------------------------- */
+/*      ... and coordinates.                                            */
+/*      In real applications, we would probably want to handle each     */
+/*      object type differently but we won't do it here.                */
+/* -------------------------------------------------------------------- */
+        for(partno = 0; partno < num_parts; partno++)
+        {
+            int num_points = mitab_c_get_vertex_count(feature, partno);
+
+            if (num_parts > 1)
+                printf(" Part no %d:\n", partno);
+
+            for(pointno = 0; pointno < num_points; pointno++)
+            {
+                double dX, dY;
+                dX = mitab_c_get_vertex_x(feature, partno, pointno);
+                dY = mitab_c_get_vertex_y(feature, partno, pointno);
+
+                printf("  %.16g %.16g\n", dX, dY);
+            }
+        }
         mitab_c_destroy_feature( feature );
     }
 
@@ -154,11 +198,11 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
 /* -------------------------------------------------------------------- */
     feature = mitab_c_create_feature( dataset, TABFC_Point );
 
-    x[0] = 100;
+    x[0] = 98;
     y[0] = 50;
     
     mitab_c_set_points( feature, 0, 1, x, y );
-    mitab_c_set_symbol( feature, 1, 2, 255*256 );
+    mitab_c_set_symbol( feature, 41, 15, 255*256 );
     mitab_c_set_field( feature, 0, "100" );
     mitab_c_set_field( feature, 1, "100.5" );
     mitab_c_set_field( feature, 2, "12345678901234567890" );
@@ -171,12 +215,12 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     feature = mitab_c_create_feature( dataset, TABFC_Polyline );
 
     x[0] = 100;
-    y[0] = 50;
+    y[0] = 49;
     x[1] = 101;
-    y[1] = 42;
+    y[1] = 48;
     
     mitab_c_set_points( feature, 0, 2, x, y );
-    mitab_c_set_pen( feature, 1, 2, 65535 );
+    mitab_c_set_pen( feature, 1, 2, 255 );
     mitab_c_write_feature( dataset, feature );
     mitab_c_destroy_feature( feature );
 
@@ -191,8 +235,11 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     mitab_c_set_points( feature, 0, 1, x, y );
     mitab_c_set_text( feature, "My text" );
     mitab_c_set_font( feature, "Arial" );
-    mitab_c_set_pen( feature, 1, 2, 65535 );
-    mitab_c_set_text_display( feature, 0.0, 0.0, 0.0, 255*65536, 0,
+    mitab_c_set_text_display( feature, 
+                              45.0,     /* angle */
+                              1.0, 7.0, /* Text MBR height and width */
+                              255*65536,/* FG Color */
+                              0,        /* BG Color */
                               -1, -1, -1 );
     mitab_c_write_feature( dataset, feature );
     mitab_c_destroy_feature( feature );
@@ -217,20 +264,56 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     
     x[0] = 100.5;
     y[0] = 50.5;
-    x[1] = 100.7;
+    x[1] = 100.5;
     y[1] = 50.7;
     x[2] = 100.7;
     y[2] = 50.7;
-    x[3] = 100.5;
+    x[3] = 100.7;
     y[3] = 50.5;
-    
-    mitab_c_set_points( feature, 1, 4, x, y );
+    x[4] = 100.5;
+    y[4] = 50.5;
 
-    mitab_c_set_brush( feature, 255, 0, 1, 0 );
+    mitab_c_set_points( feature, 1, 5, x, y );
+
+    mitab_c_set_brush( feature, 255, 0, 2, 0 );
     mitab_c_set_pen( feature, 1, 2, 65535 );
     mitab_c_write_feature( dataset, feature );
     mitab_c_destroy_feature( feature );
     
+/* -------------------------------------------------------------------- */
+/*      Write multiple polyline (3 parts).                              */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_Polyline );
+
+    x[0] = 111;
+    y[0] = 57;
+    x[1] = 110;
+    y[1] = 57;
+    x[2] = 110;
+    y[2] = 56;
+
+    mitab_c_set_points( feature, 0, 3, x, y );
+
+    x[0] = 108;
+    y[0] = 56;
+    x[1] = 109;
+    y[1] = 57;
+    
+    mitab_c_set_points( feature, 1, 2, x, y );
+    
+    x[0] = 105;
+    y[0] = 55;
+    x[1] = 105;
+    y[1] = 57;
+    x[2] = 107;
+    y[2] = 57;
+    x[3] = 107;
+    y[3] = 55;
+    
+    mitab_c_set_points( feature, 2, 4, x, y );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+
 /* -------------------------------------------------------------------- */
 /*      Cleanup                                                         */
 /* -------------------------------------------------------------------- */

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.6 2000-02-28 16:46:53 daniel Exp $
+ * $Id: mitab_capi.h,v 1.7 2000-04-21 12:53:41 daniel Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.6  2000-02-28 16:46:53  daniel
+ * Revision 1.7  2000-04-21 12:53:41  daniel
+ * Added funcs to fetch feature coordinates and attributes
+ *
+ * Revision 1.6  2000/02/28 16:46:53  daniel
  * Removed style param to mitab_c_set_pen() since this param is actually
  * used inside the format to define pen width in points (version 450)
  *
@@ -73,19 +76,44 @@ typedef void * mitab_handle;
 typedef void * mitab_feature;
 
 /* feature type values */
+#define TABFC_NoGeom    0
 #define TABFC_Point	1
+#define TABFC_FontPoint 2
+#define TABFC_CustomPoint 3
 #define TABFC_Text	4
 #define TABFC_Polyline	5
+#define TABFC_Arc       6
 #define TABFC_Region    7
+#define TABFC_Rectangle 8
+#define TABFC_Ellipse   9
 
 /* field types */
 #define TABFT_Char	1
 #define TABFT_Integer	2
+#define TABFT_SmallInt	3
+#define TABFT_Decimal	4
 #define TABFT_Float	5
+#define TABFT_Date	6
+#define TABFT_Logical	7
+
+/* text justification */
+#define TABTJ_Left      0
+#define TABTJ_Center    1
+#define TABTJ_Right     2
+
+/* text spacing */
+#define TABTS_Single    0
+#define TABTS_1_5       1
+#define TABTS_Double    2
+
+/* test linetype */
+#define TABTL_NoLine    0
+#define TABTL_Simple    1
+#define TABTL_Arrow     2
 
 const char MITAB_DLL *mitab_c_getlasterrormsg();
 int MITAB_DLL mitab_c_getlasterrorno();
-    
+
 mitab_handle MITAB_DLL mitab_c_open( const char * filename );
 void MITAB_DLL mitab_c_close( mitab_handle handle );
 
@@ -139,15 +167,17 @@ void MITAB_DLL mitab_c_set_symbol( mitab_feature feature, int symbol_no,
 void MITAB_DLL mitab_c_set_points( mitab_feature feature, int part,
                                    int vertex_count, double * x, double * y );
 
-/* -------------------------------------------------------------------- */
-/*      Not implemented                                                 */
-/* -------------------------------------------------------------------- */
-int mitab_c_get_type( mitab_feature feature );
-int mitab_c_get_parts( mitab_feature feature );
-int mitab_c_get_vertex_count( mitab_feature feature, int part );
-double mitab_c_get_vertex_x( mitab_feature, int part, int vertex );
-double mitab_c_get_vertex_y( mitab_feature, int part, int vertex );
+int MITAB_DLL mitab_c_get_type( mitab_feature feature );
+int MITAB_DLL mitab_c_get_parts( mitab_feature feature );
+int MITAB_DLL mitab_c_get_vertex_count( mitab_feature feature, int part );
+double MITAB_DLL mitab_c_get_vertex_x( mitab_feature, int part, int vertex );
+double MITAB_DLL mitab_c_get_vertex_y( mitab_feature, int part, int vertex );
 
+int MITAB_DLL mitab_c_get_field_count( mitab_handle handle );
+int MITAB_DLL mitab_c_get_field_type( mitab_handle handle, int field );
+const char MITAB_DLL *mitab_c_get_field_name(mitab_handle handle, int field);
+const char MITAB_DLL *mitab_c_get_field_as_string( mitab_feature feature, 
+                                                   int field );
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.11 2000-02-28 17:08:56 daniel Exp $
+ * $Id: mitab_utils.cpp,v 1.12 2000-04-18 04:19:22 daniel Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.11  2000-02-28 17:08:56  daniel
+ * Revision 1.12  2000-04-18 04:19:22  daniel
+ * Now accept extended chars with accents in TABCleanFieldName()
+ *
+ * Revision 1.11  2000/02/28 17:08:56  daniel
  * Avoid using isalnum() in TABCleanFieldName
  *
  * Revision 1.10  2000/02/18 20:46:35  daniel
@@ -422,6 +425,7 @@ char *TABEscapeString(char *pszString)
  *
  * Return a copy of pszSrcName that contains only valid characters for a
  * TAB field name.  All invalid characters are replaced by '_'.
+ *
  * The returned string should be freed by the caller.
  **********************************************************************/
 char *TABCleanFieldName(const char *pszSrcName)
@@ -429,13 +433,28 @@ char *TABCleanFieldName(const char *pszSrcName)
     char *pszNewName;
     int numInvalidChars = 0;
 
+    /*-----------------------------------------------------------------
+     * According to the MapInfo User's Guide (p. 240, v5.5)
+     * New Table Command:
+     *  Name:
+     * Displays the field name in the name box. You can also enter new field
+     * names here. Defaults are Field1, Field2, etc. A field name can contain
+     * up to 31 alphanumeric characters. Use letters, numbers, and the 
+     * underscore. Do not use spaces; instead, use the underscore character
+     * (_) to separate words in a field name. Use upper and lower case for
+     * legibility, but MapInfo is not case-sensitive.
+     *
+     * It was also verified that extended chars with accents are also 
+     * accepted.
+     *----------------------------------------------------------------*/
     pszNewName = CPLStrdup(pszSrcName);
     for(int i=0; pszSrcName && pszSrcName[i] != '\0'; i++)
     {
         if ( !( pszSrcName[i] == '_' ||
                 (pszSrcName[i]>='0' && pszSrcName[i]<='9') || 
                 (pszSrcName[i]>='a' && pszSrcName[i]<='z') || 
-                (pszSrcName[i]>='A' && pszSrcName[i]<='Z')   ) )
+                (pszSrcName[i]>='A' && pszSrcName[i]<='Z') ||
+                ((GByte)pszSrcName[i]>=192 && (GByte)pszSrcName[i]<=255) ) )
         {
             pszNewName[i] = '_';
             numInvalidChars++;
@@ -445,7 +464,15 @@ char *TABCleanFieldName(const char *pszSrcName)
     if (numInvalidChars > 0)
     {
         CPLError(CE_Warning, TAB_WarningInvalidFieldName,
-                 "Field name '%s' contains invalid characters.  "
+                 "Field name '%s' contains invalid characters. "
+                 "'%s' will be used instead.", pszSrcName, pszNewName);
+    }
+
+    if (strlen(pszNewName) > 31)
+    {
+        pszNewName[31] = '\0';
+        CPLError(CE_Warning, TAB_WarningInvalidFieldName,
+                 "Field name '%s' is longer than the max of 31 characters. "
                  "'%s' will be used instead.", pszSrcName, pszNewName);
     }
 

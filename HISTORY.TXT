@@ -5,6 +5,11 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+- mitab_tabview.cpp: Use VSIUnlink() instead of unlink(). NFW.
+
+- mitab_utils.cpp: Don't use multi-byte support if _WIN32 and unix are
+  defined to try and preserve cygwin support. NFW
+
 
 Version 1.1.2 - (2001-06-24)
 ----------------------------
@@ -290,5 +295,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.54 2001-06-25 01:49:05 daniel Exp $
+$Id: HISTORY.TXT,v 1.55 2001-06-27 19:51:57 warmerda Exp $
 ------------

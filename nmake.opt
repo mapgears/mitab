@@ -1,5 +1,5 @@
 
-INC	=	-I../ogr -I../cpl
+INC	=	-I. -I.. -I../ogr -I../cpl
 OPTFLAGS=	/Zi /nologo
 
 CFLAGS	=	$(OPTFLAGS) $(INC) $(EXTRAFLAGS)

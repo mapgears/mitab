@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.4 1999-09-26 14:59:36 daniel Exp $
+ * $Id: mitab_mapfile.cpp,v 1.5 1999-10-01 03:52:22 daniel Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.4  1999-09-26 14:59:36  daniel
+ * Revision 1.5  1999-10-01 03:52:22  daniel
+ * Avoid producing an unused block in the file when closing it.
+ *
+ * Revision 1.4  1999/09/26 14:59:36  daniel
  * Implemented write support
  *
  * Revision 1.3  1999/09/20 18:42:42  daniel
@@ -265,7 +268,7 @@ int TABMAPFile::Close()
     if (m_eAccessMode == TABWrite)
     {
         // Start by committing current object and coord blocks
-        CommitObjBlock();
+        CommitObjBlock(FALSE);
 
         // Write the drawing tools definitions now.
         CommitDrawingTools();
@@ -660,7 +663,7 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
          * block at this point and update the index blocks... however the
          * file should still be usable even if we don't do it.
          *------------------------------------------------------------*/
-        CommitObjBlock();
+        CommitObjBlock(TRUE);
     }
 
     /*-----------------------------------------------------------------
@@ -721,11 +724,11 @@ int   TABMAPFile::PrepareNewObj(int nObjId, GByte nObjType)
  * the references to each other and in the TABMAPIndex block.
  *
  * After the Commit() call, the ObjBlock and others will be reinitialized
- * and ready to receive new objects.
+ * and ready to receive new objects. (only if bInitNewBlock==TRUE)
  *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
-int TABMAPFile::CommitObjBlock()
+int TABMAPFile::CommitObjBlock(GBool bInitNewBlock /*=TRUE*/)
 {
     int nStatus = 0;
 
@@ -790,14 +793,18 @@ int TABMAPFile::CommitObjBlock()
     }
 
     /*-----------------------------------------------------------------
-     * Then commit and reinitialize the obj block.
+     * Commit the obj block.
      *----------------------------------------------------------------*/
     if (nStatus == 0)
-    {
-        int nNewBlockOffset = m_oBlockManager.AllocNewBlock();
         nStatus = m_poCurObjBlock->CommitToFile();
-        if (nStatus == 0)
-            nStatus = m_poCurObjBlock->InitNewBlock(m_fp,512,nNewBlockOffset);
+
+    /*-----------------------------------------------------------------
+     * Reinitialize the obj block only if requested
+     *----------------------------------------------------------------*/
+    if (bInitNewBlock && nStatus == 0)
+    {
+        nStatus = m_poCurObjBlock->InitNewBlock(m_fp,512,
+                                            m_oBlockManager.AllocNewBlock());
     }
 
 
@@ -1323,7 +1330,8 @@ int TABMAPFile::CommitSpatialIndex()
      * Update header fields and commit index block
      * (it's children will be recursively committed as well)
      *------------------------------------------------------------*/
-    m_poHeader->m_nMaxSpIndexDepth = m_poSpIndex->GetMaxDepth();
+    // Add 1 to Spatial Index Depth to account to the MapObjectBlocks
+    m_poHeader->m_nMaxSpIndexDepth = m_poSpIndex->GetMaxDepth()+1;
 
     m_poSpIndex->GetMBR(m_poHeader->m_nXMin, m_poHeader->m_nYMin,
                         m_poHeader->m_nXMax, m_poHeader->m_nYMax);

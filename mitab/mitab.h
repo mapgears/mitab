@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.36 2000-07-27 02:03:57 daniel Exp $
+ * $Id: mitab.h,v 1.37 2000-09-07 23:32:13 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.36  2000-07-27 02:03:57  daniel
+ * Revision 1.37  2000-09-07 23:32:13  daniel
+ * Added RecordDeletedFlag to TABFeature with get/set methods
+ *
+ * Revision 1.36  2000/07/27 02:03:57  daniel
  * Remove extra comma at end of TABCustSymbStyle enum
  *
  * Revision 1.35  2000/07/04 01:45:16  warmerda
@@ -897,6 +900,8 @@ class TABFeature: public OGRFeature
     double      m_dXMax;
     double      m_dYMax;
 
+    GBool       m_bDeletedFlag;
+
     void        CopyTABFeatureBase(TABFeature *poDestFeature);
 
   public:
@@ -908,6 +913,9 @@ class TABFeature: public OGRFeature
     virtual int             GetMapInfoType()  { return m_nMapInfoType; };
     virtual int            ValidateMapInfoType(){m_nMapInfoType=TAB_GEOM_NONE;
                                                  return m_nMapInfoType;};
+
+    GBool       IsRecordDeleted() { return m_bDeletedFlag; };
+    void        SetRecordDeleted(GBool bDeleted) { m_bDeletedFlag=bDeleted; };
 
     /*-----------------------------------------------------------------
      * TAB Support

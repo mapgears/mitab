@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.35 2000-07-04 01:50:02 warmerda Exp $
+ * $Id: mitab_tabfile.cpp,v 1.36 2000-09-07 23:32:13 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.35  2000-07-04 01:50:02  warmerda
+ * Revision 1.36  2000-09-07 23:32:13  daniel
+ * Added RecordDeletedFlag to TABFeature with get/set methods
+ *
+ * Revision 1.35  2000/07/04 01:50:02  warmerda
  * removed unprotected debugging printf.
  *
  * Revision 1.34  2000/06/28 00:31:05  warmerda
@@ -1250,6 +1253,9 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
 
     m_nCurFeatureId = nFeatureId;
     m_poCurFeature->SetFID(m_nCurFeatureId);
+
+    m_poCurFeature->SetRecordDeleted(m_poDATFile->IsCurrentRecordDeleted());
+
     return m_poCurFeature;
 }
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.27 2000-07-10 14:56:25 daniel Exp $
+ * $Id: mitab_feature.cpp,v 1.28 2000-09-07 23:32:13 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.27  2000-07-10 14:56:25  daniel
+ * Revision 1.28  2000-09-07 23:32:13  daniel
+ * Added RecordDeletedFlag to TABFeature with get/set methods
+ *
+ * Revision 1.27  2000/07/10 14:56:25  daniel
  * Handle m_nOriginQuadrant==0 as quadrant 3 (reverse x and y axis)
  *
  * Revision 1.26  2000/04/21 12:39:05  daniel
@@ -136,6 +139,7 @@ TABFeature::TABFeature(OGRFeatureDefn *poDefnIn):
                OGRFeature(poDefnIn)
 {
     m_nMapInfoType = TAB_GEOM_NONE;
+    m_bDeletedFlag = FALSE;
 
     SetMBR(0.0, 0.0, 0.0, 0.0);
 }

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.39 2000-10-03 19:29:51 daniel Exp $
+ * $Id: mitab.h,v 1.40 2000-10-03 22:11:43 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.39  2000-10-03 19:29:51  daniel
+ * Revision 1.40  2000-10-03 22:11:43  daniel
+ * Added MITAB_VERSION
+ *
+ * Revision 1.39  2000/10/03 19:29:51  daniel
  * Include OGR StyleString stuff (implemented by Stephane)
  *
  * Revision 1.38  2000/09/19 17:23:52  daniel
@@ -156,6 +159,11 @@
 #include "mitab_priv.h"
 #include "ogr_feature.h"
 #include "ogrsf_frmts.h"
+
+/*---------------------------------------------------------------------
+ * Current version of the MITAB library... always useful!
+ *--------------------------------------------------------------------*/
+#define MITAB_VERSION "1.0.2 (2000-10-03)"
 
 #ifndef PI
 #  define PI 3.14159265358979323846

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.12 1999-10-06 13:16:50 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.13 1999-10-06 15:09:58 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.12  1999-10-06 13:16:50  daniel
+ * Revision 1.13  1999-10-06 15:09:58  daniel
+ * Removed unused variables
+ *
+ * Revision 1.12  1999/10/06 13:16:50  daniel
  * Added GetBounds()
  *
  * Revision 1.11  1999/10/01 03:50:00  daniel
@@ -1041,7 +1044,6 @@ int TABFile::SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
 int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                             int nWidth, int nPrecision /*=0*/)
 {
-    int           iField, numFields;
     OGRFieldDefn *poFieldDefn;
     int nStatus = 0;
 

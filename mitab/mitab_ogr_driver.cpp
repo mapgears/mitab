@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_ogr_driver.cpp,v 1.4 1999-12-15 16:28:17 warmerda Exp $
+ * $Id: mitab_ogr_driver.cpp,v 1.5 1999-12-15 17:05:24 warmerda Exp $
  *
  * Name:     mitab_ogr_driver.cpp
  * Project:  MapInfo Mid/Mif, Tab ogr support
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_ogr_driver.cpp,v $
- * Revision 1.4  1999-12-15 16:28:17  warmerda
+ * Revision 1.5  1999-12-15 17:05:24  warmerda
+ * Only create OGRTABDataSource if SmartOpen() result is non-NULL.
+ *
+ * Revision 1.4  1999/12/15 16:28:17  warmerda
  * fixed a few type problems
  *
  * Revision 1.3  1999/12/14 02:22:29  daniel
@@ -118,7 +121,7 @@ OGRDataSource *OGRTABDriver::Open( const char * pszFilename,
 /* -------------------------------------------------------------------- */
     IMapInfoFile *poLayer;
 
-    if( (poLayer = IMapInfoFile::SmartOpen( pszFilename, TRUE )) ==0 )
+    if( (poLayer = IMapInfoFile::SmartOpen( pszFilename, TRUE )) != NULL )
          return new OGRTABDataSource( pszFilename, poLayer );
  
     return NULL;

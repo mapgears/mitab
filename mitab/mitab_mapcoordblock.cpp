@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapcoordblock.cpp,v 1.4 1999-10-06 13:18:55 daniel Exp $
+ * $Id: mitab_mapcoordblock.cpp,v 1.5 1999-10-06 15:19:11 daniel Exp $
  *
  * Name:     mitab_mapcoordblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -29,7 +29,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapcoordblock.cpp,v $
- * Revision 1.4  1999-10-06 13:18:55  daniel
+ * Revision 1.5  1999-10-06 15:19:11  daniel
+ * Do not automatically init. curr. feature MBR when block is initialized
+ *
+ * Revision 1.4  1999/10/06 13:18:55  daniel
  * Fixed uninitialized class members
  *
  * Revision 1.3  1999/09/29 04:25:42  daniel
@@ -215,13 +218,13 @@ int     TABMAPCoordBlock::InitNewBlock(FILE *fpSrc, int nBlockSize,
     m_nCenterX = m_nCenterY = 0;
     m_numDataBytes = 0;
 
-    m_nTotalDataSize = 0;
-    m_nFeatureDataSize = 0;
-
-    m_nFeatureXMin = m_nMinX = 1000000000;
-    m_nFeatureYMin = m_nMinY = 1000000000;
-    m_nFeatureXMax = m_nMaxX = -1000000000;
-    m_nFeatureYMax = m_nMaxY = -1000000000;
+    // m_nMin/Max are used to keep track of current block MBR
+    // FeatureMin/Max should not be reset here since feature coords can
+    // be split on several blocks
+    m_nMinX = 1000000000;
+    m_nMinY = 1000000000;
+    m_nMaxX = -1000000000;
+    m_nMaxY = -1000000000;
 
     if (m_eAccess != TABRead)
     {
@@ -630,7 +633,6 @@ void TABMAPCoordBlock::StartNewFeature()
     m_nFeatureYMin = 1000000000;
     m_nFeatureXMax = -1000000000;
     m_nFeatureYMax = -1000000000;
-
 }
 
 /**********************************************************************

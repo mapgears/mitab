@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.15 2000-02-28 17:05:06 daniel Exp $
+ * $Id: mitab_miffile.cpp,v 1.16 2000-03-27 03:37:59 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.15  2000-02-28 17:05:06  daniel
+ * Revision 1.16  2000-03-27 03:37:59  daniel
+ * Handle bounds in CoordSys for read and write, + handle point SYMBOL line as
+ * optional + fixed reading of bounds in PreParseFile()
+ *
+ * Revision 1.15  2000/02/28 17:05:06  daniel
  * Added support for index and unique directives for read and write
  *
  * Revision 1.14  2000/01/28 07:32:25  daniel
@@ -129,6 +133,7 @@ MIFFile::MIFFile()
     m_poCurFeature = NULL;
    
     m_bBoundsSet = FALSE;
+
     m_bPreParsed = FALSE;
     m_nAttribut = 0;
     m_bHeaderWrote = FALSE;
@@ -357,10 +362,15 @@ int MIFFile::ParseMIFHeader()
     }
     
 
-    // Parse untin we found the "Data" Tokenize
+    /*-----------------------------------------------------------------
+     * Parse header until we find the "Data" line
+     *----------------------------------------------------------------*/
     while (((pszLine = m_poMIFFile->GetLine()) != NULL) && 
 	   !(EQUALN(pszLine,"Data",4)))
     {
+        while(pszLine && *pszLine == ' ')
+            pszLine++;  // skip leading spaces
+
 	if (EQUALN(pszLine,"VERSION",7))
 	{
 	    papszToken = CSLTokenizeStringComplex(pszLine," ()",TRUE,FALSE); 
@@ -411,16 +421,25 @@ int MIFFile::ParseMIFHeader()
         {
 	    bCoordSys = TRUE;
 	    m_pszCoordSys = CPLStrdup(pszLine + 9);
+
+            // Extract bounds if present
+            char  **papszFields;
+            papszFields = CSLTokenizeStringComplex(m_pszCoordSys, " ,()", 
+                                                   TRUE, FALSE );
+            int iBounds = CSLFindString( papszFields, "Bounds" );
+            if (iBounds >= 0 && iBounds + 4 < CSLCount(papszFields))
+            {
+                m_dXMin = atof(papszFields[++iBounds]);
+                m_dYMin = atof(papszFields[++iBounds]);
+                m_dXMax = atof(papszFields[++iBounds]);
+                m_dYMax = atof(papszFields[++iBounds]);
+                m_bBoundsSet = TRUE;
+            }
         }
-        else if( EQUALN(pszLine," COORDSYS",9) )
-	{
-	    bCoordSys = TRUE;
-	    m_pszCoordSys = CPLStrdup(pszLine+10);
-	}
 	else if (EQUALN(pszLine,"TRANSFORM",9))
 	{
 	    papszToken = CSLTokenizeStringComplex(pszLine," ,",TRUE,FALSE); 
-	     bColumns = FALSE; bCoordSys = FALSE;
+            bColumns = FALSE; bCoordSys = FALSE;
 	  
 	    if (CSLCount(papszToken) == 5)
 	    {
@@ -481,7 +500,6 @@ int MIFFile::ParseMIFHeader()
 	    // Reading CoordSys
 	}
 
-	   
     }
     
     if (EQUALN(m_poMIFFile->GetLastLine(),"DATA",4) == FALSE)
@@ -492,6 +510,13 @@ int MIFFile::ParseMIFHeader()
         return -1;
     }
     
+    /*-----------------------------------------------------------------
+     * Move pointer to first line of first object
+     *----------------------------------------------------------------*/
+    while (((pszLine = m_poMIFFile->GetLine()) != NULL) && 
+	   m_poMIFFile->IsValidFeature(pszLine) == FALSE)
+        ;
+
     /*-----------------------------------------------------------------
      * Check for Unique and Indexed flags
      *----------------------------------------------------------------*/
@@ -707,7 +732,8 @@ void MIFFile::PreParseFile()
 	}
 	else if (bPLine == TRUE)
 	{
-	    if (CSLCount(papszToken) == 2)
+	    if (CSLCount(papszToken) == 2 &&
+                strchr("-.0123456789", papszToken[0][0]) != NULL)
 	    {
 		UpdateBounds( m_poMIFFile->GetXTrans(atof(papszToken[0])),
 			      m_poMIFFile->GetYTrans(atof(papszToken[1])));
@@ -715,7 +741,8 @@ void MIFFile::PreParseFile()
 	}
 	else if (bText == TRUE)
 	{
-	   if (CSLCount(papszToken) == 4)
+	   if (CSLCount(papszToken) == 4 &&
+                strchr("-.0123456789", papszToken[0][0]) != NULL)
 	    {
 		UpdateBounds(m_poMIFFile->GetXTrans(atof(papszToken[0])),
 			     m_poMIFFile->GetYTrans(atof(papszToken[1])));
@@ -750,10 +777,7 @@ void MIFFile::PreParseFile()
 /**********************************************************************
  *                   MIFFile::WriteMIFHeader()
  *
- * Generate the .TAB file using mainly the attribute fields definition.
- *
- * This private method should be used only during the Close() call with
- * write access mode.
+ * Generate the .MIF header.
  *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
@@ -815,9 +839,17 @@ int MIFFile::WriteMIFHeader()
     if (bFound)
         m_poMIFFile->WriteLine("\n");
 
-    if (m_pszCoordSys)
-      m_poMIFFile->WriteLine("CoordSys %s\n",m_pszCoordSys);
-
+    if (m_pszCoordSys && m_bBoundsSet)
+    {
+        m_poMIFFile->WriteLine("CoordSys %s "
+                               "Bounds (%.16g, %.16g) (%.16g, %.16g)\n",
+                               m_pszCoordSys, 
+                               m_dXMin, m_dYMin, m_dXMax, m_dYMax);
+    }
+    else if (m_pszCoordSys)
+    {
+        m_poMIFFile->WriteLine("CoordSys %s\n",m_pszCoordSys);
+    }
     
     /*-----------------------------------------------------------------
      * Column definitions
@@ -938,6 +970,8 @@ int MIFFile::Close()
     m_nCurFeatureId = 0;
     m_nFeatureCount =0;
    
+    m_bBoundsSet = FALSE;
+
     return 0;
 }
 
@@ -1070,6 +1104,9 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
 	    if (CSLCount(papszToken) !=3)
             {
                 CSLDestroy(papszToken);
+                CPLError(CE_Failure, CPLE_NotSupported,
+                         "GetFeatureRef() failed: invalid point line: '%s'",
+                         pszLine);
                 return NULL;
             }
 	    
@@ -1095,12 +1132,22 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
 			break;
 		      default:
                         CSLDestroy(papszToken);
+                        CPLError(CE_Failure, CPLE_NotSupported,
+                                 "GetFeatureRef() failed: invalid symbol "
+                                 "line: '%s'", pszLine);
 			return NULL;
 			break;
 		    }
-		}
+
+                }
 	    }
             CSLDestroy(papszToken);
+
+            if (m_poCurFeature == NULL)
+            {
+                // No symbol clause... default to TABPoint
+                m_poCurFeature = new TABPoint(m_poDefn);
+            }
 	}
 	else if (EQUALN(pszLine,"LINE",4) ||
 		 EQUALN(pszLine,"PLINE",5))
@@ -1139,11 +1186,15 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
 	    return NULL;
 	}
     }
+
+    CPLAssert(m_poCurFeature);
+    if (m_poCurFeature == NULL)
+        return NULL;
+
    /*-----------------------------------------------------------------
      * Read fields from the .DAT file
      * GetRecordBlock() has already been called above...
      *----------------------------------------------------------------*/
-    
     if (m_poCurFeature->ReadRecordFromMIDFile(m_poMIDFile) != 0)
     {
 	CPLError(CE_Failure, CPLE_NotSupported,
@@ -1640,9 +1691,14 @@ int MIFFile::SetBounds(double dXMin, double dYMin,
     {
         CPLError(CE_Failure, CPLE_NotSupported,
                  "SetBounds() can be used only with Write access.");
+        return -1;
     }
 
-    /* We don't need the Bounds for the Mid/Mif write. */
+    m_dXMin = dXMin;
+    m_dXMax = dXMax;
+    m_dYMin = dYMin;
+    m_dYMax = dYMax;
+    m_bBoundsSet = TRUE;
     
     return 0; 
 }
@@ -1690,8 +1746,10 @@ int MIFFile::GetBounds(double &dXMin, double &dYMin,
     {
 	return -1;
     }
-    else
-      PreParseFile();
+    else if (m_bBoundsSet == FALSE)
+    {
+        PreParseFile();
+    }
 
     if (m_bBoundsSet == FALSE)
     {

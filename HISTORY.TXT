@@ -24,6 +24,10 @@ CHANGES - Current Version:
 
  - Implement DeleteDataSource() method on the driver object. NFW
 
+ - mitab_spatialref.cpp, mitab_coodsys.cpp: Fixed up regional mercator logic.
+   It was screwing up transverse mercator with non-zero latitude when writing
+   to tab, and wasn't being written properly to .mif. NFW
+
 
 Version 1.2.3 - (2002-10-15)
 ----------------------------
@@ -504,5 +508,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.107 2003-03-20 16:08:00 warmerda Exp $
+$Id: HISTORY.TXT,v 1.108 2003-03-21 14:20:42 warmerda Exp $
 ------------

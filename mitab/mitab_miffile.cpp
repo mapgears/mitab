@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.20 2000-11-14 06:15:37 daniel Exp $
+ * $Id: mitab_miffile.cpp,v 1.21 2000-12-15 05:38:38 daniel Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.20  2000-11-14 06:15:37  daniel
+ * Revision 1.21  2000-12-15 05:38:38  daniel
+ * Produce Warning instead of an error when nWidth>254 in AddFieldNative()
+ *
+ * Revision 1.20  2000/11/14 06:15:37  daniel
  * Handle '\t' as spaces in parsing, and fixed GotoFeature() to avoid calling
  * ResetReading() when reading forward.
  *
@@ -177,6 +180,8 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
     char *pszTmpFname = NULL;
     int nFnameLen = 0;
     
+    CPLErrorReset();
+
     if (m_poMIDFile)
     {
         CPLError(CE_Failure, CPLE_FileIO,
@@ -1516,10 +1521,10 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
      *----------------------------------------------------------------*/
     if (nWidth > 254)
     {
-        CPLError(CE_Failure, CPLE_IllegalArg,
+        CPLError(CE_Warning, CPLE_IllegalArg,
                  "Invalid size (%d) for field '%s'.  "
                  "Size must be 254 or less.", nWidth, pszName);
-        return -1;
+        nWidth = 254;
     }
 
     /*-----------------------------------------------------------------

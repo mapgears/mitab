@@ -107,8 +107,7 @@ There are 2 interfaces to access the library:
 1- The C API.  The C API is a simplified interface which allows you to
    build simple applications quickly but may not give you access to every
    property of every object type.
-   See the C API documentation at:
-     http://pages.infinit.net/danmo/e00/mitab-docs/mitab_capi.cpp.html
+   See the C API documentation on http://mitab.maptools.org/
    There are also interface definition files for various environments
    in the contrib directory (mainly VB, Pascal and MapBasic... thanks to
    Bo Thomsen)
@@ -222,5 +221,5 @@ the "\n" sequence in char attribute field values.
 
 
 ------------
-$Id: README.TXT,v 1.8 2003-07-24 05:34:59 dmorissette Exp $
+$Id: README.TXT,v 1.9 2004-06-04 19:07:16 dmorissette Exp $
 ------------

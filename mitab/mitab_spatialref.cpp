@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.23 2000-10-16 18:01:20 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.24 2000-10-16 21:44:50 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.23  2000-10-16 18:01:20  warmerda
+ * Revision 1.24  2000-10-16 21:44:50  warmerda
+ * added nonearth support
+ *
+ * Revision 1.23  2000/10/16 18:01:20  warmerda
  * added check for NULL on passed in spatial ref
  *
  * Revision 1.22  2000/10/02 14:46:36  daniel
@@ -405,7 +408,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
          * we might want to include the units, but not for now.
          *-------------------------------------------------------------*/
       case 0:
-        return m_poSpatialRef;
+        m_poSpatialRef->SetLocalCS( "Nonearth" );
         break;
 
         /*--------------------------------------------------------------
@@ -688,6 +691,13 @@ OGRSpatialReference *TABFile::GetSpatialRef()
     }
 
     /*-----------------------------------------------------------------
+     * Local (nonearth) coordinate systems have no Geographic relationship
+     * so we just return from here. 
+     *----------------------------------------------------------------*/
+    if( sTABProj.nProjId == 0 )
+        return m_poSpatialRef;
+
+    /*-----------------------------------------------------------------
      * Set the datum.  We are only given the X, Y and Z shift for
      * the datum, so for now we just synthesize a name from this.
      * It would be better if we could lookup a name based on the shift.
@@ -888,10 +898,17 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     const char *pszProjection = poSpatialRef->GetAttrValue("PROJECTION");
     double	*parms = sTABProj.adProjParams;
 
-    if( pszProjection == NULL )
+    if( pszProjection == NULL && poSpatialRef->GetAttrNode("LOCAL_CS") != NULL)
+    {
+        /* nonearth */
+        sTABProj.nProjId = 0;
+    }
+
+    else if( pszProjection == NULL )
     {
         sTABProj.nProjId = 1;
     }
+
     else if( EQUAL(pszProjection,SRS_PT_ALBERS_CONIC_EQUAL_AREA) )
     {
         sTABProj.nProjId = 9;

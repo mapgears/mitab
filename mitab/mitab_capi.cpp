@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.8 2000-10-03 20:43:36 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.9 2000-10-16 21:44:50 warmerda Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.8  2000-10-03 20:43:36  daniel
+ * Revision 1.9  2000-10-16 21:44:50  warmerda
+ * added nonearth support
+ *
+ * Revision 1.8  2000/10/03 20:43:36  daniel
  * Added support for writing arcs,ellipses and rectangles in C API
  *
  * Revision 1.7  2000/04/21 13:37:59  daniel
@@ -253,8 +256,11 @@ mitab_c_create( const char * filename,
         OGRSpatialReference	*poSRS;
 
         poSRS = MITABCoordSys2SpatialRef( mif_projection );
-        poFile->SetSpatialRef( poSRS );
-        delete poSRS;
+        if( poSRS != NULL )
+        {
+            poFile->SetSpatialRef( poSRS );
+            delete poSRS;
+        }
     }
 
     return (mitab_handle) poFile;

@@ -49,6 +49,12 @@ CHANGES - Current Version:
 - Fixed reading of MAPCoordBlocks to accept text strings that overlap on
   2 data blocks.
 
+- Added graceful recovery from NULL OGRSpatialReference pointers in 
+  mitab_capi.cpp, and mitab_spatialref.cpp (NFW).
+
+- Added what I hope to be working support for NonEarth translation 
+  (into LOCAL_CS in WKT format) (NFW).
+
 
 Version 1.0.2 - (2000-10-03)
 ----------------------------
@@ -203,5 +209,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.28 2000-10-10 19:18:44 daniel Exp $
+$Id: HISTORY.TXT,v 1.29 2000-10-16 21:44:50 warmerda Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.8 2001-01-23 21:23:42 daniel Exp $
+ * $Id: tab2tab.cpp,v 1.9 2001-03-09 03:53:30 daniel Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -8,7 +8,7 @@
  * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
- * Copyright (c) 1999, 2000, Daniel Morissette
+ * Copyright (c) 1999-2001, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.8  2001-01-23 21:23:42  daniel
+ * Revision 1.9  2001-03-09 03:53:30  daniel
+ * Added missing delete poDstFile
+ *
+ * Revision 1.8  2001/01/23 21:23:42  daniel
  * Added projection bounds lookup table, called from TABFile::SetProjInfo()
  *
  * Revision 1.7  2000/10/03 21:46:08  daniel
@@ -216,6 +219,7 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
      * Cleanup and exit.
      *--------------------------------------------------------------------*/
     poDstFile->Close();
+    delete poDstFile;
 
     poSrcFile->Close();
     delete poSrcFile;

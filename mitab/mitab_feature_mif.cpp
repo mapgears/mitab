@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.12 2000-02-28 16:56:32 daniel Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.13 2000-03-27 03:33:45 daniel Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.12  2000-02-28 16:56:32  daniel
+ * Revision 1.13  2000-03-27 03:33:45  daniel
+ * Treat SYMBOL line as optional when reading TABPoint
+ *
+ * Revision 1.12  2000/02/28 16:56:32  daniel
  * Support pen width in points (width values 11 to 2047)
  *
  * Revision 1.11  2000/01/15 22:30:44  daniel
@@ -238,20 +241,29 @@ int TABPoint::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     dfY = fp->GetYTrans(atof(papszToken[2]));
 
     CSLDestroy(papszToken);
+    papszToken = NULL;
 
-    papszToken = CSLTokenizeStringComplex(fp->GetLastLine()," ,()",
-					  TRUE,FALSE);
-    if (CSLCount(papszToken) !=4)
+    // Read optional SYMBOL line...
+    pszLine = fp->GetLastLine();
+    papszToken = CSLTokenizeStringComplex(pszLine," ,()",
+                                          TRUE,FALSE);
+    if (CSLCount(papszToken) == 4 && EQUAL(papszToken[0], "SYMBOL") )
     {
-	CSLDestroy(papszToken);
-	return -1;
+        SetSymbolNo(atoi(papszToken[1]));
+        SetSymbolColor(atoi(papszToken[2]));
+        SetSymbolSize(atoi(papszToken[3]));
     }
 
-    SetSymbolNo(atoi(papszToken[1]));
-    SetSymbolColor(atoi(papszToken[2]));
-    SetSymbolSize(atoi(papszToken[3]));
+    CSLDestroy(papszToken); 
+    papszToken = NULL;
 
-    CSLDestroy(papszToken);
+    // scan until we reach 1st line of next feature
+    // Since SYMBOL is optional, we have to test IsValidFeature() on that
+    // line as well.
+    while (pszLine && fp->IsValidFeature(pszLine) == FALSE)
+    {
+        pszLine = fp->GetLine();
+    }
     
     poGeometry = new OGRPoint(dfX, dfY);
     
@@ -259,11 +271,6 @@ int TABPoint::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 
     SetMBR(dfX, dfY, dfX, dfY);
     
-    /* Go to the first line of the next feature */
-
-    while (((pszLine = fp->GetLine()) != NULL) && 
-	   fp->IsValidFeature(pszLine) == FALSE)
-      ;
 
     return 0; 
 }
@@ -368,7 +375,7 @@ int TABFontPoint::WriteGeometryToMIFFile(MIDDATAFile *fp)
     else
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
-                 "TABPoint: Missing or Invalid Geometry!");
+                 "TABFontPoint: Missing or Invalid Geometry!");
         return -1;
     }
 
@@ -455,7 +462,7 @@ int TABCustomPoint::WriteGeometryToMIFFile(MIDDATAFile *fp)
     else
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
-                 "TABPoint: Missing or Invalid Geometry!");
+                 "TABCustomPoint: Missing or Invalid Geometry!");
         return -1;
     }
  

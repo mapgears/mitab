@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.6 2000-04-21 12:53:07 daniel Exp $
+ * $Id: mitab_capi.cpp,v 1.7 2000-04-21 13:37:59 daniel Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.6  2000-04-21 12:53:07  daniel
+ * Revision 1.7  2000-04-21 13:37:59  daniel
+ * Added doxygen file definition block
+ *
+ * Revision 1.6  2000/04/21 12:53:07  daniel
  * Added funcs to fetch feature coordinates and attributes + written docs
  *
  * Revision 1.5  2000/02/28 16:46:37  daniel
@@ -50,6 +53,23 @@
  *
  * Revision 1.1  2000/01/14 14:53:59  warmerda
  * New
+ *
+ */
+
+
+/** \file mitab_capi.cpp
+ *
+ *  MITAB C API.
+ *
+ * The C wrapper functions contained in mitab_capi.cpp provide a much simpler
+ * interface than the OGR-based C++ classes to the MITAB library to read and
+ * write .TAB and .MIF files.
+ *
+ * To use the C API, simply #include "mitab_capi.h" and use the functions 
+ * defined in mitab_capi.cpp.  
+ *
+ * See also mitabc_test.cpp which for examples of use of the C API.
+ *
  *
  */
 

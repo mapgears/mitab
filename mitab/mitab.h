@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.1 1999-07-12 04:18:23 daniel Exp $
+ * $Id: mitab.h,v 1.2 1999-09-01 17:46:49 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.1  1999-07-12 04:18:23  daniel
+ * Revision 1.2  1999-09-01 17:46:49  daniel
+ * Added GetNativeFieldType() and GetFeatureDefn() to TABFeature
+ *
+ * Revision 1.1  1999/07/12 04:18:23  daniel
  * Initial checkin
  *
  **********************************************************************/
@@ -79,6 +82,9 @@ class TABFile
 
     int         GetNextFeatureId(int nPrevId);
     TABFeature *GetFeatureRef(int nFeatureId);
+    OGRFeatureDefn *GetFeatureDefn();
+
+    TABFieldType GetNativeFieldType(int nFieldId);
 
     OGRSpatialReference *GetSpatialRef();
 
@@ -130,6 +136,7 @@ typedef enum
     TABFCRectangle,
     TABFCEllipse
 } TABFeatureClass;
+
 
 /*=====================================================================
                         Feature Classes
@@ -197,6 +204,9 @@ class TABPoint: public TABFeature
     virtual ~TABPoint();
 
     virtual TABFeatureClass GetFeatureClass() { return TABFCPoint; };
+
+    double	GetX();
+    double	GetY();
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
     virtual void DumpMIF(FILE *fpOut = NULL);

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.30 2000-02-05 19:27:31 daniel Exp $
+ * $Id: mitab.h,v 1.31 2000-02-18 20:39:46 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.30  2000-02-05 19:27:31  daniel
+ * Revision 1.31  2000-02-18 20:39:46  daniel
+ * Added TAB_WarningInvalidFieldName definition
+ *
+ * Revision 1.30  2000/02/05 19:27:31  daniel
  * Added private methods to TABRegion for better handling of rings
  *
  * Revision 1.29  2000/01/26 18:17:35  warmerda
@@ -584,6 +587,7 @@ class MIFFile: public IMapInfoFile
  * Define some error codes specific to this lib.
  *--------------------------------------------------------------------*/
 #define TAB_WarningFeatureTypeNotSupported     501
+#define TAB_WarningInvalidFieldName            502
 
 /*---------------------------------------------------------------------
  * Codes for the known MapInfo Geometry types

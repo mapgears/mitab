@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.36 2000-09-07 23:32:13 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.37 2000-09-20 18:32:02 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.36  2000-09-07 23:32:13  daniel
+ * Revision 1.37  2000-09-20 18:32:02  daniel
+ * Accept "FORMAT: DBF" in version 100 .tab headers
+ *
+ * Revision 1.36  2000/09/07 23:32:13  daniel
  * Added RecordDeletedFlag to TABFeature with get/set methods
  *
  * Revision 1.35  2000/07/04 01:50:02  warmerda
@@ -558,7 +561,7 @@ int TABFile::ParseTABFileFirstPass(GBool bTestOpenNoError)
             bInsideTableDef = TRUE;
         }
         else if (bInsideTableDef && !bFoundTableFields &&
-                 EQUAL(papszTok[0], "Type") )
+                 (EQUAL(papszTok[0], "Type") || EQUAL(papszTok[0],"FORMAT:")) )
         {
             if (EQUAL(papszTok[1], "NATIVE"))
                 m_eTableType = TABTableNative;

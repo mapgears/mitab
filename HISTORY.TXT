@@ -46,6 +46,10 @@ ToDo - Open Questions:
 CHANGES - Current Version:
 --------------------------
 
+
+Version 1.0.3 - (2000-10-19)
+----------------------------
+
 - Fixed reading of MAPCoordBlocks to accept text strings that overlap on
   2 data blocks.
 
@@ -214,5 +218,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.31 2000-10-18 03:59:15 daniel Exp $
+$Id: HISTORY.TXT,v 1.32 2000-10-19 20:06:25 daniel Exp $
 ------------

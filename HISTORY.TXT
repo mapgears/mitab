@@ -27,6 +27,9 @@ CHANGES - Current Version:
   the file is closed.  Coordinates outside of the +/-1e9 bounds limits
   seemed to confuse MapInfo.
 
+- Disabled the warning (ERROR 503) when coordinates outside of the +/-1e9
+  integer bounds in SetCoordFilter().
+
 - Modified the conversion of double to integer coordinates to fix an old
   problem where coordinates written by MITAB would be a little bit off 
   sometimes compared with the same values written by MapInfo.
@@ -399,5 +402,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.81 2002-04-24 18:02:57 daniel Exp $
+$Id: HISTORY.TXT,v 1.82 2002-04-25 16:07:02 julien Exp $
 ------------

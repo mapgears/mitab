@@ -33,6 +33,9 @@ Version 1.3.0 (CVS)
 
  - Flush out .mif header on Close() if no features written. NFW
 
+ - Removed obsolete mif2mif.cpp mif2tab.cpp mif2tabbatch.cpp.  They are
+   all replaced by the more up to date tab2tab.cpp
+
 
 Version 1.2.4 (2003-07-23)
 --------------------------
@@ -558,5 +561,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.115 2003-12-19 08:30:10 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.116 2004-02-16 14:47:38 dmorissette Exp $
 ------------

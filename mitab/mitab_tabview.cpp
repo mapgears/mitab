@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabview.cpp,v 1.2 1999-12-14 04:04:10 daniel Exp $
+ * $Id: mitab_tabview.cpp,v 1.3 1999-12-14 05:53:00 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabview.cpp,v $
- * Revision 1.2  1999-12-14 04:04:10  daniel
+ * Revision 1.3  1999-12-14 05:53:00  daniel
+ * Fixed compile warnings
+ *
+ * Revision 1.2  1999/12/14 04:04:10  daniel
  * Added bforceFlags to GetBounds() and GetFeatureCountByType()
  *
  * Revision 1.1  1999/12/14 02:10:32  daniel
@@ -319,10 +322,9 @@ int TABView::Open(const char *pszFname, const char *pszAccess,
 int TABView::ParseTABFile(const char *pszDatasetPath, 
                           GBool bTestOpenNoError /*=FALSE*/)
 {
-    int         iLine, numLines, numTok, nStatus;
+    int         iLine, numLines;
     char        **papszTok=NULL;
     GBool       bInsideTableDef = FALSE;
-    OGRFieldDefn *poFieldDefn;
 
     if (m_eAccessMode != TABRead)
     {

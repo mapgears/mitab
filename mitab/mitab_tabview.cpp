@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabview.cpp,v 1.10 2002-01-10 04:52:58 daniel Exp $
+ * $Id: mitab_tabview.cpp,v 1.11 2002-01-10 05:13:22 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabview.cpp,v $
- * Revision 1.10  2002-01-10 04:52:58  daniel
+ * Revision 1.11  2002-01-10 05:13:22  daniel
+ * Prevent crash if .IND file is deleted (but 703)
+ *
+ * Revision 1.10  2002/01/10 04:52:58  daniel
  * Support 'select * ...' syntax + 'open table..." directives with/without .tab
  *
  * Revision 1.9  2001/06/27 19:52:26  warmerda
@@ -1313,6 +1316,14 @@ int  TABRelation::Init(const char *pszViewName,
         m_nRelFieldNo = poRelDefn->GetFieldIndex(pszRelFieldName);
         m_nRelFieldIndexNo = poRelTable->GetFieldIndexNumber(m_nRelFieldNo);
         m_poRelINDFileRef = poRelTable->GetINDFileRef();
+
+        if (m_nRelFieldIndexNo >= 0 && m_poRelINDFileRef == NULL)
+        {
+            CPLError(CE_Failure, CPLE_FileIO,
+                     "Field %s is indexed but the .IND file is missing.",
+                     pszRelFieldName);
+            return -1;
+        }
     }
 
     /*-----------------------------------------------------------------

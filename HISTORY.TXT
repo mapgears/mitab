@@ -5,6 +5,12 @@ MITAB Library - Revision History
 CHANGES - Current Version:
 --------------------------
 
+- Treat Region as MultiPolygon in mitab_c_set_point() to support Regions
+  with multiple islands and holes. Passing a part number <= 0 (second 
+  parameter in mitab_c_set_point()) will result in adding a new island 
+  (i.e. polygon).  By default, parts > 1 are treated as holes in the
+  last island (polygon) that was created.
+
 
 
 Version 1.2.1 - (2002-05-08)
@@ -21,11 +27,6 @@ Version 1.2.1 - (2002-05-08)
 - mitab_capi.h: Use stdcall by default for all public mitab.dll functions
   instead of cdecl.  Should still work fine for C/C++ users, and will
   allow VB/Delphi users to use the same DLL with Bo T.'s interface files.
-
-- Treat Region as MultiPolygon in mitab_c_set_point() to support Region with 
-  many polygon and holes in each polygon. A part (Second parameter in 
-  mitab_c_set_point().) equal or lower to 0 must be past to add a new polygon.
-  Note that each part will always be add to the last polygon.
 
 
 Version 1.2.0 - (2002-05-03)
@@ -433,5 +434,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.88 2002-05-16 14:19:43 julien Exp $
+$Id: HISTORY.TXT,v 1.89 2002-05-21 14:52:33 daniel Exp $
 ------------

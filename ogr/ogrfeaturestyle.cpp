@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrfeaturestyle.cpp,v 1.9 2002/06/25 14:47:31 warmerda Exp $
+ * $Id: ogrfeaturestyle.cpp,v 1.13 2004/12/02 18:24:12 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Feature Representation string API
@@ -28,6 +28,19 @@
  ******************************************************************************
  *
  * $Log: ogrfeaturestyle.cpp,v $
+ * Revision 1.13  2004/12/02 18:24:12  fwarmerdam
+ * added support for fontname on symbol, per bug 684
+ *
+ * Revision 1.12  2004/05/11 00:39:43  warmerda
+ * make asStyle*[] using methods non-inline
+ *
+ * Revision 1.11  2004/02/20 22:41:14  warmerda
+ * Fixed GetRGBFromString() to use 255 as the default alpha value instead
+ * of zero.  Fixes: http://bugzilla.remotesensing.org/show_bug.cgi?id=306
+ *
+ * Revision 1.10  2003/09/29 15:12:20  warmerda
+ * Fixed memory leaks in the pszValue's of the m_pasStyleValue lists.
+ *
  * Revision 1.9  2002/06/25 14:47:31  warmerda
  * CPL_DLL export style api
  *
@@ -63,7 +76,7 @@
 #include "ogr_feature.h"
 #include "ogr_featurestyle.h"
 
-CPL_CVSID("$Id: ogrfeaturestyle.cpp,v 1.9 2002/06/25 14:47:31 warmerda Exp $");
+CPL_CVSID("$Id: ogrfeaturestyle.cpp,v 1.13 2004/12/02 18:24:12 fwarmerdam Exp $");
 
 CPL_C_START
 void OGRFeatureStylePuller() {}
@@ -94,17 +107,20 @@ OGRStyleParamId asStyleBrush[] = {{OGRSTBrushFColor,"fc",FALSE,OGRSTypeString},
                                 {OGRSTBrushPriority,"l",FALSE,OGRSTypeInteger 
                                 }};
 
-OGRStyleParamId asStyleSymbol[] = {{OGRSTSymbolId,"id",FALSE,OGRSTypeString},
-                                   {OGRSTSymbolAngle,"a",FALSE,OGRSTypeDouble},
-                                   {OGRSTSymbolColor,"c",FALSE,OGRSTypeString},
-                                   {OGRSTSymbolSize,"s",TRUE,OGRSTypeDouble},
-                                   {OGRSTSymbolDx,"dx",TRUE,OGRSTypeDouble},
-                                   {OGRSTSymbolDy,"dy",TRUE,OGRSTypeDouble},
-                                   {OGRSTSymbolStep,"ds",TRUE,OGRSTypeDouble},
-                                   {OGRSTSymbolPerp,"dp",TRUE,OGRSTypeDouble},
-                                   {OGRSTSymbolOffset,"di",TRUE,OGRSTypeDouble},
-                                   {OGRSTSymbolPriority,"l",FALSE,
-                                    OGRSTypeInteger }};
+OGRStyleParamId asStyleSymbol[] = 
+{
+    {OGRSTSymbolId,"id",FALSE,OGRSTypeString},
+    {OGRSTSymbolAngle,"a",FALSE,OGRSTypeDouble},
+    {OGRSTSymbolColor,"c",FALSE,OGRSTypeString},
+    {OGRSTSymbolSize,"s",TRUE,OGRSTypeDouble},
+    {OGRSTSymbolDx,"dx",TRUE,OGRSTypeDouble},
+    {OGRSTSymbolDy,"dy",TRUE,OGRSTypeDouble},
+    {OGRSTSymbolStep,"ds",TRUE,OGRSTypeDouble},
+    {OGRSTSymbolPerp,"dp",TRUE,OGRSTypeDouble},
+    {OGRSTSymbolOffset,"di",TRUE,OGRSTypeDouble},
+    {OGRSTSymbolPriority,"l",FALSE,OGRSTypeInteger},
+    {OGRSTSymbolFontName,"f",FALSE,OGRSTypeString}
+};
 
 OGRStyleParamId asStyleLabel[] = {{OGRSTLabelFontName,"f",FALSE,OGRSTypeString},
                                   {OGRSTLabelSize,"s",TRUE,OGRSTypeDouble},
@@ -430,21 +446,24 @@ OGRStyleTool *OGRStyleMgr::CreateStyleToolFromStyleString(const char *
                                            CSLT_HONOURSTRINGS
                                            | CSLT_PRESERVEQUOTES
                                            | CSLT_PRESERVEESCAPES );
+    OGRStyleTool   *poStyleTool;
         
     if (CSLCount(papszToken) <2)
-      return NULL;
-    
-    if (EQUAL(papszToken[0],"PEN"))
-      return new OGRStylePen();
+        poStyleTool = NULL;
+    else if (EQUAL(papszToken[0],"PEN"))
+        poStyleTool = new OGRStylePen();
     else if (EQUAL(papszToken[0],"BRUSH"))
-      return new OGRStyleBrush();
+        poStyleTool = new OGRStyleBrush();
     else if (EQUAL(papszToken[0],"SYMBOL"))
-      return new OGRStyleSymbol();
+        poStyleTool = new OGRStyleSymbol();
     else if (EQUAL(papszToken[0],"LABEL"))
-      return new OGRStyleLabel();
+        poStyleTool = new OGRStyleLabel();
     else 
-      return NULL;
+        poStyleTool = NULL;
 
+    CSLDestroy( papszToken );
+
+    return poStyleTool;
 }
 
 /* ======================================================================== */
@@ -824,7 +843,7 @@ GBool OGRStyleTool::GetRGBFromString(const char *pszColor, int &nRed,
 {
    int nCount;
    
-   nTransparance = 0;
+   nTransparance = 255;
 
    nCount  = sscanf(pszColor,"#%2x%2x%2x%2x",&nRed,&nGreen,&nBlue, 
                     &nTransparance);
@@ -1392,8 +1411,90 @@ OGRStylePen::OGRStylePen() : OGRStyleTool(OGRSTCPen)
 /****************************************************************************/
 OGRStylePen::~OGRStylePen()
 {
-    CPLFree(m_pasStyleValue);
+    for (int i = 0; i < OGRSTPenLast; i++)
+    {
+        if (m_pasStyleValue[i].pszValue != NULL)
+        {
+            CPLFree(m_pasStyleValue[i].pszValue);
+            m_pasStyleValue[i].pszValue = NULL;
+        }
+    }
 
+    CPLFree(m_pasStyleValue);
+}
+
+/************************************************************************/
+/*                         OGRStylePen::Parse()                         */
+/************************************************************************/
+GBool OGRStylePen::Parse()
+
+{ 
+    return OGRStyleTool::Parse(asStylePen,m_pasStyleValue,(int)OGRSTPenLast);
+}
+
+/************************************************************************/
+/*                            GetParamStr()                             */
+/************************************************************************/
+const char *OGRStylePen::GetParamStr(OGRSTPenParam eParam, GBool &bValueIsNull)
+{   
+    return OGRStyleTool::GetParamStr(asStylePen[eParam],
+                                     m_pasStyleValue[eParam],
+                                     bValueIsNull);
+}
+
+/************************************************************************/
+/*                            GetParamNum()                             */
+/************************************************************************/
+int OGRStylePen::GetParamNum(OGRSTPenParam eParam,GBool &bValueIsNull)
+{  
+    return OGRStyleTool::GetParamNum(asStylePen[eParam],
+                                     m_pasStyleValue[eParam],bValueIsNull);
+}
+
+/************************************************************************/
+/*                            GetParamDbl()                             */
+/************************************************************************/
+double OGRStylePen::GetParamDbl(OGRSTPenParam eParam,GBool &bValueIsNull)
+{  
+    return OGRStyleTool::GetParamDbl(asStylePen[eParam],
+                                     m_pasStyleValue[eParam],bValueIsNull);
+}
+
+/************************************************************************/
+/*                            SetParamStr()                             */
+/************************************************************************/
+
+void OGRStylePen::SetParamStr(OGRSTPenParam eParam, const char *pszParamString)
+{   
+    OGRStyleTool::SetParamStr(asStylePen[eParam],m_pasStyleValue[eParam],
+                              pszParamString);
+}
+
+/************************************************************************/
+/*                            SetParamNum()                             */
+/************************************************************************/
+void OGRStylePen::SetParamNum(OGRSTPenParam eParam, int nParam)
+{  
+    OGRStyleTool::SetParamNum(asStylePen[eParam],
+                              m_pasStyleValue[eParam],nParam);
+}
+    
+/************************************************************************/
+/*                            SetParamDbl()                             */
+/************************************************************************/
+void OGRStylePen::SetParamDbl(OGRSTPenParam eParam, double dfParam)
+{   
+    OGRStyleTool::SetParamDbl(asStylePen[eParam],
+                              m_pasStyleValue[eParam],dfParam);
+}
+
+/************************************************************************/
+/*                           GetStyleString()                           */
+/************************************************************************/
+const char *OGRStylePen::GetStyleString()
+{   
+    return OGRStyleTool::GetStyleString(asStylePen,m_pasStyleValue,
+                                        (int)OGRSTPenLast);
 }
 
 /****************************************************************************/
@@ -1412,13 +1513,93 @@ OGRStyleBrush::OGRStyleBrush() : OGRStyleTool(OGRSTCBrush)
 /****************************************************************************/
 OGRStyleBrush::~OGRStyleBrush() 
 {
-    CPLFree(m_pasStyleValue);
+    for (int i = 0; i < OGRSTBrushLast; i++)
+    {
+        if (m_pasStyleValue[i].pszValue != NULL)
+        {
+            CPLFree(m_pasStyleValue[i].pszValue);
+            m_pasStyleValue[i].pszValue = NULL;
+        }
+    }
 
+    CPLFree(m_pasStyleValue);
+}
+
+/************************************************************************/
+/*                               Parse()                                */
+/************************************************************************/
+GBool OGRStyleBrush::Parse()
+{ 
+    return OGRStyleTool::Parse(asStyleBrush,m_pasStyleValue,
+                               (int)OGRSTBrushLast);
+}
+
+/************************************************************************/
+/*                            GetParamStr()                             */
+/************************************************************************/
+const char *OGRStyleBrush::GetParamStr(OGRSTBrushParam eParam, GBool &bValueIsNull)
+{  
+    return OGRStyleTool::GetParamStr(asStyleBrush[eParam],
+                                     m_pasStyleValue[eParam],
+                                     bValueIsNull);
+}
+
+/************************************************************************/
+/*                            GetParamNum()                             */
+/************************************************************************/
+int OGRStyleBrush::GetParamNum(OGRSTBrushParam eParam,GBool &bValueIsNull)
+{  
+    return OGRStyleTool::GetParamNum(asStyleBrush[eParam],
+                                     m_pasStyleValue[eParam],bValueIsNull);
+}
+
+/************************************************************************/
+/*                            GetParamDbl()                             */
+/************************************************************************/
+double OGRStyleBrush::GetParamDbl(OGRSTBrushParam eParam,GBool &bValueIsNull)
+{  
+    return OGRStyleTool::GetParamDbl(asStyleBrush[eParam],
+                                     m_pasStyleValue[eParam],bValueIsNull);
+}
+
+/************************************************************************/
+/*                            SetParamStr()                             */
+/************************************************************************/
+void OGRStyleBrush::SetParamStr(OGRSTBrushParam eParam, const char *pszParamString)
+{   
+    OGRStyleTool::SetParamStr(asStyleBrush[eParam],m_pasStyleValue[eParam],
+                              pszParamString);
+}
+
+/************************************************************************/
+/*                            SetParamNum()                             */
+/************************************************************************/
+void OGRStyleBrush::SetParamNum(OGRSTBrushParam eParam, int nParam)
+{  
+    OGRStyleTool::SetParamNum(asStyleBrush[eParam],
+                              m_pasStyleValue[eParam],nParam);
+}
+    
+/************************************************************************/
+/*                            SetParamDbl()                             */
+/************************************************************************/
+void OGRStyleBrush::SetParamDbl(OGRSTBrushParam eParam, double dfParam)
+{   
+    OGRStyleTool::SetParamDbl(asStyleBrush[eParam],
+                              m_pasStyleValue[eParam],dfParam);
+}
+
+/************************************************************************/
+/*                           GetStyleString()                           */
+/************************************************************************/
+const char *OGRStyleBrush::GetStyleString()
+{   
+    return OGRStyleTool::GetStyleString(asStyleBrush,m_pasStyleValue,
+                                        (int)OGRSTBrushLast);
 }
 
 /****************************************************************************/
-/*                      OGRStyleSymbol::OGRStyleSymbol()                      */
-/*                                                                          */
+/*                      OGRStyleSymbol::OGRStyleSymbol()                    */
 /****************************************************************************/
 OGRStyleSymbol::OGRStyleSymbol() : OGRStyleTool(OGRSTCSymbol)
 {
@@ -1432,9 +1613,82 @@ OGRStyleSymbol::OGRStyleSymbol() : OGRStyleTool(OGRSTCSymbol)
 /****************************************************************************/
 OGRStyleSymbol::~OGRStyleSymbol()
 {
-    CPLFree(m_pasStyleValue);
+    for (int i = 0; i < OGRSTSymbolLast; i++)
+    {
+        if (m_pasStyleValue[i].pszValue != NULL)
+        {
+            CPLFree(m_pasStyleValue[i].pszValue);
+            m_pasStyleValue[i].pszValue = NULL;
+        }
+    }
 
+    CPLFree(m_pasStyleValue);
 }
+
+/************************************************************************/
+/*                               Parse()                                */
+/************************************************************************/
+GBool OGRStyleSymbol::Parse()
+{ 
+    return OGRStyleTool::Parse(asStyleSymbol,m_pasStyleValue,
+                               (int)OGRSTSymbolLast);
+}
+
+/************************************************************************/
+/*                            GetParamStr()                             */
+/************************************************************************/
+const char *OGRStyleSymbol::GetParamStr(OGRSTSymbolParam eParam, GBool &bValueIsNull)
+{   return OGRStyleTool::GetParamStr(asStyleSymbol[eParam],
+                                     m_pasStyleValue[eParam],
+                                     bValueIsNull);
+}
+/************************************************************************/
+/*                            GetParamNum()                             */
+/************************************************************************/
+int OGRStyleSymbol::GetParamNum(OGRSTSymbolParam eParam,GBool &bValueIsNull)
+{  return OGRStyleTool::GetParamNum(asStyleSymbol[eParam],
+                                    m_pasStyleValue[eParam],bValueIsNull);
+}
+/************************************************************************/
+/*                            GetParamDbl()                             */
+/************************************************************************/
+double OGRStyleSymbol::GetParamDbl(OGRSTSymbolParam eParam,GBool &bValueIsNull)
+{  return OGRStyleTool::GetParamDbl(asStyleSymbol[eParam],
+                                    m_pasStyleValue[eParam],bValueIsNull);
+}
+
+/************************************************************************/
+/*                            SetParamStr()                             */
+/************************************************************************/
+void OGRStyleSymbol::SetParamStr(OGRSTSymbolParam eParam, const char *pszParamString)
+{   OGRStyleTool::SetParamStr(asStyleSymbol[eParam],m_pasStyleValue[eParam],
+                              pszParamString);
+}
+
+/************************************************************************/
+/*                            SetParamNum()                             */
+/************************************************************************/
+void OGRStyleSymbol::SetParamNum(OGRSTSymbolParam eParam, int nParam)
+{  OGRStyleTool::SetParamNum(asStyleSymbol[eParam],
+                             m_pasStyleValue[eParam],nParam);
+}
+
+/************************************************************************/
+/*                            SetParamDbl()                             */
+/************************************************************************/
+void OGRStyleSymbol::SetParamDbl(OGRSTSymbolParam eParam, double dfParam)
+        {   OGRStyleTool::SetParamDbl(asStyleSymbol[eParam],
+                                      m_pasStyleValue[eParam],dfParam);
+        }
+/************************************************************************/
+/*                           GetStyleString()                           */
+/************************************************************************/
+const char *OGRStyleSymbol::GetStyleString()
+{   
+    return OGRStyleTool::GetStyleString(asStyleSymbol,m_pasStyleValue,
+                                        (int)OGRSTSymbolLast);
+}
+
 
 /****************************************************************************/
 /*                      OGRStyleLabel::OGRStyleLabel()                      */
@@ -1452,7 +1706,75 @@ OGRStyleLabel::OGRStyleLabel() : OGRStyleTool(OGRSTCLabel)
 /****************************************************************************/
 OGRStyleLabel::~OGRStyleLabel()
 {
-    CPLFree(m_pasStyleValue);
+    for (int i = 0; i < OGRSTLabelLast; i++)
+    {
+        if (m_pasStyleValue[i].pszValue != NULL)
+        {
+            CPLFree(m_pasStyleValue[i].pszValue);
+            m_pasStyleValue[i].pszValue = NULL;
+        }
+    }
 
+    CPLFree(m_pasStyleValue);
+}
+
+/************************************************************************/
+/*                               Parse()                                */
+/************************************************************************/
+GBool OGRStyleLabel::Parse()
+{ return OGRStyleTool::Parse(asStyleLabel,m_pasStyleValue,
+                             (int)OGRSTLabelLast);
+}
+
+/************************************************************************/
+/*                            GetParamStr()                             */
+/************************************************************************/
+const char *OGRStyleLabel::GetParamStr(OGRSTLabelParam eParam, GBool &bValueIsNull)
+{   return OGRStyleTool::GetParamStr(asStyleLabel[eParam],
+                                     m_pasStyleValue[eParam],
+                                     bValueIsNull);
+}
+/************************************************************************/
+/*                            GetParamNum()                             */
+/************************************************************************/
+int OGRStyleLabel::GetParamNum(OGRSTLabelParam eParam,GBool &bValueIsNull)
+{  return OGRStyleTool::GetParamNum(asStyleLabel[eParam],
+                                    m_pasStyleValue[eParam],bValueIsNull);
+}
+/************************************************************************/
+/*                            GetParamDbl()                             */
+/************************************************************************/
+double OGRStyleLabel::GetParamDbl(OGRSTLabelParam eParam,GBool &bValueIsNull)
+{  return OGRStyleTool::GetParamDbl(asStyleLabel[eParam],
+                                    m_pasStyleValue[eParam],bValueIsNull);
+}
+/************************************************************************/
+/*                            SetParamStr()                             */
+/************************************************************************/
+void OGRStyleLabel::SetParamStr(OGRSTLabelParam eParam, const char *pszParamString)
+{   OGRStyleTool::SetParamStr(asStyleLabel[eParam],m_pasStyleValue[eParam],
+                              pszParamString);
+}
+/************************************************************************/
+/*                            SetParamNum()                             */
+/************************************************************************/
+void OGRStyleLabel::SetParamNum(OGRSTLabelParam eParam, int nParam)
+{  OGRStyleTool::SetParamNum(asStyleLabel[eParam],
+                             m_pasStyleValue[eParam],nParam);
+}
+
+/************************************************************************/
+/*                            SetParamDbl()                             */
+/************************************************************************/
+void OGRStyleLabel::SetParamDbl(OGRSTLabelParam eParam, double dfParam)
+{   OGRStyleTool::SetParamDbl(asStyleLabel[eParam],
+                              m_pasStyleValue[eParam],dfParam);
+}
+/************************************************************************/
+/*                           GetStyleString()                           */
+/************************************************************************/
+const char *OGRStyleLabel::GetStyleString()
+{   return OGRStyleTool::GetStyleString(asStyleLabel,m_pasStyleValue,
+                                        (int)OGRSTLabelLast);
 }
  

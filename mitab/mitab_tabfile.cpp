@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.28 2000-01-18 22:14:36 daniel Exp $
+ * $Id: mitab_tabfile.cpp,v 1.29 2000-01-18 23:13:05 daniel Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.28  2000-01-18 22:14:36  daniel
+ * Revision 1.29  2000-01-18 23:13:05  daniel
+ * Added missing m_poDefn->Reference()
+ *
+ * Revision 1.28  2000/01/18 22:14:36  daniel
  * Fixed compile warnings
  *
  * Revision 1.27  2000/01/16 19:08:49  daniel
@@ -1414,7 +1417,7 @@ int TABFile::SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
  * Returns 0 on success, -1 on error.
  **********************************************************************/
 int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
-                            int nWidth, int nPrecision /*=0*/)
+                            int nWidth /*=0*/, int nPrecision /*=0*/)
 {
     OGRFieldDefn *poFieldDefn;
     int nStatus = 0;
@@ -1446,6 +1449,8 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         char *pszFeatureClassName = TABGetBasename(m_pszFname);
         m_poDefn = new OGRFeatureDefn(pszFeatureClassName);
         CPLFree(pszFeatureClassName);
+        // Ref count defaults to 0... set it to 1
+        m_poDefn->Reference();
     }
 
     /*-----------------------------------------------------------------

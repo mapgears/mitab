@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.51 2002-09-23 13:06:21 warmerda Exp $
+ * $Id: mitab_tabfile.cpp,v 1.52 2002-09-23 13:15:35 warmerda Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.51  2002-09-23 13:06:21  warmerda
+ * Revision 1.52  2002-09-23 13:15:35  warmerda
+ * fixed memory leak in SetMIFCoordSys
+ *
+ * Revision 1.51  2002/09/23 13:06:21  warmerda
  * ensure pre-created m_poDefn is referenced properly
  *
  * Revision 1.50  2002/08/27 17:19:22  warmerda
@@ -2145,7 +2148,8 @@ int TABFile::SetMIFCoordSys(const char *pszMIFCoordSys)
             }
 
             // Release our handle on poSpatialRef
-            poSpatialRef->Dereference();
+            if( poSpatialRef->Dereference() == 0 )
+                delete poSpatialRef;
         }
     }
     else

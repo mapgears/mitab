@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.11 1999-11-14 04:43:56 daniel Exp $
+ * $Id: mitab_priv.h,v 1.12 1999-11-20 15:49:42 daniel Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.11  1999-11-14 04:43:56  daniel
+ * Revision 1.12  1999-11-20 15:49:42  daniel
+ * Initial definition for TABINDFile and TABINDNode
+ *
+ * Revision 1.11  1999/11/14 04:43:56  daniel
  * Support dataset with no .MAP/.ID files
  *
  * Revision 1.10  1999/11/11 01:22:05  stephane
@@ -826,6 +829,86 @@ class TABMAPFile
 };
 
 
+
+/*---------------------------------------------------------------------
+ *                      class TABINDNode
+ *
+ * An index node in a .IND file.
+ *
+ * This class takes care of reading child nodes as necessary when looking
+ * for a given key value in the index tree.
+ *--------------------------------------------------------------------*/
+
+class TABINDNode
+{
+  private:
+    FILE        *m_fp;
+    TABAccess   m_eAccessMode;
+    TABINDNode *m_poCurChildNode;
+    int         m_nCurChildNodeIndex;
+
+    int         m_nSubTreeDepth;
+    int         m_nKeyLength;
+
+    GInt32      m_nCurDataBlockPtr;
+    TABRawBinBlock *m_poDataBlock;
+    int         m_numEntriesInNode;
+    GInt32      m_nPrevNodePtr;
+    GInt32      m_nNextNodePtr;
+
+    int         GotoNodePtr(GInt32 nNewNodePtr);
+
+   public:
+    TABINDNode();
+    ~TABINDNode();
+
+    int         InitNode(FILE *fp, int nBlockPtr, 
+                         int nKeyLength, int nSubTreeDepth);
+
+    GInt32      Search(GByte *pKeyValue);
+
+#ifdef DEBUG
+    void Dump(FILE *fpOut = NULL);
+#endif
+
+};
+
+
+/*---------------------------------------------------------------------
+ *                      class TABINDFile
+ *
+ * Class to handle table field index (.IND) files... we use this
+ * class as the main entry point to open and search the table field indexes.
+ * Note that .IND files are supported for read access only.
+ *--------------------------------------------------------------------*/
+
+class TABINDFile
+{
+  private:
+    char        *m_pszFname;
+    FILE        *m_fp;
+    TABAccess   m_eAccessMode;
+
+    int         m_numIndexes;
+    TABINDNode  **m_papoIndexRootNodes;
+
+   public:
+    TABINDFile();
+    ~TABINDFile();
+
+    int         Open(const char *pszFname, const char *pszAccess);
+    int         Close();
+
+    int         GetNumIndexes() {return m_numIndexes;};
+    GInt32      Search(int nIndexNumber, GByte *pKeyValue);
+
+#ifdef DEBUG
+    void Dump(FILE *fpOut = NULL);
+#endif
+
+};
+
+
 /*---------------------------------------------------------------------
  *                      class TABDATFile
  *
@@ -932,7 +1015,7 @@ class MIDDATAFile
      double GetYTrans(double);
      double GetXMultiplier(){return m_dfXMultiplier;}
      const char *GetDelimiter(){return m_pszDelimiter;}
-     void SetDelimiter(const char *pszDelimiter){m_pszDelimiter = pszDelimiter;}
+     void SetDelimiter(const char *pszDelimiter){m_pszDelimiter=pszDelimiter;}
 
      private:
        FILE *m_fp;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.8 1999-09-28 13:32:10 daniel Exp $
+ * $Id: mitab.h,v 1.9 1999-09-29 04:27:14 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.8  1999-09-28 13:32:10  daniel
+ * Revision 1.9  1999-09-29 04:27:14  daniel
+ * Changed some TABFeatureClass names
+ *
+ * Revision 1.8  1999/09/28 13:32:10  daniel
  * Added TABFile::AddFieldNative()
  *
  * Revision 1.7  1999/09/28 02:52:47  warmerda
@@ -182,7 +185,7 @@ class TABFile
  *--------------------------------------------------------------------*/
 typedef enum
 {
-    TABFCBaseFeature,
+    TABFCNoGeomFeature,
     TABFCPoint,
     TABFCFontPoint,
     TABFCCustomPoint,
@@ -191,7 +194,8 @@ typedef enum
     TABFCArc,
     TABFCRegion,
     TABFCRectangle,
-    TABFCEllipse
+    TABFCEllipse,
+    TABFCDebugFeature
 } TABFeatureClass;
 
 /*---------------------------------------------------------------------
@@ -345,7 +349,7 @@ class TABFeature: public OGRFeature
              TABFeature(OGRFeatureDefn *poDefnIn );
     virtual ~TABFeature();
 
-    virtual TABFeatureClass GetFeatureClass() { return TABFCBaseFeature; };
+    virtual TABFeatureClass GetFeatureClass() { return TABFCNoGeomFeature; };
     virtual int             GetMapInfoType()  { return m_nMapInfoType; };
     virtual int            ValidateMapInfoType(){m_nMapInfoType=TAB_GEOM_NONE;
                                                  return m_nMapInfoType;};
@@ -411,10 +415,8 @@ class TABPoint: public TABFeature,
 class TABFontPoint: public TABPoint, 
                     public ITABFeatureFont
 {
-  protected:
-    double      m_dAngle;
-
   public:
+    double      m_dAngle;
     GInt16      m_nFontStyle;           // Bold/shadow/halo/etc.
 
   public:
@@ -716,7 +718,7 @@ class TABDebugFeature: public TABFeature
              TABDebugFeature(OGRFeatureDefn *poDefnIn);
     virtual ~TABDebugFeature();
 
-    virtual TABFeatureClass GetFeatureClass() { return TABFCBaseFeature; };
+    virtual TABFeatureClass GetFeatureClass() { return TABFCDebugFeature; };
 
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile);

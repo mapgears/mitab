@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.9 2001-07-04 14:13:24 daniel Exp $
+ * $Id: tabdump.cpp,v 1.10 2001-09-17 19:52:50 daniel Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.9  2001-07-04 14:13:24  daniel
+ * Revision 1.10  2001-09-17 19:52:50  daniel
+ * Added DumpViaSpatialIndex()
+ *
+ * Revision 1.9  2001/07/04 14:13:24  daniel
  * Added GetExtent() output in DumpCoordsys()
  *
  * Revision 1.8  2001/01/23 21:23:42  daniel
@@ -75,10 +78,16 @@ static int DumpCoordsysStruct(const char *pszFname);
 
 static int SearchIndex(const char *pszFname, int nIndexNo, const char *pszVal);
 
-#define TABTEST_USAGE "Usage: tabdump -a|-all     <filename>\n" \
-                      "       tabdump -b|-blocks  <filename>\n" \
-                      "       tabdump -o|-objects <filename>\n" \
-                      "       tabdump -i|-index   <filename> <indexno> <val>\n"
+static int DumpViaSpatialIndex(const char *pszFname, 
+                               double dXMin, double dYMin, 
+                               double dXMax, double dYMax);
+
+#define TABTEST_USAGE \
+  "Usage: tabdump -a|-all     <filename>\n" \
+  "       tabdump -b|-blocks  <filename>\n" \
+  "       tabdump -o|-objects <filename>\n" \
+  "       tabdump -i|-index   <filename> <indexno> <val>\n" \
+  "       tabdump -e|-envelope <filename> <xmin> <ymin> <ymax> <ymax>\n"
 
 /**********************************************************************
  *                          main()
@@ -194,6 +203,20 @@ int main(int argc, char *argv[])
     else if (EQUALN(argv[1], "-index", 2) && argc >=5)
     {
         SearchIndex(pszFname, atoi(argv[3]), argv[4]);
+    }
+/*---------------------------------------------------------------------
+ *      With option -envelope <filename> <xmin> <ymin> <ymax> <ymax>
+ *      Dump all objects that intersect the envelope.  Scan via spatial index.
+ *--------------------------------------------------------------------*/
+    else if (EQUALN(argv[1], "-envelope", 2) && argc >= 7)
+    {
+
+        if (strstr(pszFname, ".tab") != NULL ||
+            strstr(pszFname, ".TAB") != NULL)
+        {
+            DumpViaSpatialIndex(pszFname, atof(argv[3]), atof(argv[4]), 
+                                atof(argv[5]), atof(argv[6]));
+        }
     }
 /*---------------------------------------------------------------------
  *     With option -otheroption <filename> ... 
@@ -630,5 +653,74 @@ static int SearchIndex(const char *pszFname, int nIndexNo, const char *pszVal)
 
     return 0;
 
+}
+
+/**********************************************************************
+ *                          DumpViaSpatialIndex()
+ *
+ * Open a .TAB file and print all the geogr. objects that match the 
+ * specified filter.  Scanes the file via the spatial index.
+ **********************************************************************/
+static int DumpViaSpatialIndex(const char *pszFname, 
+                               double dXMin, double dYMin, 
+                               double dXMax, double dYMax)
+{
+    IMapInfoFile  *poFile;
+    TABFeature *poFeature;
+
+    /*---------------------------------------------------------------------
+     * Try to open source file
+     *--------------------------------------------------------------------*/
+    if ((poFile = IMapInfoFile::SmartOpen(pszFname)) == NULL)
+    {
+        printf("Failed to open %s\n", pszFname);
+        return -1;
+    }
+
+    poFile->Dump();
+
+    /*---------------------------------------------------------------------
+     * Check for indexed fields
+     *--------------------------------------------------------------------*/
+    for(int iField=0; iField<poFile->GetLayerDefn()->GetFieldCount(); iField++)
+    {
+        if (poFile->IsFieldIndexed(iField))
+            printf("  Field %d is indexed\n", iField);
+    }
+
+
+    /*---------------------------------------------------------------------
+     * Set spatial filter
+     *--------------------------------------------------------------------*/
+    OGRLinearRing oSpatialFilter;
+
+    oSpatialFilter.setNumPoints(5);
+    oSpatialFilter.setPoint(0, dXMin, dYMin);
+    oSpatialFilter.setPoint(1, dXMax, dYMin);
+    oSpatialFilter.setPoint(2, dXMax, dYMax);
+    oSpatialFilter.setPoint(3, dXMin, dYMax);
+    oSpatialFilter.setPoint(4, dXMin, dYMin);
+
+    poFile->SetSpatialFilter( &oSpatialFilter );
+
+    /*---------------------------------------------------------------------
+     * Read/Dump objects until EOF is reached
+     *--------------------------------------------------------------------*/
+    while ( (poFeature = (TABFeature*)poFile->GetNextFeature()) != NULL )
+    {
+//        poFeature->DumpReadable(stdout);
+        printf("\nFeature %ld:\n", poFeature->GetFID());
+        poFeature->DumpMID();
+        poFeature->DumpMIF();
+    }
+
+    /*---------------------------------------------------------------------
+     * Cleanup and exit.
+     *--------------------------------------------------------------------*/
+    poFile->Close();
+
+    delete poFile;
+
+    return 0;
 }
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.13 1999-11-08 04:34:55 stephane Exp $
+ * $Id: mitab.h,v 1.14 1999-11-09 07:33:04 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.13  1999-11-08 04:34:55  stephane
+ * Revision 1.14  1999-11-09 07:33:04  daniel
+ * Fixed compilation warning caused by MIFFile::SetSpatialRef()
+ *
+ * Revision 1.13  1999/11/08 04:34:55  stephane
  * mid/mif support
  *
  * Revision 1.12  1999/10/18 15:44:47  daniel
@@ -335,7 +338,7 @@ class MIFFile: public IMapInfoFile
     virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                                int nWidth, int nPrecision=0);
     /* TODO */
-    virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef){return NULL;}
+    virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef){return 0;}
 
     virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1);
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.29 2000-01-26 18:17:35 warmerda Exp $
+ * $Id: mitab.h,v 1.30 2000-02-05 19:27:31 daniel Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.29  2000-01-26 18:17:35  warmerda
+ * Revision 1.30  2000-02-05 19:27:31  daniel
+ * Added private methods to TABRegion for better handling of rings
+ *
+ * Revision 1.29  2000/01/26 18:17:35  warmerda
  * added CreateField method
  *
  * Revision 1.28  2000/01/18 23:12:18  daniel
@@ -1068,6 +1071,14 @@ class TABRegion: public TABFeature,
     GBool       m_bSmooth;
     GBool       m_bCentroid;
     double      m_dfCentroidX, m_dfCentroidY;
+  private:
+    int     ComputeNumRings(TABMAPCoordSecHdr **ppasSecHdrs, 
+                            TABMAPFile *poMAPFile);
+    int     AppendSecHdrs(OGRPolygon *poPolygon,
+                          TABMAPCoordSecHdr * &pasSecHdrs,
+                          TABMAPFile *poMAPFile,
+                          int &iLastRing);
+
   public:
              TABRegion(OGRFeatureDefn *poDefnIn);
     virtual ~TABRegion();

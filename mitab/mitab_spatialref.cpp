@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.35 2002-09-05 15:23:22 warmerda Exp $
+ * $Id: mitab_spatialref.cpp,v 1.36 2002-09-05 15:38:16 warmerda Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.35  2002-09-05 15:23:22  warmerda
+ * Revision 1.36  2002-09-05 15:38:16  warmerda
+ * one more ogc datum name
+ *
+ * Revision 1.35  2002/09/05 15:23:22  warmerda
  * added some EPSG datum names provided by Siro Martello @ Cadcorp
  *
  * Revision 1.34  2002/04/01 19:49:24  warmerda
@@ -240,7 +243,7 @@ MapInfoDatumInfo asDatumInfoList[] =
 {84, "", 4, -128, -283, 22, 0, 0, 0, 0, 0},
 {85, "Qornoq", 4, 164, 138, -189, 0, 0, 0, 0, 0},
 {86, "", 4, 94, -948, -1262, 0, 0, 0, 0, 0},
-{87, "", 4, -225, -65, 9, 0, 0, 0, 0, 0},
+{87, "Monte_Mario", 4, -225, -65, 9, 0, 0, 0, 0, 0},
 {88, "", 4, 170, 42, 84, 0, 0, 0, 0, 0},
 {89, "", 4, -203, 141, 53, 0, 0, 0, 0, 0},
 {90, "Sapper_Hill_1943", 4, -355, 16, 74, 0, 0, 0, 0, 0},

@@ -63,7 +63,7 @@ CHANGES - Current Version:
    handled by MITAB go through the OGRTABDataSource/OGRTABDriver interface
 
  - Fixed problem reading/writing dates (bytes were reversed)
-        Also, Dates are now returned as "YYYY/MM/DD", and accepted as one
+        Also, Dates are now returned as "YYYYMMDD", and accepted as one
         of "YYYY/MM/DD", "DD/MM/YYYY", or "YYYYMMDD"
 
  - Fixed TABFile::GetBounds() that could sometimes return Min values > Max
@@ -99,5 +99,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.5 1999-12-19 18:55:36 daniel Exp $
+$Id: HISTORY.TXT,v 1.6 1999-12-20 19:02:41 daniel Exp $
 ------------

@@ -1,10 +1,10 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.2 2000-01-14 16:33:24 warmerda Exp $
+ * $Id: mitabc_test.c,v 1.3 2000-01-14 17:12:20 warmerda Exp $
  *
- * Name:     mitabcrep.c
+ * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
  * Language: C
- * Purpose:  Report on MITAB file using MITAB C API - test program.
+ * Purpose:  Test mainline for MITAB C API.
  * Author:   Frank Warmerdam, warmerda@home.com
  *
  **********************************************************************
@@ -28,7 +28,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.2  2000-01-14 16:33:24  warmerda
+ * Revision 1.3  2000-01-14 17:12:20  warmerda
+ * Added some include files.
+ *
+ * Revision 1.2  2000/01/14 16:33:24  warmerda
  * initial implementation complete
  *
  * Revision 1.1  2000/01/14 14:53:59  warmerda
@@ -38,6 +41,8 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
+#include <stdlib.h>
 #include "mitab_capi.h"
 
 #ifndef NULL

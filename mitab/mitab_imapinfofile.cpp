@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.5 2000-01-15 22:30:44 daniel Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.6 2000-01-26 18:17:35 warmerda Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.5  2000-01-15 22:30:44  daniel
+ * Revision 1.6  2000-01-26 18:17:35  warmerda
+ * added CreateField method
+ *
+ * Revision 1.5  2000/01/15 22:30:44  daniel
  * Switch to MIT/X-Consortium OpenSource license
  *
  * Revision 1.4  2000/01/11 19:06:25  daniel
@@ -253,7 +256,7 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
     }
     
 
-    if (SetFeature(poTABFeature) == 0)
+    if (SetFeature(poTABFeature) > -1)
       return OGRERR_NONE;
     else
       return OGRERR_FAILURE;
@@ -314,5 +317,37 @@ void IMapInfoFile::SetSpatialFilter (OGRGeometry * poGeomIn )
         m_poFilterGeom = poGeomIn->clone();
 }
 
+/************************************************************************/
+/*                            CreateField()                             */
+/*                                                                      */
+/*      Create a native field based on a generic OGR definition.        */
+/************************************************************************/
 
+OGRErr IMapInfoFile::CreateField( OGRFieldDefn *poField, int bApproxOK )
 
+{
+    TABFieldType	eTABType;
+
+    if( poField->GetType() == OFTInteger )
+        eTABType = TABFInteger;
+    else if( poField->GetType() == OFTReal )
+        eTABType = TABFFloat;
+    else if( poField->GetType() == OFTString )
+        eTABType = TABFChar;
+    else
+    {
+        CPLError( CE_Failure, CPLE_AppDefined,
+                  "IMapInfoFile::CreateField() called with unsupported field"
+                  " type %d.\n"
+                  "Note that Mapinfo files don't support list field types.\n",
+                  poField->GetType() );
+
+        return OGRERR_FAILURE;
+    }
+
+    if( AddFieldNative( poField->GetNameRef(), eTABType,
+                        poField->GetWidth(), poField->GetPrecision() ) > -1 )
+        return OGRERR_NONE;
+    else
+        return OGRERR_FAILURE;
+}

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.28 2000-01-18 23:12:18 daniel Exp $
+ * $Id: mitab.h,v 1.29 2000-01-26 18:17:35 warmerda Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo MIF Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.28  2000-01-18 23:12:18  daniel
+ * Revision 1.29  2000-01-26 18:17:35  warmerda
+ * added CreateField method
+ *
+ * Revision 1.28  2000/01/18 23:12:18  daniel
  * Made AddFieldNative()'s width parameter optional
  *
  * Revision 1.27  2000/01/16 19:08:48  daniel
@@ -221,6 +224,8 @@ class IMapInfoFile : public OGRLayer
                             TABFieldType *paeMapInfoNativeFieldTypes = NULL)=0;
     virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                                int nWidth=0, int nPrecision=0) = 0;
+    virtual OGRErr CreateField( OGRFieldDefn *poField, int bApproxOK = TRUE );
+    
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef) = 0;
 
     virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1) = 0;

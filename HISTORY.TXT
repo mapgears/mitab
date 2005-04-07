@@ -1,4 +1,4 @@
-\MITAB Library - Revision History
+MITAB Library - Revision History
 ================================
 
 This is a human-readable revision history which will attempt to document
@@ -12,6 +12,9 @@ For a complete change history, please see the CVS log comments.
 
 CHANGES - Current Version:
 --------------------------
+
+ - Added mitab_c_set_symbol_angle() and mitab_c_get_symbol_angle() for
+   point symbols of type TABFC_FontPoint (bug 1002)
 
 
 Version 1.4.0 (2005-04-01)
@@ -619,5 +622,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.137 2005-04-01 16:48:41 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.138 2005-04-07 15:56:27 dmorissette Exp $
 ------------

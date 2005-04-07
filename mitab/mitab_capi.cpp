@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.35 2004-07-08 00:00:54 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.36 2005-04-07 15:56:27 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.35  2004-07-08 00:00:54  dmorissette
+ * Revision 1.36  2005-04-07 15:56:27  dmorissette
+ * Added mitab_c_set_symbol_angle() and mitab_c_get_symbol_angle() for
+ * point symbols of type TABFC_FontPoint (bug 1002)
+ *
+ * Revision 1.35  2004/07/08 00:00:54  dmorissette
  * Disabled mitab_c_get_extended_mif_coordsys_vb() until
  * mitab_c_get_extended_mif_coordsys() is re-enabled
  *
@@ -1731,6 +1735,30 @@ mitab_c_set_symbol( mitab_feature feature, int symbol_no,
 }                                                               
 
 /************************************************************************/
+/*                         mitab_c_set_symbol_angle()                   */
+/************************************************************************/
+
+/**
+ * Set the point symbol's angle. Applies only to point objects of type
+ * TABFC_FontPoint.
+ *
+ * @param feature the mitab_feature object.
+ * @param symbol_angle the symbol angle in degrees
+ */
+
+void MITAB_STDCALL
+mitab_c_set_symbol_angle( mitab_feature feature, double symbol_angle )
+
+{
+    TABFontPoint    *poFeature = (TABFontPoint *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_FontPoint )
+    {
+        poFeature->SetSymbolAngle( symbol_angle );
+    }
+}                                                               
+
+/************************************************************************/
 /*                     mitab_c_get_symbol_color()                       */
 /************************************************************************/
 
@@ -1806,6 +1834,31 @@ mitab_c_get_symbol_size( mitab_feature feature )
         return poFeature->GetSymbolSize();
     }
     return 1;
+}
+
+/************************************************************************/
+/*                     mitab_c_get_symbol_angle()                       */
+/************************************************************************/
+
+/**
+ * Get an font point object's angle property.  Applies only to point objects
+ * of type TABFC_FontPoint
+ *
+ * @param feature the mitab_feature object.
+ * @return the symbol angle in degrees
+ */
+
+double MITAB_STDCALL
+mitab_c_get_symbol_angle( mitab_feature feature )
+    
+{
+    TABFontPoint    *poFeature = (TABFontPoint *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_FontPoint )
+    {
+        return poFeature->GetSymbolAngle();
+    }
+    return 0.0;
 }
 
 

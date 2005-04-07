@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.26 2004-07-07 21:51:35 dmorissette Exp $
+ * $Id: mitab_capi.h,v 1.27 2005-04-07 15:56:27 dmorissette Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.26  2004-07-07 21:51:35  dmorissette
+ * Revision 1.27  2005-04-07 15:56:27  dmorissette
+ * Added mitab_c_set_symbol_angle() and mitab_c_get_symbol_angle() for
+ * point symbols of type TABFC_FontPoint (bug 1002)
+ *
+ * Revision 1.26  2004/07/07 21:51:35  dmorissette
  * Added mitab_c_get_mif_coordsys_vb() (patch from BVT)
  *
  * Revision 1.25  2004/06/30 20:05:34  dmorissette
@@ -279,12 +283,16 @@ mitab_c_get_font_vb( mitab_feature feature, char * font, int l );
 
 void MITAB_DLL MITAB_STDCALL mitab_c_set_symbol( mitab_feature feature, int symbol_no,
                                    int symbol_size, int symbol_color );
+void MITAB_DLL MITAB_STDCALL
+mitab_c_set_symbol_angle( mitab_feature feature, double symbol_angle );
 int MITAB_DLL MITAB_STDCALL
 mitab_c_get_symbol_color( mitab_feature feature );
 int MITAB_DLL MITAB_STDCALL
 mitab_c_get_symbol_no( mitab_feature feature );
 int MITAB_DLL MITAB_STDCALL
 mitab_c_get_symbol_size( mitab_feature feature );
+double MITAB_DLL MITAB_STDCALL
+mitab_c_get_symbol_angle( mitab_feature feature );
 
 void MITAB_DLL MITAB_STDCALL mitab_c_set_points( mitab_feature feature, int part,
                                    int vertex_count, double * x, double * y );

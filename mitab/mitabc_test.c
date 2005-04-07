@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.12 2003-01-18 21:44:33 daniel Exp $
+ * $Id: mitabc_test.c,v 1.13 2005-04-07 15:56:27 dmorissette Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.12  2003-01-18 21:44:33  daniel
+ * Revision 1.13  2005-04-07 15:56:27  dmorissette
+ * Added mitab_c_set_symbol_angle() and mitab_c_get_symbol_angle() for
+ * point symbols of type TABFC_FontPoint (bug 1002)
+ *
+ * Revision 1.12  2003/01/18 21:44:33  daniel
  * Added 'indexed' and 'unique' parameters to mitab_c_add_field().
  *
  * Revision 1.11  2003/01/18 20:43:31  daniel
@@ -255,6 +259,24 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     
     mitab_c_set_points( feature, 0, 3, x, y );
     mitab_c_set_symbol( feature, 41, 15, 255*256 );
+    mitab_c_set_field( feature, 0, "100" );
+    mitab_c_set_field( feature, 1, "100.5" );
+    mitab_c_set_field( feature, 2, "12345678901234567890" );
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+
+/* -------------------------------------------------------------------- */
+/*      Write a font point.                                             */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_FontPoint );
+
+    x[0] = 89;
+    y[0] = 65;
+    
+    mitab_c_set_points( feature, 0, 1, x, y );
+    mitab_c_set_symbol( feature, 75, 15, 255*256 );
+    mitab_c_set_font( feature, "MySymbolFont" );
+    mitab_c_set_symbol_angle( feature, 45 );
     mitab_c_set_field( feature, 0, "100" );
     mitab_c_set_field( feature, 1, "100.5" );
     mitab_c_set_field( feature, 2, "12345678901234567890" );

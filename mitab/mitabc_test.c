@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.13 2005-04-07 15:56:27 dmorissette Exp $
+ * $Id: mitabc_test.c,v 1.14 2005-04-28 16:18:28 dmorissette Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.13  2005-04-07 15:56:27  dmorissette
+ * Revision 1.14  2005-04-28 16:18:28  dmorissette
+ * Change one of the tests to set a black pen
+ *
+ * Revision 1.13  2005/04/07 15:56:27  dmorissette
  * Added mitab_c_set_symbol_angle() and mitab_c_get_symbol_angle() for
  * point symbols of type TABFC_FontPoint (bug 1002)
  *
@@ -350,7 +353,7 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     mitab_c_set_points( feature, 1, 5, x, y );
 
     mitab_c_set_brush( feature, 255, 0, 2, 0 );
-    mitab_c_set_pen( feature, 1, 2, 65535 );
+    mitab_c_set_pen( feature, 1, 2, 0 );
     mitab_c_write_feature( dataset, feature );
     mitab_c_destroy_feature( feature );
     

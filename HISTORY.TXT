@@ -13,8 +13,11 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
- - Added mitab_c_set_symbol_angle() and mitab_c_get_symbol_angle() for
-   point symbols of type TABFC_FontPoint (bug 1002)
+- Produce a fatal error if creating an index of a size that exceeds the
+  .IND file format limitation (tree depth > 255) (OGR Bug 839)
+
+- Added mitab_c_set_symbol_angle() and mitab_c_get_symbol_angle() for
+  point symbols of type TABFC_FontPoint (bug 1002)
 
 
 Version 1.4.0 (2005-04-01)
@@ -622,5 +625,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.138 2005-04-07 15:56:27 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.139 2005-04-29 19:08:56 dmorissette Exp $
 ------------

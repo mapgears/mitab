@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.42 2005-03-22 23:24:54 dmorissette Exp $
+ * $Id: mitab_spatialref.cpp,v 1.43 2005-05-12 22:07:52 dmorissette Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.42  2005-03-22 23:24:54  dmorissette
+ * Revision 1.43  2005-05-12 22:07:52  dmorissette
+ * Improved handling of Danish modified TM proj#21-24 (hss, bugs 976,1010)
+ *
+ * Revision 1.42  2005/03/22 23:24:54  dmorissette
  * Added support for datum id in .MAP header (bug 910)
  *
  * Revision 1.41  2004/10/11 20:50:04  dmorissette
@@ -639,16 +642,60 @@ OGRSpatialReference *TABFile::GetSpatialRef()
          * Transverse Mercator
          *-------------------------------------------------------------*/
       case 8:
-      case 21:
-      case 22:
-      case 23:
-      case 24:
         m_poSpatialRef->SetTM( sTABProj.adProjParams[1],
                                sTABProj.adProjParams[0],
                                sTABProj.adProjParams[2],
                                sTABProj.adProjParams[3] * dfConv,
                                sTABProj.adProjParams[4] * dfConv );
         break;
+
+        /*----------------------------------------------------------------
+         * Transverse Mercator,(modified for Danish System 34 Jylland-Fyn)
+         *---------------------------------------------------------------*/
+      case 21:
+         m_poSpatialRef->SetTMVariant( SRS_PT_TRANSVERSE_MERCATOR_MI_21,
+                                       sTABProj.adProjParams[1],
+                                       sTABProj.adProjParams[0],
+                                       sTABProj.adProjParams[2],
+                                       sTABProj.adProjParams[3] * dfConv,
+                                       sTABProj.adProjParams[4] * dfConv );
+         break;
+
+        /*--------------------------------------------------------------
+         * Transverse Mercator,(modified for Danish System 34 Sjaelland)
+         *-------------------------------------------------------------*/
+      case 22:
+         m_poSpatialRef->SetTMVariant( SRS_PT_TRANSVERSE_MERCATOR_MI_22,
+                                       sTABProj.adProjParams[1],
+                                       sTABProj.adProjParams[0],
+                                       sTABProj.adProjParams[2],
+                                       sTABProj.adProjParams[3] * dfConv,
+                                       sTABProj.adProjParams[4] * dfConv );
+         break;
+
+        /*----------------------------------------------------------------
+         * Transverse Mercator,(modified for Danish System 34/45 Bornholm)
+         *---------------------------------------------------------------*/
+      case 23:
+         m_poSpatialRef->SetTMVariant( SRS_PT_TRANSVERSE_MERCATOR_MI_23,
+                                       sTABProj.adProjParams[1],
+                                       sTABProj.adProjParams[0],
+                                       sTABProj.adProjParams[2],
+                                       sTABProj.adProjParams[3] * dfConv,
+                                       sTABProj.adProjParams[4] * dfConv );
+         break;
+
+        /*--------------------------------------------------------------
+         * Transverse Mercator,(modified for Finnish KKJ)
+         *-------------------------------------------------------------*/
+      case 24:
+         m_poSpatialRef->SetTMVariant( SRS_PT_TRANSVERSE_MERCATOR_MI_24,
+                                       sTABProj.adProjParams[1],
+                                       sTABProj.adProjParams[0],
+                                       sTABProj.adProjParams[2],
+                                       sTABProj.adProjParams[3] * dfConv,
+                                       sTABProj.adProjParams[4] * dfConv );
+         break;
 
         /*--------------------------------------------------------------
          * Albers Conic Equal Area

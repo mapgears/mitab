@@ -13,6 +13,10 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Improved handling of Danish modified TM proj#21-24 (HSS, bugs 976,1010)
+
+- Upgraded CPL and OGR source from latest GDAL CVS (as of 2005-05-12)
+
 - Produce a fatal error if creating an index of a size that exceeds the
   .IND file format limitation (tree depth > 255) (OGR Bug 839)
 
@@ -625,5 +629,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.139 2005-04-29 19:08:56 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.140 2005-05-12 22:09:54 dmorissette Exp $
 ------------

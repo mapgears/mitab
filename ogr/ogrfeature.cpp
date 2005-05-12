@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrfeature.cpp,v 1.29 2003/05/28 19:16:42 warmerda Exp $
+ * $Id: ogrfeature.cpp,v 1.31 2005/02/22 12:38:19 fwarmerdam Exp $
  * 
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRFeature class implementation. 
@@ -28,6 +28,12 @@
  ******************************************************************************
  *
  * $Log: ogrfeature.cpp,v $
+ * Revision 1.31  2005/02/22 12:38:19  fwarmerdam
+ * rename Equal/Intersect to Equals/Intersects
+ *
+ * Revision 1.30  2004/10/12 19:26:33  fwarmerdam
+ * fixed up documentation on passing NULL to DumpReadable()
+ *
  * Revision 1.29  2003/05/28 19:16:42  warmerda
  * fixed up argument names and stuff for docs
  *
@@ -87,7 +93,7 @@
 #include "ogr_api.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrfeature.cpp,v 1.29 2003/05/28 19:16:42 warmerda Exp $");
+CPL_CVSID("$Id: ogrfeature.cpp,v 1.31 2005/02/22 12:38:19 fwarmerdam Exp $");
 
 /************************************************************************/
 /*                             OGRFeature()                             */
@@ -164,6 +170,8 @@ OGRFeatureH OGR_F_Create( OGRFeatureDefnH hDefn )
 OGRFeature::~OGRFeature()
 
 {
+    poDefn->Dereference();
+
     if( poGeometry != NULL )
         delete poGeometry;
 
@@ -198,9 +206,6 @@ OGRFeature::~OGRFeature()
     
     CPLFree( pauFields );
     CPLFree(m_pszStyleString);
-
-    if (poDefn->Dereference() == 0)
-        delete poDefn;
 }
 
 /************************************************************************/
@@ -1894,7 +1899,8 @@ void OGR_F_SetFieldRaw( OGRFeatureH hFeat, int iField, OGRField *psValue )
  *
  * This method is the same as the C function OGR_F_DumpReadable().
  *
- * @param fpOut the stream to write to, such as strout.
+ * @param fpOut the stream to write to, such as stdout.  If NULL stdout will
+ * be used. 
  */
 
 void OGRFeature::DumpReadable( FILE * fpOut )
@@ -2071,7 +2077,7 @@ OGRBoolean OGRFeature::Equal( OGRFeature * poFeature )
     //notdef: add testing of attributes at a later date.
 
     if( GetGeometryRef() != NULL
-        && (!GetGeometryRef()->Equal( poFeature->GetGeometryRef() ) ) )
+        && (!GetGeometryRef()->Equals( poFeature->GetGeometryRef() ) ) )
         return FALSE;
 
     return TRUE;

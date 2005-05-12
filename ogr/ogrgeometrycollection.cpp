@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrgeometrycollection.cpp,v 1.22 2003/06/09 13:48:54 warmerda Exp $
+ * $Id: ogrgeometrycollection.cpp,v 1.29 2005/02/22 12:38:01 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRGeometryCollection class.
@@ -28,6 +28,27 @@
  ******************************************************************************
  *
  * $Log: ogrgeometrycollection.cpp,v $
+ * Revision 1.29  2005/02/22 12:38:01  fwarmerdam
+ * rename Equal/Intersect to Equals/Intersects
+ *
+ * Revision 1.28  2004/07/10 04:51:22  warmerda
+ * added closeRings
+ *
+ * Revision 1.27  2004/02/22 09:52:04  dron
+ * Fix compirison casting problems in OGRGeometryCollection::Equal().
+ *
+ * Revision 1.26  2004/02/21 15:36:14  warmerda
+ * const correctness updates for geometry: bug 289
+ *
+ * Revision 1.25  2004/01/16 21:57:16  warmerda
+ * fixed up EMPTY support
+ *
+ * Revision 1.24  2004/01/16 21:20:00  warmerda
+ * Added EMPTY support
+ *
+ * Revision 1.23  2003/08/27 15:40:37  warmerda
+ * added support for generating DB2 V7.2 compatible WKB
+ *
  * Revision 1.22  2003/06/09 13:48:54  warmerda
  * added DB2 V7.2 byte order hack
  *
@@ -99,7 +120,7 @@
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrgeometrycollection.cpp,v 1.22 2003/06/09 13:48:54 warmerda Exp $");
+CPL_CVSID("$Id: ogrgeometrycollection.cpp,v 1.29 2005/02/22 12:38:01 fwarmerdam Exp $");
 
 /************************************************************************/
 /*                       OGRGeometryCollection()                        */
@@ -153,7 +174,7 @@ void OGRGeometryCollection::empty()
 /*                               clone()                                */
 /************************************************************************/
 
-OGRGeometry *OGRGeometryCollection::clone()
+OGRGeometry *OGRGeometryCollection::clone() const
 
 {
     OGRGeometryCollection       *poNewGC;
@@ -173,7 +194,7 @@ OGRGeometry *OGRGeometryCollection::clone()
 /*                          getGeometryType()                           */
 /************************************************************************/
 
-OGRwkbGeometryType OGRGeometryCollection::getGeometryType()
+OGRwkbGeometryType OGRGeometryCollection::getGeometryType() const
 
 {
     if( getCoordinateDimension() == 3 )
@@ -186,7 +207,7 @@ OGRwkbGeometryType OGRGeometryCollection::getGeometryType()
 /*                            getDimension()                            */
 /************************************************************************/
 
-int OGRGeometryCollection::getDimension()
+int OGRGeometryCollection::getDimension() const
 
 {
     return 2; // This isn't strictly correct.  It should be based on members.
@@ -199,16 +220,16 @@ int OGRGeometryCollection::getDimension()
 /*      overridden by some of the subclasses.                           */
 /************************************************************************/
 
-int OGRGeometryCollection::getCoordinateDimension()
+int OGRGeometryCollection::getCoordinateDimension() const
 
 {
     if( nCoordinateDimension == 0 )
     {
-        nCoordinateDimension = 2;
+        ((OGRGeometryCollection *)this)->nCoordinateDimension = 2;
 
         for( int i = 0; i < nGeomCount; i++ )
             if( papoGeoms[i]->getCoordinateDimension() == 3 )
-                nCoordinateDimension = 3;
+                ((OGRGeometryCollection *)this)->nCoordinateDimension = 3;
     }
 
     return nCoordinateDimension;
@@ -231,7 +252,7 @@ void OGRGeometryCollection::flattenTo2D()
 /*                          getGeometryName()                           */
 /************************************************************************/
 
-const char * OGRGeometryCollection::getGeometryName()
+const char * OGRGeometryCollection::getGeometryName() const
 
 {
     return "GEOMETRYCOLLECTION";
@@ -250,7 +271,7 @@ const char * OGRGeometryCollection::getGeometryName()
  * @return count of children geometries.  May be zero.
  */
 
-int OGRGeometryCollection::getNumGeometries()
+int OGRGeometryCollection::getNumGeometries() const
 
 {
     return nGeomCount;
@@ -275,7 +296,16 @@ int OGRGeometryCollection::getNumGeometries()
  * @return pointer to requested geometry.
  */
 
-OGRGeometry * OGRGeometryCollection::getGeometryRef( int i )
+OGRGeometry * OGRGeometryCollection::getGeometryRef( int i ) 
+
+{
+    if( i < 0 || i >= nGeomCount )
+        return NULL;
+    else
+        return papoGeoms[i];
+}
+
+const OGRGeometry * OGRGeometryCollection::getGeometryRef( int i ) const
 
 {
     if( i < 0 || i >= nGeomCount )
@@ -309,7 +339,7 @@ OGRGeometry * OGRGeometryCollection::getGeometryRef( int i )
  * the geometry type is illegal for the type of geometry container.
  */
 
-OGRErr OGRGeometryCollection::addGeometry( OGRGeometry * poNewGeom )
+OGRErr OGRGeometryCollection::addGeometry( const OGRGeometry * poNewGeom )
 
 {
     OGRGeometry *poClone = poNewGeom->clone();
@@ -421,7 +451,7 @@ OGRErr OGRGeometryCollection::removeGeometry( int iGeom, int bDelete )
 /*      representation including the byte order, and type information.  */
 /************************************************************************/
 
-int OGRGeometryCollection::WkbSize()
+int OGRGeometryCollection::WkbSize() const
 
 {
     int         nSize = 9;
@@ -541,7 +571,7 @@ OGRErr OGRGeometryCollection::importFromWkb( unsigned char * pabyData,
 /************************************************************************/
 
 OGRErr  OGRGeometryCollection::exportToWkb( OGRwkbByteOrder eByteOrder,
-                                            unsigned char * pabyData )
+                                            unsigned char * pabyData ) const
 
 {
     int         nOffset;
@@ -549,7 +579,7 @@ OGRErr  OGRGeometryCollection::exportToWkb( OGRwkbByteOrder eByteOrder,
 /* -------------------------------------------------------------------- */
 /*      Set the byte order.                                             */
 /* -------------------------------------------------------------------- */
-    pabyData[0] = (unsigned char) eByteOrder;
+    pabyData[0] = DB2_V72_UNFIX_BYTE_ORDER((unsigned char) eByteOrder);
 
 /* -------------------------------------------------------------------- */
 /*      Set the geometry feature type, ensuring that 3D flag is         */
@@ -635,6 +665,24 @@ OGRErr OGRGeometryCollection::importFromWkt( char ** ppszInput )
     if( szToken[0] != '(' )
         return OGRERR_CORRUPT_DATA;
 
+/* -------------------------------------------------------------------- */
+/*      If the next token is EMPTY, then verify that we have proper     */
+/*      EMPTY format will a trailing closing bracket.                   */
+/* -------------------------------------------------------------------- */
+    OGRWktReadToken( pszInput, szToken );
+    if( EQUAL(szToken,"EMPTY") )
+    {
+        pszInput = OGRWktReadToken( pszInput, szToken );
+        pszInput = OGRWktReadToken( pszInput, szToken );
+        
+        *ppszInput = (char *) pszInput;
+
+        if( !EQUAL(szToken,")") )
+            return OGRERR_CORRUPT_DATA;
+        else
+            return OGRERR_NONE;
+    }
+
 /* ==================================================================== */
 /*      Read each subgeometry in turn.                                  */
 /* ==================================================================== */
@@ -642,7 +690,7 @@ OGRErr OGRGeometryCollection::importFromWkt( char ** ppszInput )
     {
         OGRGeometry *poGeom = NULL;
         OGRErr      eErr;
-    
+
         eErr = OGRGeometryFactory::createFromWkt( (char **) &pszInput,
                                                   NULL, &poGeom );
         if( eErr != OGRERR_NONE )
@@ -676,12 +724,18 @@ OGRErr OGRGeometryCollection::importFromWkt( char ** ppszInput )
 /*      equivelent.  This could be made alot more CPU efficient!        */
 /************************************************************************/
 
-OGRErr OGRGeometryCollection::exportToWkt( char ** ppszDstText )
+OGRErr OGRGeometryCollection::exportToWkt( char ** ppszDstText ) const
 
 {
     char        **papszGeoms;
     int         iGeom, nCumulativeLength = 0;
     OGRErr      eErr;
+
+    if( getNumGeometries() == 0 )
+    {
+        *ppszDstText = CPLStrdup("GEOMETRYCOLLECTION(EMPTY)");
+        return OGRERR_NONE;
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Build a list of strings containing the stuff for each Geom.     */
@@ -731,7 +785,7 @@ OGRErr OGRGeometryCollection::exportToWkt( char ** ppszDstText )
 /*                            getEnvelope()                             */
 /************************************************************************/
 
-void OGRGeometryCollection::getEnvelope( OGREnvelope * psEnvelope )
+void OGRGeometryCollection::getEnvelope( OGREnvelope * psEnvelope ) const
 
 {
     OGREnvelope         oGeomEnv;
@@ -757,15 +811,15 @@ void OGRGeometryCollection::getEnvelope( OGREnvelope * psEnvelope )
 }
 
 /************************************************************************/
-/*                               Equal()                                */
+/*                               Equals()                               */
 /************************************************************************/
 
-OGRBoolean OGRGeometryCollection::Equal( OGRGeometry * poOther )
+OGRBoolean OGRGeometryCollection::Equals( OGRGeometry * poOther ) const
 
 {
     OGRGeometryCollection *poOGC = (OGRGeometryCollection *) poOther;
 
-    if( poOther == this )
+    if( poOGC == this )
         return TRUE;
     
     if( poOther->getGeometryType() != getGeometryType() )
@@ -778,7 +832,7 @@ OGRBoolean OGRGeometryCollection::Equal( OGRGeometry * poOther )
 
     for( int iGeom = 0; iGeom < nGeomCount; iGeom++ )
     {
-        if( !getGeometryRef(iGeom)->Equal(poOGC->getGeometryRef(iGeom)) )
+        if( !getGeometryRef(iGeom)->Equals(poOGC->getGeometryRef(iGeom)) )
             return FALSE;
     }
 
@@ -822,3 +876,16 @@ OGRErr OGRGeometryCollection::transform( OGRCoordinateTransformation *poCT )
 #endif
 }
 
+/************************************************************************/
+/*                             closeRings()                             */
+/************************************************************************/
+
+void OGRGeometryCollection::closeRings()
+
+{
+    for( int iGeom = 0; iGeom < nGeomCount; iGeom++ )
+    {
+        if( wkbFlatten(papoGeoms[iGeom]->getGeometryType()) == wkbPolygon )
+            ((OGRPolygon *) papoGeoms[iGeom])->closeRings();
+    }
+}

@@ -32,6 +32,18 @@
  * specific checking, io redirection and so on. 
  * 
  * $Log: cpl_vsi.h,v $
+ * Revision 1.20  2005/04/12 03:51:11  fwarmerdam
+ * Fixed stat64 problem.
+ *
+ * Revision 1.19  2005/04/12 00:27:39  fwarmerdam
+ * added macos large file support
+ *
+ * Revision 1.18  2003/09/10 19:44:36  warmerda
+ * added VSIStrerrno()
+ *
+ * Revision 1.17  2003/09/08 08:11:40  dron
+ * Added VSIGMTime() and VSILocalTime().
+ *
  * Revision 1.16  2003/05/27 20:44:40  warmerda
  * added VSI io debugging macros
  *
@@ -180,7 +192,7 @@ int CPL_DLL     VSIFEofL( FILE * );
 void CPL_DLL    VSIFFlushL( FILE * );
 
 #ifndef WIN32
-typedef struct stat64 VSIStatBufL;
+typedef struct VSI_STAT64_T VSIStatBufL;
 int CPL_DLL     VSIStatL( const char *, VSIStatBufL * );
 #else
 #define VSIStatBufL    VSIStatBuf
@@ -224,9 +236,18 @@ char CPL_DLL   *VSIStrdup( const char * );
 int CPL_DLL VSIMkdir( const char * pathname, long mode );
 int CPL_DLL VSIRmdir( const char * pathname );
 int CPL_DLL VSIUnlink( const char * pathname );
+char CPL_DLL *VSIStrerror( int );
+
+/* ==================================================================== */
+/*      Time quering.                                                   */
+/* ==================================================================== */
 
 unsigned long CPL_DLL VSITime( unsigned long * );
 const char CPL_DLL *VSICTime( unsigned long );
+struct tm CPL_DLL *VSIGMTime( const time_t *pnTime,
+                              struct tm *poBrokenTime );
+struct tm CPL_DLL *VSILocalTime( const time_t *pnTime,
+                                 struct tm *poBrokenTime );
 
 /* -------------------------------------------------------------------- */
 /*      the following can be turned on for detailed logging of          */

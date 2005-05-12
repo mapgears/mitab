@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrgeometry.cpp,v 1.19 2003/06/10 14:51:07 warmerda Exp $
+ * $Id: ogrgeometry.cpp,v 1.30 2005/04/18 15:42:17 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Implements a few base methods on OGRGeometry.
@@ -28,6 +28,43 @@
  ******************************************************************************
  *
  * $Log: ogrgeometry.cpp,v $
+ * Revision 1.30  2005/04/18 15:42:17  fwarmerdam
+ * fix geos exception catching
+ *
+ * Revision 1.29  2005/04/06 20:43:00  fwarmerdam
+ * fixed a variety of method signatures for documentation
+ *
+ * Revision 1.28  2005/02/22 12:39:32  fwarmerdam
+ * Rename Equal to Equals, and Intersect to Intersects.
+ * Intersects() now always uses GEOS if available.  Also, Intersects()
+ * returns TRUE if the other geometry is NULL.
+ *
+ * Revision 1.27  2004/09/16 18:29:21  fwarmerdam
+ * Disable GEOS Insersect().  Is is very expensive for the common case of a
+ * bounding rectangle intersection.  We need something better eventually.
+ *
+ * Revision 1.26  2004/08/20 21:21:28  warmerda
+ * added support for managing a persistent geos::GeometryFactory
+ *
+ * Revision 1.25  2004/07/10 06:57:53  warmerda
+ * Added C entry points and docs for GEOS geometry functions
+ *
+ * Revision 1.24  2004/07/10 04:52:24  warmerda
+ * Added lots of GEOS methods.
+ * Added closeRings().
+ *
+ * Revision 1.23  2004/02/21 15:36:14  warmerda
+ * const correctness updates for geometry: bug 289
+ *
+ * Revision 1.22  2004/01/06 19:07:45  warmerda
+ * Added braces within case with variable declarations.
+ *
+ * Revision 1.21  2003/09/04 14:01:44  warmerda
+ * added OGRGetGenerate_DB2_V72_BYTE_ORDER
+ *
+ * Revision 1.20  2003/08/27 15:40:37  warmerda
+ * added support for generating DB2 V7.2 compatible WKB
+ *
  * Revision 1.19  2003/06/10 14:51:07  warmerda
  * Allow Intersects() test against NULL geometry
  *
@@ -90,9 +127,18 @@
 #include "ogr_geometry.h"
 #include "ogr_api.h"
 #include "ogr_p.h"
+#include "ogr_geos.h"
 #include <assert.h>
 
-CPL_CVSID("$Id: ogrgeometry.cpp,v 1.19 2003/06/10 14:51:07 warmerda Exp $");
+#ifdef HAVE_GEOS 
+#  include "geos/opDistance.h"
+#  include "geos/opBuffer.h"
+#  include "geos/geosAlgorithm.h"
+#endif
+
+CPL_CVSID("$Id: ogrgeometry.cpp,v 1.30 2005/04/18 15:42:17 fwarmerdam Exp $");
+
+int OGRGeometry::bGenerate_DB2_V72_BYTE_ORDER = FALSE;
 
 /************************************************************************/
 /*                            OGRGeometry()                             */
@@ -228,33 +274,34 @@ void OGR_G_AssignSpatialReference( OGRGeometryH hGeom,
 }
 
 /************************************************************************/
-/*                             Intersect()                              */
+/*                             Intersects()                             */
 /************************************************************************/
 
 /**
  * Do these features intersect?
  *
- * Currently this is not implemented in a rigerous fashion, and generally
- * just tests whether the envelopes of the two features intersect.  Eventually
- * this will be made rigerous.  
+ * Determines whether two geometries intersect.  If GEOS is enabled, then
+ * this is done in rigerous fashion otherwise TRUE is returned if the
+ * envelopes (bounding boxes) of the two features overlap. 
  *
  * The poOtherGeom argument may be safely NULL, but in this case the method
- * will always return FALSE.  
+ * will always return TRUE.   That is, a NULL geometry is treated as being
+ * everywhere. 
  *
- * This method is the same as the C function OGR_G_Intersect().
+ * This method is the same as the C function OGR_G_Intersects().
  *
  * @param poOtherGeom the other geometry to test against.  
  *
  * @return TRUE if the geometries intersect, otherwise FALSE.
  */
 
-OGRBoolean OGRGeometry::Intersect( OGRGeometry *poOtherGeom )
+OGRBoolean OGRGeometry::Intersects( OGRGeometry *poOtherGeom ) const
 
 {
     OGREnvelope         oEnv1, oEnv2;
 
     if( this == NULL || poOtherGeom == NULL )
-        return FALSE;
+        return TRUE;
 
     this->getEnvelope( &oEnv1 );
     poOtherGeom->getEnvelope( &oEnv2 );
@@ -264,8 +311,46 @@ OGRBoolean OGRGeometry::Intersect( OGRGeometry *poOtherGeom )
         || oEnv2.MaxX < oEnv1.MinX
         || oEnv2.MaxY < oEnv1.MinY )
         return FALSE;
+
+#ifndef HAVE_GEOS
+    // Without GEOS we assume that envelope overlap is equivelent to
+    // actual intersection.
+    return TRUE;
+#else
+    
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        OGRBoolean bResult;
+        
+        if( poThisGeosGeom->intersects( poOtherGeosGeom ) )
+            bResult = TRUE;
+        else
+            bResult = FALSE;
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        return bResult;
+    }
     else
+    {
         return TRUE;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+// Old API compatibility function.                                 
+
+OGRBoolean OGRGeometry::Intersect( OGRGeometry *poOtherGeom ) const
+
+{
+    return Intersects( poOtherGeom );
 }
 
 /************************************************************************/
@@ -278,7 +363,7 @@ OGRBoolean OGRGeometry::Intersect( OGRGeometry *poOtherGeom )
  * just tests whether the envelopes of the two features intersect.  Eventually
  * this will be made rigerous.
  *
- * This function is the same as the CPP method OGRGeometry::Intersect.
+ * This function is the same as the CPP method OGRGeometry::Intersects.
  *
  * @param hGeom handle on the first geometry.
  * @param hOtherGeom handle on the other geometry to test against.
@@ -286,10 +371,16 @@ OGRBoolean OGRGeometry::Intersect( OGRGeometry *poOtherGeom )
  * @return TRUE if the geometries intersect, otherwise FALSE.
  */
 
+int OGR_G_Intersects( OGRGeometryH hGeom, OGRGeometryH hOtherGeom )
+
+{
+    return ((OGRGeometry *) hGeom)->Intersects( (OGRGeometry *) hOtherGeom );
+}
+
 int OGR_G_Intersect( OGRGeometryH hGeom, OGRGeometryH hOtherGeom )
 
 {
-    return ((OGRGeometry *) hGeom)->Intersect( (OGRGeometry *) hOtherGeom );
+    return ((OGRGeometry *) hGeom)->Intersects( (OGRGeometry *) hOtherGeom );
 }
 
 /************************************************************************/
@@ -441,7 +532,7 @@ OGRErr OGR_G_Transform( OGRGeometryH hGeom,
 }
 
 /**
- * \fn int OGRGeometry::getDimension();
+ * \fn int OGRGeometry::getDimension() const;
  *
  * Get the dimension of this object.
  *
@@ -480,7 +571,7 @@ int OGR_G_GetDimension( OGRGeometryH hGeom )
 }
 
 /**
- * \fn int OGRGeometry::getCoordinateDimension();
+ * \fn int OGRGeometry::getCoordinateDimension() const;
  *
  * Get the dimension of the coordinates in this object.
  *
@@ -518,7 +609,7 @@ int OGR_G_GetCoordinateDimension( OGRGeometryH hGeom )
 
 
 /**
- * \fn OGRBoolean OGRGeometry::IsEmpty();
+ * \fn OGRBoolean OGRGeometry::IsEmpty() const;
  *
  * Returns TRUE (non-zero) if the object has no points.  Normally this
  * returns FALSE except between when an object is instantiated and points
@@ -532,7 +623,7 @@ int OGR_G_GetCoordinateDimension( OGRGeometryH hGeom )
  */
 
 /**
- * \fn OGRBoolean OGRGeometry::IsSimple();
+ * \fn OGRBoolean OGRGeometry::IsSimple() const;
  *
  * Returns TRUE if the geometry is simple.
  * 
@@ -549,7 +640,7 @@ int OGR_G_GetCoordinateDimension( OGRGeometryH hGeom )
  */
 
 /**
- * \fn int OGRGeometry::Equal( OGRGeometry *poOtherGeom );
+ * \fn int OGRGeometry::Equals( OGRGeometry *poOtherGeom ) const;
  *
  * Returns two if two geometries are equivalent.
  *
@@ -558,28 +649,43 @@ int OGR_G_GetCoordinateDimension( OGRGeometryH hGeom )
  * @return TRUE if equivalent or FALSE otherwise.
  */
 
+
+// Backward compatibility method.
+
+int OGRGeometry::Equal( OGRGeometry *poOtherGeom ) const
+{
+    return Equals( poOtherGeom );
+}
+
 /************************************************************************/
-/*                            OGR_G_Equal()                             */
+/*                            OGR_G_Equals()                            */
 /************************************************************************/
+
 /**
  * Returns two if two geometries are equivalent.
  *
- * This function is the same as the CPP method OGRGeometry::Equal() method.
+ * This function is the same as the CPP method OGRGeometry::Equals() method.
  *
  * @param hGeom handle on the first geometry.
  * @param hOther handle on the other geometry to test against.
  * @return TRUE if equivalent or FALSE otherwise.
  */
 
+int OGR_G_Equals( OGRGeometryH hGeom, OGRGeometryH hOther )
+
+{
+    return ((OGRGeometry *) hGeom)->Equals( (OGRGeometry *) hOther );
+}
+
 int OGR_G_Equal( OGRGeometryH hGeom, OGRGeometryH hOther )
 
 {
-    return ((OGRGeometry *) hGeom)->Equal( (OGRGeometry *) hOther );
+    return ((OGRGeometry *) hGeom)->Equals( (OGRGeometry *) hOther );
 }
 
 
 /**
- * \fn int OGRGeometry::WkbSize();
+ * \fn int OGRGeometry::WkbSize() const;
  *
  * Returns size of related binary representation.
  *
@@ -619,7 +725,7 @@ int OGR_G_WkbSize( OGRGeometryH hGeom )
 }
 
 /**
- * \fn void OGRGeometry::getEnvelope(OGREnvelope *psEnvelope);
+ * \fn void OGRGeometry::getEnvelope(OGREnvelope *psEnvelope) const;
  *
  * Computes and returns the bounding envelope for this geometry in the
  * passed psEnvelope structure.
@@ -701,7 +807,7 @@ OGRErr OGR_G_ImportFromWkb( OGRGeometryH hGeom,
 
 /**
  * \fn OGRErr OGRGeometry::exportToWkb( OGRwkbByteOrder eByteOrder,
-                                        unsigned char * pabyData );
+                                        unsigned char * pabyData ) const;
  *
  * Convert a geometry into well known binary format.
  *
@@ -797,7 +903,7 @@ OGRErr OGR_G_ImportFromWkt( OGRGeometryH hGeom, char ** ppszSrcText )
 }
 
 /**
- * \fn OGRErr OGRGeometry::exportToWkt( char ** ppszDstText );
+ * \fn OGRErr OGRGeometry::exportToWkt( char ** ppszDstText ) const;
  *
  * Convert a geometry into well known text format.
  *
@@ -815,8 +921,6 @@ OGRErr OGR_G_ImportFromWkt( OGRGeometryH hGeom, char ** ppszSrcText )
 /*                         OGR_G_ExportToWkt()                          */
 /************************************************************************/
 /**
- * \fn OGRErr ;
- *
  * Convert a geometry into well known text format.
  *
  * This function relates to the SFCOM IWks::ExportToWKT() method.
@@ -837,7 +941,7 @@ OGRErr OGR_G_ExportToWkt( OGRGeometryH hGeom, char **ppszSrcText )
 }
 
 /**
- * \fn OGRwkbGeometryType OGRGeometry::getGeometryType();
+ * \fn OGRwkbGeometryType OGRGeometry::getGeometryType() const;
  *
  * Fetch geometry type.
  *
@@ -873,7 +977,7 @@ OGRwkbGeometryType OGR_G_GetGeometryType( OGRGeometryH hGeom )
 }
 
 /**
- * \fn const char * OGRGeometry::getGeometryName();
+ * \fn const char * OGRGeometry::getGeometryName() const;
  *
  * Fetch WKT name for geometry type.
  *
@@ -907,7 +1011,7 @@ const char *OGR_G_GetGeometryName( OGRGeometryH hGeom )
 }
 
 /**
- * \fn OGRGeometry *OGRGeometry::clone();
+ * \fn OGRGeometry *OGRGeometry::clone() const;
  *
  * Make a copy of this object.
  *
@@ -1011,8 +1115,6 @@ void OGR_G_Empty( OGRGeometryH hGeom )
 /************************************************************************/
 
 /**
- * \fn const char *OGRGeometryTypeToName(OGRwkbGeometryType)
- *
  * Fetch a human readable name corresponding to an OGRwkBGeometryType value.
  * The returned value should not be modified, or freed by the application.
  *
@@ -1077,9 +1179,11 @@ const char *OGRGeometryTypeToName( OGRwkbGeometryType eType )
         return "None";
 
       default:
-        static char szWorkName[33];
-        sprintf( szWorkName, "Unrecognised: %d", (int) eType );
-        return szWorkName;
+      {
+          static char szWorkName[33];
+          sprintf( szWorkName, "Unrecognised: %d", (int) eType );
+          return szWorkName;
+      }
     }
 }
 
@@ -1133,3 +1237,1086 @@ char *OGRGeometry::exportToGML() const
     return OGR_G_ExportToGML( (OGRGeometryH) this );
 }
 
+/************************************************************************/
+/*                 OGRSetGenerate_DB2_V72_BYTE_ORDER()                  */
+/*                                                                      */
+/*      This is a special entry point to enable the hack for            */
+/*      generating DB2 V7.2 style WKB.  DB2 seems to have placed        */
+/*      (and require) an extra 0x30 or'ed with the byte order in        */
+/*      WKB.  This entry point is used to turn on or off the            */
+/*      generation of such WKB.                                         */
+/************************************************************************/
+
+OGRErr OGRSetGenerate_DB2_V72_BYTE_ORDER( int bGenerate_DB2_V72_BYTE_ORDER )
+
+{
+#if defined(HACK_FOR_IBM_DB2_V72)
+    OGRGeometry::bGenerate_DB2_V72_BYTE_ORDER = bGenerate_DB2_V72_BYTE_ORDER;
+    return OGRERR_NONE;
+#else
+    if( bGenerate_DB2_V72_BYTE_ORDER )
+        return OGRERR_FAILURE;
+    else
+        return OGRERR_NONE;
+#endif
+}
+/************************************************************************/
+/*                 OGRGetGenerate_DB2_V72_BYTE_ORDER()                  */
+/*                                                                      */
+/*      This is a special entry point to get the value of static flag   */
+/*      OGRGeometry::bGenerate_DB2_V72_BYTE_ORDER.                      */
+/************************************************************************/
+int OGRGetGenerate_DB2_V72_BYTE_ORDER()
+{
+   return OGRGeometry::bGenerate_DB2_V72_BYTE_ORDER;
+}
+
+/************************************************************************/
+/*                            exportToGEOS()                            */
+/************************************************************************/
+
+geos::Geometry *OGRGeometry::exportToGEOS() const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return NULL;
+
+#else
+
+    char *pszWKT = NULL;
+    geos::WKTReader   geosWktReader( 
+        OGRGeometryFactory::getGEOSGeometryFactory() );
+
+    if( exportToWkt( &pszWKT ) != OGRERR_NONE )
+        return NULL;
+
+    string oWKT = pszWKT;
+    CPLFree( pszWKT );
+
+    try 
+    { 
+        geos::Geometry *geosGeometry = NULL;
+        geosGeometry = geosWktReader.read( oWKT );
+        return geosGeometry;
+    }
+    catch( geos::GEOSException *e )
+    {
+        CPLError( CE_Failure, CPLE_AppDefined,
+                  "GEOSException: %s", 
+                  e->toString().c_str() );
+
+        delete e;
+        return NULL;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+
+/************************************************************************/
+/*                              Distance()                              */
+/************************************************************************/
+
+/**
+ * Compute distance between two geometries.
+ *
+ * Returns the shortest distance between the two geometries. 
+ *
+ * This method is the same as the C function OGR_G_Distance().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the other geometry to compare against.
+ *
+ * @return the distance between the geometries or -1 if an error occurs.
+ */
+
+double OGRGeometry::Distance( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return -1.0;
+
+#else
+    geos::Geometry *poThis, *poOther;
+
+    poThis = exportToGEOS();
+    poOther = poOtherGeom->exportToGEOS();
+
+    if( poThis != NULL && poOther != NULL )
+    {
+        geos::DistanceOp oDistOp( poThis, poOther );
+        double dfDistance;
+
+        dfDistance = oDistOp.distance();
+        
+        delete poThis;
+        delete poOther;
+
+        return dfDistance;
+    }
+    else
+    {
+        return -1.0;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                           OGR_G_Distance()                           */
+/************************************************************************/
+
+double OGR_G_Distance( OGRGeometryH hFirst, OGRGeometryH hOther )
+
+{
+    return ((OGRGeometry *) hFirst)->Distance( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                             ConvexHull()                             */
+/************************************************************************/
+
+/**
+ * Compute convex hull.
+ *
+ * A new geometry object is created and returned containing the convex
+ * hull of the geometry on which the method is invoked.  
+ *
+ * This method is the same as the C function OGR_G_ConvexHull().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @return a newly allocated geometry now owned by the caller, or NULL on failure.
+ */
+
+OGRGeometry *OGRGeometry::ConvexHull() const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return NULL;
+
+#else
+    geos::Geometry *poGeosGeom;
+    OGRGeometry *poHullOGRGeom = NULL;
+
+    poGeosGeom = exportToGEOS();
+
+    if( poGeosGeom != NULL )
+    {
+        geos::ConvexHull oCHull( poGeosGeom );
+        geos::Geometry *poHullGeosGeom;
+
+        poHullGeosGeom = oCHull.getConvexHull();
+
+        if( poHullGeosGeom != NULL )
+        {
+            poHullOGRGeom = OGRGeometryFactory::createFromGEOS(poHullGeosGeom);
+            delete poHullGeosGeom;
+        }
+
+        delete poGeosGeom;
+    }
+
+    return poHullOGRGeom;
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                          OGR_G_ConvexHull()                          */
+/************************************************************************/
+
+OGRGeometryH OGR_G_ConvexHull( OGRGeometryH hTarget )
+
+{
+    return (OGRGeometryH) ((OGRGeometry *) hTarget)->ConvexHull();
+}
+
+/************************************************************************/
+/*                            getBoundary()                             */
+/************************************************************************/
+
+/**
+ * Compute boundary.
+ *
+ * A new geometry object is created and returned containing the boundary
+ * of the geometry on which the method is invoked.  
+ *
+ * This method is the same as the C function OGR_G_GetBoundary().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @return a newly allocated geometry now owned by the caller, or NULL on failure.
+ */
+
+OGRGeometry *OGRGeometry::getBoundary() const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return NULL;
+
+#else
+    geos::Geometry *poSrcGeosGeom;
+    OGRGeometry *poResultOGRGeom = NULL;
+
+    poSrcGeosGeom = exportToGEOS();
+
+    if( poSrcGeosGeom != NULL )
+    {
+        geos::Geometry *poResultGeosGeom = 
+            poSrcGeosGeom->getBoundary();
+
+        if( poResultGeosGeom != NULL )
+        {
+            poResultOGRGeom = 
+                OGRGeometryFactory::createFromGEOS(poResultGeosGeom);
+            delete poResultGeosGeom;
+        }
+
+        delete poSrcGeosGeom;
+    }
+
+    return poResultOGRGeom;
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                         OGR_G_GetBoundary()                          */
+/************************************************************************/
+
+OGRGeometryH OGR_G_GetBoundary( OGRGeometryH hTarget )
+
+{
+    return (OGRGeometryH) ((OGRGeometry *) hTarget)->getBoundary();
+}
+
+
+/************************************************************************/
+/*                               Buffer()                               */
+/************************************************************************/
+
+/**
+ * Compute buffer of geometry.
+ *
+ * Builds a new geometry containing the buffer region around the geometry
+ * on which it is invoked.  The buffer is a polygon containing the region within
+ * the buffer distance of the original geometry.  
+ *
+ * Some buffer sections are properly described as curves, but are converted to
+ * approximate polygons.  The nQuadSegs parameter can be used to control how many
+ * segements should be used to define a 90 degree curve - a quadrant of a circle. 
+ * A value of 30 is a reasonable default.  Large values result in large numbers
+ * of vertices in the resulting buffer geometry while small numbers reduce the 
+ * accuracy of the result. 
+ *
+ * This method is the same as the C function OGR_G_Buffer().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param dfDist the buffer distance to be applied. 
+ *
+ * @param nQuadSegs the number of segments used to approximate a 90 degree (quadrant) of
+ * curvature. 
+ *
+ * @return the newly created geometry, or NULL if an error occurs. 
+ */
+
+OGRGeometry *OGRGeometry::Buffer( double dfDist, int nQuadSegs ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return NULL;
+
+#else
+    geos::Geometry *poGeosGeom;
+    OGRGeometry *poBufferOGRGeom = NULL;
+
+    poGeosGeom = exportToGEOS();
+
+    if( poGeosGeom != NULL )
+    {
+        geos::BufferOp oBuffer( poGeosGeom );
+        geos::Geometry *poBufferGeosGeom;
+
+        poBufferGeosGeom = oBuffer.getResultGeometry( dfDist, nQuadSegs );
+
+        if( poBufferGeosGeom != NULL )
+        {
+            poBufferOGRGeom = 
+                OGRGeometryFactory::createFromGEOS(poBufferGeosGeom);
+            delete poBufferGeosGeom;
+        }
+
+        delete poGeosGeom;
+    }
+
+    return poBufferOGRGeom;
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                            OGR_G_Buffer()                            */
+/************************************************************************/
+
+OGRGeometryH OGR_G_Buffer( OGRGeometryH hTarget, double dfDist, int nQuadSegs )
+
+{
+    return (OGRGeometryH) ((OGRGeometry *) hTarget)->Buffer( dfDist, nQuadSegs );
+}
+
+/************************************************************************/
+/*                            Intersection()                            */
+/************************************************************************/
+
+/**
+ * Compute intersection.
+ *
+ * Generates a new geometry which is the region of intersection of the
+ * two geometries operated on.  The Intersect() method can be used to test if
+ * two geometries intersect. 
+ *
+ * This method is the same as the C function OGR_G_Intersection().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the other geometry intersected with "this" geometry.
+ *
+ * @return a new geometry representing the intersection or NULL if there is
+ * no intersection or an error occurs.
+ */
+
+OGRGeometry *OGRGeometry::Intersection( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return NULL;
+
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        geos::Geometry *poResultGeosGeom = 
+            poThisGeosGeom->intersection( poOtherGeosGeom );
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        OGRGeometry *poResultOGRGeom = 
+            OGRGeometryFactory::createFromGEOS( poResultGeosGeom );
+        delete poResultGeosGeom;
+
+        return poResultOGRGeom;
+    }
+    else
+    {
+        return NULL;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                         OGR_G_Intersection()                         */
+/************************************************************************/
+
+OGRGeometryH OGR_G_Intersection( OGRGeometryH hThis, OGRGeometryH hOther )
+
+{
+    return (OGRGeometryH) 
+        ((OGRGeometry *) hThis)->Intersection( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                               Union()                                */
+/************************************************************************/
+
+/**
+ * Compute union.
+ *
+ * Generates a new geometry which is the region of union of the
+ * two geometries operated on.  
+ *
+ * This method is the same as the C function OGR_G_Union().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the other geometry unioned with "this" geometry.
+ *
+ * @return a new geometry representing the union or NULL if an error occurs.
+ */
+
+OGRGeometry *OGRGeometry::Union( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return NULL;
+
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        geos::Geometry *poResultGeosGeom = 
+            poThisGeosGeom->Union( poOtherGeosGeom );
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        OGRGeometry *poResultOGRGeom = 
+            OGRGeometryFactory::createFromGEOS( poResultGeosGeom );
+        delete poResultGeosGeom;
+
+        return poResultOGRGeom;
+    }
+    else
+    {
+        return NULL;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                            OGR_G_Union()                             */
+/************************************************************************/
+
+OGRGeometryH OGR_G_Union( OGRGeometryH hThis, OGRGeometryH hOther )
+
+{
+    return (OGRGeometryH) 
+        ((OGRGeometry *) hThis)->Union( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                             Difference()                             */
+/************************************************************************/
+
+/**
+ * Compute difference.
+ *
+ * Generates a new geometry which is the region of this geometry with the
+ * region of the second geometry removed. 
+ *
+ * This method is the same as the C function OGR_G_Difference().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the other geometry removed from "this" geometry.
+ *
+ * @return a new geometry representing the difference or NULL if the 
+ * difference is empty or an error occurs.
+ */
+
+OGRGeometry *OGRGeometry::Difference( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return NULL;
+
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        geos::Geometry *poResultGeosGeom = 
+            poThisGeosGeom->difference( poOtherGeosGeom );
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        OGRGeometry *poResultOGRGeom = 
+            OGRGeometryFactory::createFromGEOS( poResultGeosGeom );
+        delete poResultGeosGeom;
+
+        return poResultOGRGeom;
+    }
+    else
+    {
+        return NULL;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                          OGR_G_Difference()                          */
+/************************************************************************/
+
+OGRGeometryH OGR_G_Difference( OGRGeometryH hThis, OGRGeometryH hOther )
+
+{
+    return (OGRGeometryH) 
+        ((OGRGeometry *) hThis)->Difference( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                        SymmetricDifference()                         */
+/************************************************************************/
+
+/**
+ * Compute symmetric difference.
+ *
+ * Generates a new geometry which is the symmetric difference of this
+ * geometry and the second geometry passed into the method.
+ *
+ * This method is the same as the C function OGR_G_SymmetricDifference().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the other geometry.
+ *
+ * @return a new geometry representing the symmetric difference or NULL if the 
+ * difference is empty or an error occurs.
+ */
+
+OGRGeometry *
+OGRGeometry::SymmetricDifference( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return NULL;
+
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        geos::Geometry *poResultGeosGeom = 
+            poThisGeosGeom->symDifference( poOtherGeosGeom );
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        OGRGeometry *poResultOGRGeom = 
+            OGRGeometryFactory::createFromGEOS( poResultGeosGeom );
+        delete poResultGeosGeom;
+
+        return poResultOGRGeom;
+    }
+    else
+    {
+        return NULL;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                          OGR_G_Difference()                          */
+/************************************************************************/
+
+OGRGeometryH OGR_G_SymmetricDifference( OGRGeometryH hThis, OGRGeometryH hOther )
+
+{
+    return (OGRGeometryH) 
+        ((OGRGeometry *) hThis)->SymmetricDifference( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                              Disjoint()                              */
+/************************************************************************/
+
+/**
+ * Test for disjointness.
+ *
+ * Tests if this geometry and the other passed into the method are disjoint. 
+ *
+ * This method is the same as the C function OGR_G_Disjoint().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the geometry to compare to this geometry.
+ *
+ * @return TRUE if they are disjoint, otherwise FALSE.  
+ */
+
+OGRBoolean
+OGRGeometry::Disjoint( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return FALSE;
+
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        OGRBoolean bResult;
+        
+        if( poThisGeosGeom->disjoint( poOtherGeosGeom ) )
+            bResult = TRUE;
+        else
+            bResult = FALSE;
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        return bResult;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                           OGR_G_Disjoint()                           */
+/************************************************************************/
+
+int OGR_G_Disjoint( OGRGeometryH hThis, OGRGeometryH hOther )
+
+{
+    return ((OGRGeometry *) hThis)->Disjoint( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                              Touches()                               */
+/************************************************************************/
+
+/**
+ * Test for touching.
+ *
+ * Tests if this geometry and the other passed into the method are touching.
+ *
+ * This method is the same as the C function OGR_G_Touches().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the geometry to compare to this geometry.
+ *
+ * @return TRUE if they are touching, otherwise FALSE.  
+ */
+
+OGRBoolean
+OGRGeometry::Touches( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return FALSE;
+
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        OGRBoolean bResult;
+        
+        if( poThisGeosGeom->touches( poOtherGeosGeom ) )
+            bResult = TRUE;
+        else
+            bResult = FALSE;
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        return bResult;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                           OGR_G_Touches()                            */
+/************************************************************************/
+
+int OGR_G_Touches( OGRGeometryH hThis, OGRGeometryH hOther )
+
+{
+    return ((OGRGeometry *) hThis)->Touches( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                              Crosses()                               */
+/************************************************************************/
+
+/**
+ * Test for crossing.
+ *
+ * Tests if this geometry and the other passed into the method are crossing.
+ *
+ * This method is the same as the C function OGR_G_Crosses().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the geometry to compare to this geometry.
+ *
+ * @return TRUE if they are crossing, otherwise FALSE.  
+ */
+
+OGRBoolean
+OGRGeometry::Crosses( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return FALSE;
+
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        OGRBoolean bResult;
+        
+        if( poThisGeosGeom->crosses( poOtherGeosGeom ) )
+            bResult = TRUE;
+        else
+            bResult = FALSE;
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        return bResult;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                           OGR_G_Crosses()                            */
+/************************************************************************/
+
+int OGR_G_Crosses( OGRGeometryH hThis, OGRGeometryH hOther )
+
+{
+    return ((OGRGeometry *) hThis)->Crosses( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                               Within()                               */
+/************************************************************************/
+
+/**
+ * Test for containment.
+ *
+ * Tests if the passed in geometry is within the target geometry.
+ *
+ * This method is the same as the C function OGR_G_Within().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the geometry to compare to this geometry.
+ *
+ * @return TRUE if poOtherGeom is within this geometry, otherwise FALSE.  
+ */
+
+OGRBoolean
+OGRGeometry::Within( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return FALSE;
+
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        OGRBoolean bResult;
+        
+        if( poThisGeosGeom->within( poOtherGeosGeom ) )
+            bResult = TRUE;
+        else
+            bResult = FALSE;
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        return bResult;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                            OGR_G_Within()                            */
+/************************************************************************/
+
+int OGR_G_Within( OGRGeometryH hThis, OGRGeometryH hOther )
+
+{
+    return ((OGRGeometry *) hThis)->Within( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                              Contains()                              */
+/************************************************************************/
+
+/**
+ * Test for containment.
+ *
+ * Tests if the passed in geometry contains the target geometry.
+ *
+ * This method is the same as the C function OGR_G_Contains().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the geometry to compare to this geometry.
+ *
+ * @return TRUE if poOtherGeom contains this geometry, otherwise FALSE.  
+ */
+
+OGRBoolean
+OGRGeometry::Contains( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return FALSE;
+
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        OGRBoolean bResult;
+        
+        if( poThisGeosGeom->contains( poOtherGeosGeom ) )
+            bResult = TRUE;
+        else
+            bResult = FALSE;
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        return bResult;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                            OGR_G_Contains()                            */
+/************************************************************************/
+
+int OGR_G_Contains( OGRGeometryH hThis, OGRGeometryH hOther )
+
+{
+    return ((OGRGeometry *) hThis)->Contains( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                              Overlaps()                              */
+/************************************************************************/
+
+/**
+ * Test for overlap.
+ *
+ * Tests if this geometry and the other passed into the method overlap, that is
+ * their intersection has a non-zero area. 
+ *
+ * This method is the same as the C function OGR_G_Overlaps().
+ *
+ * This method is built on the GEOS library, check it for the definition
+ * of the geometry operation.
+ * If OGR is built without the GEOS library, this method will always fail, 
+ * issuing a CPLE_NotSupported error. 
+ *
+ * @param poOtherGeom the geometry to compare to this geometry.
+ *
+ * @return TRUE if they are overlapping, otherwise FALSE.  
+ */
+
+OGRBoolean
+OGRGeometry::Overlaps( const OGRGeometry *poOtherGeom ) const
+
+{
+#ifndef HAVE_GEOS
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return FALSE;
+
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+
+    poThisGeosGeom = exportToGEOS();
+    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    {
+        OGRBoolean bResult;
+        
+        if( poThisGeosGeom->overlaps( poOtherGeosGeom ) )
+            bResult = TRUE;
+        else
+            bResult = FALSE;
+        
+        delete poThisGeosGeom;
+        delete poOtherGeosGeom;
+
+        return bResult;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                           OGR_G_Overlaps()                           */
+/************************************************************************/
+
+int OGR_G_Overlaps( OGRGeometryH hThis, OGRGeometryH hOther )
+
+{
+    return ((OGRGeometry *) hThis)->Overlaps( (OGRGeometry *) hOther );
+}
+
+/************************************************************************/
+/*                             closeRings()                             */
+/************************************************************************/
+
+/**
+ * Force rings to be closed.
+ *
+ * If this geometry, or any contained geometries has polygon rings that 
+ * are not closed, they will be closed by adding the starting point at
+ * the end. 
+ */
+
+void OGRGeometry::closeRings()
+
+{
+}
+
+/************************************************************************/
+/*                          OGR_G_CloseRings()                          */
+/************************************************************************/
+
+void OGR_G_CloseRings( OGRGeometryH hGeom )
+
+{
+    ((OGRGeometry *) hGeom)->closeRings();
+}

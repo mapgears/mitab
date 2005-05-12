@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrfeaturequery.cpp,v 1.7 2003/03/04 05:46:31 warmerda Exp $
+ * $Id: ogrfeaturequery.cpp,v 1.9 2005/04/03 21:05:39 fwarmerdam Exp $
  * 
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Implementation of simple SQL WHERE style attributes queries
@@ -29,6 +29,13 @@
  ******************************************************************************
  *
  * $Log: ogrfeaturequery.cpp,v $
+ * Revision 1.9  2005/04/03 21:05:39  fwarmerdam
+ * Fixed IN operator for Reals.
+ *
+ * Revision 1.8  2004/02/23 21:48:19  warmerda
+ * Fixed bug with support for IS NULL and IS NOT NULL on list fields.
+ * Added preliminary (untested) support for GetUsedFields().
+ *
  * Revision 1.7  2003/03/04 05:46:31  warmerda
  * added EvaluateAgainstIndices for OGRFeatureQuery
  *
@@ -58,7 +65,7 @@
 #include "ogrsf_frmts.h" 
 #include "ogr_attrind.h"
 
-CPL_CVSID("$Id: ogrfeaturequery.cpp,v 1.7 2003/03/04 05:46:31 warmerda Exp $");
+CPL_CVSID("$Id: ogrfeaturequery.cpp,v 1.9 2005/04/03 21:05:39 fwarmerdam Exp $");
 
 CPL_C_START
 #include "swq.h"
@@ -251,7 +258,7 @@ static int OGRFeatureQueryEvaluator( swq_field_op *op, OGRFeature *poFeature )
               pszSrc = op->string_value;
               while( *pszSrc != '\0' )
               {
-                  if( atof(pszSrc) == psField->Integer )
+                  if( atof(pszSrc) == psField->Real )
                       return TRUE;
                   pszSrc += strlen(pszSrc) + 1;
               }
@@ -321,6 +328,19 @@ static int OGRFeatureQueryEvaluator( swq_field_op *op, OGRFeature *poFeature )
           default:
             CPLDebug( "OGRFeatureQuery", 
                       "Illegal operation (%d) on string field.",
+                      op->operation );
+            return FALSE;
+        }
+
+      case SWQ_OTHER:
+        switch( op->operation )
+        {
+          case SWQ_ISNULL:
+            return !poFeature->IsFieldSet( op->field_index );
+
+          default:
+            CPLDebug( "OGRFeatureQuery", 
+                      "Illegal operation (%d) on list or binary field.",
                       op->operation );
             return FALSE;
         }
@@ -411,3 +431,91 @@ long *OGRFeatureQuery::EvaluateAgainstIndices( OGRLayer *poLayer,
 
     return poIndex->GetAllMatches( &sValue );
 }
+
+/************************************************************************/
+/*                         OGRFieldCollector()                          */
+/*                                                                      */
+/*      Helper function for recursing through tree to satisfy           */
+/*      GetUsedFields().                                                */
+/************************************************************************/
+
+char **OGRFeatureQuery::FieldCollector( void *pBareOp, 
+                                        char **papszList )
+
+{
+    swq_field_op *op = (swq_field_op *) pBareOp;
+
+/* -------------------------------------------------------------------- */
+/*      References to tables other than the primarily are currently     */
+/*      unsupported. Error out.                                         */
+/* -------------------------------------------------------------------- */
+    if( op->table_index != 0 )
+    {
+        CSLDestroy( papszList );
+        return NULL;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Add the field name into our list if it is not already there.    */
+/* -------------------------------------------------------------------- */
+    const char *pszFieldName;
+
+    if( op->field_index == poTargetDefn->GetFieldCount() ) 
+        pszFieldName = "FID";
+    else if( op->field_index >= 0 
+             && op->field_index < poTargetDefn->GetFieldCount() )
+        pszFieldName = 
+            poTargetDefn->GetFieldDefn(op->field_index)->GetNameRef();
+    else
+    {
+        CSLDestroy( papszList );
+        return NULL;
+    }
+
+    if( CSLFindString( papszList, pszFieldName ) == -1 )
+        papszList = CSLAddString( papszList, pszFieldName );
+
+/* -------------------------------------------------------------------- */
+/*      Add in fields from subexpressions.                              */
+/* -------------------------------------------------------------------- */
+    if( op->first_sub_expr != NULL )
+        papszList = FieldCollector( op->first_sub_expr, papszList );
+    if( op->second_sub_expr != NULL )
+        papszList = FieldCollector( op->second_sub_expr, papszList );
+
+    return papszList;
+}
+
+/************************************************************************/
+/*                           GetUsedFields()                            */
+/************************************************************************/
+
+/**
+ * Returns lists of fields in expression.
+ *
+ * All attribute fields are used in the expression of this feature
+ * query are returned as a StringList of field names.  This function would
+ * primarily be used within drivers to recognise special case conditions
+ * depending only on attribute fields that can be very efficiently 
+ * fetched. 
+ *
+ * NOTE: If any fields in the expression are from tables other than the
+ * primary table then NULL is returned indicating an error.  In succesful
+ * use, no non-empty expression should return an empty list.
+ *
+ * @return list of field names.  Free list with CSLDestroy() when no longer
+ * required.
+ */
+
+char **OGRFeatureQuery::GetUsedFields( )
+
+{
+    if( pSWQExpr == NULL )
+        return NULL;
+
+    
+    return FieldCollector( pSWQExpr, NULL );
+}
+
+
+

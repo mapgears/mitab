@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrcurve.cpp,v 1.8 2001/07/18 05:03:05 warmerda Exp $
+ * $Id: ogrcurve.cpp,v 1.11 2005/04/06 20:43:00 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRCurve geometry class. 
@@ -28,6 +28,17 @@
  ******************************************************************************
  *
  * $Log: ogrcurve.cpp,v $
+ * Revision 1.11  2005/04/06 20:43:00  fwarmerdam
+ * fixed a variety of method signatures for documentation
+ *
+ * Revision 1.10  2004/02/21 15:36:14  warmerda
+ * const correctness updates for geometry: bug 289
+ *
+ * Revision 1.9  2003/09/11 22:47:53  aamici
+ * add class constructors and destructors where needed in order to
+ * let the mingw/cygwin binutils produce sensible partially linked objet files
+ * with 'ld -r'.
+ *
  * Revision 1.8  2001/07/18 05:03:05  warmerda
  * added CPL_CVSID
  *
@@ -59,7 +70,15 @@
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrcurve.cpp,v 1.8 2001/07/18 05:03:05 warmerda Exp $");
+CPL_CVSID("$Id: ogrcurve.cpp,v 1.11 2005/04/06 20:43:00 fwarmerdam Exp $");
+
+OGRCurve::OGRCurve()
+{
+}
+
+OGRCurve::~OGRCurve()
+{
+}
 
 /************************************************************************/
 /*                            get_IsClosed()                            */
@@ -76,7 +95,7 @@ CPL_CVSID("$Id: ogrcurve.cpp,v 1.8 2001/07/18 05:03:05 warmerda Exp $");
  * @return TRUE if closed, else FALSE.
  */
 
-int OGRCurve::get_IsClosed()
+int OGRCurve::get_IsClosed() const
 
 {
     OGRPoint            oStartPoint, oEndPoint;
@@ -96,7 +115,7 @@ int OGRCurve::get_IsClosed()
 }
 
 /**
- * \fn double OGRCurve::get_Length();
+ * \fn double OGRCurve::get_Length() const;
  *
  * Returns the length of the curve.
  *
@@ -107,7 +126,7 @@ int OGRCurve::get_IsClosed()
  */
 
 /**
- * \fn void OGRCurve::StartPoint( OGRPoint * poPoint );
+ * \fn void OGRCurve::StartPoint( OGRPoint * poPoint ) const;
  *
  * Return the curve start point.
  *
@@ -117,7 +136,7 @@ int OGRCurve::get_IsClosed()
  */
 
 /**
- * \fn void OGRCurve::EndPoint( OGRPoint * poPoint );
+ * \fn void OGRCurve::EndPoint( OGRPoint * poPoint ) const;
  *
  * Return the curve end point.
  *
@@ -127,7 +146,7 @@ int OGRCurve::get_IsClosed()
  */
 
 /**
- * \fn void OGRCurve::Value( double dfDistance, OGRPoint * poPoint );
+ * \fn void OGRCurve::Value( double dfDistance, OGRPoint * poPoint ) const;
  *
  * Fetch point at given distance along curve.
  *

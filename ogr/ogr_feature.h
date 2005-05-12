@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_feature.h,v 1.28 2003/05/28 19:16:42 warmerda Exp $
+ * $Id: ogr_feature.h,v 1.29 2004/02/23 21:47:23 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Class for representing a whole feature, and layer schemas.
@@ -28,6 +28,9 @@
  ******************************************************************************
  *
  * $Log: ogr_feature.h,v $
+ * Revision 1.29  2004/02/23 21:47:23  warmerda
+ * Added GetUsedFields() and GetSWGExpr() methods on OGRFeatureQuery class
+ *
  * Revision 1.28  2003/05/28 19:16:42  warmerda
  * fixed up argument names and stuff for docs
  *
@@ -366,6 +369,8 @@ class CPL_DLL OGRFeatureQuery
   private:
     OGRFeatureDefn *poTargetDefn;
     void           *pSWQExpr;
+
+    char          **FieldCollector( void *, char ** );
     
   public:
                 OGRFeatureQuery();
@@ -375,6 +380,10 @@ class CPL_DLL OGRFeatureQuery
     int         Evaluate( OGRFeature * );
 
     long       *EvaluateAgainstIndices( OGRLayer *, OGRErr * );
+
+    char      **GetUsedFields();
+
+    void       *GetSWGExpr() { return pSWQExpr; }
 };
 
 #endif /* ndef _OGR_FEATURE_H_INCLUDED */

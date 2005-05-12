@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrdatasource.cpp,v 1.20 2003/05/28 19:18:04 warmerda Exp $
+ * $Id: ogrdatasource.cpp,v 1.22 2004/11/21 22:09:38 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The generic portions of the OGRDataSource class.
@@ -28,6 +28,12 @@
  ******************************************************************************
  *
  * $Log: ogrdatasource.cpp,v $
+ * Revision 1.22  2004/11/21 22:09:38  fwarmerdam
+ * added DestroyDataSource() static method, and Release() method
+ *
+ * Revision 1.21  2003/11/05 21:43:54  warmerda
+ * Removed destructor debug message ... too much extra noise.
+ *
  * Revision 1.20  2003/05/28 19:18:04  warmerda
  * fixup argument names for docs
  *
@@ -101,7 +107,7 @@ CPL_C_START
 #include "swq.h"
 CPL_C_END
 
-CPL_CVSID("$Id: ogrdatasource.cpp,v 1.20 2003/05/28 19:18:04 warmerda Exp $");
+CPL_CVSID("$Id: ogrdatasource.cpp,v 1.22 2004/11/21 22:09:38 fwarmerdam Exp $");
 
 /************************************************************************/
 /*                           ~OGRDataSource()                           */
@@ -121,7 +127,16 @@ OGRDataSource::OGRDataSource()
 OGRDataSource::~OGRDataSource()
 
 {
-    CPLDebug( "OGR", "~OGRDDataSource(%p)", this );
+}
+
+/************************************************************************/
+/*                         DestroyDataSource()                          */
+/************************************************************************/
+
+void OGRDataSource::DestroyDataSource( OGRDataSource *poDS )
+
+{
+    delete poDS;
 }
 
 /************************************************************************/
@@ -132,6 +147,16 @@ void OGR_DS_Destroy( OGRDataSourceH hDS )
 
 {
     delete (OGRDataSource *) hDS;
+}
+
+/************************************************************************/
+/*                              Release()                               */
+/************************************************************************/
+
+OGRErr OGRDataSource::Release()
+
+{
+    return OGRSFDriverRegistrar::GetRegistrar()->ReleaseDataSource( this );
 }
 
 /************************************************************************/

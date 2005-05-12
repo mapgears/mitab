@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_srs_esri.cpp,v 1.25 2003/06/23 14:49:17 warmerda Exp $
+ * $Id: ogr_srs_esri.cpp,v 1.39 2005/05/04 14:29:20 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  OGRSpatialReference translation to/from ESRI .prj definitions.
@@ -28,6 +28,52 @@
  ******************************************************************************
  *
  * $Log: ogr_srs_esri.cpp,v $
+ * Revision 1.39  2005/05/04 14:29:20  fwarmerdam
+ * convert Standard_Parallel_1 in ESRI Mercator to Latitude_Of_Origin.
+ *
+ * Revision 1.38  2005/02/18 21:52:44  fwarmerdam
+ * Fixed support for .prj files with blank lines between the parameters.
+ *
+ * Revision 1.37  2005/01/13 16:32:27  fwarmerdam
+ * added support for fipszone for stateplane
+ *
+ * Revision 1.36  2005/01/13 15:18:05  fwarmerdam
+ * use SetLinearUnitsAndUpdateParameters()
+ *
+ * Revision 1.35  2004/09/23 16:20:40  fwarmerdam
+ * added clode to cleanup datum mapping table: bug 613
+ *
+ * Revision 1.34  2004/09/10 21:03:55  fwarmerdam
+ * Lots of changes to map Hotine_Oblique_Mercator_Azimuth_Center in ESRI format
+ * to Hotine_Oblique_Mercator with a rectified_grid_angle of 90 (and back).
+ * This is a special case for the swiss oblique mercator.
+ * See http://bugzilla.remotesensing.org/show_bug.cgi?id=423
+ *
+ * Revision 1.33  2004/07/29 19:12:05  warmerda
+ * support multiline ESRI .prj files in WKT format
+ *
+ * Revision 1.32  2004/05/04 13:11:49  warmerda
+ * Added support for KRASOVSKY spheroid
+ *
+ * Revision 1.31  2004/04/24 15:45:04  warmerda
+ * Added GRS80 spheroid support.
+ *
+ * Revision 1.30  2004/04/19 19:32:25  warmerda
+ * added INTERNATIONAL1909
+ *
+ * Revision 1.29  2004/02/25 21:14:35  warmerda
+ * added morph of spheroid names to ESRI
+ *
+ * Revision 1.28  2003/11/03 21:37:34  warmerda
+ * fixed southern hemisphere UTM support
+ *
+ * Revision 1.27  2003/08/14 14:36:24  warmerda
+ * some ESRI .prj files use Central_Parallel instead of latitude_of_origin
+ *
+ * Revision 1.26  2003/08/03 01:30:34  warmerda
+ * Added mapping for EUR datum as per:
+ * http://bugzilla.remotesensing.org/show_bug.cgi?id=371
+ *
  * Revision 1.25  2003/06/23 14:49:17  warmerda
  * added InitDatumMappingTable, and use of gdal_datum.csv file
  *
@@ -112,12 +158,14 @@
 #include "ogr_p.h"
 #include "cpl_csv.h"
 
-CPL_CVSID("$Id: ogr_srs_esri.cpp,v 1.25 2003/06/23 14:49:17 warmerda Exp $");
+CPL_CVSID("$Id: ogr_srs_esri.cpp,v 1.39 2005/05/04 14:29:20 fwarmerdam Exp $");
 
 static char *apszProjMapping[] = {
     "Albers", SRS_PT_ALBERS_CONIC_EQUAL_AREA,
     "Cassini", SRS_PT_CASSINI_SOLDNER,
     "Hotine_Oblique_Mercator_Azimuth_Natural_Origin", 
+                                        SRS_PT_HOTINE_OBLIQUE_MERCATOR,
+    "Hotine_Oblique_Mercator_Azimuth_Center", 
                                         SRS_PT_HOTINE_OBLIQUE_MERCATOR,
     "Lambert_Conformal_Conic", SRS_PT_LAMBERT_CONFORMAL_CONIC_2SP,
     "Lambert_Conformal_Conic", SRS_PT_LAMBERT_CONFORMAL_CONIC_1SP,
@@ -131,14 +179,20 @@ static char *apszProjMapping[] = {
 static char *apszAlbersMapping[] = {
     SRS_PP_CENTRAL_MERIDIAN, SRS_PP_LONGITUDE_OF_CENTER, 
     SRS_PP_LATITUDE_OF_ORIGIN, SRS_PP_LATITUDE_OF_CENTER,
+    "Central_Parallel", SRS_PP_LATITUDE_OF_CENTER,
     NULL, NULL };
 
-static char *apszArgMapping[] = {
-    
-    NULL, NULL }; 
- 
+static char *apszMercatorMapping[] = {
+    SRS_PP_STANDARD_PARALLEL_1, SRS_PP_LATITUDE_OF_ORIGIN,
+    NULL, NULL };
+
 static char **papszDatumMapping = NULL;
  
+static char *apszDefaultDatumMapping[] = {
+    "6267", "North_American_1927", SRS_DN_NAD27,
+    "6269", "North_American_1983", SRS_DN_NAD83,
+    NULL, NULL, NULL }; 
+
 static char *apszUnitMapping[] = {
     "Meter", "meter",
     "Meter", "metre",
@@ -323,17 +377,73 @@ static int ESRIToUSGSZone( int nESRIZone )
 }
 
 /************************************************************************/
+/*                          MorphNameToESRI()                           */
+/*                                                                      */
+/*      Make name ESRI compatible. Convert spaces and special           */
+/*      characters to underscores and then strip down.                  */
+/************************************************************************/
+
+static void MorphNameToESRI( char ** ppszName )
+
+{
+    int         i, j;
+    char        *pszName = *ppszName;
+
+/* -------------------------------------------------------------------- */
+/*      Translate non-alphanumeric values to underscores.               */
+/* -------------------------------------------------------------------- */
+    for( i = 0; pszName[i] != '\0'; i++ )
+    {
+        if( !(pszName[i] >= 'A' && pszName[i] <= 'Z')
+            && !(pszName[i] >= 'a' && pszName[i] <= 'z')
+            && !(pszName[i] >= '0' && pszName[i] <= '9') )
+        {
+            pszName[i] = '_';
+        }
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Remove repeated and trailing underscores.                       */
+/* -------------------------------------------------------------------- */
+    for( i = 1, j = 0; pszName[i] != '\0'; i++ )
+    {
+        if( pszName[j] == '_' && pszName[i] == '_' )
+            continue;
+
+        pszName[++j] = pszName[i];
+    }
+    if( pszName[j] == '_' )
+        pszName[j] = '\0';
+    else
+        pszName[j+1] = '\0';
+}
+
+/************************************************************************/
+/*                     CleanESRIDatumMappingTable()                     */
+/************************************************************************/
+
+CPL_C_START 
+void CleanupESRIDatumMappingTable()
+
+{
+    if( papszDatumMapping == NULL )
+        return;
+
+    if( papszDatumMapping != apszDefaultDatumMapping )
+    {
+        CSLDestroy( papszDatumMapping );
+        papszDatumMapping = NULL;
+    }
+}
+CPL_C_END
+
+/************************************************************************/
 /*                       InitDatumMappingTable()                        */
 /************************************************************************/
 
 static void InitDatumMappingTable()
 
 {
-    static char *apszDefaultDatumMapping[] = {
-        "6267", "North_American_1927", SRS_DN_NAD27,
-        "6269", "North_American_1983", SRS_DN_NAD83,
-        NULL, NULL, NULL }; 
-
     if( papszDatumMapping != NULL )
         return;
 
@@ -449,7 +559,14 @@ static double OSR_GDV( char **papszNV, const char * pszField,
 
         for( nOffset=atoi(pszField+6); 
              papszNV[iLine] != NULL && nOffset > 0; 
-             nOffset--, iLine++ ) {}
+             iLine++ ) 
+        {
+            if( strlen(papszNV[iLine]) > 0 )
+                nOffset--;
+        }
+        
+        while( papszNV[iLine] != NULL && strlen(papszNV[iLine]) == 0 ) 
+            iLine++;
 
         if( papszNV[iLine] != NULL )
         {
@@ -475,8 +592,10 @@ static double OSR_GDV( char **papszNV, const char * pszField,
                 if( atof(papszTokens[0]) < 0.0 )
                     dfValue *= -1;
             }
-            else
+            else if( CSLCount(papszTokens) > 0 )
                 dfValue = atof(papszTokens[0]);
+            else
+                dfValue = dfDefaultValue;
 
             CSLDestroy( papszTokens );
 
@@ -574,21 +693,30 @@ OGRErr OGRSpatialReference::importFromESRI( char **papszPrj )
         return OGRERR_CORRUPT_DATA;
 
 /* -------------------------------------------------------------------- */
-/*      Some newer ESRI products, like ArcPad, produce .prj files       */
-/*      with WKT in them.  Check if that appears to be the case.        */
-/*                                                                      */
-/*      ESRI uses an odd datum naming scheme, so some further           */
-/*      massaging may be required.                                      */
+/*      ArcGIS and related products now use a varient of Well Known     */
+/*      Text.  Try to recognise this and ingest it.  WKT is usually     */
+/*      all on one line, but we will accept multi-line formats and      */
+/*      concatenate.                                                    */
 /* -------------------------------------------------------------------- */
     if( EQUALN(papszPrj[0],"GEOGCS",6)
         || EQUALN(papszPrj[0],"PROJCS",6)
         || EQUALN(papszPrj[0],"LOCAL_CS",8) )
     {
-        char    *pszWKT;
+        char    *pszWKT, *pszWKT2;
         OGRErr  eErr;
+        int     i;
 
-        pszWKT = papszPrj[0];
-        eErr = importFromWkt( &pszWKT );
+        pszWKT = CPLStrdup(papszPrj[0]);
+        for( i = 1; papszPrj[i] != NULL; i++ )
+        {
+            pszWKT = (char *) 
+                CPLRealloc(pszWKT,strlen(pszWKT)+strlen(papszPrj[i])+1);
+            strcat( pszWKT, papszPrj[i] );
+        }
+        pszWKT2 = pszWKT;
+        eErr = importFromWkt( &pszWKT2 );
+        CPLFree( pszWKT );
+
         if( eErr == OGRERR_NONE )
             eErr = morphFromESRI();
         return eErr;
@@ -616,7 +744,7 @@ OGRErr OGRSpatialReference::importFromESRI( char **papszPrj )
             double      dfYShift = OSR_GDV( papszPrj, "Yshift", 0.0 );
 
             SetUTM( (int) OSR_GDV( papszPrj, "zone", 0.0 ),
-                    dfYShift >= 0.0 );
+                    dfYShift == 0.0 );
         }
         else
         {
@@ -634,7 +762,10 @@ OGRErr OGRSpatialReference::importFromESRI( char **papszPrj )
     else if( EQUAL(pszProj,"STATEPLANE") )
     {
         int nZone = (int) OSR_GDV( papszPrj, "zone", 0.0 );
-        nZone = ESRIToUSGSZone( nZone );
+        if( nZone != 0 )
+            nZone = ESRIToUSGSZone( nZone );
+        else
+            nZone = (int) OSR_GDV( papszPrj, "fipszone", 0.0 );
 
         if( nZone != 0 )
         {
@@ -736,13 +867,18 @@ OGRErr OGRSpatialReference::importFromESRI( char **papszPrj )
         {
             SetWellKnownGeogCS( pszDatum );
         }
+        else if( EQUAL( pszDatum, "EUR" ) )
+        {
+            SetWellKnownGeogCS( "EPSG:4230" );
+        }
         else
         {
             const char *pszSpheroid;
 
             pszSpheroid = OSR_GDS( papszPrj, "Spheroid", "");
             
-            if( EQUAL(pszSpheroid,"INT1909") )
+            if( EQUAL(pszSpheroid,"INT1909") 
+                || EQUAL(pszSpheroid,"INTERNATIONAL1909") )
             {
                 OGRSpatialReference oGCS;
                 oGCS.importFromEPSG( 4022 );
@@ -758,6 +894,19 @@ OGRErr OGRSpatialReference::importFromESRI( char **papszPrj )
             {
                 OGRSpatialReference oGCS;
                 oGCS.importFromEPSG( 4008 );
+                CopyGeogCSFrom( &oGCS );
+            }
+            else if( EQUAL(pszSpheroid,"GRS80") )
+            {
+                OGRSpatialReference oGCS;
+                oGCS.importFromEPSG( 4019 );
+                CopyGeogCSFrom( &oGCS );
+            }
+            else if( EQUAL(pszSpheroid,"KRASOVSKY") 
+                     || EQUAL(pszSpheroid,"KRASSOVSKY") )
+            {
+                OGRSpatialReference oGCS;
+                oGCS.importFromEPSG( 4024 );
                 CopyGeogCSFrom( &oGCS );
             }
             else
@@ -777,11 +926,11 @@ OGRErr OGRSpatialReference::importFromESRI( char **papszPrj )
 
         pszValue = OSR_GDS( papszPrj, "Units", NULL );
         if( pszValue == NULL )
-            SetLinearUnits( SRS_UL_METER, 1.0 );
+            SetLinearUnitsAndUpdateParameters( SRS_UL_METER, 1.0 );
         else if( EQUAL(pszValue,"FEET") )
-            SetLinearUnits( SRS_UL_FOOT, atof(SRS_UL_FOOT_CONV) );
+            SetLinearUnitsAndUpdateParameters( SRS_UL_FOOT, atof(SRS_UL_FOOT_CONV) );
         else
-            SetLinearUnits( pszValue, 1.0 );
+            SetLinearUnitsAndUpdateParameters( pszValue, 1.0 );
     }
     
     return OGRERR_NONE;
@@ -819,6 +968,23 @@ OGRErr OGRSpatialReference::morphToESRI()
 
     if( GetRoot() == NULL )
         return OGRERR_NONE;
+
+/* -------------------------------------------------------------------- */
+/*      There is a special case for Hotine Oblique Mercator to split    */
+/*      out the case with an angle to rectified grid.  Bug 423          */
+/* -------------------------------------------------------------------- */
+    const char *pszProjection = GetAttrValue("PROJECTION");
+    
+    if( pszProjection != NULL
+        && EQUAL(pszProjection,SRS_PT_HOTINE_OBLIQUE_MERCATOR) 
+        && fabs(GetProjParm(SRS_PP_AZIMUTH, 0.0 )-90) < 0.0001 
+        && fabs(GetProjParm(SRS_PP_RECTIFIED_GRID_ANGLE, 0.0 )-90) < 0.0001 )
+    {
+        SetNode( "PROJCS|PROJECTION", 
+                 "Hotine_Oblique_Mercator_Azimuth_Center" );
+
+        /* ideally we should strip out of the rectified_grid_angle */
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Translate PROJECTION keywords that are misnamed.                */
@@ -867,14 +1033,37 @@ OGRErr OGRSpatialReference::morphToESRI()
     }
 
 /* -------------------------------------------------------------------- */
-/*      Remap parameters used for Albers.                               */
+/*      Remap parameters used for Albers and Mercator.                  */
 /* -------------------------------------------------------------------- */
-    const char *pszProjection = GetAttrValue("PROJECTION");
+    pszProjection = GetAttrValue("PROJECTION");
     
     if( pszProjection != NULL && EQUAL(pszProjection,"Albers") )
         GetRoot()->applyRemapper( 
             "PARAMETER", apszAlbersMapping + 1, apszAlbersMapping + 0, 2 );
 
+    if( pszProjection != NULL && EQUAL(pszProjection,"Mercator") )
+        GetRoot()->applyRemapper( 
+            "PARAMETER", apszAlbersMapping + 1, apszAlbersMapping + 0, 2 );
+
+/* -------------------------------------------------------------------- */
+/*      Convert SPHEROID name to use underscores instead of spaces.     */
+/* -------------------------------------------------------------------- */
+    OGR_SRSNode *poSpheroid;
+
+    poSpheroid = GetAttrNode( "SPHEROID" );
+    if( poSpheroid != NULL )
+        poSpheroid = poSpheroid->GetChild(0);
+
+    if( poSpheroid != NULL )
+    {
+        char *pszNewValue = CPLStrdup(poSpheroid->GetValue());
+
+        MorphNameToESRI( &pszNewValue );
+
+        poSpheroid->SetValue( pszNewValue );
+        CPLFree( pszNewValue );
+    }
+    
 /* -------------------------------------------------------------------- */
 /*      Try to insert a D_ in front of the datum name.                  */
 /* -------------------------------------------------------------------- */
@@ -985,11 +1174,28 @@ OGRErr OGRSpatialReference::morphFromESRI()
     }
 
 /* -------------------------------------------------------------------- */
-/*      Remap albers parameters.                                        */
+/*      If we are remapping Hotine_Oblique_Mercator_Azimuth_Center      */
+/*      add a rectified_grid_angle parameter - to match the azimuth     */
+/*      I guess.                                                        */
+/* -------------------------------------------------------------------- */
+    if( pszProjection != NULL
+        && EQUAL(pszProjection,"Hotine_Oblique_Mercator_Azimuth_Center") )
+    {
+        SetProjParm( SRS_PP_RECTIFIED_GRID_ANGLE , 
+                     GetProjParm( SRS_PP_AZIMUTH, 0.0 ) );
+        FixupOrdering();
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Remap albers and Mercator parameters.                           */
 /* -------------------------------------------------------------------- */
     if( pszProjection != NULL && EQUAL(pszProjection,"Albers") )
         GetRoot()->applyRemapper( 
             "PARAMETER", apszAlbersMapping + 0, apszAlbersMapping + 1, 2 );
+
+    if( pszProjection != NULL && EQUAL(pszProjection,"Mercator") )
+        GetRoot()->applyRemapper( 
+            "PARAMETER", apszMercatorMapping + 0, apszMercatorMapping + 1, 2 );
 
 /* -------------------------------------------------------------------- */
 /*      Translate PROJECTION keywords that are misnamed.                */

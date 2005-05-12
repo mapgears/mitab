@@ -1,10 +1,10 @@
 /**********************************************************************
- * $Id: cpl_string.h,v 1.15 2003/07/17 10:15:40 dron Exp $
+ * $Id: cpl_string.h,v 1.18 2005/04/04 15:23:31 fwarmerdam Exp $
  *
  * Name:     cpl_string.h
  * Project:  CPL - Common Portability Library
  * Purpose:  String and StringList functions.
- * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
+ * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
  * Copyright (c) 1998, Daniel Morissette
@@ -29,6 +29,15 @@
  **********************************************************************
  *
  * $Log: cpl_string.h,v $
+ * Revision 1.18  2005/04/04 15:23:31  fwarmerdam
+ * some functions now CPL_STDCALL
+ *
+ * Revision 1.17  2004/08/16 20:23:46  warmerda
+ * added .csv escaping
+ *
+ * Revision 1.16  2004/07/12 21:50:38  warmerda
+ * Added SQL escaping style
+ *
  * Revision 1.15  2003/07/17 10:15:40  dron
  * CSLTestBoolean() added.
  *
@@ -106,7 +115,7 @@ CPL_C_START
 char CPL_DLL **CSLAddString(char **papszStrList, const char *pszNewString);
 int CPL_DLL CSLCount(char **papszStrList);
 const char CPL_DLL *CSLGetField( char **, int );
-void CPL_DLL CSLDestroy(char **papszStrList);
+void CPL_DLL CPL_STDCALL CSLDestroy(char **papszStrList);
 char CPL_DLL **CSLDuplicate(char **papszStrList);
 
 char CPL_DLL **CSLTokenizeString(const char *pszString );
@@ -158,6 +167,8 @@ void CPL_DLL CSLSetNameValueSeparator( char ** papszStrList,
 #define CPLES_BackslashQuotable 0
 #define CPLES_XML               1
 #define CPLES_URL               2   /* unescape only for now */
+#define CPLES_SQL               3
+#define CPLES_CSV               4
 
 char CPL_DLL *CPLEscapeString( const char *pszString, int nLength, 
                                int nScheme );

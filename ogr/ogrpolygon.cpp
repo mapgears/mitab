@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrpolygon.cpp,v 1.21 2003/06/09 13:48:54 warmerda Exp $
+ * $Id: ogrpolygon.cpp,v 1.31 2005/04/06 20:43:00 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRPolygon geometry class.
@@ -28,6 +28,36 @@
  ******************************************************************************
  *
  * $Log: ogrpolygon.cpp,v $
+ * Revision 1.31  2005/04/06 20:43:00  fwarmerdam
+ * fixed a variety of method signatures for documentation
+ *
+ * Revision 1.30  2005/02/22 12:38:01  fwarmerdam
+ * rename Equal/Intersect to Equals/Intersects
+ *
+ * Revision 1.29  2004/10/04 21:06:46  fwarmerdam
+ * added centroid support
+ *
+ * Revision 1.28  2004/09/17 15:05:36  fwarmerdam
+ * added get_Area() support
+ *
+ * Revision 1.27  2004/07/10 04:51:42  warmerda
+ * added closeRings
+ *
+ * Revision 1.26  2004/02/22 09:56:54  dron
+ * Fix compirison casting problems in OGRPolygon::Equal().
+ *
+ * Revision 1.25  2004/02/21 15:36:14  warmerda
+ * const correctness updates for geometry: bug 289
+ *
+ * Revision 1.24  2004/01/16 21:57:17  warmerda
+ * fixed up EMPTY support
+ *
+ * Revision 1.23  2004/01/16 21:20:00  warmerda
+ * Added EMPTY support
+ *
+ * Revision 1.22  2003/08/27 15:40:37  warmerda
+ * added support for generating DB2 V7.2 compatible WKB
+ *
  * Revision 1.21  2003/06/09 13:48:54  warmerda
  * added DB2 V7.2 byte order hack
  *
@@ -95,8 +125,14 @@
 
 #include "ogr_geometry.h"
 #include "ogr_p.h"
+#include "ogr_geos.h"
+#include "ogr_api.h"
 
-CPL_CVSID("$Id: ogrpolygon.cpp,v 1.21 2003/06/09 13:48:54 warmerda Exp $");
+#ifdef HAVE_GEOS
+#  include "geos/geosAlgorithm.h"
+#endif
+
+CPL_CVSID("$Id: ogrpolygon.cpp,v 1.31 2005/04/06 20:43:00 fwarmerdam Exp $");
 
 /************************************************************************/
 /*                             OGRPolygon()                             */
@@ -127,7 +163,7 @@ OGRPolygon::~OGRPolygon()
 /*                               clone()                                */
 /************************************************************************/
 
-OGRGeometry *OGRPolygon::clone()
+OGRGeometry *OGRPolygon::clone() const
 
 {
     OGRPolygon  *poNewPolygon;
@@ -167,7 +203,7 @@ void OGRPolygon::empty()
 /*                          getGeometryType()                           */
 /************************************************************************/
 
-OGRwkbGeometryType OGRPolygon::getGeometryType()
+OGRwkbGeometryType OGRPolygon::getGeometryType() const
 
 {
     if( getCoordinateDimension() == 3 )
@@ -180,7 +216,7 @@ OGRwkbGeometryType OGRPolygon::getGeometryType()
 /*                            getDimension()                            */
 /************************************************************************/
 
-int OGRPolygon::getDimension()
+int OGRPolygon::getDimension() const
 
 {
     return 2;
@@ -190,7 +226,7 @@ int OGRPolygon::getDimension()
 /*                       getCoordinateDimension()                       */
 /************************************************************************/
 
-int OGRPolygon::getCoordinateDimension()
+int OGRPolygon::getCoordinateDimension() const
 
 {
     for( int iRing = 0; iRing < nRingCount; iRing++ )
@@ -217,7 +253,7 @@ void OGRPolygon::flattenTo2D()
 /*                          getGeometryName()                           */
 /************************************************************************/
 
-const char * OGRPolygon::getGeometryName()
+const char * OGRPolygon::getGeometryName() const
 
 {
     return "POLYGON";
@@ -250,6 +286,15 @@ OGRLinearRing *OGRPolygon::getExteriorRing()
         return NULL;
 }
 
+const OGRLinearRing *OGRPolygon::getExteriorRing() const
+
+{
+    if( nRingCount > 0 )
+        return papoRings[0];
+    else
+        return NULL;
+}
+
 /************************************************************************/
 /*                        getNumInteriorRings()                         */
 /************************************************************************/
@@ -263,7 +308,7 @@ OGRLinearRing *OGRPolygon::getExteriorRing()
  */
 
 
-int OGRPolygon::getNumInteriorRings()
+int OGRPolygon::getNumInteriorRings() const
 
 {
     if( nRingCount > 0 )
@@ -293,6 +338,15 @@ int OGRPolygon::getNumInteriorRings()
  */
 
 OGRLinearRing *OGRPolygon::getInteriorRing( int iRing )
+
+{
+    if( iRing < 0 || iRing >= nRingCount-1 )
+        return NULL;
+    else
+        return papoRings[iRing+1];
+}
+
+const OGRLinearRing *OGRPolygon::getInteriorRing( int iRing ) const
 
 {
     if( iRing < 0 || iRing >= nRingCount-1 )
@@ -364,7 +418,7 @@ void OGRPolygon::addRingDirectly( OGRLinearRing * poNewRing )
 /*      representation including the byte order, and type information.  */
 /************************************************************************/
 
-int OGRPolygon::WkbSize()
+int OGRPolygon::WkbSize() const
 
 {
     int         nSize = 9;
@@ -481,7 +535,7 @@ OGRErr OGRPolygon::importFromWkb( unsigned char * pabyData,
 /************************************************************************/
 
 OGRErr  OGRPolygon::exportToWkb( OGRwkbByteOrder eByteOrder,
-                                 unsigned char * pabyData )
+                                 unsigned char * pabyData ) const
 
 {
     int         nOffset;
@@ -490,7 +544,7 @@ OGRErr  OGRPolygon::exportToWkb( OGRwkbByteOrder eByteOrder,
 /* -------------------------------------------------------------------- */
 /*      Set the byte order.                                             */
 /* -------------------------------------------------------------------- */
-    pabyData[0] = (unsigned char) eByteOrder;
+    pabyData[0] = DB2_V72_UNFIX_BYTE_ORDER((unsigned char) eByteOrder);
 
 /* -------------------------------------------------------------------- */
 /*      Set the geometry feature type.                                  */
@@ -577,6 +631,24 @@ OGRErr OGRPolygon::importFromWkt( char ** ppszInput )
     if( szToken[0] != '(' )
         return OGRERR_CORRUPT_DATA;
 
+/* -------------------------------------------------------------------- */
+/*      If the next token is EMPTY, then verify that we have proper     */
+/*      EMPTY format will a trailing closing bracket.                   */
+/* -------------------------------------------------------------------- */
+    OGRWktReadToken( pszInput, szToken );
+    if( EQUAL(szToken,"EMPTY") )
+    {
+        pszInput = OGRWktReadToken( pszInput, szToken );
+        pszInput = OGRWktReadToken( pszInput, szToken );
+        
+        *ppszInput = (char *) pszInput;
+
+        if( !EQUAL(szToken,")") )
+            return OGRERR_CORRUPT_DATA;
+        else
+            return OGRERR_NONE;
+    }
+
 /* ==================================================================== */
 /*      Read each ring in turn.  Note that we try to reuse the same     */
 /*      point list buffer from ring to ring to cut down on              */
@@ -647,12 +719,21 @@ OGRErr OGRPolygon::importFromWkt( char ** ppszInput )
 /*      equivelent.  This could be made alot more CPU efficient!        */
 /************************************************************************/
 
-OGRErr OGRPolygon::exportToWkt( char ** ppszDstText )
+OGRErr OGRPolygon::exportToWkt( char ** ppszDstText ) const
 
 {
     char        **papszRings;
     int         iRing, nCumulativeLength = 0;
     OGRErr      eErr;
+
+/* -------------------------------------------------------------------- */
+/*      Handle special empty case.                                      */
+/* -------------------------------------------------------------------- */
+    if( nRingCount == 0 )
+    {
+        *ppszDstText = CPLStrdup("POLYGON(EMPTY)");
+        return OGRERR_NONE;
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Build a list of strings containing the stuff for each ring.     */
@@ -700,34 +781,89 @@ OGRErr OGRPolygon::exportToWkt( char ** ppszDstText )
 }
 
 /************************************************************************/
-/*                              get_Area()                              */
-/************************************************************************/
-
-double OGRPolygon::get_Area()
-
-{
-    // notdef ... correct later.
-    
-    return 0.0;
-}
-
-/************************************************************************/
 /*                              Centroid()                              */
 /************************************************************************/
 
-int OGRPolygon::Centroid( OGRPoint * )
+/**
+ * Compute the polygon centroid.
+ *
+ * The centroid location is applied to the passed in OGRPoint object.
+ *
+ * @return OGRERR_NONE on success or OGRERR_FAILURE on error.
+ */
+
+int OGRPolygon::Centroid( OGRPoint *poPoint ) const
 
 {
+    if( poPoint == NULL )
+        return OGRERR_FAILURE;
+
+#ifndef HAVE_GEOS
     // notdef ... not implemented yet.
     
     return OGRERR_FAILURE;
+#else
+    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom = 0;
+    
+    poThisGeosGeom = exportToGEOS();
+
+    if( poThisGeosGeom != NULL )
+    {
+    	poOtherGeosGeom = poThisGeosGeom->getCentroid();
+
+	poPoint->setX( poOtherGeosGeom->getCoordinate()->x );
+	poPoint->setY( poOtherGeosGeom->getCoordinate()->y );
+	poPoint->setZ( poOtherGeosGeom->getCoordinate()->z );
+
+    	delete poThisGeosGeom;
+    	delete poOtherGeosGeom;
+
+    	return OGRERR_NONE;
+    }
+    else
+    {
+    	return OGRERR_FAILURE;
+    }
+
+#endif /* HAVE_GEOS */
 }
+
+/************************************************************************/
+/*                           OGR_G_Centroid()                           */
+/************************************************************************/
+
+int OGR_G_Centroid( OGRGeometryH hPolygon, OGRGeometryH hCentroidPoint )
+
+{
+    OGRPolygon *poPoly = ((OGRPolygon *) hPolygon);
+    OGRPoint *poCentroid = ((OGRPoint *) hCentroidPoint);
+    
+    if( poCentroid == NULL )
+        return OGRERR_FAILURE;
+
+    if( wkbFlatten(poCentroid->getGeometryType()) != wkbPoint )
+    {
+        CPLError( CE_Failure, CPLE_AppDefined, 
+                  "Passed wrong geometry type as centroid argument." );
+        return OGRERR_FAILURE;
+    }
+
+    if( wkbFlatten(poPoly->getGeometryType()) != wkbPolygon )
+    {
+        CPLError( CE_Failure, CPLE_AppDefined, 
+                  "Invoked Centroid() on non-Polygon." );
+        return OGRERR_FAILURE;
+    }
+                            
+    return poPoly->Centroid( poCentroid );
+}
+
 
 /************************************************************************/
 /*                           PointOnSurface()                           */
 /************************************************************************/
 
-int OGRPolygon::PointOnSurface( OGRPoint * )
+int OGRPolygon::PointOnSurface( OGRPoint * ) const
 
 {
     // notdef ... not implemented yet.
@@ -738,8 +874,8 @@ int OGRPolygon::PointOnSurface( OGRPoint * )
 /************************************************************************/
 /*                            getEnvelope()                             */
 /************************************************************************/
-
-void OGRPolygon::getEnvelope( OGREnvelope * psEnvelope )
+ 
+void OGRPolygon::getEnvelope( OGREnvelope * psEnvelope ) const
 
 {
     OGREnvelope         oRingEnv;
@@ -768,12 +904,12 @@ void OGRPolygon::getEnvelope( OGREnvelope * psEnvelope )
 /*                               Equal()                                */
 /************************************************************************/
 
-OGRBoolean OGRPolygon::Equal( OGRGeometry * poOther )
+OGRBoolean OGRPolygon::Equals( OGRGeometry * poOther ) const
 
 {
     OGRPolygon *poOPoly = (OGRPolygon *) poOther;
 
-    if( poOther == this )
+    if( poOPoly == this )
         return TRUE;
     
     if( poOther->getGeometryType() != getGeometryType() )
@@ -782,14 +918,14 @@ OGRBoolean OGRPolygon::Equal( OGRGeometry * poOther )
     if( getNumInteriorRings() != poOPoly->getNumInteriorRings() )
         return FALSE;
 
-    if( !getExteriorRing()->Equal( poOPoly->getExteriorRing() ) )
+    if( !getExteriorRing()->Equals( poOPoly->getExteriorRing() ) )
         return FALSE;
     
     // we should eventually test the SRS.
 
     for( int iRing = 0; iRing < getNumInteriorRings(); iRing++ )
     {
-        if( !getInteriorRing(iRing)->Equal(poOPoly->getInteriorRing(iRing)) )
+        if( !getInteriorRing(iRing)->Equals(poOPoly->getInteriorRing(iRing)) )
             return FALSE;
     }
 
@@ -834,3 +970,35 @@ OGRErr OGRPolygon::transform( OGRCoordinateTransformation *poCT )
 }
 
 
+/************************************************************************/
+/*                             closeRings()                             */
+/************************************************************************/
+
+void OGRPolygon::closeRings()
+
+{
+    for( int iRing = 0; iRing < nRingCount; iRing++ )
+        papoRings[iRing]->closeRings();
+}
+
+/************************************************************************/
+/*                              get_Area()                              */
+/************************************************************************/
+
+double OGRPolygon::get_Area() const
+
+{
+    double dfArea = 0.0;
+
+    if( getExteriorRing() != NULL )
+    {
+        int iRing;
+
+        dfArea = getExteriorRing()->get_Area();
+
+        for( iRing = 0; iRing < getNumInteriorRings(); iRing++ )
+            dfArea -= getInteriorRing( iRing )->get_Area();
+    }
+
+    return dfArea;
+}

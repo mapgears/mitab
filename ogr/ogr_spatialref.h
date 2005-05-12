@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_spatialref.h,v 1.51 2003/05/30 15:39:53 warmerda Exp $
+ * $Id: ogr_spatialref.h,v 1.66 2005/03/03 04:55:42 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Classes for manipulating spatial reference systems in a
@@ -29,6 +29,51 @@
  ******************************************************************************
  *
  * $Log: ogr_spatialref.h,v $
+ * Revision 1.66  2005/03/03 04:55:42  fwarmerdam
+ * make exportToWkt() const
+ *
+ * Revision 1.65  2005/02/11 14:21:28  fwarmerdam
+ * added GEOS projection support
+ *
+ * Revision 1.64  2005/01/13 05:17:37  fwarmerdam
+ * added SetLinearUnitsAndUpdateParameters
+ *
+ * Revision 1.63  2005/01/05 21:02:33  fwarmerdam
+ * added Goode Homolosine
+ *
+ * Revision 1.62  2004/11/11 18:28:45  fwarmerdam
+ * added Bonne projection support
+ *
+ * Revision 1.61  2004/05/10 17:05:14  warmerda
+ * added AutoIdentifyEPSG()
+ *
+ * Revision 1.60  2004/03/04 18:04:45  warmerda
+ * added importFromDict() support
+ *
+ * Revision 1.59  2004/02/07 17:31:21  dron
+ * Added OSRExportToUSGS() method.
+ *
+ * Revision 1.58  2004/02/05 17:07:59  dron
+ * Support for HOM projection, specified by two points on centerline.
+ *
+ * Revision 1.57  2004/02/01 14:24:09  dron
+ * Added OGRSpatialReference::importFromUSGS().
+ *
+ * Revision 1.56  2004/01/24 09:34:59  warmerda
+ * added TransformEx support to capture per point reprojection failure
+ *
+ * Revision 1.55  2003/10/07 04:20:50  warmerda
+ * added WMS AUTO: support
+ *
+ * Revision 1.54  2003/09/09 07:49:19  dron
+ * Added exportToPCI() method.
+ *
+ * Revision 1.53  2003/08/31 14:51:30  dron
+ * Added importFromPCI() method.
+ *
+ * Revision 1.52  2003/08/18 13:26:01  warmerda
+ * added SetTMVariant() and related definitions
+ *
  * Revision 1.51  2003/05/30 15:39:53  warmerda
  * Added override units capability for SetStatePlane()
  *
@@ -46,141 +91,6 @@
  *
  * Revision 1.46  2003/01/08 18:14:28  warmerda
  * added FixupOrdering()
- *
- * Revision 1.45  2002/12/16 17:06:51  warmerda
- * added GetPrimeMeridian() method
- *
- * Revision 1.44  2002/12/15 23:42:59  warmerda
- * added initial support for normalizing proj params
- *
- * Revision 1.43  2002/12/14 22:59:14  warmerda
- * added Krovak in ESRI compatible way
- *
- * Revision 1.42  2002/12/10 04:04:38  warmerda
- * added parent pointer to OGR_SRSNode
- *
- * Revision 1.41  2002/12/09 16:11:02  warmerda
- * fixed constness of get authority calls
- *
- * Revision 1.40  2002/12/01 21:16:10  warmerda
- * added Get/set angular units methods
- *
- * Revision 1.39  2002/11/25 16:12:54  warmerda
- * added GetAuthorityCode/Name
- *
- * Revision 1.38  2002/04/18 14:22:45  warmerda
- * made OGRSpatialReference and co 'const correct'
- *
- * Revision 1.37  2002/03/05 14:25:14  warmerda
- * expand tabs
- *
- * Revision 1.36  2002/01/24 16:21:45  warmerda
- * added StripNodes method, removed simplify flag from pretty wkt
- *
- * Revision 1.35  2001/12/06 18:18:47  warmerda
- * added preliminary xml srs support
- *
- * Revision 1.34  2001/10/11 19:27:12  warmerda
- * upgraded validation infrastructure
- *
- * Revision 1.33  2001/10/10 20:42:43  warmerda
- * added ESRI WKT morphing support
- *
- * Revision 1.32  2001/09/21 16:21:02  warmerda
- * added Clear(), and SetFromUserInput() methods
- *
- * Revision 1.31  2001/07/19 18:25:07  warmerda
- * expanded tabs
- *
- * Revision 1.30  2001/07/16 03:34:55  warmerda
- * various fixes, and improvements suggested by Ben Driscoe on gdal list
- *
- * Revision 1.29  2001/05/24 21:02:42  warmerda
- * moved OGRCoordinateTransform destructor defn
- *
- * Revision 1.28  2001/02/06 17:10:28  warmerda
- * export entry points from DLL
- *
- * Revision 1.27  2001/01/22 13:59:55  warmerda
- * added SetSOC
- *
- * Revision 1.26  2001/01/19 21:10:47  warmerda
- * replaced tabs
- *
- * Revision 1.25  2000/11/09 06:21:32  warmerda
- * added limited ESRI prj support
- *
- * Revision 1.24  2000/10/20 04:19:38  warmerda
- * added setstateplane
- *
- * Revision 1.23  2000/10/16 21:26:07  warmerda
- * added some level of LOCAL_CS support
- *
- * Revision 1.22  2000/08/28 20:13:23  warmerda
- * added importFromProj4
- *
- * Revision 1.21  2000/07/09 20:48:02  warmerda
- * added exportToPrettyWkt
- *
- * Revision 1.20  2000/03/24 14:49:56  warmerda
- * added WGS84 related methods
- *
- * Revision 1.19  2000/03/22 01:09:43  warmerda
- * added SetProjCS and SetWellKnownTextCS
- *
- * Revision 1.18  2000/03/20 23:33:51  warmerda
- * updated docs a bit
- *
- * Revision 1.17  2000/03/20 23:08:05  warmerda
- * Added docs.
- *
- * Revision 1.16  2000/03/20 22:59:36  warmerda
- * Added some documentation.
- *
- * Revision 1.15  2000/03/20 22:39:49  warmerda
- * Added IsSame( method.
- *
- * Revision 1.14  2000/03/20 14:59:35  warmerda
- * added OGRCoordinateTransformation
- *
- * Revision 1.13  2000/03/16 19:04:01  warmerda
- * added SetTMG, moved constants to ogr_srs_api.h
- *
- * Revision 1.12  2000/01/26 21:22:18  warmerda
- * added tentative MakeValueSafe implementation
- *
- * Revision 1.11  2000/01/11 22:12:13  warmerda
- * added InsertChild
- *
- * Revision 1.10  2000/01/06 19:46:10  warmerda
- * added special logic for setting, and recognising UTM
- *
- * Revision 1.9  1999/11/18 19:02:20  warmerda
- * expanded tabs
- *
- * Revision 1.8  1999/09/29 16:36:17  warmerda
- * added several new projections
- *
- * Revision 1.7  1999/09/15 20:34:21  warmerda
- * South_Oriented to SouthOrientated, prototype changes
- *
- * Revision 1.6  1999/09/09 13:53:47  warmerda
- * use lower case for degree and radian
- *
- * Revision 1.5  1999/07/29 17:29:45  warmerda
- * added various help methods for projections
- *
- * Revision 1.4  1999/07/14 05:23:38  warmerda
- * Added projection set methods, and #defined tokens
- *
- * Revision 1.3  1999/06/25 20:21:18  warmerda
- * fleshed out classes
- *
- * Revision 1.2  1999/05/31 17:14:34  warmerda
- * Fixed define.
- *
- * Revision 1.1  1999/05/20 14:35:00  warmerda
- * New
  */
 
 #ifndef _OGR_SPATIALREF_H_INCLUDED
@@ -309,15 +219,24 @@ class CPL_DLL OGRSpatialReference
     OGRSpatialReference *Clone() const;
     OGRSpatialReference *CloneGeogCS() const;
 
-    OGRErr      importFromWkt( char ** );
-    OGRErr      exportToWkt( char ** );
+    OGRErr      exportToWkt( char ** ) const;
     OGRErr      exportToPrettyWkt( char **, int = FALSE) const;
     OGRErr      exportToProj4( char ** ) const;
+    OGRErr      exportToPCI( char **, char **, double ** ) const;
+    OGRErr      exportToUSGS( long *, long *, double **, long * ) const;
     OGRErr      exportToXML( char **, const char * = NULL ) const;
+    OGRErr      importFromWkt( char ** );
     OGRErr      importFromProj4( const char * );
     OGRErr      importFromEPSG( int );
     OGRErr      importFromESRI( char ** );
+    OGRErr      importFromPCI( const char *pszProj,
+                               const char *pszUnits = NULL,
+                               double *padfPrjParams = NULL );
+    OGRErr      importFromUSGS( long iProjsys, long iZone,
+                                double *padfPrjParams, long iDatum );
+    OGRErr      importFromWMSAUTO( const char *pszAutoDef );
     OGRErr      importFromXML( const char * );
+    OGRErr      importFromDict( const char *pszDict, const char *pszCode );
 
     OGRErr      morphToESRI();
     OGRErr      morphFromESRI();
@@ -338,7 +257,9 @@ class CPL_DLL OGRSpatialReference
 
     OGRErr      SetNode( const char *, const char * );
     OGRErr      SetNode( const char *, double );
-
+    
+    OGRErr      SetLinearUnitsAndUpdateParameters( const char *pszName, 
+                                                   double dfInMeters );
     OGRErr      SetLinearUnits( const char *pszName, double dfInMeters );
     double      GetLinearUnits( char ** = NULL ) const;
 
@@ -383,6 +304,8 @@ class CPL_DLL OGRSpatialReference
                               const char * pszAuthority, 
                               int nCode );
 
+    OGRErr      AutoIdentifyEPSG();
+
     const char *GetAuthorityCode( const char * pszTargetKey ) const;
     const char *GetAuthorityName( const char * pszTargetKey ) const;
                            
@@ -405,6 +328,10 @@ class CPL_DLL OGRSpatialReference
     OGRErr      SetAE( double dfCenterLat, double dfCenterLong,
                        double dfFalseEasting, double dfFalseNorthing );
 
+    /** Bonne */
+    OGRErr      SetBonne( double dfStdP1, double dfCentralMeridian,
+                          double dfFalseEasting, double dfFalseNorthing );
+    
     /** Cylindrical Equal Area */
     OGRErr      SetCEA( double dfStdP1, double dfCentralMeridian,
                         double dfFalseEasting, double dfFalseNorthing );
@@ -428,7 +355,15 @@ class CPL_DLL OGRSpatialReference
 
     /** Equirectangular */
     OGRErr      SetEquirectangular(double dfCenterLat, double dfCenterLong,
-                        double dfFalseEasting, double dfFalseNorthing );
+                            double dfFalseEasting, double dfFalseNorthing );
+
+    /** Geostationary Satellite */
+    OGRErr      SetGEOS( double dfCentralMeridian, double dfSatelliteHeight, 
+                         double dfFalseEasting, double dfFalseNorthing );
+
+    /** Goode Homolosine */
+    OGRErr      SetGH( double dfCentralMeridian, 
+                       double dfFalseEasting, double dfFalseNorthing );
 
     /** Gall Stereograpic */
     OGRErr      SetGS( double dfCentralMeridian,
@@ -438,11 +373,16 @@ class CPL_DLL OGRSpatialReference
     OGRErr      SetGnomonic(double dfCenterLat, double dfCenterLong,
                             double dfFalseEasting, double dfFalseNorthing );
 
-    /** Hotine Oblique Mercator */
     OGRErr      SetHOM( double dfCenterLat, double dfCenterLong,
                         double dfAzimuth, double dfRectToSkew,
                         double dfScale,
                         double dfFalseEasting, double dfFalseNorthing );
+
+    OGRErr      SetHOM2PNO( double dfCenterLat,
+                            double dfLat1, double dfLong1,
+                            double dfLat2, double dfLong2,
+                            double dfScale,
+                            double dfFalseEasting, double dfFalseNorthing );
 
     /** Krovak Oblique Conic Conformal */
     OGRErr      SetKrovak( double dfCenterLat, double dfCenterLong,
@@ -526,6 +466,12 @@ class CPL_DLL OGRSpatialReference
                        double dfScale,
                        double dfFalseEasting, double dfFalseNorthing );
 
+    /** Transverse Mercator variants. */
+    OGRErr      SetTMVariant( const char *pszVariantName, 
+                              double dfCenterLat, double dfCenterLong,
+                              double dfScale,
+                              double dfFalseEasting, double dfFalseNorthing );
+
     /** Tunesia Mining Grid  */
     OGRErr      SetTMG( double dfCenterLat, double dfCenterLong, 
                         double dfFalseEasting, double dfFalseNorthing );
@@ -582,6 +528,9 @@ public:
      *
      * This method is the same as the C function OCTTransform().
      *
+     * The method TransformEx() allows extended success information to 
+     * be captured indicating which points failed to transform. 
+     *
      * @param nCount number of points to transform.
      * @param x array of nCount X vertices, modified in place.
      * @param y array of nCount Y vertices, modified in place.
@@ -591,6 +540,25 @@ public:
      */
     virtual int Transform( int nCount, 
                            double *x, double *y, double *z = NULL ) = 0;
+
+    /**
+     * Transform points from source to destination space.
+     *
+     * This method is the same as the C function OCTTransformEx().
+     *
+     * @param nCount number of points to transform.
+     * @param x array of nCount X vertices, modified in place.
+     * @param y array of nCount Y vertices, modified in place.
+     * @param z array of nCount Z vertices, modified in place.
+     * @param pabSuccess array of per-point flags set to TRUE if that point 
+     * transforms, or FALSE if it does not.
+     *
+     * @return TRUE if some or all points transform successfully, or FALSE if 
+     * if none transform.
+     */
+    virtual int TransformEx( int nCount, 
+                             double *x, double *y, double *z = NULL,
+                             int *pabSuccess = NULL ) = 0;
 
 };
 

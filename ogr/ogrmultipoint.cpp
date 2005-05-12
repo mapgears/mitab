@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrmultipoint.cpp,v 1.14 2003/05/28 19:16:43 warmerda Exp $
+ * $Id: ogrmultipoint.cpp,v 1.18 2004/02/21 15:36:14 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRMultiPoint class.
@@ -28,6 +28,20 @@
  ******************************************************************************
  *
  * $Log: ogrmultipoint.cpp,v $
+ * Revision 1.18  2004/02/21 15:36:14  warmerda
+ * const correctness updates for geometry: bug 289
+ *
+ * Revision 1.17  2004/01/16 21:57:16  warmerda
+ * fixed up EMPTY support
+ *
+ * Revision 1.16  2004/01/16 21:20:00  warmerda
+ * Added EMPTY support
+ *
+ * Revision 1.15  2003/09/11 22:47:54  aamici
+ * add class constructors and destructors where needed in order to
+ * let the mingw/cygwin binutils produce sensible partially linked objet files
+ * with 'ld -r'.
+ *
  * Revision 1.14  2003/05/28 19:16:43  warmerda
  * fixed up argument names and stuff for docs
  *
@@ -76,13 +90,21 @@
 #include "ogr_p.h"
 #include <assert.h>
 
-CPL_CVSID("$Id: ogrmultipoint.cpp,v 1.14 2003/05/28 19:16:43 warmerda Exp $");
+CPL_CVSID("$Id: ogrmultipoint.cpp,v 1.18 2004/02/21 15:36:14 warmerda Exp $");
+
+/************************************************************************/
+/*                           OGRMultiPoint()                            */
+/************************************************************************/
+
+OGRMultiPoint::OGRMultiPoint()
+{
+}
 
 /************************************************************************/
 /*                          getGeometryType()                           */
 /************************************************************************/
 
-OGRwkbGeometryType OGRMultiPoint::getGeometryType()
+OGRwkbGeometryType OGRMultiPoint::getGeometryType() const
 
 {
     if( getCoordinateDimension() == 3 )
@@ -95,7 +117,7 @@ OGRwkbGeometryType OGRMultiPoint::getGeometryType()
 /*                          getGeometryName()                           */
 /************************************************************************/
 
-const char * OGRMultiPoint::getGeometryName()
+const char * OGRMultiPoint::getGeometryName() const
 
 {
     return "MULTIPOINT";
@@ -123,7 +145,7 @@ OGRErr OGRMultiPoint::addGeometryDirectly( OGRGeometry * poNewGeom )
 /*                               clone()                                */
 /************************************************************************/
 
-OGRGeometry *OGRMultiPoint::clone()
+OGRGeometry *OGRMultiPoint::clone() const
 
 {
     OGRMultiPoint       *poNewGC;
@@ -146,11 +168,17 @@ OGRGeometry *OGRMultiPoint::clone()
 /*      equivelent.  This could be made alot more CPU efficient!        */
 /************************************************************************/
 
-OGRErr OGRMultiPoint::exportToWkt( char ** ppszDstText )
+OGRErr OGRMultiPoint::exportToWkt( char ** ppszDstText ) const
 
 {
     int         nMaxString = getNumGeometries() * 20 + 128;
     int         nRetLen = 0;
+
+    if( getNumGeometries() == 0 )
+    {
+        *ppszDstText = CPLStrdup("MULTIPOINT(EMPTY)");
+        return OGRERR_NONE;
+    }
 
     *ppszDstText = (char *) VSIMalloc( nMaxString );
     if( *ppszDstText == NULL )
@@ -218,7 +246,8 @@ OGRErr OGRMultiPoint::importFromWkt( char ** ppszInput )
         return OGRERR_CORRUPT_DATA;
 
 /* -------------------------------------------------------------------- */
-/*      Do we have the format where each point is bracketed?            */
+/*      Skip past first bracket for checking purposes, but don't        */
+/*      alter pszInput.                                                 */
 /* -------------------------------------------------------------------- */
     const char *pszPreScan = pszInput;
 
@@ -232,6 +261,28 @@ OGRErr OGRMultiPoint::importFromWkt( char ** ppszInput )
 
     pszPreScan++;
 
+/* -------------------------------------------------------------------- */
+/*      If the next token is EMPTY, then verify that we have proper     */
+/*      EMPTY format will a trailing closing bracket.                   */
+/* -------------------------------------------------------------------- */
+    OGRWktReadToken( pszPreScan, szToken );
+    if( EQUAL(szToken,"EMPTY") )
+    {
+        pszInput = OGRWktReadToken( pszPreScan, szToken );
+        pszInput = OGRWktReadToken( pszInput, szToken );
+        
+        *ppszInput = (char *) pszInput;
+
+        if( !EQUAL(szToken,")") )
+            return OGRERR_CORRUPT_DATA;
+        else
+            return OGRERR_NONE;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Check for inner bracket indicating the improper bracketed       */
+/*      format which we still want to support.                          */
+/* -------------------------------------------------------------------- */
     // skip white space.
     while( *pszPreScan == ' ' || *pszPreScan == '\t' )
         pszPreScan++;

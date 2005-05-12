@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_api.h,v 1.14 2003/04/22 19:33:26 warmerda Exp $
+ * $Id: ogr_api.h,v 1.25 2005/02/22 12:37:26 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  C API for OGR Geometry, Feature, Layers, DataSource and drivers.
@@ -28,6 +28,39 @@
  ******************************************************************************
  *
  * $Log: ogr_api.h,v $
+ * Revision 1.25  2005/02/22 12:37:26  fwarmerdam
+ * rename Equal/Intersect to Equals/Intersects
+ *
+ * Revision 1.24  2005/02/02 19:59:47  fwarmerdam
+ * added SetNextByIndex support
+ *
+ * Revision 1.23  2005/01/03 22:15:48  fwarmerdam
+ * added SetSpatialFilterRect
+ *
+ * Revision 1.22  2004/11/22 22:24:56  fwarmerdam
+ * Give explicit void for functions taking no arguments.
+ *
+ * Revision 1.21  2004/10/07 13:10:59  fwarmerdam
+ * added OGR_G_Centroid
+ *
+ * Revision 1.20  2004/09/17 15:05:36  fwarmerdam
+ * added get_Area() support
+ *
+ * Revision 1.19  2004/07/10 06:57:54  warmerda
+ * Added C entry points and docs for GEOS geometry functions
+ *
+ * Revision 1.18  2004/07/10 04:52:44  warmerda
+ * added OGR_G_CloseRings
+ *
+ * Revision 1.17  2003/10/09 15:27:41  warmerda
+ * added OGRLayer::DeleteFeature() support
+ *
+ * Revision 1.16  2003/09/04 14:01:44  warmerda
+ * added OGRGetGenerate_DB2_V72_BYTE_ORDER
+ *
+ * Revision 1.15  2003/08/27 15:40:37  warmerda
+ * added support for generating DB2 V7.2 compatible WKB
+ *
  * Revision 1.14  2003/04/22 19:33:26  warmerda
  * Added synctodisk
  *
@@ -125,6 +158,7 @@ OGRwkbGeometryType CPL_DLL OGR_G_GetGeometryType( OGRGeometryH );
 const char CPL_DLL *OGR_G_GetGeometryName( OGRGeometryH );
 void   CPL_DLL OGR_G_DumpReadable( OGRGeometryH, FILE *, const char * );
 void   CPL_DLL OGR_G_FlattenTo2D( OGRGeometryH );
+void   CPL_DLL OGR_G_CloseRings( OGRGeometryH );
 
 OGRGeometryH CPL_DLL OGR_G_CreateFromGML( const char * );
 char   CPL_DLL *OGR_G_ExportToGML( OGRGeometryH );
@@ -141,9 +175,32 @@ OGRSpatialReferenceH CPL_DLL OGR_G_GetSpatialReference( OGRGeometryH );
 OGRErr CPL_DLL OGR_G_Transform( OGRGeometryH, OGRCoordinateTransformationH );
 OGRErr CPL_DLL OGR_G_TransformTo( OGRGeometryH, OGRSpatialReferenceH );
 
+int    CPL_DLL OGR_G_Intersects( OGRGeometryH, OGRGeometryH );
+int    CPL_DLL OGR_G_Equals( OGRGeometryH, OGRGeometryH );
+int    CPL_DLL OGR_G_Disjoint( OGRGeometryH, OGRGeometryH );
+int    CPL_DLL OGR_G_Touches( OGRGeometryH, OGRGeometryH );
+int    CPL_DLL OGR_G_Crosses( OGRGeometryH, OGRGeometryH );
+int    CPL_DLL OGR_G_Within( OGRGeometryH, OGRGeometryH );
+int    CPL_DLL OGR_G_Contains( OGRGeometryH, OGRGeometryH );
+int    CPL_DLL OGR_G_Overlaps( OGRGeometryH, OGRGeometryH );
+
+OGRGeometryH CPL_DLL OGR_G_GetBoundary( OGRGeometryH );
+OGRGeometryH CPL_DLL OGR_G_ConvexHull( OGRGeometryH );
+OGRGeometryH CPL_DLL OGR_G_Buffer( OGRGeometryH, double, int );
+OGRGeometryH CPL_DLL OGR_G_Intersection( OGRGeometryH, OGRGeometryH );
+OGRGeometryH CPL_DLL OGR_G_Union( OGRGeometryH, OGRGeometryH );
+OGRGeometryH CPL_DLL OGR_G_Difference( OGRGeometryH, OGRGeometryH );
+OGRGeometryH CPL_DLL OGR_G_SymmetricDifference( OGRGeometryH, OGRGeometryH );
+double CPL_DLL OGR_G_Distance( OGRGeometryH, OGRGeometryH );
+
+double CPL_DLL OGR_G_GetArea( OGRGeometryH );
+int    CPL_DLL OGR_G_Centroid( OGRGeometryH, OGRGeometryH );
+
+void   CPL_DLL OGR_G_Empty( OGRGeometryH );
+
+/* backward compatibility */
 int    CPL_DLL OGR_G_Intersect( OGRGeometryH, OGRGeometryH );
 int    CPL_DLL OGR_G_Equal( OGRGeometryH, OGRGeometryH );
-void   CPL_DLL OGR_G_Empty( OGRGeometryH );
 
 /* Methods for getting/setting vertices in points, line strings and rings */
 int    CPL_DLL OGR_G_GetPointCount( OGRGeometryH );
@@ -169,6 +226,11 @@ OGRGeometryH CPL_DLL OGRBuildPolygonFromEdges( OGRGeometryH hLinesAsCollection,
                                        int bAutoClose, 
                                        double dfTolerance,
                                        OGRErr * peErr );
+
+OGRErr CPL_DLL OGRSetGenerate_DB2_V72_BYTE_ORDER( 
+    int bGenerate_DB2_V72_BYTE_ORDER );
+
+int CPL_DLL OGRGetGenerate_DB2_V72_BYTE_ORDER(void);
 
 /* -------------------------------------------------------------------- */
 /*      Feature related (ogr_feature.h)                                 */
@@ -268,12 +330,16 @@ typedef void *OGRSFDriverH;
 
 OGRGeometryH CPL_DLL OGR_L_GetSpatialFilter( OGRLayerH );
 void   CPL_DLL OGR_L_SetSpatialFilter( OGRLayerH, OGRGeometryH );
+void   CPL_DLL OGR_L_SetSpatialFilterRect( OGRLayerH, 
+                                           double, double, double, double );
 OGRErr CPL_DLL OGR_L_SetAttributeFilter( OGRLayerH, const char * );
 void   CPL_DLL OGR_L_ResetReading( OGRLayerH );
 OGRFeatureH CPL_DLL OGR_L_GetNextFeature( OGRLayerH );
+OGRErr CPL_DLL OGR_L_SetNextByIndex( OGRLayerH, long );
 OGRFeatureH CPL_DLL OGR_L_GetFeature( OGRLayerH, long );
 OGRErr CPL_DLL OGR_L_SetFeature( OGRLayerH, OGRFeatureH );
 OGRErr CPL_DLL OGR_L_CreateFeature( OGRLayerH, OGRFeatureH );
+OGRErr CPL_DLL OGR_L_DeleteFeature( OGRLayerH, long );
 OGRFeatureDefnH CPL_DLL OGR_L_GetLayerDefn( OGRLayerH );
 OGRSpatialReferenceH CPL_DLL OGR_L_GetSpatialRef( OGRLayerH );
 int    CPL_DLL OGR_L_GetFeatureCount( OGRLayerH, int );
@@ -287,6 +353,7 @@ int    CPL_DLL OGR_L_Reference( OGRLayerH );
 int    CPL_DLL OGR_L_Dereference( OGRLayerH );
 int    CPL_DLL OGR_L_GetRefCount( OGRLayerH );
 OGRErr CPL_DLL OGR_L_SyncToDisk( OGRLayerH );
+GIntBig CPL_DLL OGR_L_GetFeaturesRead( OGRLayerH );
 
 /* OGRDataSource */
 
@@ -328,15 +395,15 @@ OGRDataSourceH CPL_DLL OGROpen( const char *, int, OGRSFDriverH * );
 OGRDataSourceH CPL_DLL OGROpenShared( const char *, int, OGRSFDriverH * );
 OGRErr  CPL_DLL OGRReleaseDataSource( OGRDataSourceH );
 void    CPL_DLL OGRRegisterDriver( OGRSFDriverH );
-int     CPL_DLL OGRGetDriverCount();
+int     CPL_DLL OGRGetDriverCount(void);
 OGRSFDriverH CPL_DLL OGRGetDriver( int );
 OGRSFDriverH CPL_DLL OGRGetDriverByName( const char * );
-int     CPL_DLL OGRGetOpenDSCount();
+int     CPL_DLL OGRGetOpenDSCount(void);
 OGRDataSourceH CPL_DLL OGRGetOpenDS( int iDS );
 
 
 /* note: this is also declared in ogrsf_frmts.h */
-void CPL_DLL OGRRegisterAll();
+void CPL_DLL OGRRegisterAll(void);
 
 CPL_C_END
 

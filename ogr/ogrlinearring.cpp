@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrlinearring.cpp,v 1.14 2003/07/08 13:59:35 warmerda Exp $
+ * $Id: ogrlinearring.cpp,v 1.18 2004/09/17 15:05:36 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRLinearRing geometry class.
@@ -28,6 +28,20 @@
  ******************************************************************************
  *
  * $Log: ogrlinearring.cpp,v $
+ * Revision 1.18  2004/09/17 15:05:36  fwarmerdam
+ * added get_Area() support
+ *
+ * Revision 1.17  2004/07/10 04:51:42  warmerda
+ * added closeRings
+ *
+ * Revision 1.16  2004/02/21 15:36:14  warmerda
+ * const correctness updates for geometry: bug 289
+ *
+ * Revision 1.15  2003/09/11 22:47:54  aamici
+ * add class constructors and destructors where needed in order to
+ * let the mingw/cygwin binutils produce sensible partially linked objet files
+ * with 'ld -r'.
+ *
  * Revision 1.14  2003/07/08 13:59:35  warmerda
  * added poSrcRing check in copy constructor, bug 361
  *
@@ -75,13 +89,21 @@
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrlinearring.cpp,v 1.14 2003/07/08 13:59:35 warmerda Exp $");
+CPL_CVSID("$Id: ogrlinearring.cpp,v 1.18 2004/09/17 15:05:36 fwarmerdam Exp $");
 
 /************************************************************************/
 /*                           OGRLinearRing()                            */
 /************************************************************************/
 
 OGRLinearRing::OGRLinearRing()
+
+{
+}
+
+/************************************************************************/
+/*                          ~OGRLinearRing()                            */
+/************************************************************************/
+OGRLinearRing::~OGRLinearRing()
 
 {
 }
@@ -115,7 +137,7 @@ OGRLinearRing::OGRLinearRing( OGRLinearRing * poSrcRing )
 /*                          getGeometryName()                           */
 /************************************************************************/
 
-const char * OGRLinearRing::getGeometryName()
+const char * OGRLinearRing::getGeometryName() const 
 
 {
     return "LINEARRING";
@@ -127,7 +149,7 @@ const char * OGRLinearRing::getGeometryName()
 /*      Disable this method.                                            */
 /************************************************************************/
 
-int OGRLinearRing::WkbSize()
+int OGRLinearRing::WkbSize() const
 
 {
     return 0;
@@ -139,7 +161,7 @@ int OGRLinearRing::WkbSize()
 /*      Disable method for this class.                                  */
 /************************************************************************/
 
-OGRErr OGRLinearRing::importFromWkb( unsigned char *pabyData, int nSize )
+OGRErr OGRLinearRing::importFromWkb( unsigned char *pabyData, int nSize ) 
 
 {
     (void) pabyData;
@@ -155,7 +177,7 @@ OGRErr OGRLinearRing::importFromWkb( unsigned char *pabyData, int nSize )
 /************************************************************************/
 
 OGRErr OGRLinearRing::exportToWkb( OGRwkbByteOrder eByteOrder, 
-                                   unsigned char * pabyData )
+                                   unsigned char * pabyData ) const
 
 {
     (void) eByteOrder;
@@ -173,7 +195,7 @@ OGRErr OGRLinearRing::exportToWkb( OGRwkbByteOrder eByteOrder,
 
 OGRErr OGRLinearRing::_importFromWkb( OGRwkbByteOrder eByteOrder, int b3D, 
                                       unsigned char * pabyData,
-                                      int nBytesAvailable )
+                                      int nBytesAvailable ) 
 
 {
     if( nBytesAvailable < 4 && nBytesAvailable != -1 )
@@ -240,9 +262,8 @@ OGRErr OGRLinearRing::_importFromWkb( OGRwkbByteOrder eByteOrder, int b3D,
 /*      exportToWkb() METHOD!                                           */
 /************************************************************************/
 
-OGRErr  OGRLinearRing::_exportToWkb( OGRwkbByteOrder eByteOrder,
-                                     int b3D,
-                                     unsigned char * pabyData )
+OGRErr  OGRLinearRing::_exportToWkb( OGRwkbByteOrder eByteOrder, int b3D,
+                                     unsigned char * pabyData ) const
 
 {
     int   i, nWords;
@@ -299,7 +320,7 @@ OGRErr  OGRLinearRing::_exportToWkb( OGRwkbByteOrder eByteOrder,
 /*      Helper method for OGRPolygon.  NOT THE NORMAL WkbSize() METHOD! */
 /************************************************************************/
 
-int OGRLinearRing::_WkbSize( int b3D )
+int OGRLinearRing::_WkbSize( int b3D ) const
 
 {
     if( b3D )
@@ -315,7 +336,7 @@ int OGRLinearRing::_WkbSize( int b3D )
 /*      correct virtual table.                                          */
 /************************************************************************/
 
-OGRGeometry *OGRLinearRing::clone()
+OGRGeometry *OGRLinearRing::clone() const
 
 {
     OGRLinearRing       *poNewLinearRing;
@@ -338,7 +359,7 @@ OGRGeometry *OGRLinearRing::clone()
  * @return TRUE if clockwise otherwise FALSE.
  */
 
-int OGRLinearRing::isClockwise()
+int OGRLinearRing::isClockwise() const
 
 {
     double dfSum = 0.0;
@@ -355,3 +376,53 @@ int OGRLinearRing::isClockwise()
     return dfSum < 0.0;
 }
 
+/************************************************************************/
+/*                             closeRing()                              */
+/************************************************************************/
+
+void OGRLinearRing::closeRings()
+
+{
+    if( nPointCount < 2 )
+        return;
+
+    if( getX(0) != getX(nPointCount-1) 
+        || getY(0) != getY(nPointCount-1)
+        || getZ(0) != getZ(nPointCount-1) )
+    {
+        addPoint( getX(0), getY(0), getZ(0) );
+    }
+}
+
+/************************************************************************/
+/*                              get_Area()                              */
+/************************************************************************/
+
+/**
+ * Compute area of ring.
+ *
+ * The area is computed according to Green's Theorem:  
+ *
+ * Area is "Sum(x(i)*y(i+1) - x(i+1)*y(i))/2" for i = 0 to pointCount-1, 
+ * assuming the last point is a duplicate of the first. 
+ *
+ * @return computed area.
+ */
+
+double OGRLinearRing::get_Area() const
+
+{
+    double dfAreaSum = 0.0;
+    int i;
+
+    for( i = 0; i < nPointCount-1; i++ )
+    {
+        dfAreaSum += 0.5 * ( paoPoints[i].x * paoPoints[i+1].y 
+                             - paoPoints[i+1].x * paoPoints[i].y );
+    }
+
+    dfAreaSum += 0.5 * ( paoPoints[nPointCount-1].x * paoPoints[0].y 
+                         - paoPoints[0].x * paoPoints[nPointCount-1].y );
+
+    return fabs(dfAreaSum);
+}

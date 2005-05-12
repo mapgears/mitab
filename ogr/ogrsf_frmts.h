@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrsf_frmts.h,v 1.38 2003/05/28 19:17:31 warmerda Exp $
+ * $Id: ogrsf_frmts.h,v 1.50 2005/02/22 12:40:37 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Classes related to format registration, and file opening.
@@ -28,6 +28,42 @@
  ******************************************************************************
  *
  * $Log: ogrsf_frmts.h,v $
+ * Revision 1.50  2005/02/22 12:40:37  fwarmerdam
+ * added base OGRLayer spatial filter support
+ *
+ * Revision 1.49  2005/02/02 20:00:01  fwarmerdam
+ * added SetNextByIndex support
+ *
+ * Revision 1.48  2005/01/19 20:29:10  fwarmerdam
+ * added autoloaddrivers on ogrsfdriverregistrar
+ *
+ * Revision 1.47  2005/01/03 22:16:44  fwarmerdam
+ * added OGRLayer::SetSpatialFilterRect()
+ *
+ * Revision 1.46  2004/11/21 22:08:49  fwarmerdam
+ * added Release() and DestroyDataSource() methods on OGRDataSource
+ *
+ * Revision 1.45  2004/10/06 19:49:14  fwarmerdam
+ * Added Mysql registration function.
+ *
+ * Revision 1.44  2004/07/20 19:18:44  warmerda
+ * added CSV
+ *
+ * Revision 1.43  2004/07/10 05:03:24  warmerda
+ * added SQLite
+ *
+ * Revision 1.42  2004/02/11 18:03:15  warmerda
+ * added RegisterOGRDODS()
+ *
+ * Revision 1.41  2003/11/06 18:27:35  warmerda
+ * Added VRT registration point
+ *
+ * Revision 1.40  2003/10/09 15:28:07  warmerda
+ * added OGRLayer::DeleteFeature() support
+ *
+ * Revision 1.39  2003/10/06 19:15:40  warmerda
+ * added ODBC support
+ *
  * Revision 1.38  2003/05/28 19:17:31  warmerda
  * fixup stuff for docs
  *
@@ -169,20 +205,32 @@ class OGRLayerAttrIndex;
 
 class CPL_DLL OGRLayer
 {
+  protected:
+    int          m_bFilterIsEnvelope;
+    OGRGeometry  *m_poFilterGeom;
+    OGREnvelope  m_sFilterEnvelope;
+
+    int          FilterGeometry( OGRGeometry * );
+    int          InstallFilter( OGRGeometry * );
+
   public:
-                OGRLayer();
+    OGRLayer();
     virtual     ~OGRLayer();
 
-    virtual OGRGeometry *GetSpatialFilter() = 0;
-    virtual void        SetSpatialFilter( OGRGeometry * ) = 0;
+    virtual OGRGeometry *GetSpatialFilter();
+    virtual void        SetSpatialFilter( OGRGeometry * );
+    virtual void        SetSpatialFilterRect( double dfMinX, double dfMinY,
+                                              double dfMaxX, double dfMaxY );
 
     virtual OGRErr      SetAttributeFilter( const char * );
 
     virtual void        ResetReading() = 0;
     virtual OGRFeature *GetNextFeature() = 0;
+    virtual OGRErr      SetNextByIndex( long nIndex );
     virtual OGRFeature *GetFeature( long nFID );
     virtual OGRErr      SetFeature( OGRFeature *poFeature );
     virtual OGRErr      CreateFeature( OGRFeature *poFeature );
+    virtual OGRErr      DeleteFeature( long nFID );
 
     virtual OGRFeatureDefn *GetLayerDefn() = 0;
 
@@ -210,6 +258,8 @@ class CPL_DLL OGRLayer
     int                 Reference();
     int                 Dereference();
     int                 GetRefCount() const;
+
+    GIntBig             GetFeaturesRead();
     
     /* consider these private */
     OGRErr               InitializeIndexSupport( const char * );
@@ -221,6 +271,8 @@ class CPL_DLL OGRLayer
     OGRLayerAttrIndex   *m_poAttrIndex;
 
     int                  m_nRefCount;
+
+    GIntBig              m_nFeaturesRead;
 };
 
 
@@ -244,6 +296,7 @@ class CPL_DLL OGRDataSource
 
     OGRDataSource();
     virtual     ~OGRDataSource();
+    static void         DestroyDataSource( OGRDataSource * );
 
     virtual const char  *GetName() = 0;
 
@@ -274,6 +327,7 @@ class CPL_DLL OGRDataSource
     int                 Dereference();
     int                 GetRefCount() const;
     int                 GetSummaryRefCount() const;
+    OGRErr              Release();
 
   protected:
 
@@ -359,6 +413,8 @@ class CPL_DLL OGRSFDriverRegistrar
 
     int         GetOpenDSCount() { return nOpenDSCount; } 
     OGRDataSource *GetOpenDS( int );
+
+    void        AutoLoadDrivers();
 };
 
 /* -------------------------------------------------------------------- */
@@ -376,7 +432,9 @@ void CPL_DLL RegisterOGRS57();
 void CPL_DLL RegisterOGRTAB();
 void CPL_DLL RegisterOGRMIF();
 void CPL_DLL RegisterOGROGDI();
+void CPL_DLL RegisterOGRODBC();
 void CPL_DLL RegisterOGRPG();
+void CPL_DLL RegisterOGRMySQL();
 void CPL_DLL RegisterOGROCI();
 void CPL_DLL RegisterOGRDGN();
 void CPL_DLL RegisterOGRGML();
@@ -385,6 +443,11 @@ void CPL_DLL RegisterOGRAVCE00();
 void CPL_DLL RegisterOGRFME();
 void CPL_DLL RegisterOGRREC();
 void CPL_DLL RegisterOGRMEM();
+void CPL_DLL RegisterOGRVRT();
+void CPL_DLL RegisterOGRDODS();
+void CPL_DLL RegisterOGRSQLite();
+void CPL_DLL RegisterOGRCSV();
+
 CPL_C_END
 
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrmultilinestring.cpp,v 1.9 2003/05/28 19:16:43 warmerda Exp $
+ * $Id: ogrmultilinestring.cpp,v 1.13 2004/02/21 15:36:14 warmerda Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRMultiLineString class.
@@ -28,6 +28,20 @@
  ******************************************************************************
  *
  * $Log: ogrmultilinestring.cpp,v $
+ * Revision 1.13  2004/02/21 15:36:14  warmerda
+ * const correctness updates for geometry: bug 289
+ *
+ * Revision 1.12  2004/01/16 21:57:16  warmerda
+ * fixed up EMPTY support
+ *
+ * Revision 1.11  2004/01/16 21:20:00  warmerda
+ * Added EMPTY support
+ *
+ * Revision 1.10  2003/09/11 22:47:54  aamici
+ * add class constructors and destructors where needed in order to
+ * let the mingw/cygwin binutils produce sensible partially linked objet files
+ * with 'ld -r'.
+ *
  * Revision 1.9  2003/05/28 19:16:43  warmerda
  * fixed up argument names and stuff for docs
  *
@@ -60,13 +74,29 @@
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrmultilinestring.cpp,v 1.9 2003/05/28 19:16:43 warmerda Exp $");
+CPL_CVSID("$Id: ogrmultilinestring.cpp,v 1.13 2004/02/21 15:36:14 warmerda Exp $");
+
+/************************************************************************/
+/*                        OGRMultiLineString()                          */
+/************************************************************************/
+
+OGRMultiLineString::OGRMultiLineString()
+{
+}
+
+/************************************************************************/
+/*                        ~OGRMultiLineString()                         */
+/************************************************************************/
+
+OGRMultiLineString::~OGRMultiLineString()
+{
+}
 
 /************************************************************************/
 /*                          getGeometryType()                           */
 /************************************************************************/
 
-OGRwkbGeometryType OGRMultiLineString::getGeometryType()
+OGRwkbGeometryType OGRMultiLineString::getGeometryType() const
 
 {
     if( getCoordinateDimension() == 3 )
@@ -79,7 +109,7 @@ OGRwkbGeometryType OGRMultiLineString::getGeometryType()
 /*                          getGeometryName()                           */
 /************************************************************************/
 
-const char * OGRMultiLineString::getGeometryName()
+const char * OGRMultiLineString::getGeometryName() const
 
 {
     return "MULTILINESTRING";
@@ -103,7 +133,7 @@ OGRErr OGRMultiLineString::addGeometryDirectly( OGRGeometry * poNewGeom )
 /*                               clone()                                */
 /************************************************************************/
 
-OGRGeometry *OGRMultiLineString::clone()
+OGRGeometry *OGRMultiLineString::clone() const
 
 {
     OGRMultiLineString  *poNewGC;
@@ -153,6 +183,24 @@ OGRErr OGRMultiLineString::importFromWkt( char ** ppszInput )
     pszInput = OGRWktReadToken( pszInput, szToken );
     if( szToken[0] != '(' )
         return OGRERR_CORRUPT_DATA;
+
+/* -------------------------------------------------------------------- */
+/*      If the next token is EMPTY, then verify that we have proper     */
+/*      EMPTY format will a trailing closing bracket.                   */
+/* -------------------------------------------------------------------- */
+    OGRWktReadToken( pszInput, szToken );
+    if( EQUAL(szToken,"EMPTY") )
+    {
+        pszInput = OGRWktReadToken( pszInput, szToken );
+        pszInput = OGRWktReadToken( pszInput, szToken );
+        
+        *ppszInput = (char *) pszInput;
+
+        if( !EQUAL(szToken,")") )
+            return OGRERR_CORRUPT_DATA;
+        else
+            return OGRERR_NONE;
+    }
 
 /* ==================================================================== */
 /*      Read each line in turn.  Note that we try to reuse the same     */
@@ -219,12 +267,18 @@ OGRErr OGRMultiLineString::importFromWkt( char ** ppszInput )
 /*      equivelent.  This could be made alot more CPU efficient!        */
 /************************************************************************/
 
-OGRErr OGRMultiLineString::exportToWkt( char ** ppszDstText )
+OGRErr OGRMultiLineString::exportToWkt( char ** ppszDstText ) const
 
 {
     char        **papszLines;
     int         iLine, nCumulativeLength = 0;
     OGRErr      eErr;
+
+    if( getNumGeometries() == 0 )
+    {
+        *ppszDstText = CPLStrdup("MULTILINESTRING(EMPTY)");
+        return OGRERR_NONE;
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Build a list of strings containing the stuff for each ring.     */

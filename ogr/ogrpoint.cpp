@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrpoint.cpp,v 1.23 2003/06/09 13:48:54 warmerda Exp $
+ * $Id: ogrpoint.cpp,v 1.30 2005/04/06 20:43:00 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The Point geometry class.
@@ -28,6 +28,27 @@
  ******************************************************************************
  *
  * $Log: ogrpoint.cpp,v $
+ * Revision 1.30  2005/04/06 20:43:00  fwarmerdam
+ * fixed a variety of method signatures for documentation
+ *
+ * Revision 1.29  2005/02/22 12:38:01  fwarmerdam
+ * rename Equal/Intersect to Equals/Intersects
+ *
+ * Revision 1.28  2004/02/22 10:03:40  dron
+ * Fix compirison casting problems in OGRPoint::Equal() method.
+ *
+ * Revision 1.27  2004/02/21 15:36:14  warmerda
+ * const correctness updates for geometry: bug 289
+ *
+ * Revision 1.26  2004/01/16 21:57:17  warmerda
+ * fixed up EMPTY support
+ *
+ * Revision 1.25  2004/01/16 21:20:00  warmerda
+ * Added EMPTY support
+ *
+ * Revision 1.24  2003/08/27 15:40:37  warmerda
+ * added support for generating DB2 V7.2 compatible WKB
+ *
  * Revision 1.23  2003/06/09 13:48:54  warmerda
  * added DB2 V7.2 byte order hack
  *
@@ -103,7 +124,7 @@
 #include "ogr_p.h"
 #include <assert.h>
 
-CPL_CVSID("$Id: ogrpoint.cpp,v 1.23 2003/06/09 13:48:54 warmerda Exp $");
+CPL_CVSID("$Id: ogrpoint.cpp,v 1.30 2005/04/06 20:43:00 fwarmerdam Exp $");
 
 /************************************************************************/
 /*                              OGRPoint()                              */
@@ -150,7 +171,7 @@ OGRPoint::~OGRPoint()
 /*      Make a new object that is a copy of this object.                */
 /************************************************************************/
 
-OGRGeometry *OGRPoint::clone()
+OGRGeometry *OGRPoint::clone() const
 
 {
     OGRPoint    *poNewPoint = new OGRPoint( x, y, z );
@@ -173,7 +194,7 @@ void OGRPoint::empty()
 /*                            getDimension()                            */
 /************************************************************************/
 
-int OGRPoint::getDimension()
+int OGRPoint::getDimension() const
 
 {
     return 0;
@@ -183,7 +204,7 @@ int OGRPoint::getDimension()
 /*                       getCoordinateDimension()                       */
 /************************************************************************/
 
-int OGRPoint::getCoordinateDimension()
+int OGRPoint::getCoordinateDimension() const
 
 {
     if( z == 0 )
@@ -196,7 +217,7 @@ int OGRPoint::getCoordinateDimension()
 /*                          getGeometryType()                           */
 /************************************************************************/
 
-OGRwkbGeometryType OGRPoint::getGeometryType()
+OGRwkbGeometryType OGRPoint::getGeometryType() const
 
 {
     if( z == 0 )
@@ -209,7 +230,7 @@ OGRwkbGeometryType OGRPoint::getGeometryType()
 /*                          getGeometryName()                           */
 /************************************************************************/
 
-const char * OGRPoint::getGeometryName()
+const char * OGRPoint::getGeometryName() const
 
 {
     return "POINT";
@@ -232,7 +253,7 @@ void OGRPoint::flattenTo2D()
 /*      representation including the byte order, and type information.  */
 /************************************************************************/
 
-int OGRPoint::WkbSize()
+int OGRPoint::WkbSize() const
 
 {
     if( z == 0)
@@ -317,13 +338,13 @@ OGRErr OGRPoint::importFromWkb( unsigned char * pabyData,
 /************************************************************************/
 
 OGRErr  OGRPoint::exportToWkb( OGRwkbByteOrder eByteOrder,
-                               unsigned char * pabyData )
+                               unsigned char * pabyData ) const
 
 {
 /* -------------------------------------------------------------------- */
 /*      Set the byte order.                                             */
 /* -------------------------------------------------------------------- */
-    pabyData[0] = (unsigned char) eByteOrder;
+    pabyData[0] = DB2_V72_UNFIX_BYTE_ORDER((unsigned char) eByteOrder);
 
 /* -------------------------------------------------------------------- */
 /*      Set the geometry feature type.                                  */
@@ -384,6 +405,30 @@ OGRErr OGRPoint::importFromWkt( char ** ppszInput )
         return OGRERR_CORRUPT_DATA;
 
 /* -------------------------------------------------------------------- */
+/*      Check for EMPTY ... but treat like a point at 0,0.              */
+/* -------------------------------------------------------------------- */
+    const char *pszPreScan;
+
+    pszPreScan = OGRWktReadToken( pszInput, szToken );
+    if( !EQUAL(szToken,"(") )
+        return OGRERR_CORRUPT_DATA;
+
+    pszPreScan = OGRWktReadToken( pszPreScan, szToken );
+    if( EQUAL(szToken,"EMPTY") )
+    {
+        pszInput = OGRWktReadToken( pszPreScan, szToken );
+        
+        if( !EQUAL(szToken,")") )
+            return OGRERR_CORRUPT_DATA;
+        else
+        {
+            *ppszInput = (char *) pszInput;
+            empty();
+            return OGRERR_NONE;
+        }
+    }
+
+/* -------------------------------------------------------------------- */
 /*      Read the point list which should consist of exactly one point.  */
 /* -------------------------------------------------------------------- */
     OGRRawPoint         *poPoints = NULL;
@@ -418,7 +463,7 @@ OGRErr OGRPoint::importFromWkt( char ** ppszInput )
 /*      equivelent.                                                     */
 /************************************************************************/
 
-OGRErr OGRPoint::exportToWkt( char ** ppszDstText )
+OGRErr OGRPoint::exportToWkt( char ** ppszDstText ) const
 
 {
     char        szTextEquiv[100];
@@ -435,7 +480,7 @@ OGRErr OGRPoint::exportToWkt( char ** ppszDstText )
 /*                            getEnvelope()                             */
 /************************************************************************/
 
-void OGRPoint::getEnvelope( OGREnvelope * psEnvelope )
+void OGRPoint::getEnvelope( OGREnvelope * psEnvelope ) const
 
 {
     psEnvelope->MinX = psEnvelope->MaxX = getX();
@@ -445,7 +490,7 @@ void OGRPoint::getEnvelope( OGREnvelope * psEnvelope )
 
 
 /**
- * \fn double OGRPoint::getX();
+ * \fn double OGRPoint::getX() const;
  *
  * Fetch X coordinate.
  *
@@ -455,7 +500,7 @@ void OGRPoint::getEnvelope( OGREnvelope * psEnvelope )
  */
 
 /**
- * \fn double OGRPoint::getY();
+ * \fn double OGRPoint::getY() const;
  *
  * Fetch Y coordinate.
  *
@@ -465,7 +510,7 @@ void OGRPoint::getEnvelope( OGREnvelope * psEnvelope )
  */
 
 /**
- * \fn double OGRPoint::getZ();
+ * \fn double OGRPoint::getZ() const;
  *
  * Fetch Z coordinate.
  *
@@ -503,12 +548,12 @@ void OGRPoint::getEnvelope( OGREnvelope * psEnvelope )
 /*                               Equal()                                */
 /************************************************************************/
 
-OGRBoolean OGRPoint::Equal( OGRGeometry * poOther )
+OGRBoolean OGRPoint::Equals( OGRGeometry * poOther ) const
 
 {
     OGRPoint    *poOPoint = (OGRPoint *) poOther;
     
-    if( poOther == this )
+    if( poOPoint== this )
         return TRUE;
     
     if( poOther->getGeometryType() != getGeometryType() )

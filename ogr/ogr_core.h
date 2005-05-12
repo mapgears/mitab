@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_core.h,v 1.20 2003/06/09 13:48:54 warmerda Exp $
+ * $Id: ogr_core.h,v 1.25 2005/02/02 19:59:47 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Define some core portability services for cross-platform OGR code.
@@ -28,6 +28,21 @@
  ******************************************************************************
  *
  * $Log: ogr_core.h,v $
+ * Revision 1.25  2005/02/02 19:59:47  fwarmerdam
+ * added SetNextByIndex support
+ *
+ * Revision 1.24  2003/10/09 15:27:41  warmerda
+ * added OGRLayer::DeleteFeature() support
+ *
+ * Revision 1.23  2003/09/11 19:59:41  warmerda
+ * avoid casting issue with UNFIX macro
+ *
+ * Revision 1.22  2003/08/27 15:40:37  warmerda
+ * added support for generating DB2 V7.2 compatible WKB
+ *
+ * Revision 1.21  2003/08/11 03:28:04  warmerda
+ * Export OGREnvelope C++ class with CPL_DLL as per bug 378.
+ *
  * Revision 1.20  2003/06/09 13:48:54  warmerda
  * added DB2 V7.2 byte order hack
  *
@@ -100,7 +115,7 @@
  */
 
 #ifdef __cplusplus
-class OGREnvelope
+class CPL_DLL OGREnvelope
 {
   public:
         OGREnvelope()
@@ -204,12 +219,16 @@ typedef enum
     wkbNDR = 1          /* LSB/Intel/Vax: Least Significant Byte First      */
 } OGRwkbByteOrder;
 
-#define HACK_FOR_IBM_DB2_V72
+#ifndef NO_HACK_FOR_IBM_DB2_V72
+#  define HACK_FOR_IBM_DB2_V72
+#endif
 
 #ifdef HACK_FOR_IBM_DB2_V72
 #  define DB2_V72_FIX_BYTE_ORDER(x) ((((x) & 0x31) == (x)) ? (OGRwkbByteOrder) ((x) & 0x1) : (x))
+#  define DB2_V72_UNFIX_BYTE_ORDER(x) ((unsigned char) (OGRGeometry::bGenerate_DB2_V72_BYTE_ORDER ? ((x) | 0x30) : (x)))
 #else
 #  define DB2_V72_FIX_BYTE_ORDER(x) (x)
+#  define DB2_V72_UNFIX_BYTE_ORDER(x) (x)
 #endif
 
 /************************************************************************/
@@ -302,6 +321,8 @@ typedef union {
 #define OLCFastGetExtent       "FastGetExtent"
 #define OLCCreateField         "CreateField"
 #define OLCTransactions        "Transactions"
+#define OLCDeleteFeature       "DeleteFeature"
+#define OLCFastSetNextByIndex  "FastSetNextByIndex"
 
 #define ODsCCreateLayer        "CreateLayer"
 #define ODsCDeleteLayer        "DeleteLayer"

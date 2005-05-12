@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_fromepsg.cpp,v 1.29 2003/06/23 14:48:42 warmerda Exp $
+ * $Id: ogr_fromepsg.cpp,v 1.39 2005/04/06 00:02:05 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Generate an OGRSpatialReference object based on an EPSG
@@ -29,6 +29,36 @@
  ******************************************************************************
  *
  * $Log: ogr_fromepsg.cpp,v $
+ * Revision 1.39  2005/04/06 00:02:05  fwarmerdam
+ * various osr and oct functions now stdcall
+ *
+ * Revision 1.38  2004/09/10 21:02:41  fwarmerdam
+ * added note about 9814
+ *
+ * Revision 1.37  2004/05/26 19:53:17  warmerda
+ * Fixed poor NULL checking in auto-identify.
+ *
+ * Revision 1.36  2004/05/10 17:05:14  warmerda
+ * added AutoIdentifyEPSG()
+ *
+ * Revision 1.35  2004/05/04 17:54:06  warmerda
+ * keep longitudes greenwich relative
+ *
+ * Revision 1.34  2004/04/28 00:27:58  warmerda
+ * Added Albers Conic Area Area translation (method=9822).
+ *
+ * Revision 1.33  2004/04/24 15:47:19  warmerda
+ * Added uom 9122 improvements.
+ *
+ * Revision 1.32  2004/03/04 18:04:45  warmerda
+ * added importFromDict() support
+ *
+ * Revision 1.31  2003/11/20 19:41:15  warmerda
+ * added logic to set EPSG authority info if read from PROJ.4
+ *
+ * Revision 1.30  2003/11/19 20:40:58  warmerda
+ * Add support for faking EPSG coordinate systems from PROJ.4 definitions
+ *
  * Revision 1.29  2003/06/23 14:48:42  warmerda
  * make OGREPSTDatumNameMassage() public
  *
@@ -121,7 +151,7 @@
 #include "ogr_spatialref.h"
 #include "cpl_csv.h"
 
-CPL_CVSID("$Id: ogr_fromepsg.cpp,v 1.29 2003/06/23 14:48:42 warmerda Exp $");
+CPL_CVSID("$Id: ogr_fromepsg.cpp,v 1.39 2005/04/06 00:02:05 fwarmerdam Exp $");
 
 #ifndef PI
 #  define PI 3.14159265358979323846
@@ -321,7 +351,8 @@ int EPSGGetUOMAngleInfo( int nUOMAngleCode,
 
         /* We do a special override of some of the DMS formats name */
         if( nUOMAngleCode == 9102 || nUOMAngleCode == 9107
-            || nUOMAngleCode == 9108 || nUOMAngleCode == 9110 )
+            || nUOMAngleCode == 9108 || nUOMAngleCode == 9110 
+            || nUOMAngleCode == 9122 )
             pszUOMName = "degree";
 
         // For some reason, (FactorB) is not very precise in EPSG, use
@@ -346,6 +377,7 @@ int EPSGGetUOMAngleInfo( int nUOMAngleCode,
           case 9107:
           case 9108:
           case 9110:
+          case 9122:
             pszUOMName = "degree";
             dfInDegrees = 1.0;
             break;
@@ -1143,8 +1175,13 @@ static double OGR_FetchParm( double *padfProjParms, int *panParmIds,
     }
 
 /* -------------------------------------------------------------------- */
-/*      Correct longitude to be relative to greenwich                   */
+/*      EPSG longitudes are relative to greenwich.  The follow code     */
+/*      could be used to make them relative to the prime meridian of    */
+/*      the associated GCS if that was appropriate.  However, the       */
+/*      SetNormProjParm() method expects longitudes relative to         */
+/*      greenwich, so there is nothing for us to do.                    */
 /* -------------------------------------------------------------------- */
+#ifdef notdef
     switch( nTargetId )
     {
       case NatOriginLong:
@@ -1152,12 +1189,17 @@ static double OGR_FetchParm( double *padfProjParms, int *panParmIds,
       case FalseOriginLong:
       case SphericalOriginLong:
       case InitialLongitude:
+        // Note that the EPSG values are already relative to greenwich.
+        // This shift is really making it relative to the provided prime
+        // meridian, so that when SetTM() and company the correction back
+        // ends up back relative to greenwich.
         dfResult = dfResult + dfFromGreenwich;
         break;
 
       default:
         ;
     }
+#endif
 
     return dfResult;
 }
@@ -1278,7 +1320,6 @@ static OGRErr SetEPSGProjCS( OGRSpatialReference * poSRS, int nPCSCode )
 
       case 9812:
       case 9813:
-      case 9814:
         poSRS->SetHOM( OGR_FP( ProjCenterLat ), OGR_FP( ProjCenterLong ),
                        OGR_FP( Azimuth ), 
                        OGR_FP( AngleRectifiedToSkewedGrid ),
@@ -1288,6 +1329,14 @@ static OGRErr SetEPSGProjCS( OGRSpatialReference * poSRS, int nPCSCode )
         poNode = poSRS->GetAttrNode( "PROJECTION" )->GetChild( 0 );
         if( nProjMethod == 9813 )
             poNode->SetValue( SRS_PT_LABORDE_OBLIQUE_MERCATOR );
+        break;
+
+      case 9814:
+        /* NOTE: This is no longer used!  Swiss Oblique Mercator gets
+        ** implemented using 9815 instead.  
+        */
+        poSRS->SetSOC( OGR_FP( ProjCenterLat ), OGR_FP( ProjCenterLong ),
+                       OGR_FP( FalseEasting ), OGR_FP( FalseNorthing ) );
         break;
 
       case 9815:
@@ -1332,7 +1381,25 @@ static OGRErr SetEPSGProjCS( OGRSpatialReference * poSRS, int nPCSCode )
                         OGR_FP( FalseEasting ), OGR_FP( FalseNorthing ) );
         break;
 
+      case 9822: /* Albers (Conic) Equal Area */
+        poSRS->SetACEA( OGR_FP( StdParallel1Lat ), 
+                        OGR_FP( StdParallel2Lat ), 
+                        OGR_FP( FalseOriginLat ),
+                        OGR_FP( FalseOriginLong ),
+                        OGR_FP( FalseOriginEasting ),
+                        OGR_FP( FalseOriginNorthing ) );
+        break;
+
+#ifdef notdef
+      case 9823: /* Equidistant Cylindrical / Plate Carre */
+        poSRS->SetACEA( OGR_FP( NatOriginLat ),
+                        OGR_FP( NatOriginLong ) );
+        break;
+#endif
+
       default:
+        CPLDebug( "EPSG", "No WKT support for projection method %d.",
+                  nProjMethod );
         return OGRERR_UNSUPPORTED_SRS;
     }
 
@@ -1401,6 +1468,45 @@ OGRErr OGRSpatialReference::importFromEPSG( int nCode )
     else
         eErr = SetEPSGProjCS( this, nCode );
 
+/* -------------------------------------------------------------------- */
+/*      If we get it as an unsupported code, try looking it up in       */
+/*      the epsg.wkt coordinate system dictionary.                      */
+/* -------------------------------------------------------------------- */
+    if( eErr == OGRERR_UNSUPPORTED_SRS )
+    {
+        char szCode[32];
+        sprintf( szCode, "%d", nCode );
+        eErr = importFromDict( "epsg.wkt", szCode );
+    }
+
+/* -------------------------------------------------------------------- */
+/*      If we get it as an unsupported code, try looking it up in       */
+/*      the PROJ.4 support file(s).                                     */
+/* -------------------------------------------------------------------- */
+    static int bLoopingToProj4 = FALSE;
+
+    if( eErr == OGRERR_UNSUPPORTED_SRS && !bLoopingToProj4 )
+    {
+        char szWrkDefn[100];
+
+        sprintf( szWrkDefn, "+init=epsg:%d", nCode );
+        bLoopingToProj4 = TRUE;
+        CPLPushErrorHandler( CPLQuietErrorHandler );
+        eErr = SetFromUserInput( szWrkDefn );
+        CPLPopErrorHandler();
+        bLoopingToProj4 = FALSE;
+
+        if( eErr != OGRERR_NONE )
+            eErr = OGRERR_UNSUPPORTED_SRS;
+        else
+        {
+            if( IsProjected() )
+                SetAuthority( "PROJCS", "EPSG", nCode );
+            else if( IsGeographic() )
+                SetAuthority( "GEOGCS", "EPSG", nCode );
+        }
+    }
+
     if( eErr == OGRERR_UNSUPPORTED_SRS )
     {
         CPLError( CE_Failure, CPLE_NotSupported,
@@ -1421,7 +1527,7 @@ OGRErr OGRSpatialReference::importFromEPSG( int nCode )
 /*                         OSRImportFromEPSG()                          */
 /************************************************************************/
 
-OGRErr OSRImportFromEPSG( OGRSpatialReferenceH hSRS, int nCode )
+OGRErr CPL_STDCALL OSRImportFromEPSG( OGRSpatialReferenceH hSRS, int nCode )
 
 {
     return ((OGRSpatialReference *) hSRS)->importFromEPSG( nCode );
@@ -1576,4 +1682,89 @@ OGRErr OSRSetStatePlaneWithUnits( OGRSpatialReferenceH hSRS,
                                                           dfOverrideUnit );
 }
 
+/************************************************************************/
+/*                          AutoIdentifyEPSG()                          */
+/************************************************************************/
 
+/**
+ * Set EPSG authority info if possible.
+ *
+ * This method inspects a WKT definition, and adds EPSG authority nodes
+ * where an aspect of the coordinate system can be easily and safely 
+ * corresponded with an EPSG identifier.  In practice, this method will 
+ * evolve over time.  In theory it can add authority nodes for any object
+ * (ie. spheroid, datum, GEOGCS, units, and PROJCS) that could have an 
+ * authority node.  Mostly this is useful to inserting appropriate 
+ * PROJCS codes for common formulations (like UTM n WGS84). 
+ *
+ * If it success the OGRSpatialReference is updated in place, and the 
+ * method return OGRERR_NONE.  If the method fails to identify the 
+ * general coordinate system OGRERR_UNSUPPORTED_SRS is returned but no 
+ * error message is posted via CPLError(). 
+ *
+ * This method is the same as the C function OSRAutoIdentifyEPSG().
+ *
+ * @return OGRERR_NONE or OGRERR_UNSUPPORTED_SRS.
+ */
+
+OGRErr OGRSpatialReference::AutoIdentifyEPSG()
+
+{
+/* -------------------------------------------------------------------- */
+/*      Is this a UTM coordinate system with a common GEOGCS?           */
+/* -------------------------------------------------------------------- */
+    int nZone, bNorth;
+    if( (nZone = GetUTMZone( &bNorth )) != 0 
+        && GetAuthorityCode( "PROJCS") == NULL )
+    {
+        const char *pszAuthName, *pszAuthCode;
+
+        pszAuthName = GetAuthorityName( "PROJCS|GEOGCS" );
+        pszAuthCode = GetAuthorityCode( "PROJCS|GEOGCS" );
+
+        if( pszAuthName == NULL ||  pszAuthCode == NULL )
+        {
+            /* don't exactly recognise datum */
+        }
+        else if( EQUAL(pszAuthName,"EPSG") && atoi(pszAuthCode) == 4326 )
+        { // WGS84
+            if( bNorth ) 
+                SetAuthority( "PROJCS", "EPSG", 32600 + nZone );
+            else
+                SetAuthority( "PROJCS", "EPSG", 32700 + nZone );
+        }
+        else if( EQUAL(pszAuthName,"EPSG") && atoi(pszAuthCode) == 4267 
+                 && nZone >= 3 && nZone <= 22 && bNorth )
+            SetAuthority( "PROJCS", "EPSG", 26700 + nZone ); // NAD27
+        else if( EQUAL(pszAuthName,"EPSG") && atoi(pszAuthCode) == 4269
+                 && nZone >= 3 && nZone <= 23 && bNorth )
+            SetAuthority( "PROJCS", "EPSG", 26900 + nZone ); // NAD83
+        else if( EQUAL(pszAuthName,"EPSG") && atoi(pszAuthCode) == 4322 )
+        { // WGS72
+            if( bNorth ) 
+                SetAuthority( "PROJCS", "EPSG", 32200 + nZone );
+            else
+                SetAuthority( "PROJCS", "EPSG", 32300 + nZone );
+        }
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Return.                                                         */
+/* -------------------------------------------------------------------- */
+    if( IsProjected() && GetAuthorityCode("PROJCS") != NULL )
+        return OGRERR_NONE;
+    else if( IsGeographic() && GetAuthorityCode("GEOGCS") != NULL )
+        return OGRERR_NONE;
+    else
+        return OGRERR_UNSUPPORTED_SRS;
+}
+
+/************************************************************************/
+/*                        OSRAutoIdentifyEPSG()                         */
+/************************************************************************/
+
+OGRErr OSRAutoIdentifyEPSG( OGRSpatialReferenceH hSRS )
+
+{
+    return ((OGRSpatialReference *) hSRS)->AutoIdentifyEPSG();
+}

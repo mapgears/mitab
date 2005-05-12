@@ -1,10 +1,10 @@
 /**********************************************************************
- * $Id: cpl_string.cpp,v 1.35 2003/07/17 10:15:40 dron Exp $
+ * $Id: cpl_string.cpp,v 1.42 2005/04/04 15:23:31 fwarmerdam Exp $
  *
  * Name:     cpl_string.cpp
  * Project:  CPL - Common Portability Library
  * Purpose:  String and Stringlist manipulation functions.
- * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
+ * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
  * Copyright (c) 1998, Daniel Morissette
@@ -44,6 +44,28 @@
  *   without vsnprintf(). 
  *
  * $Log: cpl_string.cpp,v $
+ * Revision 1.42  2005/04/04 15:23:31  fwarmerdam
+ * some functions now CPL_STDCALL
+ *
+ * Revision 1.41  2004/09/17 21:26:28  fwarmerdam
+ * Yikes ... CPLEscapeString() was badly broken for BackslashEscapable.
+ *
+ * Revision 1.40  2004/08/16 20:23:46  warmerda
+ * added .csv escaping
+ *
+ * Revision 1.39  2004/07/12 21:50:38  warmerda
+ * Added SQL escaping style
+ *
+ * Revision 1.38  2004/04/23 22:23:32  warmerda
+ * Fixed key memory leak in seldom used CSLSetNameValueSeperator().
+ *
+ * Revision 1.37  2003/12/02 15:56:47  warmerda
+ * avoid use of CSLAddString() in tokenize, manage list ourselves
+ *
+ * Revision 1.36  2003/08/29 17:32:27  warmerda
+ * Open file in binary mode for CSLLoad() since CPLReadline() works much
+ * better then.
+ *
  * Revision 1.35  2003/07/17 10:15:40  dron
  * CSLTestBoolean() added.
  *
@@ -158,7 +180,7 @@
 #include "cpl_string.h"
 #include "cpl_vsi.h"
 
-CPL_CVSID("$Id: cpl_string.cpp,v 1.35 2003/07/17 10:15:40 dron Exp $");
+CPL_CVSID("$Id: cpl_string.cpp,v 1.42 2005/04/04 15:23:31 fwarmerdam Exp $");
 
 /*=====================================================================
                     StringList manipulation functions.
@@ -248,7 +270,7 @@ const char * CSLGetField( char ** papszStrList, int iField )
  *
  * Free all memory used by a StringList.
  **********************************************************************/
-void CSLDestroy(char **papszStrList)
+void CPL_STDCALL CSLDestroy(char **papszStrList)
 {
     char **papszPtr;
 
@@ -310,7 +332,7 @@ char **CSLLoad(const char *pszFname)
     const char  *pszLine;
     char        **papszStrList=NULL;
 
-    fp = VSIFOpen(pszFname, "rt");
+    fp = VSIFOpen(pszFname, "rb");
 
     if (fp)
     {
@@ -661,6 +683,7 @@ char ** CSLTokenizeString2( const char * pszString,
 
 {
     char        **papszRetList = NULL;
+    int         nRetMax = 0, nRetLen = 0;
     char        *pszToken;
     int         nTokenMax, nTokenLen;
     int         bHonourStrings = (nCSLTFlags & CSLT_HONOURSTRINGS);
@@ -746,18 +769,24 @@ char ** CSLTokenizeString2( const char * pszString,
 
         pszToken[nTokenLen] = '\0';
 
-        if( pszToken[0] != '\0' || bAllowEmptyTokens )
-        {
-            papszRetList = CSLAddString( papszRetList, pszToken );
-        }
-
-        /* If the last token is an empty token, then we have to catch
+        /*
+         * If the last token is an empty token, then we have to catch
          * it now, otherwise we won't reenter the loop and it will be lost. 
          */
-        if ( *pszString == '\0' && bAllowEmptyTokens &&
-             strchr(pszDelimiters, *(pszString-1)) )
+
+        if( (pszToken[0] != '\0' || bAllowEmptyTokens)
+            || (*pszString == '\0' && bAllowEmptyTokens
+                && strchr(pszDelimiters, *(pszString-1)) ) )
         {
-            papszRetList = CSLAddString( papszRetList, "" );
+            if( nRetLen >= nRetMax - 1 )
+            {
+                nRetMax = nRetMax * 2 + 10;
+                papszRetList = (char **) 
+                    CPLRealloc(papszRetList, sizeof(char*) * nRetMax );
+            }
+
+            papszRetList[nRetLen++] = CPLStrdup( pszToken );
+            papszRetList[nRetLen] = NULL;
         }
     }
 
@@ -1160,6 +1189,7 @@ void CSLSetNameValueSeparator( char ** papszList, const char *pszSeparator )
         strcat( pszNewLine, pszValue );
         CPLFree( papszList[iLine] );
         papszList[iLine] = pszNewLine;
+        CPLFree( pszKey );
     }
 }
 
@@ -1190,6 +1220,16 @@ void CSLSetNameValueSeparator( char ** papszList, const char *pszSeparator )
  * converted to a percent followed by a two digit hex encoding of the character
  * (leading zero supplied if needed).  This is the mechanism used for encoding
  * values to be passed in URLs.
+ *
+ * CPLES_SQL(3): All single quotes are replaced with two single quotes.  
+ * Suitable for use when constructing literal values for SQL commands where
+ * the literal will be enclosed in single quotes.
+ *
+ * CPLES_CSV(4): If the values contains commas, double quotes, or newlines it 
+ * placed in double quotes, and double quotes in the value are doubled.
+ * Suitable for use when constructing field values for .csv files.  Note that
+ * CPLUnescapeString() currently does not support this format, only 
+ * CPLEscapeString().  See cpl_csv.cpp for csv parsing support.
  *
  * @param pszInput the string to escape.  
  * @param nLength The number of bytes of data to preserve.  If this is -1
@@ -1223,10 +1263,15 @@ char *CPLEscapeString( const char *pszInput, int nLength,
                 pszOutput[iOut++] = '\\';
                 pszOutput[iOut++] = '0';
             }
-            else if( pszInput[iIn] == '"' )
+            else if( pszInput[iIn] == '\n' )
             {
                 pszOutput[iOut++] = '\\';
                 pszOutput[iOut++] = 'n';
+            }
+            else if( pszInput[iIn] == '"' )
+            {
+                pszOutput[iOut++] = '\\';
+                pszOutput[iOut++] = '\"';
             }
             else if( pszInput[iIn] == '\\' )
             {
@@ -1300,6 +1345,53 @@ char *CPLEscapeString( const char *pszInput, int nLength,
                 pszOutput[iOut++] = pszInput[iIn];
         }
         pszOutput[iOut] = '\0';
+    }
+    else if( nScheme == CPLES_SQL )
+    {
+        int iOut = 0, iIn;
+
+        for( iIn = 0; iIn < nLength; iIn++ )
+        {
+            if( pszInput[iIn] == '\'' )
+            {
+                pszOutput[iOut++] = '\'';
+                pszOutput[iOut++] = '\'';
+            }
+            else
+                pszOutput[iOut++] = pszInput[iIn];
+        }
+        pszOutput[iOut] = '\0';
+    }
+    else if( nScheme == CPLES_CSV )
+    {
+        if( strchr( pszInput, '\"' ) == NULL
+            && strchr( pszInput, ',') == NULL
+            && strchr( pszInput, 10) == NULL 
+            && strchr( pszInput, 13) == NULL )
+        {
+            strcpy( pszOutput, pszInput );
+        }
+        else
+        {
+            int iOut = 1, iIn;
+
+            pszOutput[0] = '\"';
+
+            for( iIn = 0; iIn < nLength; iIn++ )
+            {
+                if( pszInput[iIn] == '\"' )
+                {
+                    pszOutput[iOut++] = '\"';
+                    pszOutput[iOut++] = '\"';
+                }
+                else if( pszInput[iIn] == 13 )
+                    /* drop DOS LF's in strings. */;
+                else
+                    pszOutput[iOut++] = pszInput[iIn];
+            }
+            pszOutput[iOut++] = '\"';
+            pszOutput[iOut++] = '\0';
+        }
     }
     else
     {
@@ -1414,6 +1506,21 @@ char *CPLUnescapeString( const char *pszInput, int *pnLength, int nScheme )
             {
                 pszOutput[iOut++] = ' ';
             }   
+            else
+            {
+                pszOutput[iOut++] = pszInput[iIn];
+            }
+        }
+    }
+    else if( nScheme == CPLES_SQL )
+    {
+        for( iIn = 0; pszInput[iIn] != '\0'; iIn++ )
+        {
+            if( pszInput[iIn] == '\'' && pszInput[iIn+1] == '\'' )
+            {
+                iIn++;
+                pszOutput[iOut++] = pszInput[iIn];
+            }
             else
             {
                 pszOutput[iOut++] = pszInput[iIn];

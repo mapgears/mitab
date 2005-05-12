@@ -12,7 +12,7 @@ OBJ	=	ogr_srsnode.o ogrcurve.o ogrfeature.o ogrfeaturedefn.o \
 		ogrfeaturestyle.o ogr_fromepsg.o ogrfeaturequery.o swq.o \
 		ogrct.o ogr_gensql.o ogr_srs_xml.o ogr_srs_esri.o \
 		ogr_api.o gml2ogrgeometry.o ogr2gmlgeometry.o \
-		ogr_miattrind.o ogr_attrind.o
+		ogr_miattrind.o ogr_attrind.o ogr_srs_dict.o
 
 LIB	=	ogr.a
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_port.h,v 1.33 2003/05/12 14:52:56 warmerda Exp $
+ * $Id: cpl_port.h,v 1.42 2005/04/04 15:22:36 fwarmerdam Exp $
  *
  * Project:  CPL - Common Portability Library
  * Author:   Frank Warmerdam, warmerdam@pobox.com
@@ -42,6 +42,34 @@
  ******************************************************************************
  *
  * $Log: cpl_port.h,v $
+ * Revision 1.42  2005/04/04 15:22:36  fwarmerdam
+ * added CPL_STDCALL declaration
+ *
+ * Revision 1.41  2005/03/17 04:20:24  fwarmerdam
+ * added FORCE_CDECL
+ *
+ * Revision 1.40  2005/03/11 14:59:07  fwarmerdam
+ * Default to assuming nothing is infinite if isinf() macro not defined.
+ * Per http://bugzilla.remotesensing.org/show_bug.cgi?id=795
+ *
+ * Revision 1.39  2005/03/01 21:22:07  fwarmerdam
+ * added CPLIsFinite()
+ *
+ * Revision 1.38  2005/03/01 20:44:38  fwarmerdam
+ * Check for _MSC_VER instead of WIN32.
+ *
+ * Revision 1.37  2005/03/01 19:57:55  fwarmerdam
+ * Added CPLIsNan and CPLIsInf macros.
+ *
+ * Revision 1.36  2004/01/06 21:42:32  warmerda
+ * "Fix" for bug 455 related to CPL_IS_LSB macro.
+ *
+ * Revision 1.35  2003/12/11 03:16:02  warmerda
+ * Added CPL_IS_LSB macro with value 0 (MSB) or 1 (LSB).
+ *
+ * Revision 1.34  2003/09/08 11:11:05  dron
+ * Include time.h and locale.h.
+ *
  * Revision 1.33  2003/05/12 14:52:56  warmerda
  * Use _MSC_VER to test for Microsoft Visual C++ compiler.
  *
@@ -146,6 +174,11 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <time.h>
+
+#ifdef HAVE_LOCALE_H
+#  include <locale.h>
+#endif
 
 #ifdef _AIX
 #  include <strings.h>
@@ -223,6 +256,19 @@ typedef unsigned long    GUIntBig;
 #endif
 #endif
 
+#ifndef CPL_STDCALL
+#if defined(_MSC_VER) && !defined(CPL_DISABLE_STDCALL)
+#  define CPL_STDCALL     __stdcall
+#else
+#  define CPL_STDCALL
+#endif
+#endif
+
+#ifdef _MSC_VER
+#  define FORCE_CDECL  __cdecl
+#else
+#  define FORCE_CDECL 
+#endif
 
 #ifndef NULL
 #  define NULL  0
@@ -261,6 +307,30 @@ int strncasecmp(char * str1, char * str2, int len);
 char * strdup (char *instr);
 #endif
 
+/* -------------------------------------------------------------------- */
+/*      Handle isnan() and isinf().  Note that isinf() and isnan()      */
+/*      are supposed to be macros according to C99.  Some systems       */
+/*      (ie. Tru64) don't have isinf() at all, so if the macro is       */
+/*      not defined we just assume nothing is infinite.  This may       */
+/*      mean we have no real CPLIsInf() on systems with an isinf()      */
+/*      function but no corresponding macro, but I can live with        */
+/*      that since it isn't that important a test.                      */
+/* -------------------------------------------------------------------- */
+#ifdef _MSC_VER
+#  define CPLIsNan(x) _isnan(x)
+#  define CPLIsInf(x) (!_isnan(x) && !_finite(x))
+#  define CPLIsFinite(x) _finite(x)
+#else
+#  define CPLIsNan(x) isnan(x)
+#  ifdef isinf 
+#    define CPLIsInf(x) isinf(x)
+#    define CPLIsFinite(x) (!isnan(x) && !isinf(x))
+#  else
+#    define CPLIsInf(x)    FALSE
+#    define CPLIsFinite(x) (!isnan(x))
+#  endif
+#endif
+
 /*---------------------------------------------------------------------
  *                         CPL_LSB and CPL_MSB
  * Only one of these 2 macros should be defined and specifies the byte 
@@ -274,6 +344,12 @@ char * strdup (char *instr);
 
 #if ! ( defined(CPL_LSB) || defined(CPL_MSB) )
 #define CPL_LSB
+#endif
+
+#if defined(CPL_LSB)
+#  define CPL_IS_LSB 1
+#else
+#  define CPL_IS_LSB 0
 #endif
 
 /*---------------------------------------------------------------------

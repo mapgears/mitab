@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_csv.cpp,v 1.9 2003/07/18 12:45:18 warmerda Exp $
+ * $Id: cpl_csv.cpp,v 1.12 2004/11/22 16:01:05 fwarmerdam Exp $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  CSV (comma separated value) file access.
@@ -28,6 +28,15 @@
  ******************************************************************************
  *
  * $Log: cpl_csv.cpp,v $
+ * Revision 1.12  2004/11/22 16:01:05  fwarmerdam
+ * added GDAL_PREFIX
+ *
+ * Revision 1.11  2004/08/17 14:58:01  warmerda
+ * preserve newlines in CSVReadParseLine()
+ *
+ * Revision 1.10  2004/04/27 14:28:49  warmerda
+ * Avoid Solaris C++ problems with SetCSVFilenameHook().
+ *
  * Revision 1.9  2003/07/18 12:45:18  warmerda
  * added GDALDefaultCSVFilename
  *
@@ -66,7 +75,7 @@
 #include "cpl_csv.h"
 #include "cpl_conv.h"
 
-CPL_CVSID("$Id: cpl_csv.cpp,v 1.9 2003/07/18 12:45:18 warmerda Exp $");
+CPL_CVSID("$Id: cpl_csv.cpp,v 1.12 2004/11/22 16:01:05 fwarmerdam Exp $");
 
 CPL_C_START
 const char * GDALDefaultCSVFilename( const char *pszBasename );
@@ -483,7 +492,8 @@ char **CSVReadParseLine( FILE * fp )
 
         pszWorkLine = (char *)
             CPLRealloc(pszWorkLine,
-                       strlen(pszWorkLine) + strlen(pszLine) + 1);
+                       strlen(pszWorkLine) + strlen(pszLine) + 2);
+        strcat( pszWorkLine, "\n" ); // This gets lost in CPLReadLine().
         strcat( pszWorkLine, pszLine );
     }
     
@@ -925,7 +935,11 @@ const char * GDALDefaultCSVFilename( const char *pszBasename )
     }
     else
     {
+#ifdef GDAL_PREFIX
+        sprintf( szPath, GDAL_PREFIX "/share/epsg_csv/%s", pszBasename );
+#else
         sprintf( szPath, "/usr/local/share/epsg_csv/%s", pszBasename );
+#endif
         if( (fp = fopen( szPath, "rt" )) == NULL )
             strcpy( szPath, pszBasename );
     }
@@ -1005,8 +1019,11 @@ static const char *CSVFileOverride( const char * pszInput )
 
 */
 
+CPL_C_START
 void SetCSVFilenameHook( const char *(*pfnNewHook)( const char * ) )
 
 {
     pfnCSVFilenameHook = pfnNewHook;
 }
+CPL_C_END
+

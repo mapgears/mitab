@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_findfile.cpp,v 1.4 2002/12/03 04:42:02 warmerda Exp $
+ * $Id: cpl_findfile.cpp,v 1.8 2005/01/15 07:46:20 fwarmerdam Exp $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Generic data file location finder, with application hooking.
@@ -28,6 +28,18 @@
  ******************************************************************************
  *
  * $Log: cpl_findfile.cpp,v $
+ * Revision 1.8  2005/01/15 07:46:20  fwarmerdam
+ * make cplpopfinderlocation safer for final cleanup
+ *
+ * Revision 1.7  2004/11/22 16:01:05  fwarmerdam
+ * added GDAL_PREFIX
+ *
+ * Revision 1.6  2003/10/24 16:41:16  warmerda
+ * Added /usr/local/share/gdal (not /usr/local/share) to default locations.
+ *
+ * Revision 1.5  2003/10/24 16:30:10  warmerda
+ * fixed serious bug in default finder ... only last location used
+ *
  * Revision 1.4  2002/12/03 04:42:02  warmerda
  * improved finder cleanup support
  *
@@ -45,7 +57,7 @@
 #include "cpl_conv.h"
 #include "cpl_string.h"
 
-CPL_CVSID("$Id: cpl_findfile.cpp,v 1.4 2002/12/03 04:42:02 warmerda Exp $");
+CPL_CVSID("$Id: cpl_findfile.cpp,v 1.8 2005/01/15 07:46:20 fwarmerdam Exp $");
 
 static int bFinderInitialized = FALSE;
 static int nFileFinders = 0;
@@ -63,7 +75,11 @@ static void CPLFinderInit()
     {
         bFinderInitialized = TRUE;
         CPLPushFileFinder( CPLDefaultFindFile );
-        CPLPushFinderLocation( "/usr/local/share" );
+#ifdef GDAL_PREFIX
+        CPLPushFinderLocation( GDAL_PREFIX "/share/gdal" );
+#else
+        CPLPushFinderLocation( "/usr/local/share/gdal" );
+#endif
         CPLPushFinderLocation( "." );
     }
 }
@@ -75,9 +91,9 @@ static void CPLFinderInit()
 void CPLFinderClean()
 
 {
-    while( CPLPopFileFinder() != NULL ) {}
     while( papszFinderLocations != NULL )
         CPLPopFinderLocation();
+    while( CPLPopFileFinder() != NULL ) {}
 
     bFinderInitialized = FALSE;
 }
@@ -94,7 +110,7 @@ const char *CPLDefaultFindFile( const char *pszClass,
 
     (void) pszClass;
 
-    for( i = nLocations-1; nLocations >= 0; nLocations-- )
+    for( i = nLocations-1; i >= 0; i-- )
     {
         const char  *pszResult;
         VSIStatBuf  sStat;
@@ -193,6 +209,9 @@ void CPLPopFinderLocation()
 
 {
     int      nCount;
+
+    if( papszFinderLocations == NULL )
+        return;
 
     CPLFinderInit();
 

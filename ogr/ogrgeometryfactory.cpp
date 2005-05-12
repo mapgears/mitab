@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrgeometryfactory.cpp,v 1.20 2003/06/09 13:48:54 warmerda Exp $
+ * $Id: ogrgeometryfactory.cpp,v 1.25 2005/04/18 15:42:17 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Factory for converting geometry to and from well known binary
@@ -29,6 +29,21 @@
  ******************************************************************************
  *
  * $Log: ogrgeometryfactory.cpp,v $
+ * Revision 1.25  2005/04/18 15:42:17  fwarmerdam
+ * fix geos exception catching
+ *
+ * Revision 1.24  2005/02/22 17:17:30  hobu
+ * typo in the haveGEOS() method
+ *
+ * Revision 1.23  2005/02/22 12:48:09  fwarmerdam
+ * added OGRGeometryFactory::haveGEOS()
+ *
+ * Revision 1.22  2004/08/20 21:21:28  warmerda
+ * added support for managing a persistent geos::GeometryFactory
+ *
+ * Revision 1.21  2004/07/10 04:54:01  warmerda
+ * added GEOS methods
+ *
  * Revision 1.20  2003/06/09 13:48:54  warmerda
  * added DB2 V7.2 byte order hack
  *
@@ -97,8 +112,9 @@
 #include "ogr_api.h"
 #include "ogr_p.h"
 #include <assert.h>
+#include "ogr_geos.h"
 
-CPL_CVSID("$Id: ogrgeometryfactory.cpp,v 1.20 2003/06/09 13:48:54 warmerda Exp $");
+CPL_CVSID("$Id: ogrgeometryfactory.cpp,v 1.25 2005/04/18 15:42:17 fwarmerdam Exp $");
 
 /************************************************************************/
 /*                           createFromWkb()                            */
@@ -783,5 +799,94 @@ OGRGeometry *OGRGeometryFactory::createFromGML( const char *pszData )
     hGeom = OGR_G_CreateFromGML( pszData );
     
     return (OGRGeometry *) hGeom;
+}
+
+/************************************************************************/
+/*                           createFromGEOS()                           */
+/************************************************************************/
+
+OGRGeometry *
+OGRGeometryFactory::createFromGEOS( const geos::Geometry *geosGeom )
+
+{
+#ifndef HAVE_GEOS 
+
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return NULL;
+
+#else
+
+    geos::WKTWriter oWKTWriter;
+    string oWKT;
+
+    try 
+    {
+        oWKT = oWKTWriter.write( geosGeom );
+    }
+    catch( geos::GEOSException *e )
+    {
+        CPLError( CE_Failure, CPLE_AppDefined,
+                  "GEOSException: %s", 
+                  e->toString().c_str() );
+
+        delete e;
+        return NULL;
+    }
+
+    OGRGeometry *poGeom = NULL;
+    char *pszWKT = (char *) oWKT.c_str();
+
+    if( createFromWkt( &pszWKT, NULL, &poGeom ) != OGRERR_NONE )
+        return NULL;
+    else
+        return poGeom;
+
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                       getGEOSGeometryFactory()                       */
+/************************************************************************/
+
+geos::GeometryFactory *OGRGeometryFactory::getGEOSGeometryFactory() 
+
+{
+#ifndef HAVE_GEOS 
+    CPLError( CE_Failure, CPLE_NotSupported, 
+              "GEOS support not enabled." );
+    return NULL;
+#else
+
+    static geos::GeometryFactory *poSavedFactory = NULL;
+
+    if( poSavedFactory == NULL )
+        poSavedFactory = new geos::GeometryFactory();
+
+    return poSavedFactory;
+#endif /* HAVE_GEOS */
+}
+
+/************************************************************************/
+/*                              haveGEOS()                              */
+/************************************************************************/
+
+/**
+ * Test if GEOS enabled.
+ *
+ * This static method returns TRUE if GEOS support is built into OGR,
+ * otherwise it returns FALSE.
+ *
+ * @return TRUE if available, otherwise FALSE.
+ */
+
+int OGRGeometryFactory::haveGEOS()
+
+{
+#ifndef HAVE_GEOS 
+    return FALSE;
+#else
+    return TRUE;
+#endif
 }
 

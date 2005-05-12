@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cplgetsymbol.cpp,v 1.12 2002/11/20 17:16:48 warmerda Exp $
+ * $Id: cplgetsymbol.cpp,v 1.14 2004/11/11 20:40:38 fwarmerdam Exp $
  *
  * Project:  Common Portability Library
  * Purpose:  Fetch a function pointer from a shared library / DLL.
@@ -28,6 +28,14 @@
  ******************************************************************************
  *
  * $Log: cplgetsymbol.cpp,v $
+ * Revision 1.14  2004/11/11 20:40:38  fwarmerdam
+ * Check for variant of symbol with a leading underscore on Mach-O/Apple
+ * systems.  Patch by John Hayes / Lizardtech.
+ * http://bugzilla.remotesensing.org/show_bug.cgi?id=668
+ *
+ * Revision 1.13  2003/08/26 01:08:04  warmerda
+ * Cast return result of GetProcAddress() for use with MingW.
+ *
  * Revision 1.12  2002/11/20 17:16:48  warmerda
  * Added debug report from dummy CPLGetSymbol().
  *
@@ -68,7 +76,7 @@
 
 #include "cpl_conv.h"
 
-CPL_CVSID("$Id: cplgetsymbol.cpp,v 1.12 2002/11/20 17:16:48 warmerda Exp $");
+CPL_CVSID("$Id: cplgetsymbol.cpp,v 1.14 2004/11/11 20:40:38 fwarmerdam Exp $");
 
 /* ==================================================================== */
 /*                  Unix Implementation                                 */
@@ -132,6 +140,20 @@ void *CPLGetSymbol( const char * pszLibrary, const char * pszSymbolName )
 
     pSymbol = dlsym( pLibrary, pszSymbolName );
 
+#if (defined(__APPLE__) && defined(__MACH__))
+    /* On mach-o systems, C symbols have a leading underscore and depending
+     * on how dlcompat is configured it may or may not add the leading
+     * underscore.  So if dlsym() fails add an underscore and try again.
+     */
+    if( pSymbol == NULL )
+    {
+        char withUnder[strlen(pszSymbolName) + 2];
+        withUnder[0] = '_'; withUnder[1] = 0;
+        strcat(withUnder, pszSymbolName);
+        pSymbol = dlsym( pLibrary, withUnder );
+    }
+#endif
+
     if( pSymbol == NULL )
     {
         CPLError( CE_Failure, CPLE_AppDefined,
@@ -171,7 +193,7 @@ void *CPLGetSymbol( const char * pszLibrary, const char * pszSymbolName )
         return NULL;
     }
 
-    pSymbol = GetProcAddress( (HINSTANCE) pLibrary, pszSymbolName );
+    pSymbol = (void *) GetProcAddress( (HINSTANCE) pLibrary, pszSymbolName );
 
     if( pSymbol == NULL )
     {

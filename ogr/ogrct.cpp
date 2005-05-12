@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogrct.cpp,v 1.21 2003/06/27 19:02:50 warmerda Exp $
+ * $Id: ogrct.cpp,v 1.27 2005/04/06 00:02:05 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRSCoordinateTransformation class.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 2000, Frank Warmerdam
@@ -28,6 +28,24 @@
  ******************************************************************************
  *
  * $Log: ogrct.cpp,v $
+ * Revision 1.27  2005/04/06 00:02:05  fwarmerdam
+ * various osr and oct functions now stdcall
+ *
+ * Revision 1.26  2004/12/16 16:58:29  fwarmerdam
+ * Use libproj.dylib on Apple
+ *
+ * Revision 1.25  2004/09/23 15:05:27  fwarmerdam
+ * cast pj_get_errno_ref in hopes of fixing Bug 614
+ *
+ * Revision 1.24  2004/09/21 00:15:29  fwarmerdam
+ * Fixed PJ_VERSION checking syntax (secondary issue in bug 614).
+ *
+ * Revision 1.23  2004/01/24 09:35:00  warmerda
+ * added TransformEx support to capture per point reprojection failure
+ *
+ * Revision 1.22  2003/11/10 17:08:31  warmerda
+ * dont delete OGRSpatialReferences if they are still referenced
+ *
  * Revision 1.21  2003/06/27 19:02:50  warmerda
  * changed to use pj_init_plus instead of CSLTokenizeString
  *
@@ -102,7 +120,7 @@
 #include "proj_api.h"
 #endif
 
-CPL_CVSID("$Id: ogrct.cpp,v 1.21 2003/06/27 19:02:50 warmerda Exp $");
+CPL_CVSID("$Id: ogrct.cpp,v 1.27 2005/04/06 00:02:05 fwarmerdam Exp $");
 
 /* ==================================================================== */
 /*      PROJ.4 interface stuff.                                         */
@@ -131,6 +149,8 @@ static void         (*pfn_pj_dalloc)(void *) = NULL;
 
 #ifdef WIN32
 #  define LIBNAME      "proj.dll"
+#elif defined(__APPLE__)
+#  define LIBNAME      "libproj.dylib"
 #else
 #  define LIBNAME      "libproj.so"
 #endif
@@ -167,6 +187,9 @@ public:
     virtual OGRSpatialReference *GetTargetCS();
     virtual int Transform( int nCount, 
                            double *x, double *y, double *z = NULL );
+    virtual int TransformEx( int nCount, 
+                             double *x, double *y, double *z = NULL,
+                             int *panSuccess = NULL );
 
 };
 
@@ -195,10 +218,10 @@ static int LoadProjLibrary()
     pfn_pj_inv = pj_inv;
     pfn_pj_free = pj_free;
     pfn_pj_transform = pj_transform;
-    pfn_pj_get_errno_ref = pj_get_errno_ref;
+    pfn_pj_get_errno_ref = (int *(*)(void)) pj_get_errno_ref;
     pfn_pj_strerrno = pj_strerrno;
     pfn_pj_dalloc = pj_dalloc;
-#ifdef PJ_VERSION >= 446
+#if PJ_VERSION >= 446
     pfn_pj_get_def = pj_get_def;
 #endif    
 #else
@@ -289,7 +312,8 @@ char *OCTProj4Normalize( const char *pszProj4Src )
 /*                 OCTDestroyCoordinateTransformation()                 */
 /************************************************************************/
 
-void OCTDestroyCoordinateTransformation( OGRCoordinateTransformationH hCT )
+void CPL_STDCALL
+OCTDestroyCoordinateTransformation( OGRCoordinateTransformationH hCT )
 
 {
     delete (OGRCoordinateTransformation *) hCT;
@@ -312,7 +336,7 @@ void OCTDestroyCoordinateTransformation( OGRCoordinateTransformationH hCT )
  * @return NULL on failure or a ready to use transformation object.
  */
 
-OGRCoordinateTransformation*
+OGRCoordinateTransformation*  
 OGRCreateCoordinateTransformation( OGRSpatialReference *poSource, 
                                    OGRSpatialReference *poTarget )
 
@@ -345,7 +369,8 @@ OGRCreateCoordinateTransformation( OGRSpatialReference *poSource,
 /*                   OCTNewCoordinateTransformation()                   */
 /************************************************************************/
 
-OGRCoordinateTransformationH OCTNewCoordinateTransformation(
+OGRCoordinateTransformationH CPL_STDCALL 
+OCTNewCoordinateTransformation(
     OGRSpatialReferenceH hSourceSRS, OGRSpatialReferenceH hTargetSRS )
 
 {
@@ -378,10 +403,16 @@ OGRProj4CT::~OGRProj4CT()
 
 {
     if( poSRSSource != NULL )
-        delete poSRSSource;
+    {
+        if( poSRSSource->Dereference() <= 0 )
+            delete poSRSSource;
+    }
 
     if( poSRSTarget != NULL )
-        delete poSRSTarget;
+    {
+        if( poSRSTarget->Dereference() <= 0 )
+            delete poSRSTarget;
+    }
 
     if( psPJSource != NULL )
         pfn_pj_free( psPJSource );
@@ -398,6 +429,9 @@ int OGRProj4CT::Initialize( OGRSpatialReference * poSourceIn,
                             OGRSpatialReference * poTargetIn )
 
 {
+	if( poSourceIn == NULL || poTargetIn == NULL )
+		return FALSE;
+
     poSRSSource = poSourceIn->Clone();
     poSRSTarget = poTargetIn->Clone();
 
@@ -518,9 +552,50 @@ OGRSpatialReference *OGRProj4CT::GetTargetCS()
 
 /************************************************************************/
 /*                             Transform()                              */
+/*                                                                      */
+/*      This is a small wrapper for the extended transform version.     */
 /************************************************************************/
 
 int OGRProj4CT::Transform( int nCount, double *x, double *y, double *z )
+
+{
+    int *pabSuccess = (int *) CPLMalloc(sizeof(int) * nCount );
+    int bOverallSuccess, i;
+
+    bOverallSuccess = TransformEx( nCount, x, y, z, pabSuccess );
+
+    for( i = 0; i < nCount; i++ )
+    {
+        if( !pabSuccess[i] )
+        {
+            bOverallSuccess = FALSE;
+            break;
+        }
+    }
+
+    CPLFree( pabSuccess );
+
+    return bOverallSuccess;
+}
+
+/************************************************************************/
+/*                            OCTTransform()                            */
+/************************************************************************/
+
+int CPL_STDCALL OCTTransform( OGRCoordinateTransformationH hTransform,
+                              int nCount, double *x, double *y, double *z )
+
+{
+    return ((OGRCoordinateTransformation*) hTransform)->
+        Transform( nCount, x, y,z );
+}
+
+/************************************************************************/
+/*                            TransformEx()                             */
+/************************************************************************/
+
+int OGRProj4CT::TransformEx( int nCount, double *x, double *y, double *z,
+                             int *pabSuccess )
 
 {
     int   err, i;
@@ -550,6 +625,9 @@ int OGRProj4CT::Transform( int nCount, double *x, double *y, double *z )
 /* -------------------------------------------------------------------- */
     if( err != 0 )
     {
+        if( pabSuccess )
+            memset( pabSuccess, 0, sizeof(int) * nCount );
+
         if( ++nErrorCount < 20 )
         {
             const char *pszError = NULL;
@@ -580,8 +658,25 @@ int OGRProj4CT::Transform( int nCount, double *x, double *y, double *z )
     {
         for( i = 0; i < nCount; i++ )
         {
-            x[i] *= dfTargetFromRadians;
-            y[i] *= dfTargetFromRadians;
+            if( x[i] != HUGE_VAL && y[i] != HUGE_VAL )
+            {
+                x[i] *= dfTargetFromRadians;
+                y[i] *= dfTargetFromRadians;
+            }
+        }
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Establish error information if pabSuccess provided.             */
+/* -------------------------------------------------------------------- */
+    if( pabSuccess )
+    {
+        for( i = 0; i < nCount; i++ )
+        {
+            if( x[i] == HUGE_VAL || y[i] == HUGE_VAL )
+                pabSuccess[i] = FALSE;
+            else
+                pabSuccess[i] = TRUE;
         }
     }
 
@@ -589,13 +684,15 @@ int OGRProj4CT::Transform( int nCount, double *x, double *y, double *z )
 }
 
 /************************************************************************/
-/*                            OCTTransform()                            */
+/*                           OCTTransformEx()                           */
 /************************************************************************/
 
-int OCTTransform( OGRCoordinateTransformationH hTransform,
-                  int nCount, double *x, double *y, double *z )
+int CPL_STDCALL OCTTransformEx( OGRCoordinateTransformationH hTransform,
+                                int nCount, double *x, double *y, double *z,
+                                int *pabSuccess )
 
 {
     return ((OGRCoordinateTransformation*) hTransform)->
-        Transform( nCount, x, y,z );
+        TransformEx( nCount, x, y, z, pabSuccess );
 }
+

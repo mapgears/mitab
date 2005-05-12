@@ -4,7 +4,7 @@
  * Name:     cpl_dir.cpp
  * Project:  CPL - Common Portability Library
  * Purpose:  Directory manipulation.
- * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
+ * Author:   Daniel Morissette, danmo@videotron.ca
  *
  **********************************************************************
  * Copyright (c) 1998, Daniel Morissette

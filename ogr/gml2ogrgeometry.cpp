@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: gml2ogrgeometry.cpp,v 1.6 2003/04/17 08:23:07 dron Exp $
+ * $Id: gml2ogrgeometry.cpp,v 1.9 2005/03/08 19:51:15 fwarmerdam Exp $
  *
  * Project:  GML Reader
  * Purpose:  Code to translate between GML and OGR geometry forms.
@@ -37,6 +37,15 @@
  *   compromising the system.
  *
  * $Log: gml2ogrgeometry.cpp,v $
+ * Revision 1.9  2005/03/08 19:51:15  fwarmerdam
+ * added gml:pos support
+ *
+ * Revision 1.8  2004/01/06 18:40:06  warmerda
+ * do not crash if polygon fails to parse during multipolygon assembly
+ *
+ * Revision 1.7  2003/09/22 05:34:46  warmerda
+ * implemented support for various kinds of geometry collections
+ *
  * Revision 1.6  2003/04/17 08:23:07  dron
  * Completed security audit, few fixes in error format strings.
  *
@@ -75,6 +84,8 @@
 #include "ogr_geometry.h"
 #include "ogr_api.h"
 #include "cpl_error.h"
+#include "cpl_string.h"
+#include <ctype.h>
 
 /************************************************************************/
 /*                           BareGMLElement()                           */
@@ -219,12 +230,12 @@ int ParseGMLCoordinates( CPLXMLNode *psGeomNode, OGRGeometry *poGeometry )
 
             // parse out 2 or 3 tuple. 
             dfX = atof( pszCoordString );
-            while( *pszCoordString != '\0' 
+            while( *pszCoordString != '\0'
                    && *pszCoordString != ','
-                   && *pszCoordString != ' ' ) 
+                   && !isspace(*pszCoordString) )
                 pszCoordString++;
 
-            if( *pszCoordString == '\0' || *pszCoordString == ' ' )
+            if( *pszCoordString == '\0' || isspace(*pszCoordString) )
             {
                 CPLError( CE_Failure, CPLE_AppDefined, 
                           "Corrupt <coordinates> value." );
@@ -235,7 +246,7 @@ int ParseGMLCoordinates( CPLXMLNode *psGeomNode, OGRGeometry *poGeometry )
             dfY = atof( pszCoordString );
             while( *pszCoordString != '\0' 
                    && *pszCoordString != ','
-                   && *pszCoordString != ' ' )
+                   && !isspace(*pszCoordString) )
                 pszCoordString++;
 
             if( *pszCoordString == ',' )
@@ -244,11 +255,11 @@ int ParseGMLCoordinates( CPLXMLNode *psGeomNode, OGRGeometry *poGeometry )
                 dfZ = atof( pszCoordString );
                 while( *pszCoordString != '\0' 
                        && *pszCoordString != ','
-                       && *pszCoordString != ' ' )
+                       && !isspace(*pszCoordString) )
                 pszCoordString++;
             }
 
-            while( *pszCoordString == ' ' )
+            while( isspace(*pszCoordString) )
                 pszCoordString++;
 
             if( !AddPoint( poGeometry, dfX, dfY, dfZ ) )
@@ -259,6 +270,44 @@ int ParseGMLCoordinates( CPLXMLNode *psGeomNode, OGRGeometry *poGeometry )
 
         return iCoord > 0;
     }
+
+/* -------------------------------------------------------------------- */
+/*      Is this a "pos"?  I think this is a GML 3 construct.            */
+/* -------------------------------------------------------------------- */
+    CPLXMLNode *psPos = FindBareXMLChild( psGeomNode, "pos" );
+    
+    if( psPos != NULL )
+    {
+        char **papszTokens = CSLTokenizeStringComplex( 
+            GetElementText( psPos ), " ,", FALSE, FALSE );
+        int bSuccess = FALSE;
+
+        if( CSLCount( papszTokens ) > 2 )
+        {
+            bSuccess = AddPoint( poGeometry, 
+                                 atof(papszTokens[0]), 
+                                 atof(papszTokens[1]),
+                                 atof(papszTokens[2]) );
+        }
+        else if( CSLCount( papszTokens ) > 1 )
+        {
+            bSuccess = AddPoint( poGeometry, 
+                                 atof(papszTokens[0]), 
+                                 atof(papszTokens[1]),
+                                 0.0 );
+        }
+        else
+        {
+            CPLError( CE_Failure, CPLE_AppDefined,
+                      "Did not get 2+ values in <gml:pos>%s</gml:pos> tuple.",
+                      GetElementText( psPos ) );
+        }
+
+        CSLDestroy( papszTokens );
+
+        return bSuccess;
+    }
+    
 
 /* -------------------------------------------------------------------- */
 /*      Handle form with a list of <coord> items each with an <X>,      */
@@ -488,10 +537,17 @@ static OGRGeometry *GML2OGRGeometry_XMLNode( CPLXMLNode *psNode )
 
                 poPolygon = (OGRPolygon *) 
                     GML2OGRGeometry_XMLNode( psChild->psChild );
+
+                if( poPolygon == NULL )
+                {
+                    delete poMPoly;
+                    return NULL;
+                }
+
                 if( !EQUAL(poPolygon->getGeometryName(),"POLYGON") )
                 {
                     CPLError( CE_Failure, CPLE_AppDefined, 
-                              "Got %.500s geometry as polygonMember instead of POLYGON.",
+                              "Got %.500s geometry as polygonMember instead of MULTIPOLYGON.",
                               poPolygon->getGeometryName() );
                     delete poPolygon;
                     delete poMPoly;
@@ -503,6 +559,116 @@ static OGRGeometry *GML2OGRGeometry_XMLNode( CPLXMLNode *psNode )
         }
 
         return poMPoly;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      MultiPoint                                                      */
+/* -------------------------------------------------------------------- */
+    if( EQUAL(pszBaseGeometry,"MultiPoint") )
+    {
+        CPLXMLNode *psChild;
+        OGRMultiPoint *poMP = new OGRMultiPoint();
+
+        // collect points.
+        for( psChild = psNode->psChild; 
+             psChild != NULL;
+             psChild = psChild->psNext ) 
+        {
+            if( psChild->eType == CXT_Element
+                && EQUAL(BareGMLElement(psChild->pszValue),"pointMember") )
+            {
+                OGRPoint *poPoint;
+
+                poPoint = (OGRPoint *) 
+                    GML2OGRGeometry_XMLNode( psChild->psChild );
+                if( poPoint == NULL 
+                    || wkbFlatten(poPoint->getGeometryType()) != wkbPoint )
+                {
+                    CPLError( CE_Failure, CPLE_AppDefined, 
+                              "Got %.500s geometry as pointMember instead of MULTIPOINT",
+                              poPoint ? poPoint->getGeometryName() : "NULL" );
+                    delete poPoint;
+                    delete poMP;
+                    return NULL;
+                }
+
+                poMP->addGeometryDirectly( poPoint );
+            }
+        }
+
+        return poMP;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      MultiLineString                                                 */
+/* -------------------------------------------------------------------- */
+    if( EQUAL(pszBaseGeometry,"MultiLineString") )
+    {
+        CPLXMLNode *psChild;
+        OGRMultiLineString *poMP = new OGRMultiLineString();
+
+        // collect lines
+        for( psChild = psNode->psChild; 
+             psChild != NULL;
+             psChild = psChild->psNext ) 
+        {
+            if( psChild->eType == CXT_Element
+                && EQUAL(BareGMLElement(psChild->pszValue),"lineStringMember") )
+            {
+                OGRGeometry *poGeom;
+
+                poGeom = GML2OGRGeometry_XMLNode( psChild->psChild );
+                if( poGeom == NULL 
+                    || wkbFlatten(poGeom->getGeometryType()) != wkbLineString )
+                {
+                    CPLError( CE_Failure, CPLE_AppDefined, 
+                              "Got %.500s geometry as Member instead of LINESTRING.",
+                              poGeom ? poGeom->getGeometryName() : "NULL" );
+                    delete poGeom;
+                    delete poMP;
+                    return NULL;
+                }
+
+                poMP->addGeometryDirectly( poGeom );
+            }
+        }
+
+        return poMP;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      GeometryCollection                                              */
+/* -------------------------------------------------------------------- */
+    if( EQUAL(pszBaseGeometry,"GeometryCollection") )
+    {
+        CPLXMLNode *psChild;
+        OGRGeometryCollection *poGC = new OGRGeometryCollection();
+
+        // collect geoms
+        for( psChild = psNode->psChild; 
+             psChild != NULL;
+             psChild = psChild->psNext ) 
+        {
+            if( psChild->eType == CXT_Element
+                && EQUAL(BareGMLElement(psChild->pszValue),"geometryMember") )
+            {
+                OGRGeometry *poGeom;
+
+                poGeom = GML2OGRGeometry_XMLNode( psChild->psChild );
+                if( poGeom == NULL )
+                {
+                    CPLError( CE_Failure, CPLE_AppDefined, 
+                              "Failed to get geometry in geometryMember" );
+                    delete poGeom;
+                    delete poGC;
+                    return NULL;
+                }
+
+                poGC->addGeometryDirectly( poGeom );
+            }
+        }
+
+        return poGC;
     }
 
     CPLError( CE_Failure, CPLE_AppDefined, 

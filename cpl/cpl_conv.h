@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_conv.h,v 1.20 2003/05/08 21:51:14 warmerda Exp $
+ * $Id: cpl_conv.h,v 1.36 2005/04/04 15:23:31 fwarmerdam Exp $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Convenience functions declarations.
@@ -29,6 +29,54 @@
  ******************************************************************************
  *
  * $Log: cpl_conv.h,v $
+ * Revision 1.36  2005/04/04 15:23:31  fwarmerdam
+ * some functions now CPL_STDCALL
+ *
+ * Revision 1.35  2004/11/17 22:57:21  fwarmerdam
+ * added CPLScanPointer() and CPLPrintPointer()
+ *
+ * Revision 1.34  2004/08/16 20:24:07  warmerda
+ * added CPLUnlinkTree
+ *
+ * Revision 1.33  2004/08/11 18:41:46  warmerda
+ * added CPLExtractRelativePath
+ *
+ * Revision 1.32  2004/07/31 04:51:36  warmerda
+ * added shared file open support
+ *
+ * Revision 1.31  2004/03/28 16:22:02  warmerda
+ * const correctness changes in scan functions
+ *
+ * Revision 1.30  2004/03/24 09:01:17  dron
+ * Added CPLPrintUIntBig().
+ *
+ * Revision 1.29  2004/02/07 14:03:30  dron
+ * CPLDecToPackedDMS() added.
+ *
+ * Revision 1.28  2004/02/01 08:37:55  dron
+ * Added CPLPackedDMSToDec().
+ *
+ * Revision 1.27  2003/12/28 17:24:43  warmerda
+ * added CPLFreeConfig
+ *
+ * Revision 1.26  2003/10/17 07:06:06  dron
+ * Added locale selection option to CPLScanDouble() and CPLPrintDOuble().
+ *
+ * Revision 1.25  2003/09/28 14:14:16  dron
+ * Added CPLScanString().
+ *
+ * Revision 1.24  2003/09/08 11:09:53  dron
+ * Added CPLPrintDouble() and CPLPrintTime().
+ *
+ * Revision 1.23  2003/09/07 14:38:43  dron
+ * Added CPLPrintString(), CPLPrintStringFill(), CPLPrintInt32(), CPLPrintUIntBig().
+ *
+ * Revision 1.22  2003/08/31 14:48:05  dron
+ * Added CPLScanLong() and CPLScanDouble().
+ *
+ * Revision 1.21  2003/08/25 20:01:58  dron
+ * Added CPLFGets() helper function.
+ *
  * Revision 1.20  2003/05/08 21:51:14  warmerda
  * added CPL{G,S}etConfigOption() usage
  *
@@ -82,8 +130,10 @@ CPL_C_START
 
 void CPL_DLL CPLVerifyConfiguration();
 
-const char CPL_DLL *CPLGetConfigOption( const char *, const char * );
-void CPL_DLL        CPLSetConfigOption( const char *, const char * );
+const char CPL_DLL * CPL_STDCALL
+CPLGetConfigOption( const char *, const char * );
+void CPL_DLL CPL_STDCALL CPLSetConfigOption( const char *, const char * );
+void CPL_DLL CPL_STDCALL CPLFreeConfig();
 
 /* -------------------------------------------------------------------- */
 /*      Safe malloc() API.  Thin cover over VSI functions with fatal    */
@@ -99,7 +149,29 @@ char CPL_DLL *CPLStrdup( const char * );
 /* -------------------------------------------------------------------- */
 /*      Read a line from a text file, and strip of CR/LF.               */
 /* -------------------------------------------------------------------- */
+char CPL_DLL *CPLFGets( char *, int, FILE *);
 const char CPL_DLL *CPLReadLine( FILE * );
+
+/* -------------------------------------------------------------------- */
+/*      Read a numeric value from an ASCII character string.            */
+/* -------------------------------------------------------------------- */
+char CPL_DLL *CPLScanString( const char *, int, int, int );
+double CPL_DLL CPLScanDouble( const char *, int, char * );
+long CPL_DLL CPLScanLong( const char *, int );
+GUIntBig CPL_DLL CPLScanUIntBig( const char *, int );
+void CPL_DLL *CPLScanPointer( const char *, int );
+
+/* -------------------------------------------------------------------- */
+/*      Print a value to an ASCII character string.                     */
+/* -------------------------------------------------------------------- */
+int CPL_DLL CPLPrintString( char *, const char *, int );
+int CPL_DLL CPLPrintStringFill( char *, const char *, int );
+int CPL_DLL CPLPrintInt32( char *, GInt32 , int );
+int CPL_DLL CPLPrintUIntBig( char *, GUIntBig , int );
+int CPL_DLL CPLPrintDouble( char *, const char *, double, char * );
+int CPL_DLL CPLPrintTime( char *, int , const char *, const struct tm *,
+                          char * );
+int CPL_DLL CPLPrintPointer( char *, void *, int );
 
 /* -------------------------------------------------------------------- */
 /*      Fetch a function from DLL / so.                                 */
@@ -130,6 +202,7 @@ const char CPL_DLL *CPLResetExtension( const char *, const char * );
 const char CPL_DLL *CPLProjectRelativeFilename( const char *pszProjectDir, 
                                             const char *pszSecondaryFilename );
 int CPL_DLL CPLIsFilenameRelative( const char *pszFilename );
+const char CPL_DLL *CPLExtractRelativePath(const char *, const char *, int *);
 
 /* -------------------------------------------------------------------- */
 /*      Find File Function                                              */
@@ -152,15 +225,38 @@ void          CPL_DLL CPLFinderClean();
 int CPL_DLL     CPLStat( const char *, VSIStatBuf * );
 
 /* -------------------------------------------------------------------- */
+/*      Reference counted file handle manager.  Makes sharing file      */
+/*      handles more practical.                                         */
+/* -------------------------------------------------------------------- */
+typedef struct {
+    FILE *fp;
+    int   nRefCount;
+    int   bLarge;
+    char  *pszFilename;
+    char  *pszAccess;
+} CPLSharedFileInfo;
+
+FILE CPL_DLL    *CPLOpenShared( const char *, const char *, int );
+void CPL_DLL     CPLCloseShared( FILE * );
+CPLSharedFileInfo CPL_DLL *CPLGetSharedList( int * );
+void CPL_DLL     CPLDumpSharedList( FILE * );
+
+/* -------------------------------------------------------------------- */
 /*      DMS to Dec to DMS conversion.                                   */
 /* -------------------------------------------------------------------- */
 double CPL_DLL CPLDMSToDec( const char *is );
 const char CPL_DLL *CPLDecToDMS( double dfAngle, const char * pszAxis,
                                  int nPrecision );
+double CPL_DLL CPLPackedDMSToDec( double );
+double CPL_DLL CPLDecToPackedDMS( double dfDec );
 
 void CPL_DLL CPLStringToComplex( const char *pszString, 
                                  double *pdfReal, double *pdfImag );
 
+/* -------------------------------------------------------------------- */
+/*      Misc other functions.                                           */
+/* -------------------------------------------------------------------- */
+int CPL_DLL CPLUnlinkTree( const char * );
 CPL_C_END
 
 #endif /* ndef CPL_CONV_H_INCLUDED */

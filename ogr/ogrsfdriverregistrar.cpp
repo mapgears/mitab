@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrsfdriverregistrar.cpp,v 1.14 2003/05/28 19:18:04 warmerda Exp $
+ * $Id: ogrsfdriverregistrar.cpp,v 1.17 2005/01/19 20:28:18 fwarmerdam Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRSFDriverRegistrar class implementation.
@@ -28,6 +28,15 @@
  ******************************************************************************
  *
  * $Log: ogrsfdriverregistrar.cpp,v $
+ * Revision 1.17  2005/01/19 20:28:18  fwarmerdam
+ * added untested autoloaddrivers.
+ *
+ * Revision 1.16  2004/10/17 04:04:05  fwarmerdam
+ * fixed bug with cleanup order in ReleaseDataSource, issue with vrt
+ *
+ * Revision 1.15  2003/10/10 19:12:06  warmerda
+ * Ensure registrar is created before trying to use it.
+ *
  * Revision 1.14  2003/05/28 19:18:04  warmerda
  * fixup argument names for docs
  *
@@ -76,7 +85,7 @@
 #include "ogr_api.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrsfdriverregistrar.cpp,v 1.14 2003/05/28 19:18:04 warmerda Exp $");
+CPL_CVSID("$Id: ogrsfdriverregistrar.cpp,v 1.17 2005/01/19 20:28:18 fwarmerdam Exp $");
 
 static OGRSFDriverRegistrar *poRegistrar = NULL;
 
@@ -376,8 +385,6 @@ OGRErr OGRSFDriverRegistrar::ReleaseDataSource( OGRDataSource * poDS )
               "ReleaseDataSource(%s/%p) dereferenced and now destroying.",
               poDS->GetName(), poDS );
 
-    delete poDS;
-
     CPLFree( papszOpenDSRawName[iDS] );
     memmove( papszOpenDSRawName + iDS, papszOpenDSRawName + iDS + 1, 
              sizeof(char *) * (nOpenDSCount - iDS - 1) );
@@ -397,6 +404,11 @@ OGRErr OGRSFDriverRegistrar::ReleaseDataSource( OGRDataSource * poDS )
         CPLFree( papoOpenDSDriver );
         papoOpenDSDriver = NULL;
     }
+
+    // We are careful to only do the delete poDS after adjusting the
+    // table, as if it is a virtual dataset, other removals may happen
+    // in the meantime.
+    delete poDS;
 
     return OGRERR_NONE;
 }
@@ -481,7 +493,8 @@ void OGRSFDriverRegistrar::RegisterDriver( OGRSFDriver * poDriver )
 void OGRRegisterDriver( OGRSFDriverH hDriver )
 
 {
-    poRegistrar->RegisterDriver( (OGRSFDriver *) hDriver );
+    OGRSFDriverRegistrar::GetRegistrar()->RegisterDriver( 
+        (OGRSFDriver *) hDriver );
 }
 
 /************************************************************************/
@@ -554,5 +567,125 @@ OGRSFDriver *OGRSFDriverRegistrar::GetDriverByName( const char * pszName )
 OGRSFDriverH OGRGetDriverByName( const char *pszName )
 
 {
-    return (OGRSFDriverH) poRegistrar->GetDriverByName( pszName );
+    ;
+    return (OGRSFDriverH) 
+        OGRSFDriverRegistrar::GetRegistrar()->GetDriverByName( pszName );
+}
+
+/************************************************************************/
+/*                          AutoLoadDrivers()                           */
+/************************************************************************/
+
+/**
+ * Auto-load GDAL drivers from shared libraries.
+ *
+ * This function will automatically load drivers from shared libraries.  It
+ * searches the "driver path" for .so (or .dll) files that start with the
+ * prefix "gdal_X.so".  It then tries to load them and then tries to call
+ * a function within them called GDALRegister_X() where the 'X' is the same 
+ * as the remainder of the shared library basename, or failing that to 
+ * call GDALRegisterMe().  
+ *
+ * There are a few rules for the driver path.  If the GDAL_DRIVER_PATH
+ * environment variable it set, it is taken to be a list of directories
+ * to search separated by colons on unix, or semi-colons on Windows.  Otherwise
+ * the /usr/local/lib/gdalplugins directory, and (if known) the lib/gdalplugins
+ * subdirectory of the gdal home directory are searched. 
+ */
+
+void OGRSFDriverRegistrar::AutoLoadDrivers()
+
+{
+    char     **papszSearchPath = NULL;
+    const char *pszGDAL_DRIVER_PATH = 
+        CPLGetConfigOption( "OGR_DRIVER_PATH", NULL );
+
+    if( pszGDAL_DRIVER_PATH == NULL )
+        pszGDAL_DRIVER_PATH = 
+            CPLGetConfigOption( "GDAL_DRIVER_PATH", NULL );
+
+/* -------------------------------------------------------------------- */
+/*      Where should we look for stuff?                                 */
+/* -------------------------------------------------------------------- */
+    if( pszGDAL_DRIVER_PATH != NULL )
+    {
+#ifdef WIN32
+        papszSearchPath = 
+            CSLTokenizeStringComplex( pszGDAL_DRIVER_PATH, ";", TRUE, FALSE );
+#else
+        papszSearchPath = 
+            CSLTokenizeStringComplex( pszGDAL_DRIVER_PATH, ":", TRUE, FALSE );
+#endif
+    }
+    else
+    {
+#ifdef GDAL_PREFIX
+        papszSearchPath = CSLAddString( papszSearchPath, 
+                                        GDAL_PREFIX "/lib/gdalplugins" );
+#else
+        papszSearchPath = CSLAddString( papszSearchPath, 
+                                        "/usr/local/lib/gdalplugins" );
+#endif
+
+#ifdef notdef
+        if( strlen(GetHome()) > 0 )
+        {
+            papszSearchPath = CSLAddString( papszSearchPath, 
+                                  CPLFormFilename( GetHome(), "lib", NULL ) );
+        }
+#endif
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Scan each directory looking for files starting with gdal_       */
+/* -------------------------------------------------------------------- */
+    for( int iDir = 0; iDir < CSLCount(papszSearchPath); iDir++ )
+    {
+        char  **papszFiles = CPLReadDir( papszSearchPath[iDir] );
+
+        for( int iFile = 0; iFile < CSLCount(papszFiles); iFile++ )
+        {
+            char   *pszFuncName;
+            const char *pszFilename;
+            const char *pszExtension = CPLGetExtension( papszFiles[iFile] );
+            void   *pRegister;
+
+            if( !EQUALN(papszFiles[iFile],"ogr_",5) )
+                continue;
+
+            if( !EQUAL(pszExtension,"dll") 
+                && !EQUAL(pszExtension,"so") 
+                && !EQUAL(pszExtension,"dylib") )
+                continue;
+
+            pszFuncName = (char *) CPLCalloc(strlen(papszFiles[iFile])+20,1);
+            sprintf( pszFuncName, "RegisterOGR%s", 
+                     CPLGetBasename(papszFiles[iFile]) + 5 );
+            
+            pszFilename = 
+                CPLFormFilename( papszSearchPath[iDir], 
+                                 papszFiles[iFile], NULL );
+
+            pRegister = CPLGetSymbol( pszFilename, pszFuncName );
+            if( pRegister == NULL )
+            {
+                strcpy( pszFuncName, "GDALRegisterMe" );
+                pRegister = CPLGetSymbol( pszFilename, pszFuncName );
+            }
+            
+            if( pRegister != NULL )
+            {
+                CPLDebug( "OGR", "Auto register %s using %s.", 
+                          pszFilename, pszFuncName );
+
+                ((void (*)()) pRegister)();
+            }
+
+            CPLFree( pszFuncName );
+        }
+
+        CSLDestroy( papszFiles );
+    }
+
+    CSLDestroy( papszSearchPath );
 }

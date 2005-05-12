@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.29 2005-03-22 23:24:54 dmorissette Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.30 2005-05-12 20:46:15 dmorissette Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.29  2005-03-22 23:24:54  dmorissette
+ * Revision 1.30  2005-05-12 20:46:15  dmorissette
+ * Initialize m_sProj.nDatumId in InitNewBlock(). (hss/geh)
+ *
+ * Revision 1.29  2005/03/22 23:24:54  dmorissette
  * Added support for datum id in .MAP header (bug 910)
  *
  * Revision 1.28  2004/12/15 22:52:49  dmorissette
@@ -903,6 +906,7 @@ int     TABMAPHeaderBlock::InitNewBlock(FILE *fpSrc, int nBlockSize,
     m_sProj.nProjId  = 0;
     m_sProj.nEllipsoidId = 0;
     m_sProj.nUnitsId = 7;
+    m_sProj.nDatumId = 0;
     m_XScale = 1000.0;  // Default coord range (before SetCoordSysBounds()) 
     m_YScale = 1000.0;  // will be [-1000000.000 .. 1000000.000]
     m_XDispl = 0.0;

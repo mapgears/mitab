@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.19 2004-06-30 20:29:04 dmorissette Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.20 2005-05-19 15:27:00 jlacroix Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.19  2004-06-30 20:29:04  dmorissette
+ * Revision 1.20  2005-05-19 15:27:00  jlacroix
+ * Implement a method to set the StyleString of a TABFeature.
+ * This is done via the ITABFeaturePen, Brush and Symbol classes.
+ *
+ * Revision 1.19  2004/06/30 20:29:04  dmorissette
  * Fixed refs to old address danmo@videotron.ca
  *
  * Revision 1.18  2003/12/19 07:55:55  fwarmerdam
@@ -260,6 +264,9 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
     OGRGeometry   *poGeom;
     OGRwkbGeometryType eGType;
     OGRErr  eErr;
+    TABPoint *poTABPointFeature = NULL;
+    TABRegion *poTABRegionFeature = NULL;
+    TABPolyline *poTABPolylineFeature = NULL;
 
     /*-----------------------------------------------------------------
      * MITAB won't accept new features unless they are in a type derived
@@ -279,6 +286,12 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
        *------------------------------------------------------------*/
       case wkbPoint:
         poTABFeature = new TABPoint(poFeature->GetDefnRef());
+        if(poFeature->GetStyleString())
+        {
+            poTABPointFeature = (TABPoint*)poTABFeature;
+            poTABPointFeature->SetSymbolFromStyleString(
+                poFeature->GetStyleString());
+        }
         break;
       /*-------------------------------------------------------------
        * REGION
@@ -286,6 +299,15 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
       case wkbPolygon:
       case wkbMultiPolygon:
         poTABFeature = new TABRegion(poFeature->GetDefnRef());
+        if(poFeature->GetStyleString())
+        {
+            poTABRegionFeature = (TABRegion*)poTABFeature;
+            poTABRegionFeature->SetPenFromStyleString(
+                poFeature->GetStyleString());
+
+            poTABRegionFeature->SetBrushFromStyleString(
+                poFeature->GetStyleString());
+        }
         break;
       /*-------------------------------------------------------------
        * LINE/PLINE/MULTIPLINE
@@ -293,6 +315,12 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
       case wkbLineString:
       case wkbMultiLineString:
         poTABFeature = new TABPolyline(poFeature->GetDefnRef());
+        if(poFeature->GetStyleString())
+        {
+            poTABPolylineFeature = (TABPolyline*)poTABFeature;
+            poTABPolylineFeature->SetPenFromStyleString(
+                poFeature->GetStyleString());
+        }
         break;
       /*-------------------------------------------------------------
        * Collection types that are not directly supported... convert

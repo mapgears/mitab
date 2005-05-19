@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.75 2005-04-01 16:48:41 dmorissette Exp $
+ * $Id: mitab.h,v 1.76 2005-05-19 15:26:59 jlacroix Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.75  2005-04-01 16:48:41  dmorissette
+ * Revision 1.76  2005-05-19 15:26:59  jlacroix
+ * Implement a method to set the StyleString of a TABFeature.
+ * This is done via the ITABFeaturePen, Brush and Symbol classes.
+ *
+ * Revision 1.75  2005/04/01 16:48:41  dmorissette
  * Updated 1.4.0 release date
  *
  * Revision 1.74  2005/03/23 20:36:09  dmorissette
@@ -178,6 +182,7 @@
 
 #include "mitab_priv.h"
 #include "ogr_feature.h"
+#include "ogr_featurestyle.h"
 #include "ogrsf_frmts.h"
 
 /*---------------------------------------------------------------------
@@ -964,6 +969,7 @@ class ITABFeaturePen
     void        SetPenColor(GInt32 clr)  {m_sPenDef.rgbColor = clr;};
 
     const char *GetPenStyleString();
+    void        SetPenFromStyleString(const char *pszStyleString);
 
     void        DumpPenDef(FILE *fpOut = NULL);
 };
@@ -991,6 +997,7 @@ class ITABFeatureBrush
                                           {m_sBrushDef.bTransparentFill=val;};
 
     const char *GetBrushStyleString();
+    void        SetBrushFromStyleString(const char *pszStyleString);
 
     void        DumpBrushDef(FILE *fpOut = NULL);
 };
@@ -1035,6 +1042,7 @@ class ITABFeatureSymbol
     void        SetSymbolColor(GInt32 clr)  { m_sSymbolDef.rgbColor = clr;};
 
     const char *GetSymbolStyleString(double dfAngle = 0.0);
+    void        SetSymbolFromStyleString(const char *pszStyleString);
 
     void        DumpSymbolDef(FILE *fpOut = NULL);
 };

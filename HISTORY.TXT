@@ -23,6 +23,8 @@ CHANGES - Current Version:
 - Added mitab_c_set_symbol_angle() and mitab_c_get_symbol_angle() for
   point symbols of type TABFC_FontPoint (bug 1002)
 
+- Added rule in cpl/GNUmakefile to copy cpl_config.h from cpl_config.h.in.
+
 
 Version 1.4.0 (2005-04-01)
 --------------------------
@@ -629,5 +631,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.140 2005-05-12 22:09:54 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.141 2005-05-19 20:49:57 fwarmerdam Exp $
 ------------

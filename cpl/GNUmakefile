@@ -10,10 +10,13 @@ LIB	=	cpl.a
 
 include ../GNUmake.opt
 
-default:	$(LIB)
+default:	cpl_config.h $(LIB)
 
 clean:
 	rm -f *.o $(LIB)
+
+cpl_config.h:	cpl_config.h.in
+	cp cpl_config.h.in cpl_config.h
 
 $(LIB): $(OBJ)
 	rm -f $(LIB)

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.20 2005-05-19 15:27:00 jlacroix Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.21 2005-05-19 21:10:50 fwarmerdam Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.20  2005-05-19 15:27:00  jlacroix
+ * Revision 1.21  2005-05-19 21:10:50  fwarmerdam
+ * changed to use OGRLayers spatial filter support
+ *
+ * Revision 1.20  2005/05/19 15:27:00  jlacroix
  * Implement a method to set the StyleString of a TABFeature.
  * This is done via the ITABFeaturePen, Brush and Symbol classes.
  *
@@ -107,7 +110,6 @@
  **********************************************************************/
 IMapInfoFile::IMapInfoFile()
 {
-    m_poFilterGeom = NULL;    
     m_nCurFeatureId = 0;
     m_poCurFeature = NULL;
     m_bBoundsSet = FALSE;
@@ -121,12 +123,6 @@ IMapInfoFile::IMapInfoFile()
  **********************************************************************/
 IMapInfoFile::~IMapInfoFile()
 {
-    if( m_poFilterGeom != NULL )
-    {
-        delete m_poFilterGeom;
-        m_poFilterGeom = NULL;
-    }
-
     if (m_poCurFeature)
     {
         delete m_poCurFeature;
@@ -239,7 +235,7 @@ OGRFeature *IMapInfoFile::GetNextFeature()
             return NULL;
         else if( (m_poFilterGeom == NULL ||
                   ((poGeom = poFeatureRef->GetGeometryRef()) != NULL &&
-                   m_poFilterGeom->Intersect( poGeom )))
+                   FilterGeometry( poGeom )))
                  && (m_poAttrQuery == NULL
                      || m_poAttrQuery->Evaluate( poFeatureRef )) )
         {
@@ -393,39 +389,6 @@ OGRFeature *IMapInfoFile::GetFeature(long nFeatureId)
     }
     else
       return NULL;
-}
-
-/**********************************************************************
- *                   IMapInfoFile::GetSpatialFilter()
- *
- * Standard OGR GetSpatialFilter implementation.  This methode is used
- * to retreive the SpacialFilter object.
- **********************************************************************/
-OGRGeometry *IMapInfoFile::GetSpatialFilter()
-{
-    return m_poFilterGeom;
-}
-
-
-/**********************************************************************
- *                   IMapInfoFile::SetSpatialFilter()
- *
- * Standard OGR SetSpatialFiltere implementation.  This methode is used
- * to set a SpatialFilter for this OGRLayer
- **********************************************************************/
-void IMapInfoFile::SetSpatialFilter (OGRGeometry * poGeomIn )
-
-{
-    if( m_poFilterGeom != NULL )
-    {
-        delete m_poFilterGeom;
-        m_poFilterGeom = NULL;
-    }
-
-    if( poGeomIn != NULL )
-        m_poFilterGeom = poGeomIn->clone();
-
-    ResetReading();
 }
 
 /************************************************************************/

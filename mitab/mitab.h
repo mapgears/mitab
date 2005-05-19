@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.76 2005-05-19 15:26:59 jlacroix Exp $
+ * $Id: mitab.h,v 1.77 2005-05-19 21:10:50 fwarmerdam Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.76  2005-05-19 15:26:59  jlacroix
+ * Revision 1.77  2005-05-19 21:10:50  fwarmerdam
+ * changed to use OGRLayers spatial filter support
+ *
+ * Revision 1.76  2005/05/19 15:26:59  jlacroix
  * Implement a method to set the StyleString of a TABFeature.
  * This is done via the ITABFeaturePen, Brush and Symbol classes.
  *
@@ -253,8 +256,6 @@ class IMapInfoFile : public OGRLayer
 
     ///////////////
     //  OGR methods for read support
-    virtual OGRGeometry *GetSpatialFilter();
-    virtual void        SetSpatialFilter( OGRGeometry * );
     virtual void        ResetReading() = 0;
     virtual int         GetFeatureCount (int bForce) = 0;
     virtual OGRFeature *GetNextFeature();

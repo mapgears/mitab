@@ -13,6 +13,9 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Change the way \n and \ are handled internally. Now they are stored 
+  unescaped in memory and escaped only when writing MIF files. (bug 1107)
+
 - Improved handling of Danish modified TM proj#21-24 (HSS, bugs 976,1010)
 
 - Upgraded CPL and OGR source from latest GDAL CVS (as of 2005-05-12)
@@ -633,5 +636,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.142 2005-05-19 21:10:50 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.143 2005-07-14 16:15:05 jlacroix Exp $
 ------------

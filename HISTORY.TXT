@@ -13,6 +13,8 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- mitab_ogr_datasource.cpp: avoid leak of CPLReadDirectory() result.
+
 - gcc4 related warnings in mitab_coordsys.cpp and mitab_utils.cpp avoided.
 
 - Change the way \n and \ are handled internally. Now they are stored 
@@ -638,5 +640,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.144 2005-08-07 21:04:18 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.145 2005-09-20 04:40:02 fwarmerdam Exp $
 ------------

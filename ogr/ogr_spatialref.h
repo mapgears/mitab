@@ -204,6 +204,19 @@ class CPL_DLL OGRSpatialReference
     int         IsAliasFor( const char *, const char * );
     void        GetNormInfo() const;
 
+#ifdef MITAB_AFFINE_PARAMS  // See MITAB bug 1155
+  // Affine params added by Encom 2003:
+  public:
+    int    nAffineFlag;
+    int    nAffineUnit;
+    double dAffineParamA;
+    double dAffineParamB;
+    double dAffineParamC;
+    double dAffineParamD;
+    double dAffineParamE;
+    double dAffineParamF;
+#endif
+
   public:
                 OGRSpatialReference(const OGRSpatialReference&);
                 OGRSpatialReference(const char * = NULL);

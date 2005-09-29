@@ -28,7 +28,7 @@
  ******************************************************************************
  *
  * $Log: ogr_srs_proj4.cpp,v $
- * Revision 1.54  2005/04/06 00:02:05  fwarmerdam
+ * Revision 1.54 (+MITAB bug 1155 patch)  2005/04/06 00:02:05  fwarmerdam
  * various osr and oct functions now stdcall
  *
  * Revision 1.53  2005/02/28 15:01:56  fwarmerdam
@@ -1130,7 +1130,12 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
 
-    else if( EQUAL(pszProjection,SRS_PT_TRANSVERSE_MERCATOR) )
+    else if( EQUAL(pszProjection,SRS_PT_TRANSVERSE_MERCATOR) ||
+             EQUAL(pszProjection,SRS_PT_TRANSVERSE_MERCATOR_MI_21) ||
+             EQUAL(pszProjection,SRS_PT_TRANSVERSE_MERCATOR_MI_22) ||
+             EQUAL(pszProjection,SRS_PT_TRANSVERSE_MERCATOR_MI_23) ||
+             EQUAL(pszProjection,SRS_PT_TRANSVERSE_MERCATOR_MI_24) ||
+             EQUAL(pszProjection,SRS_PT_TRANSVERSE_MERCATOR_MI_25) )
     {
         int bNorth;
         int nZone = GetUTMZone( &bNorth );

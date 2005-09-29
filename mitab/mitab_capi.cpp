@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.36 2005-04-07 15:56:27 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.37 2005-09-29 20:09:52 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.36  2005-04-07 15:56:27  dmorissette
+ * Revision 1.37  2005-09-29 20:09:52  dmorissette
+ * New C API methods to access projection params (ADJ, bug 1155)
+ *
+ * Revision 1.36  2005/04/07 15:56:27  dmorissette
  * Added mitab_c_set_symbol_angle() and mitab_c_get_symbol_angle() for
  * point symbols of type TABFC_FontPoint (bug 1002)
  *
@@ -2426,7 +2429,6 @@ mitab_c_get_mif_coordsys( mitab_handle dataset)
  *    mitab_c_get_mif_coordsys().
  */
 
-#ifdef __TO_BE_REVIEWED__
 
 // DM, 2003-08-12 - This function needs to be reviewed in light of the
 //                  corresponding changes to the OGR SRS class.
@@ -2442,10 +2444,11 @@ mitab_c_get_extended_mif_coordsys( mitab_handle dataset)
 
     if (poFile && (poSRS = poFile->GetSpatialRef()) != NULL)
     {
-        CPLFree( spszCoordSys );
         spszCoordSys = MITABSpatialRef2CoordSys( poSRS );
 
+#ifdef MITAB_AFFINE_PARAMS  // See MITAB bug 1155
         // Append extra stuff if necessary (Added by Encom 2003)
+        // TODO: DMo 20050929: Shouldn't this go in MITABSpatialRef2CoordSys()?
         if (poSRS->nAffineFlag == 1)
         {
             int nAffineUnit = poSRS->nAffineUnit;
@@ -2459,13 +2462,160 @@ mitab_c_get_extended_mif_coordsys( mitab_handle dataset)
                     poSRS->dAffineParamA, poSRS->dAffineParamB,
                     poSRS->dAffineParamC, poSRS->dAffineParamD,
                     poSRS->dAffineParamE, poSRS->dAffineParamF);
-            return( CPLStrdup( szExtCoordSys ) ); // Return extended string
+
+            CPLFree( spszCoordSys );
+            spszCoordSys = CPLStrdup( szExtCoordSys );
         }
+#endif /// MITAB_AFFINE_PARAMS
+
         return spszCoordSys;
     }
 
     return NULL;
 }
+
+
+/************************************************************************/
+/*                    mitab_c_get_projection_info() -- Encom 2003 */
+/************************************************************************/
+
+// TODO: Need function docs
+
+void MITAB_STDCALL
+mitab_c_get_projection_info( mitab_projinfo projInfo,
+                             int *nProjId, int *nEllipsoidId, int *nUnitsId,
+                             double *adProjParams /* array with six entries */)
+{
+    if (projInfo!=NULL)
+    {
+        TABProjInfo * pProjInfo = (TABProjInfo *) projInfo;
+        *nProjId                = pProjInfo->nProjId;
+        *nEllipsoidId   = pProjInfo->nEllipsoidId;
+        *nUnitsId               = pProjInfo->nUnitsId;
+        for (int i=0; i<6; i++)
+            adProjParams[i] = pProjInfo->adProjParams[i];
+    }
+}
+
+/************************************************************************/
+/*                    mitab_c_set_projection_info() -- Encom 2003       */
+/************************************************************************/
+
+// TODO: Need function docs
+
+void MITAB_STDCALL
+mitab_c_set_projection_info( mitab_projinfo projInfo,
+                             int nProjId, int nEllipsoidId, int nUnitsId,
+                             double *adProjParams /* array with six entries */)
+{
+    if (projInfo!=NULL)
+    {
+        TABProjInfo * pProjInfo = (TABProjInfo *) projInfo;
+        pProjInfo->nProjId              = nProjId;
+        pProjInfo->nEllipsoidId = nEllipsoidId;
+        pProjInfo->nUnitsId             = nUnitsId;
+        for (int i=0; i<6; i++)
+            pProjInfo->adProjParams[i] = adProjParams[i];
+    }
+}
+
+/************************************************************************/
+/*                    mitab_c_get_datum_info() -- Encom 2003            */
+/************************************************************************/
+
+// TODO: Need function docs
+
+void MITAB_STDCALL
+mitab_c_get_datum_info( mitab_projinfo projInfo,
+                        double *dDatumShiftX, double *dDatumShiftY, double *dDatumShiftZ,
+                        double *adDatumParams /* array with five entries */)
+{
+    if (projInfo!=NULL)
+    {
+        TABProjInfo * pProjInfo = (TABProjInfo *) projInfo;
+        *dDatumShiftX = pProjInfo->dDatumShiftX;
+        *dDatumShiftY = pProjInfo->dDatumShiftY;
+        *dDatumShiftZ = pProjInfo->dDatumShiftZ;
+        for (int i=0; i<5; i++)
+            adDatumParams[i] = pProjInfo->adDatumParams[i];
+    }
+}
+
+/************************************************************************/
+/*                    mitab_c_set_datum_info() -- Encom 2003            */
+/************************************************************************/
+
+// TODO: Need function docs
+
+void MITAB_STDCALL
+mitab_c_set_datum_info( mitab_projinfo projInfo,
+                        double dDatumShiftX, double dDatumShiftY, double dDatumShiftZ,
+                        double *adDatumParams /* array with five entries */)
+{
+    if (projInfo!=NULL)
+    {
+        TABProjInfo * pProjInfo = (TABProjInfo *) projInfo;
+        pProjInfo->dDatumShiftX = dDatumShiftX;
+        pProjInfo->dDatumShiftY = dDatumShiftY;
+        pProjInfo->dDatumShiftZ = dDatumShiftZ;
+        for (int i=0; i<5; i++)
+            pProjInfo->adDatumParams[i] = adDatumParams[i];
+    }
+}
+
+/************************************************************************/
+/*                    mitab_c_get_affine_params() -- Encom 2003         */
+/************************************************************************/
+
+// TODO: Need function docs
+
+// Returns 0 if no affine params
+int MITAB_STDCALL
+mitab_c_get_affine_params( mitab_projinfo projInfo,
+                           int *nAffineUnits, double *adAffineParams)
+{
+    if (projInfo!=NULL)
+    {
+        TABProjInfo * pProjInfo = (TABProjInfo *) projInfo;
+        if (pProjInfo->nAffineFlag==0) return 0; // No affine params
+
+        *nAffineUnits  = pProjInfo->nAffineUnits;
+        adAffineParams[0] = pProjInfo->dAffineParamA;
+        adAffineParams[1] = pProjInfo->dAffineParamB;
+        adAffineParams[2] = pProjInfo->dAffineParamC;
+        adAffineParams[3] = pProjInfo->dAffineParamD;
+        adAffineParams[4] = pProjInfo->dAffineParamE;
+        adAffineParams[5] = pProjInfo->dAffineParamF;
+        return 1;
+    }
+
+    return 0;
+}
+
+/************************************************************************/
+/*                    mitab_c_set_affine_params() -- Encom 2003         */
+/************************************************************************/
+
+// TODO: Need function docs
+
+void MITAB_STDCALL
+mitab_c_set_affine_params( mitab_projinfo projInfo,
+                           int nAffineUnits, double *adAffineParams)
+{
+    if (projInfo!=NULL)
+    {
+        TABProjInfo * pProjInfo = (TABProjInfo *) projInfo;
+        pProjInfo->nAffineFlag   = 1;
+        pProjInfo->nAffineUnits  = nAffineUnits;
+        pProjInfo->dAffineParamA = adAffineParams[0];
+        pProjInfo->dAffineParamB = adAffineParams[1];
+        pProjInfo->dAffineParamC = adAffineParams[2];
+        pProjInfo->dAffineParamD = adAffineParams[3];
+        pProjInfo->dAffineParamE = adAffineParams[4];
+        pProjInfo->dAffineParamF = adAffineParams[5];
+    }
+}
+
 
 /************************************************************************/
 /*                    mitab_c_get_extended_mif_coordsys_vb()            */
@@ -2485,11 +2635,10 @@ mitab_c_get_extended_mif_coordsys( mitab_handle dataset)
 int MITAB_STDCALL
 mitab_c_get_extended_mif_coordsys_vb( mitab_handle dataset, char * coordsys, int l)
 {
-        strncpy( coordsys, mitab_c_get_extended_mif_coordsys(dataset), l );
-        return strlen(coordsys);
+    strncpy( coordsys, mitab_c_get_extended_mif_coordsys(dataset), l );
+    return strlen(coordsys);
 }
 
-#endif // __TO_BE_REVIEWED__
 
 
 /************************************************************************/

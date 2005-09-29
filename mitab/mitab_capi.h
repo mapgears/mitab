@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.27 2005-04-07 15:56:27 dmorissette Exp $
+ * $Id: mitab_capi.h,v 1.28 2005-09-29 20:09:52 dmorissette Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.27  2005-04-07 15:56:27  dmorissette
+ * Revision 1.28  2005-09-29 20:09:52  dmorissette
+ * New C API methods to access projection params (ADJ, bug 1155)
+ *
+ * Revision 1.27  2005/04/07 15:56:27  dmorissette
  * Added mitab_c_set_symbol_angle() and mitab_c_get_symbol_angle() for
  * point symbols of type TABFC_FontPoint (bug 1002)
  *
@@ -337,6 +340,31 @@ int MITAB_DLL MITAB_STDCALL mitab_c_load_coordsys_table( const char *filename );
 
 int MITAB_DLL MITAB_STDCALL 
 mitab_c_is_interior_ring( mitab_feature feature, int requestedringindex );
+
+
+void MITAB_STDCALL
+mitab_c_get_projection_info( mitab_projinfo projInfo,
+                             int *nProjId, int *nEllipsoidId, int *nUnitsId,
+                             double *adProjParams /* array with six entries */);
+void MITAB_STDCALL
+mitab_c_set_projection_info( mitab_projinfo projInfo,
+                             int nProjId, int nEllipsoidId, int nUnitsId,
+                             double *adProjParams /* array with six entries */);
+void MITAB_STDCALL
+mitab_c_get_datum_info( mitab_projinfo projInfo,
+                        double *dDatumShiftX, double *dDatumShiftY, double *dDatumShiftZ,
+                        double *adDatumParams /* array with five entries */);
+void MITAB_STDCALL
+mitab_c_set_datum_info( mitab_projinfo projInfo,
+                        double dDatumShiftX, double dDatumShiftY, double dDatumShiftZ,
+                        double *adDatumParams /* array with five entries */);
+int MITAB_STDCALL                    // Returns 0 if no affine params
+mitab_c_get_affine_params( mitab_projinfo projInfo, int *nAffineUnits,
+                           double *adAffineParams /* array with 6 entries */);
+void MITAB_STDCALL
+mitab_c_set_affine_params( mitab_projinfo projInfo, int nAffineUnits,
+                           double *adAffineParams /* array with 6 entries */);
+
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_middatafile.cpp,v 1.11 2004-05-20 13:50:06 fwarmerdam Exp $
+ * $Id: mitab_middatafile.cpp,v 1.12 2005-09-29 19:46:55 dmorissette Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_middatafile.cpp,v $
- * Revision 1.11  2004-05-20 13:50:06  fwarmerdam
+ * Revision 1.12  2005-09-29 19:46:55  dmorissette
+ * Use "\t" as default delimiter in constructor (Anthony D - bugs 1155 and 37)
+ *
+ * Revision 1.11  2004/05/20 13:50:06  fwarmerdam
  * Call CPLReadLine(NULL) in Close() method to clean up working buffer.
  *
  * Revision 1.10  2002/04/26 14:16:49  julien
@@ -59,7 +62,8 @@
  * Add ifdef to remove CPLError if OGR is define
  *
  * Revision 1.2  1999/11/11 01:22:05  stephane
- * Remove DebugFeature call, Point Reading error, add IsValidFeature() to test correctly if we are on a feature
+ * Remove DebugFeature call, Point Reading error, add IsValidFeature() to 
+ * test correctly if we are on a feature
  *
  * Revision 1.1  1999/11/08 04:16:07  stephane
  * First Revision
@@ -79,7 +83,7 @@ MIDDATAFile::MIDDATAFile()
     m_fp = NULL;
     m_szLastRead[0] = '\0';
     m_szSavedLine[0] = '\0';
-    m_pszDelimiter = NULL;
+    m_pszDelimiter = CPLStrdup("\t"); // Encom 2003 (was NULL)
     
     m_dfXMultiplier = 1.0;
     m_dfYMultiplier = 1.0;

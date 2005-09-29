@@ -34,6 +34,26 @@ CHANGES - Current Version:
 
 - Changed to use OGRLayers spatial filtering support.  (FW)
 
+- Fixed missing initialization of default .MID file delimiter ("\t") 
+  (Anthony D - bugs 1155 and 37)
+
+- Added bounds entries for Finnish KKJ and Swedish projections (AJD, bug 1155)
+
+- New C API methods to get/set various projection parameters (AJD, bug 1155):
+     - mitab_c_get_projection_info()
+     - mitab_c_set_projection_info()
+     - mitab_c_get_datum_info()
+     - mitab_c_set_datum_info()
+     - mitab_c_get_affine_params()
+     - mitab_c_set_affine_params()
+
+- Support for writing affine projection params in .MAP header (AJD, bug 1155)
+
+- A few fixes to support for modified TM projections #21-24 (AJD, bug 1155)
+
+- All datum definitions in mitab_spatialref.cpp now have the correct 
+  names (AJD, bug 1155)
+
 
 Version 1.4.0 (2005-04-01)
 --------------------------
@@ -640,5 +660,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.145 2005-09-20 04:40:02 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.146 2005-09-29 20:55:38 dmorissette Exp $
 ------------

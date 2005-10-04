@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.26 2005-07-14 16:15:05 jlacroix Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.27 2005-10-04 15:35:52 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.26  2005-07-14 16:15:05  jlacroix
+ * Revision 1.27  2005-10-04 15:35:52  dmorissette
+ * Fixed an instance of hardcoded delimiter (",") in WriteRecordToMIDFile()
+ * (patch by KB Kieron, bug 1126)
+ *
+ * Revision 1.26  2005/07/14 16:15:05  jlacroix
  * \n and \ are now unescaped internally.
  *
  * Revision 1.25  2003/12/19 07:52:34  fwarmerdam
@@ -194,12 +198,14 @@ int TABFeature::WriteRecordToMIDFile(MIDDATAFile *fp)
 
     CPLAssert(fp);
     
+    const char *delimiter = fp->GetDelimiter();
+
     numFields = GetFieldCount();
 
     for(iField=0; iField<numFields; iField++)
     {
         if (iField != 0)
-          fp->WriteLine(",");
+          fp->WriteLine(delimiter);
         poFDefn = GetFieldDefnRef( iField );
 
         switch(poFDefn->GetType())

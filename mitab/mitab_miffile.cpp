@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.38 2004-02-27 21:04:14 fwarmerdam Exp $
+ * $Id: mitab_miffile.cpp,v 1.39 2005-10-04 19:36:10 dmorissette Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.38  2004-02-27 21:04:14  fwarmerdam
+ * Revision 1.39  2005-10-04 19:36:10  dmorissette
+ * Added support for reading collections from MIF files (bug 1126)
+ *
+ * Revision 1.38  2004/02/27 21:04:14  fwarmerdam
  * dont write MIF header if file is readonly - gdal bugzilla 509
  *
  * Revision 1.37  2003/12/19 07:54:50  fwarmerdam
@@ -1315,6 +1318,10 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
         else if (EQUALN(pszLine,"MULTIPOINT",10))
         {
             m_poCurFeature = new TABMultiPoint(m_poDefn);       
+        }
+        else if (EQUALN(pszLine,"COLLECTION",10))
+        {
+            m_poCurFeature = new TABCollection(m_poDefn);       
         }
         else
         {

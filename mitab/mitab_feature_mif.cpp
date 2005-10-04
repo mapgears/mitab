@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.28 2005-10-04 15:44:31 dmorissette Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.29 2005-10-04 19:36:10 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.28  2005-10-04 15:44:31  dmorissette
+ * Revision 1.29  2005-10-04 19:36:10  dmorissette
+ * Added support for reading collections from MIF files (bug 1126)
+ *
+ * Revision 1.28  2005/10/04 15:44:31  dmorissette
  * First round of support for Collection objects. Currently supports reading
  * from .TAB/.MAP and writing to .MIF. Still lacks symbol support and write
  * support. (Based in part on patch and docs from Jim Hope, bug 1126)
@@ -157,6 +160,13 @@ int TABFeature::ReadRecordFromMIDFile(MIDDATAFile *fp)
     nFields = GetFieldCount();
     
     pszLine = fp->GetLastLine();
+
+    if (pszLine == NULL)
+    {
+        CPLError(CE_Failure, CPLE_FileIO,
+               "Unexpected EOF while reading attribute record from MID file.");
+        return -1;
+    }
 
     papszToken = CSLTokenizeStringComplex(pszLine,
                                           fp->GetDelimiter(),TRUE,TRUE); 
@@ -1989,7 +1999,124 @@ int TABMultiPoint::WriteGeometryToMIFFile(MIDDATAFile *fp)
  **********************************************************************/
 int TABCollection::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 {
-  return 0;
+    char                **papszToken;
+    const char          *pszLine;
+    int                 numParts, i;
+    OGREnvelope         sEnvelope;
+
+    /*-----------------------------------------------------------------
+     * Fetch number of parts in "COLLECTION %d" line
+     *----------------------------------------------------------------*/
+    papszToken = CSLTokenizeString2(fp->GetLastLine(), 
+                                    " \t", CSLT_HONOURSTRINGS);
+     
+    if (CSLCount(papszToken) !=2)
+    {
+        CSLDestroy(papszToken);
+        return -1;
+    }
+    
+    numParts = atoi(papszToken[1]);
+    CSLDestroy(papszToken);
+    papszToken = NULL;
+
+    // Make sure collection is empty
+    EmptyCollection();
+
+    pszLine = fp->GetLine();
+
+    /*-----------------------------------------------------------------
+     * Read each part and add them to the feature
+     *----------------------------------------------------------------*/
+    for (i=0; i < numParts; i++)
+    {
+        if (pszLine == NULL)
+        {
+            CPLError(CE_Failure, CPLE_FileIO,
+                  "Unexpected EOF while reading TABCollection from MIF file.");
+            return -1;
+         }
+
+        while(*pszLine == ' ' || *pszLine == '\t')
+            pszLine++;  // skip leading spaces
+
+        if (*pszLine == '\0')
+            continue;  // Skip blank lines
+
+        if (EQUALN(pszLine,"REGION",6))
+        {
+            m_poRegion = new TABRegion(GetDefnRef());
+            if (m_poRegion->ReadGeometryFromMIFFile(fp) != 0)
+            {
+                CPLError(CE_Failure, CPLE_NotSupported,
+                         "TABCollection: Error reading REGION part.");
+                delete m_poRegion;
+                m_poRegion = NULL;
+                return -1;
+            }
+        }  
+        else if (EQUALN(pszLine,"LINE",4) ||
+                 EQUALN(pszLine,"PLINE",5))
+        {
+            m_poPline = new TABPolyline(GetDefnRef());
+            if (m_poPline->ReadGeometryFromMIFFile(fp) != 0)
+            {
+                CPLError(CE_Failure, CPLE_NotSupported,
+                         "TABCollection: Error reading PLINE part.");
+                delete m_poPline;
+                m_poPline = NULL;
+                return -1;
+            }
+        }
+        else if (EQUALN(pszLine,"MULTIPOINT",10))
+        {
+            m_poMpoint = new TABMultiPoint(GetDefnRef());
+            if (m_poMpoint->ReadGeometryFromMIFFile(fp) != 0)
+            {
+                CPLError(CE_Failure, CPLE_NotSupported,
+                         "TABCollection: Error reading MULTIPOINT part.");
+                delete m_poMpoint;
+                m_poMpoint = NULL;
+                return -1;
+            }
+        }
+        else
+        {
+            CPLError(CE_Failure, CPLE_FileIO,
+                     "Reading TABCollection from MIF failed, expecting one "
+                     "of REGION, PLINE or MULTIPOINT, got: '%s'",
+                     pszLine);
+            return -1;
+        }
+
+        pszLine = fp->GetLastLine();
+    }
+
+    /*-----------------------------------------------------------------
+     * Set the main OGRFeature Geometry 
+     * (this is actually duplicating geometries from each member)
+     *----------------------------------------------------------------*/
+    // use addGeometry() rather than addGeometryDirectly() as this clones
+    // the added geometry so won't leave dangling ptrs when the above features
+    // are deleted
+
+    OGRGeometryCollection *poGeomColl = new OGRGeometryCollection();
+    if(m_poRegion && m_poRegion->GetGeometryRef() != NULL)
+        poGeomColl->addGeometry(m_poRegion->GetGeometryRef());
+    
+    if(m_poPline && m_poPline->GetGeometryRef() != NULL)
+        poGeomColl->addGeometry(m_poPline->GetGeometryRef());
+
+    if(m_poMpoint && m_poMpoint->GetGeometryRef() != NULL)
+        poGeomColl->addGeometry(m_poMpoint->GetGeometryRef());
+
+    this->SetGeometryDirectly(poGeomColl);
+
+    poGeomColl->getEnvelope(&sEnvelope);
+    SetMBR(sEnvelope.MinX, sEnvelope.MinY,
+           sEnvelope.MaxX, sEnvelope.MaxY);
+
+    return 0;
 }
 
 /**********************************************************************

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_middatafile.cpp,v 1.12 2005-09-29 19:46:55 dmorissette Exp $
+ * $Id: mitab_middatafile.cpp,v 1.13 2005-10-04 19:36:10 dmorissette Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_middatafile.cpp,v $
- * Revision 1.12  2005-09-29 19:46:55  dmorissette
+ * Revision 1.13  2005-10-04 19:36:10  dmorissette
+ * Added support for reading collections from MIF files (bug 1126)
+ *
+ * Revision 1.12  2005/09/29 19:46:55  dmorissette
  * Use "\t" as default delimiter in constructor (Anthony D - bugs 1155 and 37)
  *
  * Revision 1.11  2004/05/20 13:50:06  fwarmerdam
@@ -287,12 +290,12 @@ GBool MIDDATAFile::IsValidFeature(const char *pszString)
         return FALSE;
     }
 
-    if (EQUAL(papszToken[0],"NONE")||EQUAL(papszToken[0],"POINT")||
-        EQUAL(papszToken[0],"LINE")||EQUAL(papszToken[0],"PLINE")||
-        EQUAL(papszToken[0],"REGION")||EQUAL(papszToken[0],"ARC")||
-        EQUAL(papszToken[0],"TEXT")||EQUAL(papszToken[0],"RECT")||
-        EQUAL(papszToken[0],"ROUNDRECT")||EQUAL(papszToken[0],"ELLIPSE")||
-        EQUAL(papszToken[0],"MULTIPOINT"))
+    if (EQUAL(papszToken[0],"NONE")      || EQUAL(papszToken[0],"POINT") ||
+        EQUAL(papszToken[0],"LINE")      || EQUAL(papszToken[0],"PLINE") ||
+        EQUAL(papszToken[0],"REGION")    || EQUAL(papszToken[0],"ARC") ||
+        EQUAL(papszToken[0],"TEXT")      || EQUAL(papszToken[0],"RECT") ||
+        EQUAL(papszToken[0],"ROUNDRECT") || EQUAL(papszToken[0],"ELLIPSE") ||
+        EQUAL(papszToken[0],"MULTIPOINT")|| EQUAL(papszToken[0],"COLLECTION") )
     {
         CSLDestroy(papszToken);
         return TRUE;

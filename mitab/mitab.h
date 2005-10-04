@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.78 2005-05-21 03:16:01 fwarmerdam Exp $
+ * $Id: mitab.h,v 1.79 2005-10-04 15:44:31 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,12 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.78  2005-05-21 03:16:01  fwarmerdam
+ * Revision 1.79  2005-10-04 15:44:31  dmorissette
+ * First round of support for Collection objects. Currently supports reading
+ * from .TAB/.MAP and writing to .MIF. Still lacks symbol support and write
+ * support. (Based in part on patch and docs from Jim Hope, bug 1126)
+ *
+ * Revision 1.78  2005/05/21 03:16:01  fwarmerdam
  * Removed m_poFilterGeom ... should have been done yesterday with spatial
  * filter overhaul.
  *
@@ -1322,6 +1327,8 @@ class TABPolyline: public TABFeature,
     int                 GetNumParts();
     OGRLineString      *GetPartRef(int nPartIndex);
 
+    int         ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *,
+                                        TABMAPCoordBlock **ppoCoordBlock);
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
@@ -1392,6 +1399,8 @@ class TABRegion: public TABFeature,
     OGRLinearRing      *GetRingRef(int nRequestedRingIndex);
     GBool               IsInteriorRing(int nRequestedRingIndex);
 
+    int         ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *,
+                                        TABMAPCoordBlock **ppoCoordBlock);
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
@@ -1700,6 +1709,8 @@ class TABMultiPoint: public TABFeature,
     int         GetCenter(double &dX, double &dY);
     void        SetCenter(double dX, double dY);
 
+    int         ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *,
+                                        TABMAPCoordBlock **ppoCoordBlock);
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 
@@ -1711,6 +1722,53 @@ class TABMultiPoint: public TABFeature,
     virtual void DumpMIF(FILE *fpOut = NULL);
 };
 
+/*---------------------------------------------------------------------
+ *
+ *                      class TABCollection
+ *
+ * Feature class to handle MapInfo Collection features:
+ *
+ *     TAB_GEOM_COLLECTION_C        0x37
+ *     TAB_GEOM_COLLECTION          0x38
+ *
+ * Feature geometry will be a OGRCollection
+ *
+ *--------------------------------------------------------------------*/
+class TABCollection: public TABFeature, 
+                     public ITABFeatureSymbol
+{
+  private:
+    TABRegion       *m_poRegion;
+    TABPolyline     *m_poPline;
+    TABMultiPoint   *m_poMpoint;
+
+  private:
+    void    EmptyCollection();
+    int     ReadLabelAndMBR(TABMAPCoordBlock *poCoordBlock, GBool bComprCoord,
+                            GInt32 nComprOrgX, GInt32 nComprOrgY,
+                            GInt32 &pnMinX, GInt32 &pnMinY,
+                            GInt32 &pnMaxX, GInt32 &pnMaxY,
+                            GInt32 &pnLabelX, GInt32 &pnLabelY );
+
+  public:
+             TABCollection(OGRFeatureDefn *poDefnIn);
+    virtual ~TABCollection();
+
+    virtual TABFeatureClass GetFeatureClass() { return TABFCCollection; };
+    virtual int             ValidateMapInfoType(TABMAPFile *poMapFile = NULL);
+
+    virtual TABFeature *CloneTABFeature(OGRFeatureDefn *poNewDefn = NULL );
+
+    virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
+    
+    virtual int ReadGeometryFromMIFFile(MIDDATAFile *fp);
+    virtual int WriteGeometryToMIFFile(MIDDATAFile *fp);
+
+    virtual const char *GetStyleString();
+
+    virtual void DumpMIF(FILE *fpOut = NULL);
+};
 
 
 /*---------------------------------------------------------------------

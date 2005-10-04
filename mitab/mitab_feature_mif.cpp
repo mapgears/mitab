@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.27 2005-10-04 15:35:52 dmorissette Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.28 2005-10-04 15:44:31 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,12 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.27  2005-10-04 15:35:52  dmorissette
+ * Revision 1.28  2005-10-04 15:44:31  dmorissette
+ * First round of support for Collection objects. Currently supports reading
+ * from .TAB/.MAP and writing to .MIF. Still lacks symbol support and write
+ * support. (Based in part on patch and docs from Jim Hope, bug 1126)
+ *
+ * Revision 1.27  2005/10/04 15:35:52  dmorissette
  * Fixed an instance of hardcoded delimiter (",") in WriteRecordToMIDFile()
  * (patch by KB Kieron, bug 1126)
  *
@@ -1978,6 +1983,47 @@ int TABMultiPoint::WriteGeometryToMIFFile(MIDDATAFile *fp)
     return 0; 
 }
 
+
+/**********************************************************************
+ *
+ **********************************************************************/
+int TABCollection::ReadGeometryFromMIFFile(MIDDATAFile *fp)
+{
+  return 0;
+}
+
+/**********************************************************************
+ *
+ **********************************************************************/
+int TABCollection::WriteGeometryToMIFFile(MIDDATAFile *fp)
+{
+    int numParts = 0;
+    if (m_poRegion)     numParts++;
+    if (m_poPline)      numParts++;
+    if (m_poMpoint)     numParts++;
+
+    fp->WriteLine("COLLECTION %d\n", numParts);
+
+    if (m_poRegion)
+    {
+        if (m_poRegion->WriteGeometryToMIFFile(fp) != 0)
+            return -1;
+    }
+
+    if (m_poPline)
+    {
+        if (m_poPline->WriteGeometryToMIFFile(fp) != 0)
+            return -1;
+    }
+
+    if (m_poMpoint)
+    {
+        if (m_poMpoint->WriteGeometryToMIFFile(fp) != 0)
+            return -1;
+    }
+
+    return 0;
+}
 
 /**********************************************************************
  *

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.38 2005-03-22 23:24:54 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.39 2005-10-04 15:44:31 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,12 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.38  2005-03-22 23:24:54  dmorissette
+ * Revision 1.39  2005-10-04 15:44:31  dmorissette
+ * First round of support for Collection objects. Currently supports reading
+ * from .TAB/.MAP and writing to .MIF. Still lacks symbol support and write
+ * support. (Based in part on patch and docs from Jim Hope, bug 1126)
+ *
+ * Revision 1.38  2005/03/22 23:24:54  dmorissette
  * Added support for datum id in .MAP header (bug 910)
  *
  * Revision 1.37  2004/06/30 20:29:04  dmorissette
@@ -634,7 +639,37 @@ class TABMAPObjMultiPoint: public TABMAPObjHdrWithCoord
     virtual int ReadObj(TABMAPObjectBlock *);
 };
 
+class TABMAPObjCollection: public TABMAPObjHdrWithCoord
+{
+  public:
+    GInt32      m_nMultiPtDataSize;
+    GInt32      m_nRegionDataSize;
+    GInt32      m_nPolylineDataSize;
+    GInt32      m_nMPointDataSize;
+    GInt32      m_nNumParts;
+    GInt32      m_nComprOrgX;   /* Present only in compressed coord. case */
+    GInt32      m_nComprOrgY;
+    GByte       m_nSymbolId;
+    GInt32      m_nNumMultiPoints;
+    GInt16      m_nNumRegSections;
+    GInt16      m_nNumPLineSections;
+    GInt32      m_nTotalRegDataSize;
+    GInt32      m_nTotalPolyDataSize;
 
+    TABMAPObjCollection() {};
+    virtual ~TABMAPObjCollection() 
+    {}
+
+    virtual int WriteObj(TABMAPObjectBlock *);
+
+//  protected:
+    virtual int ReadObj(TABMAPObjectBlock *);
+
+  private:
+    // private copy ctor and assignment operator to prevent shallow copying
+    TABMAPObjCollection& operator=(const TABMAPObjCollection& rhs);
+    TABMAPObjCollection(const TABMAPObjCollection& rhs);
+};
 
 /*=====================================================================
           Classes to handle .MAP files low-level blocks

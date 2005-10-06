@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.79 2005-10-04 15:44:31 dmorissette Exp $
+ * $Id: mitab.h,v 1.80 2005-10-06 19:15:30 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.79  2005-10-04 15:44:31  dmorissette
+ * Revision 1.80  2005-10-06 19:15:30  dmorissette
+ * Collections: added support for reading/writing pen/brush/symbol ids and
+ * for writing collection objects to .TAB/.MAP (bug 1126)
+ *
+ * Revision 1.79  2005/10/04 15:44:31  dmorissette
  * First round of support for Collection objects. Currently supports reading
  * from .TAB/.MAP and writing to .MIF. Still lacks symbol support and write
  * support. (Based in part on patch and docs from Jim Hope, bug 1126)
@@ -1104,10 +1108,9 @@ class TABFeature: public OGRFeature
     virtual TABFeature     *CloneTABFeature(OGRFeatureDefn *pNewDefn = NULL);
     virtual TABFeatureClass GetFeatureClass() { return TABFCNoGeomFeature; };
     virtual int             GetMapInfoType()  { return m_nMapInfoType; };
-    virtual int            ValidateMapInfoType(TABMAPFile *poMapFile = NULL)
+    virtual int             ValidateMapInfoType(TABMAPFile *poMapFile = NULL)
                                                 {m_nMapInfoType=TAB_GEOM_NONE;
                                                  return m_nMapInfoType;};
-
     GBool       IsRecordDeleted() { return m_bDeletedFlag; };
     void        SetRecordDeleted(GBool bDeleted) { m_bDeletedFlag=bDeleted; };
 
@@ -1122,6 +1125,8 @@ class TABFeature: public OGRFeature
                                      TABINDFile *poINDFile, int *panIndexNo);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
     GBool       ValidateCoordType(TABMAPFile * poMapFile);
+    void        ForceCoordTypeAndOrigin(int nMapInfoType, GBool bCompr,
+                                        GInt32 nComprOrgX, GInt32 nComprOrgY);
 
     /*-----------------------------------------------------------------
      * Mid/Mif Support
@@ -1742,13 +1747,17 @@ class TABCollection: public TABFeature,
     TABPolyline     *m_poPline;
     TABMultiPoint   *m_poMpoint;
 
-  private:
     void    EmptyCollection();
     int     ReadLabelAndMBR(TABMAPCoordBlock *poCoordBlock, GBool bComprCoord,
                             GInt32 nComprOrgX, GInt32 nComprOrgY,
                             GInt32 &pnMinX, GInt32 &pnMinY,
                             GInt32 &pnMaxX, GInt32 &pnMaxY,
                             GInt32 &pnLabelX, GInt32 &pnLabelY );
+    int         WriteLabelAndMBR(TABMAPCoordBlock *poCoordBlock,
+                                 GBool bComprCoord,
+                                 GInt32 nMinX, GInt32 nMinY,
+                                 GInt32 nMaxX, GInt32 nMaxY,
+                                 GInt32 nLabelX, GInt32 nLabelY );
 
   public:
              TABCollection(OGRFeatureDefn *poDefnIn);
@@ -1768,6 +1777,14 @@ class TABCollection: public TABFeature,
     virtual const char *GetStyleString();
 
     virtual void DumpMIF(FILE *fpOut = NULL);
+
+    TABRegion           *GetRegionRef()         {return m_poRegion; };
+    TABPolyline         *GetPolylineRef()       {return m_poPline; };
+    TABMultiPoint       *GetMultiPointRef()     {return m_poMpoint; };
+
+    void                SetRegionDirectly(TABRegion *poRegion);
+    void                SetPolylineDirectly(TABPolyline *poPline);
+    void                SetMultiPointDirectly(TABMultiPoint *poMpoint);
 };
 
 

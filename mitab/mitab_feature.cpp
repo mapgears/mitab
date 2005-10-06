@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.57 2005-10-04 15:44:31 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.58 2005-10-06 19:15:30 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.57  2005-10-04 15:44:31  dmorissette
+ * Revision 1.58  2005-10-06 19:15:30  dmorissette
+ * Collections: added support for reading/writing pen/brush/symbol ids and
+ * for writing collection objects to .TAB/.MAP (bug 1126)
+ *
+ * Revision 1.57  2005/10/04 15:44:31  dmorissette
  * First round of support for Collection objects. Currently supports reading
  * from .TAB/.MAP and writing to .MIF. Still lacks symbol support and write
  * support. (Based in part on patch and docs from Jim Hope, bug 1126)
@@ -500,6 +504,31 @@ GBool TABFeature::ValidateCoordType(TABMAPFile * poMapFile)
         m_nMapInfoType++;  // non-compr = 2, 5, 8, ...
 
     return bCompr;
+}
+
+/**********************************************************************
+ *                   TABFeature::ForceCoordTypeAndOrigin()
+ *
+ * This function is used by TABCollection::ValidateMapInfoType() to force 
+ * the coord type and compressed origin of all members of a collection 
+ * to be the same. (A replacement for ValidateCoordType() for this 
+ * specific case)
+ **********************************************************************/
+void TABFeature::ForceCoordTypeAndOrigin(int nMapInfoType, GBool bCompr,
+                                         GInt32 nComprOrgX, GInt32 nComprOrgY)
+{
+    /*-------------------------------------------------------------
+     * Set Compressed Origin and adjust native type
+     *------------------------------------------------------------*/
+    m_nComprOrgX = nComprOrgX;
+    m_nComprOrgY = nComprOrgY;
+
+    m_nMapInfoType = nMapInfoType;
+
+    if (bCompr && ((m_nMapInfoType%3) == 2))
+        m_nMapInfoType--;  // compr = 1, 4, 7, ...
+    else if (!bCompr && ((m_nMapInfoType%3) == 1))
+        m_nMapInfoType++;  // non-compr = 2, 5, 8, ...
 }
 
 /**********************************************************************
@@ -2795,6 +2824,10 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         nCoordBlockPtr = poCoordBlock->GetCurAddress();
         poCoordBlock->SetComprCoordOrigin(m_nComprOrgX, m_nComprOrgY);
 
+#ifdef TABDUMP
+    printf("TABRegion::WriteGeometryToMAPFile(): ComprOrgX,Y= (%d,%d)\n",
+           m_nComprOrgX, m_nComprOrgY);
+#endif
         /*-------------------------------------------------------------
          * Fetch total number of rings and build array of coord 
          * sections headers.
@@ -6153,8 +6186,15 @@ TABFeature *TABCollection::CloneTABFeature(OGRFeatureDefn *poNewDefn /*=NULL*/)
     /*-----------------------------------------------------------------
      * And members specific to this class
      *----------------------------------------------------------------*/
-        
-    // TODO: Copy m_poOGRCollection, m_papoRegions, Plines and Mpoints
+
+    if (m_poRegion)
+        poNew->SetRegionDirectly(m_poRegion);
+
+    if (m_poPline)
+        poNew->SetPolylineDirectly(m_poPline);
+
+    if (m_poMpoint)
+        poNew->SetMultiPointDirectly(m_poMpoint);
 
     return poNew;
 }
@@ -6192,7 +6232,38 @@ int  TABCollection::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
     /*-----------------------------------------------------------------
      * Decide if coordinates should be compressed or not.
      *----------------------------------------------------------------*/
-    ValidateCoordType(poMapFile);
+    GBool bComprCoord = ValidateCoordType(poMapFile);
+
+    /*-----------------------------------------------------------------
+     * Since all members of the collection share the same compressed coord
+     * origin, we should force the compressed origin in all components
+     * to be the same. 
+     * This also implies that ValidateMapInfoType() should *NOT* be called
+     * again until the collection components are written by WriteGeom...()
+     *----------------------------------------------------------------*/
+    if (m_poRegion)
+    {
+        if (m_poRegion->ValidateMapInfoType(poMapFile) !=  TAB_GEOM_NONE)
+            m_poRegion->ForceCoordTypeAndOrigin(TAB_GEOM_V450_REGION,
+                                                bComprCoord,
+                                                m_nComprOrgX, m_nComprOrgY);
+    }
+
+    if (m_poPline)
+    {
+         if (m_poPline->ValidateMapInfoType(poMapFile) !=  TAB_GEOM_NONE)
+             m_poPline->ForceCoordTypeAndOrigin(TAB_GEOM_V450_MULTIPLINE,
+                                                bComprCoord,
+                                                m_nComprOrgX, m_nComprOrgY);
+    }
+
+    if (m_poMpoint)
+    {
+         if (m_poMpoint->ValidateMapInfoType(poMapFile) !=  TAB_GEOM_NONE)
+             m_poMpoint->ForceCoordTypeAndOrigin(TAB_GEOM_MULTIPOINT,
+                                                 bComprCoord,
+                                                 m_nComprOrgX, m_nComprOrgY);
+    }
 
     return m_nMapInfoType;
 }
@@ -6247,6 +6318,42 @@ int  TABCollection::ReadLabelAndMBR(TABMAPCoordBlock *poCoordBlock,
 
     return 0;
 }
+
+/**********************************************************************
+ *                   TABCollection::WriteLabelAndMBR()
+ *
+ * Writes the label and MBR elements of the header of a collection component
+ *
+ * Returns 0 on success, -1 on failure.
+ **********************************************************************/
+int  TABCollection::WriteLabelAndMBR(TABMAPCoordBlock *poCoordBlock,
+                                     GBool bComprCoord,
+                                     GInt32 nMinX, GInt32 nMinY,
+                                     GInt32 nMaxX, GInt32 nMaxY,
+                                     GInt32 nLabelX, GInt32 nLabelY )
+{
+    int nStatus;
+
+    //
+    // The sections in the collection's coord blocks start with center/label
+    // point + MBR that are normally found in the object data blocks 
+    // of regular region/pline/mulitpoint objects.
+    //
+
+    if ((nStatus = poCoordBlock->WriteIntCoord(nLabelX, nLabelY, 
+                                               bComprCoord)) != 0 ||
+        (nStatus = poCoordBlock->WriteIntCoord(nMinX, nMinY, 
+                                               bComprCoord)) != 0 ||
+        (nStatus = poCoordBlock->WriteIntCoord(nMaxX, nMaxY, 
+                                               bComprCoord)) != 0   )
+    {
+        // Failed ... error message has already been produced
+        return nStatus;
+    }   
+
+    return 0;
+}
+
 
 /**********************************************************************
  *                   TABCollection::ReadGeometryFromMAPFile()
@@ -6333,11 +6440,9 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         else
             oRegionHdr.m_nType = TAB_GEOM_V450_REGION;
         oRegionHdr.m_numLineSections = poCollHdr->m_nNumRegSections;
-        oRegionHdr.m_nPenId = 0;
-        oRegionHdr.m_nBrushId = 0;
-        oRegionHdr.m_bSmooth = 0;
-
-        //********TODO Set pen etc
+        oRegionHdr.m_nPenId = poCollHdr->m_nRegionPenId;
+        oRegionHdr.m_nBrushId = poCollHdr->m_nRegionBrushId;
+        oRegionHdr.m_bSmooth = 0;       // TODO
 
         //
         // Use a TABRegion to read/store the Region coord data
@@ -6385,11 +6490,8 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         else
             oPLineHdr.m_nType = TAB_GEOM_V450_MULTIPLINE;
         oPLineHdr.m_numLineSections = poCollHdr->m_nNumPLineSections;
-        oPLineHdr.m_nPenId = 0;
-        oPLineHdr.m_nBrushId = 0;
-        oPLineHdr.m_bSmooth = 0;
-
-        //******TODO Set pen id, brush id etc
+        oPLineHdr.m_nPenId = poCollHdr->m_nPolylinePenId;
+        oPLineHdr.m_bSmooth = 0;        // TODO
 
         //
         // Use a TABPolyline to read/store the Polyline coord data
@@ -6436,9 +6538,7 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         else
             oMPointHdr.m_nType = TAB_GEOM_MULTIPOINT;
         oMPointHdr.m_nNumPoints = poCollHdr->m_nNumMultiPoints;
-        oMPointHdr.m_nSymbolId = 0;
-
-        // *****TODO set symbol ID, label etc
+        oMPointHdr.m_nSymbolId = poCollHdr->m_nMultiPointSymbolId;
 
         //
         // Use a TABMultiPoint to read/store the coord data
@@ -6489,10 +6589,357 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
 int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                                           TABMAPObjHdr *poObjHdr)
 {
-    // ********TODO - implement and test
+
+    /*-----------------------------------------------------------------
+     * We assume that ValidateMapInfoType() was called already and that
+     * the type in poObjHdr->m_nType is valid.
+     *----------------------------------------------------------------*/
+    CPLAssert(m_nMapInfoType == poObjHdr->m_nType);
+
+    TABMAPObjCollection *poCollHdr = (TABMAPObjCollection *)poObjHdr;
+
+    /*-----------------------------------------------------------------
+     * TODO: Call some function to ensure that the TABRegion/Pline/Mpoint
+     * members are in sync with the main OGRGeometry
+     * ??? Should this move to ValidateMapInfoType() ???
+     *----------------------------------------------------------------*/
+
+    // TODO...
+
+    /*-----------------------------------------------------------------
+     * Write data to coordinate block for each component...
+     *
+     * Note that at this point, the caller (TABFile) has called 
+     * TABCollection::ValidateMapInfoType() which in turn has called
+     * each component's respective ValidateMapInfoType() and
+     * ForceCoordTypeAndCoordOrigin() so the objects are ready to have
+     * their respective WriteGeometryToMapFile() called.
+     *----------------------------------------------------------------*/
+    TABMAPCoordBlock *poCoordBlock;
+    GBool   bCompressed = poObjHdr->IsCompressedType();
+    // TODO: ??? Do we need to track overall collection coord data size???
+    int     nTotalFeatureDataSize = 0;
+
+    poCoordBlock = poMapFile->GetCurCoordBlock();
+    poCoordBlock->StartNewFeature();
+    poCollHdr->m_nCoordBlockPtr = poCoordBlock->GetCurAddress();
+    poCoordBlock->SetComprCoordOrigin(m_nComprOrgX, m_nComprOrgY);
+
+    /*-----------------------------------------------------------------
+     * Region component
+     *----------------------------------------------------------------*/
+    if (m_poRegion && m_poRegion->GetMapInfoType() != TAB_GEOM_NONE)
+    {
+        CPLAssert(m_poRegion->GetMapInfoType() == TAB_GEOM_V450_REGION ||
+                  m_poRegion->GetMapInfoType() == TAB_GEOM_V450_REGION_C );
+
+        TABMAPObjPLine *poRegionHdr = (TABMAPObjPLine *)
+            TABMAPObjHdr::NewObj(m_poRegion->GetMapInfoType(), -1);
+
+        // Update count of objects by type in header
+        poMapFile->UpdateMapHeaderInfo(m_poRegion->GetMapInfoType());
+
+        // Write a placeholder for centroid/label point and MBR mini-header
+        // and we'll come back later to write the real values.
+        //
+        // Note that the call to WriteGeometryToMAPFile() below will call 
+        // StartNewFeature() as well, so we need to track the current 
+        // value before calling it
+
+        poCoordBlock = poMapFile->GetCurCoordBlock();
+        poCoordBlock->StartNewFeature();
+        int nMiniHeaderPtr = poCoordBlock->GetCurAddress();
+
+        WriteLabelAndMBR(poCoordBlock, bCompressed,
+                         0, 0, 0, 0, 0, 0);
+        nTotalFeatureDataSize += poCoordBlock->GetFeatureDataSize();
+
+        if (m_poRegion->WriteGeometryToMAPFile(poMapFile, poRegionHdr) != 0)
+        {
+            CPLError(CE_Failure, CPLE_FileIO,
+                     "Failed writing Region part in collection.");
+            delete poRegionHdr;
+            return -1;
+        }
+
+        nTotalFeatureDataSize += poRegionHdr->m_nCoordDataSize;
+
+        // Come back to write the real values in the mini-header
+        poCoordBlock = poMapFile->GetCurCoordBlock();
+        int nEndOfObjectPtr = poCoordBlock->GetCurAddress();
+        poCoordBlock->StartNewFeature();
+
+        if (poCoordBlock->GotoByteInFile(nMiniHeaderPtr, TRUE) != 0)
+        {
+            delete poRegionHdr;
+            return -1;
+        }
+
+        WriteLabelAndMBR(poCoordBlock, bCompressed,
+                         poRegionHdr->m_nMinX, poRegionHdr->m_nMinY, 
+                         poRegionHdr->m_nMaxX, poRegionHdr->m_nMaxY,
+                         poRegionHdr->m_nLabelX, poRegionHdr->m_nLabelY);
+
+        // And finally move the pointer back to the end of this component
+        if (poCoordBlock->GotoByteInFile(nEndOfObjectPtr, TRUE) != 0)
+        {
+            delete poRegionHdr;
+            return -1;
+        }
+
+        // Copy other header members to the main collection header
+        // TODO: Does m_nRegionDataSize need to include the centroid+mbr
+        //       mini-header???
+        poCollHdr->m_nRegionDataSize = poRegionHdr->m_nCoordDataSize;
+        poCollHdr->m_nNumRegSections = poRegionHdr->m_numLineSections;
+        poCollHdr->m_nRegionPenId    = poRegionHdr->m_nPenId;
+        poCollHdr->m_nRegionBrushId  = poRegionHdr->m_nBrushId;
+        // TODO: Smooth flag         = poRegionHdr->m_bSmooth;
+        
+        delete poRegionHdr;
+    }
+    else
+    {
+        // No Region component. Set corresponding header fields to 0
+
+        poCollHdr->m_nRegionDataSize = 0;
+        poCollHdr->m_nNumRegSections = 0;
+        poCollHdr->m_nTotalRegDataSize = 0;
+        poCollHdr->m_nRegionPenId = 0;
+        poCollHdr->m_nRegionBrushId = 0;
+    }
+
+    /*-----------------------------------------------------------------
+     * PLine component
+     *----------------------------------------------------------------*/
+    if (m_poPline && m_poPline->GetMapInfoType() != TAB_GEOM_NONE)
+    {
+        CPLAssert(m_poPline->GetMapInfoType() == TAB_GEOM_V450_MULTIPLINE ||
+                  m_poPline->GetMapInfoType() == TAB_GEOM_V450_MULTIPLINE_C );
+
+        TABMAPObjPLine *poPlineHdr = (TABMAPObjPLine *)
+            TABMAPObjHdr::NewObj(m_poPline->GetMapInfoType(), -1);
+
+        // Update count of objects by type in header
+        poMapFile->UpdateMapHeaderInfo(m_poPline->GetMapInfoType());
+
+        // Write a placeholder for centroid/label point and MBR mini-header
+        // and we'll come back later to write the real values.
+        //
+        // Note that the call to WriteGeometryToMAPFile() below will call 
+        // StartNewFeature() as well, so we need to track the current 
+        // value before calling it
+
+        poCoordBlock = poMapFile->GetCurCoordBlock();
+        poCoordBlock->StartNewFeature();
+        int nMiniHeaderPtr = poCoordBlock->GetCurAddress();
+
+        WriteLabelAndMBR(poCoordBlock, bCompressed,
+                         0, 0, 0, 0, 0, 0);
+        nTotalFeatureDataSize += poCoordBlock->GetFeatureDataSize();
+
+        if (m_poPline->WriteGeometryToMAPFile(poMapFile, poPlineHdr) != 0)
+        {
+            CPLError(CE_Failure, CPLE_FileIO,
+                     "Failed writing Region part in collection.");
+            delete poPlineHdr;
+            return -1;
+        }
+
+        nTotalFeatureDataSize += poPlineHdr->m_nCoordDataSize;
+
+        // Come back to write the real values in the mini-header
+        poCoordBlock = poMapFile->GetCurCoordBlock();
+        int nEndOfObjectPtr = poCoordBlock->GetCurAddress();
+        poCoordBlock->StartNewFeature();
+
+        if (poCoordBlock->GotoByteInFile(nMiniHeaderPtr, TRUE) != 0)
+        {
+            delete poPlineHdr;
+            return -1;
+        }
+
+        WriteLabelAndMBR(poCoordBlock, bCompressed,
+                         poPlineHdr->m_nMinX, poPlineHdr->m_nMinY, 
+                         poPlineHdr->m_nMaxX, poPlineHdr->m_nMaxY,
+                         poPlineHdr->m_nLabelX, poPlineHdr->m_nLabelY);
+
+        // And finally move the pointer back to the end of this component
+        if (poCoordBlock->GotoByteInFile(nEndOfObjectPtr, TRUE) != 0)
+        {
+            delete poPlineHdr;
+            return -1;
+        }
+
+        // Copy other header members to the main collection header
+        // TODO: Does m_nRegionDataSize need to include the centroid+mbr
+        //       mini-header???
+        poCollHdr->m_nPolylineDataSize = poPlineHdr->m_nCoordDataSize;
+        poCollHdr->m_nNumPLineSections = poPlineHdr->m_numLineSections;
+        poCollHdr->m_nPolylinePenId    = poPlineHdr->m_nPenId;
+        // TODO: Smooth flag           = poPlineHdr->m_bSmooth;
+
+        delete poPlineHdr;        
+    }
+    else
+    {
+        // No Region component. Set corresponding header fields to 0
+
+        poCollHdr->m_nPolylineDataSize = 0;
+        poCollHdr->m_nNumPLineSections = 0;
+        poCollHdr->m_nTotalPolyDataSize = 0;
+        poCollHdr->m_nPolylinePenId = 0;
+    }
+
+
+    /*-----------------------------------------------------------------
+     * MultiPoint component
+     *----------------------------------------------------------------*/
+    if (m_poMpoint && m_poMpoint->GetMapInfoType() != TAB_GEOM_NONE)
+    {
+        CPLAssert(m_poMpoint->GetMapInfoType() == TAB_GEOM_MULTIPOINT ||
+                  m_poMpoint->GetMapInfoType() == TAB_GEOM_MULTIPOINT_C );
+
+        TABMAPObjMultiPoint *poMpointHdr = (TABMAPObjMultiPoint *)
+            TABMAPObjHdr::NewObj(m_poMpoint->GetMapInfoType(), -1);
+
+        // Update count of objects by type in header
+        poMapFile->UpdateMapHeaderInfo(m_poMpoint->GetMapInfoType());
+
+        // Write a placeholder for centroid/label point and MBR mini-header
+        // and we'll come back later to write the real values.
+        //
+        // Note that the call to WriteGeometryToMAPFile() below will call 
+        // StartNewFeature() as well, so we need to track the current 
+        // value before calling it
+
+        poCoordBlock = poMapFile->GetCurCoordBlock();
+        poCoordBlock->StartNewFeature();
+        int nMiniHeaderPtr = poCoordBlock->GetCurAddress();
+
+        WriteLabelAndMBR(poCoordBlock, bCompressed,
+                         0, 0, 0, 0, 0, 0);
+        nTotalFeatureDataSize += poCoordBlock->GetFeatureDataSize();
+
+        if (m_poMpoint->WriteGeometryToMAPFile(poMapFile, poMpointHdr) != 0)
+        {
+            CPLError(CE_Failure, CPLE_FileIO,
+                     "Failed writing Region part in collection.");
+            delete poMpointHdr;
+            return -1;
+        }
+
+        nTotalFeatureDataSize += poMpointHdr->m_nCoordDataSize;
+
+        // Come back to write the real values in the mini-header
+        poCoordBlock = poMapFile->GetCurCoordBlock();
+        int nEndOfObjectPtr = poCoordBlock->GetCurAddress();
+        poCoordBlock->StartNewFeature();
+
+        if (poCoordBlock->GotoByteInFile(nMiniHeaderPtr, TRUE) != 0)
+        {
+            delete poMpointHdr;
+            return -1;
+        }
+
+        WriteLabelAndMBR(poCoordBlock, bCompressed,
+                         poMpointHdr->m_nMinX, poMpointHdr->m_nMinY, 
+                         poMpointHdr->m_nMaxX, poMpointHdr->m_nMaxY,
+                         poMpointHdr->m_nLabelX, poMpointHdr->m_nLabelY);
+
+        // And finally move the pointer back to the end of this component
+        if (poCoordBlock->GotoByteInFile(nEndOfObjectPtr, TRUE) != 0)
+        {
+            delete poMpointHdr;
+            return -1;
+        }
+
+        // Copy other header members to the main collection header
+        // TODO: Does m_nRegionDataSize need to include the centroid+mbr
+        //       mini-header???
+        poCollHdr->m_nMPointDataSize     = poMpointHdr->m_nCoordDataSize;
+        poCollHdr->m_nNumMultiPoints     = poMpointHdr->m_nNumPoints;
+        poCollHdr->m_nMultiPointSymbolId = poMpointHdr->m_nSymbolId;
+
+        delete poMpointHdr;        
+    }
+    else
+    {
+        // No Region component. Set corresponding header fields to 0
+
+        poCollHdr->m_nMPointDataSize = 0;
+        poCollHdr->m_nNumMultiPoints = 0;
+        poCollHdr->m_nMultiPointSymbolId = 0;
+    }
+
+
+    /*-----------------------------------------------------------------
+     * Copy object information
+     *----------------------------------------------------------------*/
+
+    // Compressed coordinate origin (useful only in compressed case!)
+    poCollHdr->m_nComprOrgX = m_nComprOrgX;
+    poCollHdr->m_nComprOrgY = m_nComprOrgY;
+
+    poCollHdr->m_nCoordDataSize = nTotalFeatureDataSize;
+
+    poCollHdr->SetMBR(m_nXMin, m_nYMin, m_nXMax, m_nYMax);
+
+
+    if (CPLGetLastErrorNo() != 0)
+        return -1;
+
     return 0;
 }
 
+
+/**********************************************************************
+ *                   TABCollection::SetRegionDirectly()
+ *
+ * Set the region component of the collection, deleting the current
+ * region component if there is one. The object is then owned by the
+ * TABCollection object.
+ **********************************************************************/
+void    TABCollection::SetRegionDirectly(TABRegion *poRegion)
+{
+    if (m_poRegion)
+        delete m_poRegion;
+    m_poRegion = poRegion;
+
+    // TODO: Update OGRGeometryCollection component as well
+}
+
+/**********************************************************************
+ *                   TABCollection::SetPolylineDirectly()
+ *
+ * Set the polyline component of the collection, deleting the current
+ * polyline component if there is one. The object is then owned by the
+ * TABCollection object.
+ **********************************************************************/
+void    TABCollection::SetPolylineDirectly(TABPolyline *poPline)
+{
+    if (m_poPline)
+        delete m_poPline;
+    m_poPline = poPline;
+
+    // TODO: Update OGRGeometryCollection component as well
+}
+
+/**********************************************************************
+ *                   TABCollection::SetMultiPointDirectly()
+ *
+ * Set the multipoint component of the collection, deleting the current
+ * multipoint component if there is one. The object is then owned by the
+ * TABCollection object.
+ **********************************************************************/
+void    TABCollection::SetMultiPointDirectly(TABMultiPoint *poMpoint)
+{
+    if (m_poMpoint)
+        delete m_poMpoint;
+    m_poMpoint = poMpoint;
+
+    // TODO: Update OGRGeometryCollection component as well
+}
 
 
 /**********************************************************************

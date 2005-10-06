@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.80 2005-10-06 19:15:30 dmorissette Exp $
+ * $Id: mitab.h,v 1.81 2005-10-06 23:05:08 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.80  2005-10-06 19:15:30  dmorissette
+ * Revision 1.81  2005-10-06 23:05:08  dmorissette
+ * TABCollection: Added automated sync'ing of OGRFeature's geometry in
+ * SetRegion/Pline/MpointDirectly() methods (bug 1126)
+ *
+ * Revision 1.80  2005/10/06 19:15:30  dmorissette
  * Collections: added support for reading/writing pen/brush/symbol ids and
  * for writing collection objects to .TAB/.MAP (bug 1126)
  *
@@ -1758,6 +1762,9 @@ class TABCollection: public TABFeature,
                                  GInt32 nMinX, GInt32 nMinY,
                                  GInt32 nMaxX, GInt32 nMaxY,
                                  GInt32 nLabelX, GInt32 nLabelY );
+    int         SyncOGRGeometryCollection(GBool bSyncRegion,
+                                          GBool bSyncPline,
+                                          GBool bSyncMpoint);
 
   public:
              TABCollection(OGRFeatureDefn *poDefnIn);
@@ -1782,9 +1789,9 @@ class TABCollection: public TABFeature,
     TABPolyline         *GetPolylineRef()       {return m_poPline; };
     TABMultiPoint       *GetMultiPointRef()     {return m_poMpoint; };
 
-    void                SetRegionDirectly(TABRegion *poRegion);
-    void                SetPolylineDirectly(TABPolyline *poPline);
-    void                SetMultiPointDirectly(TABMultiPoint *poMpoint);
+    int                 SetRegionDirectly(TABRegion *poRegion);
+    int                 SetPolylineDirectly(TABPolyline *poPline);
+    int                 SetMultiPointDirectly(TABMultiPoint *poMpoint);
 };
 
 

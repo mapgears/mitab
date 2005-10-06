@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.58 2005-10-06 19:15:30 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.59 2005-10-06 23:05:08 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.58  2005-10-06 19:15:30  dmorissette
+ * Revision 1.59  2005-10-06 23:05:08  dmorissette
+ * TABCollection: Added automated sync'ing of OGRFeature's geometry in
+ * SetRegion/Pline/MpointDirectly() methods (bug 1126)
+ *
+ * Revision 1.58  2005/10/06 19:15:30  dmorissette
  * Collections: added support for reading/writing pen/brush/symbol ids and
  * for writing collection objects to .TAB/.MAP (bug 1126)
  *
@@ -6161,8 +6165,8 @@ void TABCollection::EmptyCollection()
         m_poMpoint = NULL;
     }
 
-
-    // TODO: Free main OGRGeometry object???
+    // Empty OGR Geometry Collection as well
+    SyncOGRGeometryCollection(TRUE, TRUE, TRUE);
 
 }
 
@@ -6556,21 +6560,8 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
      * Set the main OGRFeature Geometry 
      * (this is actually duplicating geometries from each member)
      *----------------------------------------------------------------*/
-    // use addGeometry() rather than addGeometryDirectly() as this clones
-    // the added geometry so won't leave dangling ptrs when the above features
-    // are deleted
-
-    OGRGeometryCollection *poGeomColl = new OGRGeometryCollection();
-    if(m_poRegion && m_poRegion->GetGeometryRef() != NULL)
-        poGeomColl->addGeometry(m_poRegion->GetGeometryRef());
-    
-    if(m_poPline && m_poPline->GetGeometryRef() != NULL)
-        poGeomColl->addGeometry(m_poPline->GetGeometryRef());
-
-    if(m_poMpoint && m_poMpoint->GetGeometryRef() != NULL)
-        poGeomColl->addGeometry(m_poMpoint->GetGeometryRef());
-
-    this->SetGeometryDirectly(poGeomColl);
+    if (SyncOGRGeometryCollection(TRUE, TRUE, TRUE) != 0)
+        return -1;
 
     return 0;
 }
@@ -6589,6 +6580,19 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
 int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                                           TABMAPObjHdr *poObjHdr)
 {
+    /*-----------------------------------------------------------------
+     * Note that the current implementation does not allow setting the
+     * Geometry via OGRFeature::SetGeometry(). The geometries must be set
+     * via the SetRegion/Pline/MpointDirectly() methods which will take 
+     * care of keeping the OGRFeature's geometry in sync.
+     * 
+     * TODO: If we ever want to support sync'ing changes from the OGRFeature's
+     * geometry to the m_poRegion/Pline/Mpoint then a call should be added
+     * here, or perhaps in ValidateMapInfoType(), or even better in 
+     * custom TABCollection::SetGeometry*()... but then this last option
+     * won't work unless OGRFeature::SetGeometry*() are made virtual in OGR.
+     *----------------------------------------------------------------*/
+
 
     /*-----------------------------------------------------------------
      * We assume that ValidateMapInfoType() was called already and that
@@ -6597,14 +6601,6 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     CPLAssert(m_nMapInfoType == poObjHdr->m_nType);
 
     TABMAPObjCollection *poCollHdr = (TABMAPObjCollection *)poObjHdr;
-
-    /*-----------------------------------------------------------------
-     * TODO: Call some function to ensure that the TABRegion/Pline/Mpoint
-     * members are in sync with the main OGRGeometry
-     * ??? Should this move to ValidateMapInfoType() ???
-     *----------------------------------------------------------------*/
-
-    // TODO...
 
     /*-----------------------------------------------------------------
      * Write data to coordinate block for each component...
@@ -6894,19 +6890,105 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
 
 
 /**********************************************************************
+ *                   TABCollection::SyncOGRGeometryCollection()
+ *
+ * Copy the region/pline/multipoint's geometries to the OGRFeature's
+ * geometry.
+ **********************************************************************/
+int    TABCollection::SyncOGRGeometryCollection(GBool bSyncRegion,
+                                                GBool bSyncPline,
+                                                GBool bSyncMpoint)
+{
+    OGRGeometry         *poThisGeom = GetGeometryRef();
+    OGRGeometryCollection *poGeomColl;
+
+    // poGeometry is defined in the OGRFeature class
+    if (poThisGeom == NULL)
+    {
+        poThisGeom = poGeomColl = new OGRGeometryCollection();
+        SetGeometryDirectly(poGeomColl);
+    }
+    else if (wkbFlatten(poThisGeom->getGeometryType())==wkbGeometryCollection)
+    {
+         poGeomColl = (OGRGeometryCollection *)poThisGeom;
+    }
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABCollection: Invalid Geometry. Type must be OGRCollection.");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Start by removing geometries that need to be replaced
+     * In theory there should be a single geometry of each type, but 
+     * just in case, we'll loop over the whole collection and delete all
+     * instances of each type if there are some.
+     *----------------------------------------------------------------*/
+    int numGeometries = poGeomColl->getNumGeometries();
+    for (int i=0; i<numGeometries; i++)
+    {
+        OGRGeometry *poGeom = poGeomColl->getGeometryRef(i);
+        if (!poGeom)
+            continue;
+
+        if ( (bSyncRegion && 
+              (wkbFlatten(poGeom->getGeometryType()) == wkbPolygon ||
+               wkbFlatten(poGeom->getGeometryType()) == wkbMultiPolygon) ) ||
+             (bSyncPline && 
+              (wkbFlatten(poGeom->getGeometryType()) == wkbLineString ||
+               wkbFlatten(poGeom->getGeometryType()) == wkbMultiLineString)) ||
+             (bSyncMpoint && 
+              (wkbFlatten(poGeom->getGeometryType()) == wkbMultiPoint) ) )
+        {
+            // Remove this geometry
+            poGeomColl->removeGeometry(i);
+
+            // Unless this was the last geometry, we need to restart
+            // scanning the collection since we modified it
+            if (i != numGeometries-1)
+            {
+                i=0;
+                numGeometries = poGeomColl->getNumGeometries();
+            }
+        }
+    }
+
+    /*-----------------------------------------------------------------
+     * Copy TAB Feature geometries to OGRGeometryCollection
+     *----------------------------------------------------------------*/
+    if(bSyncRegion && m_poRegion && m_poRegion->GetGeometryRef() != NULL)
+        poGeomColl->addGeometry(m_poRegion->GetGeometryRef());
+    
+    if(bSyncPline && m_poPline && m_poPline->GetGeometryRef() != NULL)
+        poGeomColl->addGeometry(m_poPline->GetGeometryRef());
+
+    if(bSyncMpoint && m_poMpoint && m_poMpoint->GetGeometryRef() != NULL)
+        poGeomColl->addGeometry(m_poMpoint->GetGeometryRef());
+
+    return 0;
+}
+
+
+/**********************************************************************
  *                   TABCollection::SetRegionDirectly()
  *
  * Set the region component of the collection, deleting the current
  * region component if there is one. The object is then owned by the
- * TABCollection object.
+ * TABCollection object. Passing NULL just deletes it.
+ *
+ * Note that an intentional side-effect is that calling this method
+ * with the same poRegion pointer that is already owned by this object
+ * will force resync'ing the OGR Geometry member.
  **********************************************************************/
-void    TABCollection::SetRegionDirectly(TABRegion *poRegion)
+int    TABCollection::SetRegionDirectly(TABRegion *poRegion)
 {
-    if (m_poRegion)
+    if (m_poRegion && m_poRegion != poRegion)
         delete m_poRegion;
     m_poRegion = poRegion;
 
-    // TODO: Update OGRGeometryCollection component as well
+    // Update OGRGeometryCollection component as well
+    return SyncOGRGeometryCollection(TRUE, FALSE, FALSE);
 }
 
 /**********************************************************************
@@ -6914,15 +6996,20 @@ void    TABCollection::SetRegionDirectly(TABRegion *poRegion)
  *
  * Set the polyline component of the collection, deleting the current
  * polyline component if there is one. The object is then owned by the
- * TABCollection object.
+ * TABCollection object. Passing NULL just deletes it.
+ *
+ * Note that an intentional side-effect is that calling this method
+ * with the same poPline pointer that is already owned by this object
+ * will force resync'ing the OGR Geometry member.
  **********************************************************************/
-void    TABCollection::SetPolylineDirectly(TABPolyline *poPline)
+int    TABCollection::SetPolylineDirectly(TABPolyline *poPline)
 {
-    if (m_poPline)
+    if (m_poPline && m_poPline != poPline)
         delete m_poPline;
     m_poPline = poPline;
 
-    // TODO: Update OGRGeometryCollection component as well
+    // Update OGRGeometryCollection component as well
+    return SyncOGRGeometryCollection(FALSE, TRUE, FALSE);
 }
 
 /**********************************************************************
@@ -6930,15 +7017,20 @@ void    TABCollection::SetPolylineDirectly(TABPolyline *poPline)
  *
  * Set the multipoint component of the collection, deleting the current
  * multipoint component if there is one. The object is then owned by the
- * TABCollection object.
+ * TABCollection object. Passing NULL just deletes it.
+ *
+ * Note that an intentional side-effect is that calling this method
+ * with the same poMpoint pointer that is already owned by this object
+ * will force resync'ing the OGR Geometry member.
  **********************************************************************/
-void    TABCollection::SetMultiPointDirectly(TABMultiPoint *poMpoint)
+int    TABCollection::SetMultiPointDirectly(TABMultiPoint *poMpoint)
 {
-    if (m_poMpoint)
+    if (m_poMpoint && m_poMpoint != poMpoint)
         delete m_poMpoint;
     m_poMpoint = poMpoint;
 
-    // TODO: Update OGRGeometryCollection component as well
+    // Update OGRGeometryCollection component as well
+    return SyncOGRGeometryCollection(FALSE, FALSE, TRUE);
 }
 
 

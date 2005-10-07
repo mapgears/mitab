@@ -13,6 +13,34 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+Version 1.5.0-beta1 (2005-10-07)
+--------------------------------
+
+- Added read/write support for MapInfo Collections in MIF and TAB (bug 1126)
+
+- New C API methods to access collection members (bug 1126):
+     - mitab_c_get_collection_region_ref()
+     - mitab_c_get_collection_polyline_ref()
+     - mitab_c_get_collection_multipoint_ref()
+     - mitab_c_set_collection_region()
+     - mitab_c_set_collection_polyline()
+     - mitab_c_set_collection_multipoint()
+
+- Support for writing affine projection params in .MAP header (AJD, bug 1155)
+
+- New C API methods to get/set various projection parameters (AJD, bug 1155):
+     - mitab_c_get_projection_info()
+     - mitab_c_set_projection_info()
+     - mitab_c_get_datum_info()
+     - mitab_c_set_datum_info()
+     - mitab_c_get_affine_params()
+     - mitab_c_set_affine_params()
+
+- Added bounds entries for Finnish KKJ and Swedish projections (AJD, bug 1155)
+
+- All datum definitions in mitab_spatialref.cpp now have the correct 
+  names (AJD, bug 1155)
+
 - mitab_ogr_datasource.cpp: avoid leak of CPLReadDirectory() result.
 
 - gcc4 related warnings in mitab_coordsys.cpp and mitab_utils.cpp avoided.
@@ -34,25 +62,10 @@ CHANGES - Current Version:
 
 - Changed to use OGRLayers spatial filtering support.  (FW)
 
-- Fixed missing initialization of default .MID file delimiter ("\t") 
-  (Anthony D - bugs 1155 and 37)
-
-- Added bounds entries for Finnish KKJ and Swedish projections (AJD, bug 1155)
-
-- New C API methods to get/set various projection parameters (AJD, bug 1155):
-     - mitab_c_get_projection_info()
-     - mitab_c_set_projection_info()
-     - mitab_c_get_datum_info()
-     - mitab_c_set_datum_info()
-     - mitab_c_get_affine_params()
-     - mitab_c_set_affine_params()
-
-- Support for writing affine projection params in .MAP header (AJD, bug 1155)
-
 - A few fixes to support for modified TM projections #21-24 (AJD, bug 1155)
 
-- All datum definitions in mitab_spatialref.cpp now have the correct 
-  names (AJD, bug 1155)
+- Fixed missing initialization of default .MID file delimiter ("\t") 
+  (Anthony D - bugs 1155 and 37)
 
 
 Version 1.4.0 (2005-04-01)
@@ -660,5 +673,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.146 2005-09-29 20:55:38 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.147 2005-10-07 18:54:23 dmorissette Exp $
 ------------

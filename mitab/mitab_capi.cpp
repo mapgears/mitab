@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.39 2005-10-07 19:09:02 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.40 2005-10-07 21:23:21 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.39  2005-10-07 19:09:02  dmorissette
+ * Revision 1.40  2005-10-07 21:23:21  dmorissette
+ * Return all zeros for collections in _mitab_c_get_feature_info()
+ *
+ * Revision 1.39  2005/10/07 19:09:02  dmorissette
  * A few fixes to Doxygen docs
  *
  * Revision 1.38  2005/10/07 18:49:40  dmorissette
@@ -3144,6 +3147,34 @@ static int _mitab_c_get_feature_info( mitab_feature feature, int what_info,
         if (poMultiPoint && what_info == INFO_YVERTEX)
         {
             return poMultiPoint->GetXY(*point, dX, *vertex);
+        }
+    }
+    else if( poFeature->GetFeatureClass() == TABFC_Collection )
+    {
+/* -------------------------------------------------------------------- */
+/*      Collection                                                      */
+/* TODO: Can we really return anything meaningful in this case?          */
+/* -------------------------------------------------------------------- */
+        if (what_info == INFO_NUMPARTS)
+        {
+            *part = 0;
+            return 0;
+        }
+
+        if (what_info == INFO_NUMPOINTS)
+        {
+            *point = 0;
+            return 0;
+        }
+        if (what_info == INFO_XVERTEX)
+        {
+            *vertex = 0.0;
+            return 0;
+        }
+        if (what_info == INFO_YVERTEX)
+        {
+            *vertex = 0.0;
+            return 0;
         }
     }
 

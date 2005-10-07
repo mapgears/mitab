@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.38 2005-10-07 18:49:40 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.39 2005-10-07 19:09:02 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.38  2005-10-07 18:49:40  dmorissette
+ * Revision 1.39  2005-10-07 19:09:02  dmorissette
+ * A few fixes to Doxygen docs
+ *
+ * Revision 1.38  2005/10/07 18:49:40  dmorissette
  * Added methods for collections in C API (bug 1126)
  *
  * Revision 1.37  2005/09/29 20:09:52  dmorissette
@@ -1992,7 +1995,7 @@ mitab_c_get_vertex_count( mitab_feature feature, int part )
  * @param feature the mitab_feature object.
  * @param part the part number we are interested in.  Use 0 for objects which
  *         cannot have multiple parts.
- * @param point the point number, with 0 being the first point.
+ * @param vertex the point number, with 0 being the first point.
  * @return the X coordinate of the specified point or if the object has no
  *         geometry or the part or the point number is invalid.
  */
@@ -2021,7 +2024,7 @@ mitab_c_get_vertex_x( mitab_feature feature, int part, int vertex )
  * @param feature the mitab_feature object.
  * @param part the part number we are interested in.  Use 0 for objects which
  *         cannot have multiple parts.
- * @param point the point number, with 0 being the first point.
+ * @param vertex the point number, with 0 being the first point.
  * @return the Y coordinate of the specified point or if the object has no
  *         geometry or the part or the point number is invalid.
  */
@@ -2632,10 +2635,14 @@ mitab_c_set_affine_params( mitab_projinfo projInfo,
  * affine transformation parameters if available.
  *
  * @param dataset the mitab_handle of the source dataset.
- * @return a string with the dataset coordinate system definition in MIF
- *    CoordSys format.  Returns NULL if the information could not be read.
- *    The returned string is valid only until the next call to 
- *    mitab_c_get_mif_coordsys().
+ * @param coordsys a string buffer to return the dataset coordinate system 
+ *    definition in MIF CoordSys format.  This value can then be passed 
+ *    to mitab_c_create() to create new datasets with the same coordinate
+ *    system.  Returns empty string if the information could not be read.
+ * @param l the maximum length of the coordsys string including terminating 
+ *    null.
+ * @return the length of the string in coordsys or zero if the information 
+ *    could not be read
  */
 
 int MITAB_STDCALL
@@ -2816,11 +2823,14 @@ mitab_c_get_collection_multipoint_ref( mitab_feature feature )
  * Set or update the region component of a collection
  *
  * This method can be used in three possible ways:
+ *
  * 1- with a new region feature to set a new region component in the 
  * collection. 
+ *
  * 2- pass the region handle obtained from mitab_c_get_collection_region_ref()
  * after making modifications to it to force an internal update of the region
  * geometry into the collection
+ *
  * 3- pass NULL to remove the region component of the collection.
  *
  * @param feature the target TABFC_Collection feature. 
@@ -2857,11 +2867,14 @@ mitab_c_set_collection_region( mitab_feature feature,
  * Set or update the polyline component of a collection
  *
  * This method can be used in three possible ways:
+ *
  * 1- with a new polyline feature to set a new polyline component in the 
  * collection. 
+ *
  * 2- pass the polyline handle obtained from mitab_c_get_collection_polyline_ref()
  * after making modifications to it to force an internal update of the polyline
  * geometry into the collection
+ *
  * 3- pass NULL to remove the polyline component of the collection.
  *
  * @param feature the target TABFC_Collection feature. 
@@ -2898,11 +2911,14 @@ mitab_c_set_collection_polyline( mitab_feature feature,
  * Set or update the multipoint component of a collection
  *
  * This method can be used in three possible ways:
+ *
  * 1- with a new multipoint feature to set a new multipoint component in the 
  * collection. 
+ *
  * 2- pass the multipoint handle obtained from mitab_c_get_collection_multipoint_ref()
  * after making modifications to it to force an internal update of the 
  * multipoint geometry into the collection
+ *
  * 3- pass NULL to remove the multipoint component of the collection.
  *
  * @param feature the target TABFC_Collection feature. 

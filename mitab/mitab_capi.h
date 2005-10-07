@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.28 2005-09-29 20:09:52 dmorissette Exp $
+ * $Id: mitab_capi.h,v 1.29 2005-10-07 18:49:40 dmorissette Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -10,7 +10,7 @@
  * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  **********************************************************************
- * Copyright (c) 2000-2004, Frank Warmerdam
+ * Copyright (c) 2000-2005, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.28  2005-09-29 20:09:52  dmorissette
+ * Revision 1.29  2005-10-07 18:49:40  dmorissette
+ * Added methods for collections in C API (bug 1126)
+ *
+ * Revision 1.28  2005/09/29 20:09:52  dmorissette
  * New C API methods to access projection params (ADJ, bug 1155)
  *
  * Revision 1.27  2005/04/07 15:56:27  dmorissette
@@ -154,7 +157,7 @@ typedef void * mitab_handle;
 typedef void * mitab_feature;
 typedef void * mitab_projinfo;
 
-/* feature type values */
+/* feature type values (match values from TABFeatureClass enum in mitab.h) */
 #define TABFC_NoGeom    0
 #define TABFC_Point     1
 #define TABFC_FontPoint 2
@@ -166,6 +169,7 @@ typedef void * mitab_projinfo;
 #define TABFC_Rectangle 8
 #define TABFC_Ellipse   9
 #define TABFC_MultiPoint 10
+#define TABFC_Collection 11
 
 /* field types */
 #define TABFT_Char      1
@@ -341,29 +345,49 @@ int MITAB_DLL MITAB_STDCALL mitab_c_load_coordsys_table( const char *filename );
 int MITAB_DLL MITAB_STDCALL 
 mitab_c_is_interior_ring( mitab_feature feature, int requestedringindex );
 
-
-void MITAB_STDCALL
+void MITAB_DLL MITAB_STDCALL
 mitab_c_get_projection_info( mitab_projinfo projInfo,
                              int *nProjId, int *nEllipsoidId, int *nUnitsId,
                              double *adProjParams /* array with six entries */);
-void MITAB_STDCALL
+void MITAB_DLL MITAB_STDCALL
 mitab_c_set_projection_info( mitab_projinfo projInfo,
                              int nProjId, int nEllipsoidId, int nUnitsId,
                              double *adProjParams /* array with six entries */);
-void MITAB_STDCALL
+void MITAB_DLL MITAB_STDCALL
 mitab_c_get_datum_info( mitab_projinfo projInfo,
                         double *dDatumShiftX, double *dDatumShiftY, double *dDatumShiftZ,
                         double *adDatumParams /* array with five entries */);
-void MITAB_STDCALL
+void MITAB_DLL MITAB_STDCALL
 mitab_c_set_datum_info( mitab_projinfo projInfo,
                         double dDatumShiftX, double dDatumShiftY, double dDatumShiftZ,
                         double *adDatumParams /* array with five entries */);
-int MITAB_STDCALL                    // Returns 0 if no affine params
+int MITAB_DLL MITAB_STDCALL                /* Returns 0 if no affine params*/
 mitab_c_get_affine_params( mitab_projinfo projInfo, int *nAffineUnits,
                            double *adAffineParams /* array with 6 entries */);
-void MITAB_STDCALL
+void MITAB_DLL MITAB_STDCALL
 mitab_c_set_affine_params( mitab_projinfo projInfo, int nAffineUnits,
                            double *adAffineParams /* array with 6 entries */);
+
+
+mitab_feature MITAB_DLL MITAB_STDCALL 
+  mitab_c_get_collection_region_ref( mitab_feature feature );
+mitab_feature MITAB_DLL MITAB_STDCALL 
+  mitab_c_get_collection_polyline_ref( mitab_feature feature );
+mitab_feature MITAB_DLL MITAB_STDCALL 
+  mitab_c_get_collection_multipoint_ref( mitab_feature feature );
+
+int MITAB_DLL MITAB_STDCALL 
+  mitab_c_set_collection_region( mitab_feature feature,
+                                 mitab_feature region,
+                                 int make_copy );
+int MITAB_DLL MITAB_STDCALL 
+  mitab_c_set_collection_polyline( mitab_feature feature,
+                                   mitab_feature polyline,
+                                   int make_copy );
+int MITAB_DLL MITAB_STDCALL 
+  mitab_c_set_collection_multipoint( mitab_feature feature,
+                                     mitab_feature multipoint,
+                                     int make_copy );
 
 
 #ifdef __cplusplus

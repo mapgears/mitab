@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.14 2005-04-28 16:18:28 dmorissette Exp $
+ * $Id: mitabc_test.c,v 1.15 2005-10-07 18:49:40 dmorissette Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -8,7 +8,7 @@
  * Author:   Frank Warmerdam, warmerda@home.com
  *
  **********************************************************************
- * Copyright (c) 2000-2003, Frank Warmerdam
+ * Copyright (c) 2000-2005, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.14  2005-04-28 16:18:28  dmorissette
+ * Revision 1.15  2005-10-07 18:49:40  dmorissette
+ * Added methods for collections in C API (bug 1126)
+ *
+ * Revision 1.14  2005/04/28 16:18:28  dmorissette
  * Change one of the tests to set a black pen
  *
  * Revision 1.13  2005/04/07 15:56:27  dmorissette
@@ -191,6 +194,7 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
 {
     mitab_handle	dataset;
     mitab_feature	feature;
+    mitab_feature	region, polyline, multipoint;
     double		x[100], y[100];
     int			field_index;
     
@@ -266,7 +270,8 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     mitab_c_set_field( feature, 1, "100.5" );
     mitab_c_set_field( feature, 2, "12345678901234567890" );
     mitab_c_write_feature( dataset, feature );
-    mitab_c_destroy_feature( feature );
+    /* Do not destroy it yet, we'll reuse it for the collection example */
+    multipoint = feature;
 
 /* -------------------------------------------------------------------- */
 /*      Write a font point.                                             */
@@ -299,7 +304,9 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     mitab_c_set_points( feature, 0, 2, x, y );
     mitab_c_set_pen( feature, 1, 2, 255 );
     mitab_c_write_feature( dataset, feature );
-    mitab_c_destroy_feature( feature );
+
+    /* Do not destroy it yet, we'll reuse it for the collection example */
+    polyline = feature;
 
 /* -------------------------------------------------------------------- */
 /*      Write text.                                                     */
@@ -430,8 +437,10 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     mitab_c_set_brush( feature, 255, 0, 2, 0 );
     mitab_c_set_pen( feature, 1, 2, 65535 );
     mitab_c_write_feature( dataset, feature );
-    mitab_c_destroy_feature( feature );
-    
+
+    /* Do not destroy it yet, we'll reuse it for the collection example */
+    region = feature;
+
 /* -------------------------------------------------------------------- */
 /*      Write multiple polyline (3 parts).                              */
 /* -------------------------------------------------------------------- */
@@ -516,6 +525,37 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     mitab_c_set_pen( feature, 1, 2, 65535 );
     mitab_c_write_feature( dataset, feature );
     mitab_c_destroy_feature( feature );
+
+
+
+/* -------------------------------------------------------------------- */
+/*      Write a collection                                              */
+/*      reusing the region, polyline and multipoint objects created     */
+/*      above.                                                          */
+/* -------------------------------------------------------------------- */
+    feature = mitab_c_create_feature( dataset, TABFC_Collection );
+
+    mitab_c_set_field( feature, 0, "1" );
+    mitab_c_set_field( feature, 1, "2" );
+    mitab_c_set_field( feature, 2, "Collection" );
+
+    /* Set the region and polyline parts. 
+     * Using make_copy=FALSE means that the region/polyline objects will 
+     * be owned by the collection so we don't need to destroy them
+     */
+    mitab_c_set_collection_region( feature, region, 0);
+    mitab_c_set_collection_polyline( feature, polyline, 0 );
+
+    /* Set the multipoint part. 
+     * This time using make_copy=TRUE which means that we remain owner of the
+     * multipoint and need to destroy it ourselves.
+     */
+    mitab_c_set_collection_multipoint( feature, multipoint, 1 );
+    mitab_c_destroy_feature( multipoint );
+
+    mitab_c_write_feature( dataset, feature );
+    mitab_c_destroy_feature( feature );
+
 
 /* -------------------------------------------------------------------- */
 /*      Cleanup                                                         */

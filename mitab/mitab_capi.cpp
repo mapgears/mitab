@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.37 2005-09-29 20:09:52 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.38 2005-10-07 18:49:40 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -10,7 +10,7 @@
  * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  **********************************************************************
- * Copyright (c) 2000-2004, Frank Warmerdam
+ * Copyright (c) 2000-2005, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.37  2005-09-29 20:09:52  dmorissette
+ * Revision 1.38  2005-10-07 18:49:40  dmorissette
+ * Added methods for collections in C API (bug 1126)
+ *
+ * Revision 1.37  2005/09/29 20:09:52  dmorissette
  * New C API methods to access projection params (ADJ, bug 1155)
  *
  * Revision 1.36  2005/04/07 15:56:27  dmorissette
@@ -623,7 +626,7 @@ mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
  *        TABFC_NoGeom (0), TABFC_Point (1), TABFC_FontPoint (2), 
  *        TABFC_CustomPoint (3), TABFC_Text (4), TABFC_Polyline (5), 
  *        TABFC_Arc (6), TABFC_Region (7), TABFC_Rectangle (8), 
- *        TABFC_Ellipse (9) and TABFC_MultiPoint (10)
+ *        TABFC_Ellipse (9), TABFC_MultiPoint (10) and TABFC_Collection (11)
  * @return the new mitab_feature object, or NULL if creation failed.  Note that
  *         the new object will have to be released using 
  *         mitab_c_destroy_feature().
@@ -669,6 +672,8 @@ mitab_c_create_feature( mitab_handle handle,
         poFeature = new TABEllipse(poFile->GetLayerDefn());
     else if( feature_type == TABFC_MultiPoint )
         poFeature = new TABMultiPoint(poFile->GetLayerDefn());
+    else if( feature_type == TABFC_Collection )
+        poFeature = new TABCollection(poFile->GetLayerDefn());
 
     return poFeature;
 }
@@ -859,7 +864,7 @@ mitab_c_set_points( mitab_feature feature, int part,
 }
 
 /************************************************************************/
-/*                         mitab_c_set_points()                         */
+/*                         mitab_c_set_arc()                            */
 /************************************************************************/
 
 /** 
@@ -1876,7 +1881,8 @@ mitab_c_get_symbol_angle( mitab_feature feature )
  * @return the feature type, one of TABFC_NoGeom (0), TABFC_Point (1), 
  *         TABFC_FontPoint (2), TABFC_CustomPoint (3), TABFC_Text (4),
  *         TABFC_Polyline (5), TABFC_Arc (6), TABFC_Region (7),
- *         TABFC_Rectangle (8), TABFC_Ellipse (9) or TABFC_MultiPoint (10).
+ *         TABFC_Rectangle (8), TABFC_Ellipse (9), TABFC_MultiPoint (10) or
+ *         TABFC_Collection (11)
  */
 
 int MITAB_STDCALL 
@@ -2702,6 +2708,231 @@ int MITAB_STDCALL
 mitab_c_load_coordsys_table( const char *filename )
 {
     return MITABLoadCoordSysTable(filename);
+}
+
+/************************************************************************/
+/*                        COLLECTION METHODS                            */
+/************************************************************************/
+
+/**
+ * Returns a reference to the region component of a collection
+ *
+ * The returned object is only a reference and remains owned by the 
+ * collection and will remain valid only during the lifespan of the 
+ * collection or until the region component is overwritten. The returned 
+ * feature can be modified but CANNOT be destroyed by the caller.
+ *
+ * If the object's geometry is ever modified then a call to 
+ * mitab_c_set_collection_region() will be required to force updating the
+ * internal geometry of the collection.
+ *
+ * @param feature the TABFC_Collection feature to read from. 
+ * @return the mitab_feature object that was read or NULL if there is no
+ *         region component in the collection. 
+ */
+
+mitab_feature MITAB_STDCALL
+mitab_c_get_collection_region_ref( mitab_feature feature )
+
+{
+    TABFeature *poFeature = (TABFeature *)feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Collection )
+    {
+        TABCollection *poCollection = (TABCollection *) poFeature;
+        return (mitab_feature)poCollection->GetRegionRef();
+    }
+
+    return NULL;
+}
+
+/**
+ * Returns a reference to the polyline component of a collection
+ *
+ * The returned object is only a reference and remains owned by the 
+ * collection and will remain valid only during the lifespan of the 
+ * collection or until the polyline component is overwritten. The returned 
+ * feature can be modified but CANNOT be destroyed by the caller.
+ *
+ * If the object's geometry is ever modified then a call to 
+ * mitab_c_set_collection_polyline() will be required to force updating the
+ * internal geometry of the collection.
+ *
+ * @param feature the TABFC_Collection feature to read from. 
+ * @return the mitab_feature object that was read or NULL if there is no
+ *         polyline component in the collection. 
+ */
+
+mitab_feature MITAB_STDCALL
+mitab_c_get_collection_polyline_ref( mitab_feature feature )
+
+{
+    TABFeature *poFeature = (TABFeature *)feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Collection )
+    {
+        TABCollection *poCollection = (TABCollection *) poFeature;
+        return (mitab_feature)poCollection->GetPolylineRef();
+    }
+
+    return NULL;
+}
+
+/**
+ * Returns a reference to the multipoint component of a collection
+ *
+ * The returned object is only a reference and remains owned by the 
+ * collection and will remain valid only during the lifespan of the 
+ * collection or until the multipoint component is overwritten. The returned 
+ * feature can be modified but CANNOT be destroyed by the caller.
+ *
+ * If the object's geometry is ever modified then a call to 
+ * mitab_c_set_collection_multipoint() will be required to force updating the
+ * internal geometry of the collection.
+ *
+ * @param feature the TABFC_Collection feature to read from. 
+ * @return the mitab_feature object that was read or NULL if there is no
+ *         multipoint component in the collection. 
+ */
+
+mitab_feature MITAB_STDCALL
+mitab_c_get_collection_multipoint_ref( mitab_feature feature )
+
+{
+    TABFeature *poFeature = (TABFeature *)feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Collection )
+    {
+        TABCollection *poCollection = (TABCollection *) poFeature;
+        return (mitab_feature)poCollection->GetMultiPointRef();
+    }
+
+    return NULL;
+}
+
+
+
+/**
+ * Set or update the region component of a collection
+ *
+ * This method can be used in three possible ways:
+ * 1- with a new region feature to set a new region component in the 
+ * collection. 
+ * 2- pass the region handle obtained from mitab_c_get_collection_region_ref()
+ * after making modifications to it to force an internal update of the region
+ * geometry into the collection
+ * 3- pass NULL to remove the region component of the collection.
+ *
+ * @param feature the target TABFC_Collection feature. 
+ * @param region the TABFC_Region feature to set in the collection. 
+ * @param make_copy if set to true then a copy of the region is made, otherwise
+ *        the region becomes owned by the collection.
+ * @return 0 on success, -1 on error.
+ */
+
+int MITAB_STDCALL
+mitab_c_set_collection_region( mitab_feature feature,
+                               mitab_feature region,
+                               int make_copy )
+
+{
+    TABFeature *poFeature = (TABFeature *)feature;
+    TABFeature *poRegion = (TABFeature *)region;
+
+    if( poFeature->GetFeatureClass() == TABFC_Collection &&
+        poRegion->GetFeatureClass() == TABFC_Region )
+    {
+        TABCollection *poCollection = (TABCollection *) poFeature;
+
+        if (make_copy && poRegion)
+            poRegion = poRegion->CloneTABFeature();
+
+        return poCollection->SetRegionDirectly((TABRegion*)poRegion);
+    }
+
+    return -1;
+}
+
+/**
+ * Set or update the polyline component of a collection
+ *
+ * This method can be used in three possible ways:
+ * 1- with a new polyline feature to set a new polyline component in the 
+ * collection. 
+ * 2- pass the polyline handle obtained from mitab_c_get_collection_polyline_ref()
+ * after making modifications to it to force an internal update of the polyline
+ * geometry into the collection
+ * 3- pass NULL to remove the polyline component of the collection.
+ *
+ * @param feature the target TABFC_Collection feature. 
+ * @param polyline the TABFC_Polyline feature to set in the collection. 
+ * @param make_copy if set to true then a copy of the polyline is made, 
+ *        otherwise the polyline becomes owned by the collection.
+ * @return 0 on success, -1 on error.
+ */
+
+int MITAB_STDCALL
+mitab_c_set_collection_polyline( mitab_feature feature,
+                               mitab_feature polyline,
+                               int make_copy )
+
+{
+    TABFeature *poFeature = (TABFeature *)feature;
+    TABFeature *poPolyline = (TABFeature *)polyline;
+
+    if( poFeature->GetFeatureClass() == TABFC_Collection &&
+        poPolyline->GetFeatureClass() == TABFC_Polyline )
+    {
+        TABCollection *poCollection = (TABCollection *) poFeature;
+
+        if (make_copy && poPolyline)
+            poPolyline = poPolyline->CloneTABFeature();
+
+        return poCollection->SetPolylineDirectly((TABPolyline*)poPolyline);
+    }
+
+    return -1;
+}
+
+/**
+ * Set or update the multipoint component of a collection
+ *
+ * This method can be used in three possible ways:
+ * 1- with a new multipoint feature to set a new multipoint component in the 
+ * collection. 
+ * 2- pass the multipoint handle obtained from mitab_c_get_collection_multipoint_ref()
+ * after making modifications to it to force an internal update of the 
+ * multipoint geometry into the collection
+ * 3- pass NULL to remove the multipoint component of the collection.
+ *
+ * @param feature the target TABFC_Collection feature. 
+ * @param multipoint the TABFC_Multipoint feature to set in the collection. 
+ * @param make_copy if set to true then a copy of the multipoint is made, 
+ *        otherwise the multipoint becomes owned by the collection.
+ * @return 0 on success, -1 on error.
+ */
+
+int MITAB_STDCALL
+mitab_c_set_collection_multipoint( mitab_feature feature,
+                               mitab_feature multipoint,
+                               int make_copy )
+
+{
+    TABFeature *poFeature = (TABFeature *)feature;
+    TABFeature *poMultipoint = (TABFeature *)multipoint;
+
+    if( poFeature->GetFeatureClass() == TABFC_Collection &&
+        poMultipoint->GetFeatureClass() == TABFC_MultiPoint )
+    {
+        TABCollection *poCollection = (TABCollection *) poFeature;
+
+        if (make_copy && poMultipoint)
+            poMultipoint = poMultipoint->CloneTABFeature();
+
+        return poCollection->SetMultiPointDirectly((TABMultiPoint*)poMultipoint);
+    }
+
+    return -1;
 }
 
 

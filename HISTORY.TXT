@@ -17,6 +17,8 @@ Version 1.5.0-beta1 (2005-10-07)
 --------------------------------
 
 - Added read/write support for MapInfo Collections in MIF and TAB (bug 1126)
+  (Thanks to funding from Comcast (Andy Canfield) and an initial patch and
+   analysis of collections by Jim Hope of Innogistic Software)
 
 - New C API methods to access collection members (bug 1126):
      - mitab_c_get_collection_region_ref()
@@ -36,10 +38,10 @@ Version 1.5.0-beta1 (2005-10-07)
      - mitab_c_get_affine_params()
      - mitab_c_set_affine_params()
 
-- Added bounds entries for Finnish KKJ and Swedish projections (AJD, bug 1155)
-
 - All datum definitions in mitab_spatialref.cpp now have the correct 
-  names (AJD, bug 1155)
+  names (Anthony D, bug 1155)
+
+- Added bounds entries for Finnish KKJ and Swedish projections (AJD, bug 1155)
 
 - mitab_ogr_datasource.cpp: avoid leak of CPLReadDirectory() result.
 
@@ -673,5 +675,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.147 2005-10-07 18:54:23 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.148 2005-10-07 19:36:53 dmorissette Exp $
 ------------

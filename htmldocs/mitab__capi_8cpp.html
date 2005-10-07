@@ -147,78 +147,126 @@
 <tr><td class="memItemLeft" nowrap align=right valign=top>void MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a46">mitab_c_set_symbol</a> (mitab_feature feature, int symbol_no, int symbol_size, int symbol_color)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set an object's symbol properties.  <a href="#a46"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a47">mitab_c_get_symbol_color</a> (mitab_feature feature)</td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>void MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a47">mitab_c_set_symbol_angle</a> (mitab_feature feature, double symbol_angle)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get an object's symbol color property.  <a href="#a47"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a48">mitab_c_get_symbol_no</a> (mitab_feature feature)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set the point symbol's angle.  <a href="#a47"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a48">mitab_c_get_symbol_color</a> (mitab_feature feature)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get an object's symbol number property.  <a href="#a48"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a49">mitab_c_get_symbol_size</a> (mitab_feature feature)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get an object's symbol color property.  <a href="#a48"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a49">mitab_c_get_symbol_no</a> (mitab_feature feature)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get an object's symbol size property.  <a href="#a49"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a50">mitab_c_get_type</a> (mitab_feature feature)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get an object's symbol number property.  <a href="#a49"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a50">mitab_c_get_symbol_size</a> (mitab_feature feature)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return a mitab_feature's object type.  <a href="#a50"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a51">mitab_c_get_parts</a> (mitab_feature feature)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get an object's symbol size property.  <a href="#a50"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>double MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a51">mitab_c_get_symbol_angle</a> (mitab_feature feature)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the number of parts (rings or polyline segments) in an object.  <a href="#a51"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_DLL MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a52">mitab_c_is_interior_ring</a> (mitab_feature feature, int requestedringindex)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get an font point object's angle property.  <a href="#a51"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a52">mitab_c_get_type</a> (mitab_feature feature)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return a false if te ring is the first of a polygon.  <a href="#a52"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a53">mitab_c_get_vertex_count</a> (mitab_feature feature, int part)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return a mitab_feature's object type.  <a href="#a52"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a53">mitab_c_get_parts</a> (mitab_feature feature)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the number of points in a part of a mitab_feature object.  <a href="#a53"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>double MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a54">mitab_c_get_vertex_x</a> (mitab_feature feature, int part, int vertex)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the number of parts (rings or polyline segments) in an object.  <a href="#a53"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_DLL MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a54">mitab_c_is_interior_ring</a> (mitab_feature feature, int requestedringindex)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the X coordinate of a point in a part of a mitab_feature object.  <a href="#a54"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>double MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a55">mitab_c_get_vertex_y</a> (mitab_feature feature, int part, int vertex)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return a false if te ring is the first of a polygon.  <a href="#a54"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a55">mitab_c_get_vertex_count</a> (mitab_feature feature, int part)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the Y coordinate of a point in a part of a mitab_feature object.  <a href="#a55"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a56">mitab_c_get_field_count</a> (mitab_handle handle)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the number of points in a part of a mitab_feature object.  <a href="#a55"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>double MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a56">mitab_c_get_vertex_x</a> (mitab_feature feature, int part, int vertex)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the number of attribute fields in a dataset's schema.  <a href="#a56"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a57">mitab_c_get_feature_count</a> (mitab_handle handle)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the X coordinate of a point in a part of a mitab_feature object.  <a href="#a56"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>double MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a57">mitab_c_get_vertex_y</a> (mitab_feature feature, int part, int vertex)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the number of features in a dataset.  <a href="#a57"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a58">mitab_c_get_field_type</a> (mitab_handle handle, int field)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the Y coordinate of a point in a part of a mitab_feature object.  <a href="#a57"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a58">mitab_c_get_field_count</a> (mitab_handle handle)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the type of an attribute field in a dataset's schema.  <a href="#a58"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>const char *MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a59">mitab_c_get_field_name</a> (mitab_handle handle, int field)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the number of attribute fields in a dataset's schema.  <a href="#a58"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a59">mitab_c_get_feature_count</a> (mitab_handle handle)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the name of an attribute field in a dataset's schema.  <a href="#a59"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a60">mitab_c_get_field_name_vb</a> (mitab_handle handle, int field, char *name, int l)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the number of features in a dataset.  <a href="#a59"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a60">mitab_c_get_field_type</a> (mitab_handle handle, int field)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the name of an attribute field in a dataset's schema (VB version).  <a href="#a60"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a61">mitab_c_get_field_width</a> (mitab_handle handle, int field)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the type of an attribute field in a dataset's schema.  <a href="#a60"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>const char *MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a61">mitab_c_get_field_name</a> (mitab_handle handle, int field)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the width of an attribute field in a dataset's schema.  <a href="#a61"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a62">mitab_c_get_field_precision</a> (mitab_handle handle, int field)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the name of an attribute field in a dataset's schema.  <a href="#a61"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a62">mitab_c_get_field_name_vb</a> (mitab_handle handle, int field, char *name, int l)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the precision of an attribute field in a dataset's schema.  <a href="#a62"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>const char *MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a63">mitab_c_get_field_as_string</a> (mitab_feature feature, int field)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the name of an attribute field in a dataset's schema (VB version).  <a href="#a62"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a63">mitab_c_get_field_width</a> (mitab_handle handle, int field)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Fetch an attribute field value in a mitab_feature as a string.  <a href="#a63"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a64">mitab_c_get_field_as_string_vb</a> (mitab_feature feature, int field, char *value, int l)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the width of an attribute field in a dataset's schema.  <a href="#a63"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a64">mitab_c_get_field_precision</a> (mitab_handle handle, int field)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Fetch an attribute field value in a mitab_feature as a string (VB Version).  <a href="#a64"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>double MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a65">mitab_c_get_field_as_double</a> (mitab_feature feature, int field)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Return the precision of an attribute field in a dataset's schema.  <a href="#a64"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>const char *MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a65">mitab_c_get_field_as_string</a> (mitab_feature feature, int field)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Fetch an attribute field value in a mitab_feature as a double.  <a href="#a65"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>mitab_projinfo MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a66">mitab_c_get_projinfo</a> (mitab_handle dataset)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Fetch an attribute field value in a mitab_feature as a string.  <a href="#a65"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a66">mitab_c_get_field_as_string_vb</a> (mitab_feature feature, int field, char *value, int l)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get the projinfo handle from an opened dataset.  <a href="#a66"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a67">mitab_c_set_projinfo</a> (mitab_handle dataset, mitab_projinfo projinfo)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Fetch an attribute field value in a mitab_feature as a string (VB Version).  <a href="#a66"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>double MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a67">mitab_c_get_field_as_double</a> (mitab_feature feature, int field)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set the projinfo on a newly created dataset.  <a href="#a67"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>const char *MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a68">mitab_c_get_mif_coordsys</a> (mitab_handle dataset)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Fetch an attribute field value in a mitab_feature as a double.  <a href="#a67"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>mitab_projinfo MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a68">mitab_c_get_projinfo</a> (mitab_handle dataset)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get the MIF CoordSys string from an opened dataset.  <a href="#a68"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a69">mitab_c_get_mif_coordsys_vb</a> (mitab_handle dataset, char *coordsys, int l)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get the projinfo handle from an opened dataset.  <a href="#a68"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a69">mitab_c_set_projinfo</a> (mitab_handle dataset, mitab_projinfo projinfo)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get the MIF CoordSys string from an opened dataset (VB Version).  <a href="#a69"></a><br><br></td></tr>
-<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a70">mitab_c_load_coordsys_table</a> (const char *filename)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set the projinfo on a newly created dataset.  <a href="#a69"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>const char *MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a70">mitab_c_get_mif_coordsys</a> (mitab_handle dataset)</td></tr>
 
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Load a Coordsys bounds lookup table from an external file.  <a href="#a70"></a><br><br></td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get the MIF CoordSys string from an opened dataset.  <a href="#a70"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>const char *MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a71">mitab_c_get_extended_mif_coordsys</a> (mitab_handle dataset)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get the MIF CoordSys string from an opened dataset including the affine transformation parameters if available.  <a href="#a71"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top><a class="anchor" name="a72" doxytag="mitab_capi.cpp::mitab_c_get_projection_info" ></a>
+void MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><b>mitab_c_get_projection_info</b> (mitab_projinfo projInfo, int *nProjId, int *nEllipsoidId, int *nUnitsId, double *adProjParams)</td></tr>
+
+<tr><td class="memItemLeft" nowrap align=right valign=top><a class="anchor" name="a73" doxytag="mitab_capi.cpp::mitab_c_set_projection_info" ></a>
+void MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><b>mitab_c_set_projection_info</b> (mitab_projinfo projInfo, int nProjId, int nEllipsoidId, int nUnitsId, double *adProjParams)</td></tr>
+
+<tr><td class="memItemLeft" nowrap align=right valign=top><a class="anchor" name="a74" doxytag="mitab_capi.cpp::mitab_c_get_datum_info" ></a>
+void MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><b>mitab_c_get_datum_info</b> (mitab_projinfo projInfo, double *dDatumShiftX, double *dDatumShiftY, double *dDatumShiftZ, double *adDatumParams)</td></tr>
+
+<tr><td class="memItemLeft" nowrap align=right valign=top><a class="anchor" name="a75" doxytag="mitab_capi.cpp::mitab_c_set_datum_info" ></a>
+void MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><b>mitab_c_set_datum_info</b> (mitab_projinfo projInfo, double dDatumShiftX, double dDatumShiftY, double dDatumShiftZ, double *adDatumParams)</td></tr>
+
+<tr><td class="memItemLeft" nowrap align=right valign=top><a class="anchor" name="a76" doxytag="mitab_capi.cpp::mitab_c_get_affine_params" ></a>
+int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><b>mitab_c_get_affine_params</b> (mitab_projinfo projInfo, int *nAffineUnits, double *adAffineParams)</td></tr>
+
+<tr><td class="memItemLeft" nowrap align=right valign=top><a class="anchor" name="a77" doxytag="mitab_capi.cpp::mitab_c_set_affine_params" ></a>
+void MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><b>mitab_c_set_affine_params</b> (mitab_projinfo projInfo, int nAffineUnits, double *adAffineParams)</td></tr>
+
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a78">mitab_c_get_extended_mif_coordsys_vb</a> (mitab_handle dataset, char *coordsys, int l)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get the MIF CoordSys string from an opened dataset including the affine transformation parameters if available.  <a href="#a78"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a79">mitab_c_get_mif_coordsys_vb</a> (mitab_handle dataset, char *coordsys, int l)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get the MIF CoordSys string from an opened dataset (VB Version).  <a href="#a79"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a80">mitab_c_load_coordsys_table</a> (const char *filename)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Load a Coordsys bounds lookup table from an external file.  <a href="#a80"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>mitab_feature MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a81">mitab_c_get_collection_region_ref</a> (mitab_feature feature)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Returns a reference to the region component of a collection.  <a href="#a81"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>mitab_feature MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a82">mitab_c_get_collection_polyline_ref</a> (mitab_feature feature)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Returns a reference to the polyline component of a collection.  <a href="#a82"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>mitab_feature MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a83">mitab_c_get_collection_multipoint_ref</a> (mitab_feature feature)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Returns a reference to the multipoint component of a collection.  <a href="#a83"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a84">mitab_c_set_collection_region</a> (mitab_feature feature, mitab_feature region, int make_copy)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set or update the region component of a collection.  <a href="#a84"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a85">mitab_c_set_collection_polyline</a> (mitab_feature feature, mitab_feature polyline, int make_copy)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set or update the polyline component of a collection.  <a href="#a85"></a><br><br></td></tr>
+<tr><td class="memItemLeft" nowrap align=right valign=top>int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign=bottom><a class="el" href="mitab__capi_8cpp.html#a86">mitab_c_set_collection_multipoint</a> (mitab_feature feature, mitab_feature multipoint, int make_copy)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set or update the multipoint component of a collection.  <a href="#a86"></a><br><br></td></tr>
 </table>
 <hr><a name="_details"></a><h2>Detailed Description</h2>
 MITAB C API. 
@@ -418,7 +466,7 @@ Note that it is not possible to open a file for update (i.e. read+write) with th
   <table border="0" cellspacing="2" cellpadding="0">
     <tr><td valign=top><em>filename</em>&nbsp;</td><td>the complete filename (including extension .TAB or .MIF) of the file to create. </td></tr>
     <tr><td valign=top><em>mif_or_tab</em>&nbsp;</td><td>one of "mif" to create a .MIF dataset or "tab" to create a .TAB dataset. The default is to create a TAB dataset if this parameter's value is NULL or an empty string. </td></tr>
-    <tr><td valign=top><em>mif_projection</em>&nbsp;</td><td>the projection to use for the dataset, in the same format that is used in the "CoordSys" line of a MIF file header. If this parameter's value is NULL or empty then a LAT/LON coordsys is assumed. See also <a class="el" href="mitab__capi_8cpp.html#a68">mitab_c_get_mif_coordsys()</a>. </td></tr>
+    <tr><td valign=top><em>mif_projection</em>&nbsp;</td><td>the projection to use for the dataset, in the same format that is used in the "CoordSys" line of a MIF file header. If this parameter's value is NULL or empty then a LAT/LON coordsys is assumed. See also <a class="el" href="mitab__capi_8cpp.html#a70">mitab_c_get_mif_coordsys()</a>. </td></tr>
     <tr><td valign=top><em>north</em>&nbsp;</td><td>the upper dataset bound. Note that valid bounds are required for a .TAB dataset otherwise data may not be stored properly in the file. MITAB knows the default bounds only for the most common MapInfo coordinate systems, passing north,south,east,west as 0,0,0,0 will instruct MITAB to attempt to use the default bounds for that projection. If no default bounds are found for this projection then your data may not be stored properly in the file unless you provide valid bounds via the north,south,east,west parameters. </td></tr>
     <tr><td valign=top><em>south</em>&nbsp;</td><td>the lower dataset bound. </td></tr>
     <tr><td valign=top><em>east</em>&nbsp;</td><td>the right dataset bound. </td></tr>
@@ -469,7 +517,7 @@ Create a new mitab_feature object to be written to a dataset created using <a cl
 <dl compact><dt><b>Parameters:</b></dt><dd>
   <table border="0" cellspacing="2" cellpadding="0">
     <tr><td valign=top><em>handle</em>&nbsp;</td><td>the handle of the dataset opened for write access. </td></tr>
-    <tr><td valign=top><em>feature_type</em>&nbsp;</td><td>the type of feature object to create. At this point, only the following types can be created by this C API function: TABFC_NoGeom (0), TABFC_Point (1), TABFC_FontPoint (2), TABFC_CustomPoint (3), TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6), TABFC_Region (7), TABFC_Rectangle (8), TABFC_Ellipse (9) and TABFC_MultiPoint (10) </td></tr>
+    <tr><td valign=top><em>feature_type</em>&nbsp;</td><td>the type of feature object to create. At this point, only the following types can be created by this C API function: TABFC_NoGeom (0), TABFC_Point (1), TABFC_FontPoint (2), TABFC_CustomPoint (3), TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6), TABFC_Region (7), TABFC_Rectangle (8), TABFC_Ellipse (9), TABFC_MultiPoint (10) and TABFC_Collection (11) </td></tr>
   </table>
 </dl>
 <dl compact><dt><b>Returns:</b></dt><dd>the new mitab_feature object, or NULL if creation failed. Note that the new object will have to be released using <a class="el" href="mitab__capi_8cpp.html#a14">mitab_c_destroy_feature()</a>. </dd></dl>
@@ -664,7 +712,216 @@ Applies to region, ellipse and rectangle objects.<p>
     </td>
   </tr>
 </table>
-<a class="anchor" name="a57" doxytag="mitab_capi.cpp::mitab_c_get_feature_count" ></a><p>
+<a class="anchor" name="a83" doxytag="mitab_capi.cpp::mitab_c_get_collection_multipoint_ref" ></a><p>
+<table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> mitab_feature MITAB_STDCALL mitab_c_get_collection_multipoint_ref </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_feature&nbsp;</td>
+          <td class="mdname1" valign="top" nowrap> <em>feature</em>          </td>
+          <td class="md" valign="top">&nbsp;)&nbsp;</td>
+          <td class="md" nowrap></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Returns a reference to the multipoint component of a collection. 
+<p>
+The returned object is only a reference and remains owned by the collection and will remain valid only during the lifespan of the collection or until the multipoint component is overwritten. The returned feature can be modified but CANNOT be destroyed by the caller.<p>
+If the object's geometry is ever modified then a call to <a class="el" href="mitab__capi_8cpp.html#a86">mitab_c_set_collection_multipoint()</a> will be required to force updating the internal geometry of the collection.<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign=top><em>feature</em>&nbsp;</td><td>the TABFC_Collection feature to read from. </td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Returns:</b></dt><dd>the mitab_feature object that was read or NULL if there is no multipoint component in the collection. </dd></dl>
+    </td>
+  </tr>
+</table>
+<a class="anchor" name="a82" doxytag="mitab_capi.cpp::mitab_c_get_collection_polyline_ref" ></a><p>
+<table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> mitab_feature MITAB_STDCALL mitab_c_get_collection_polyline_ref </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_feature&nbsp;</td>
+          <td class="mdname1" valign="top" nowrap> <em>feature</em>          </td>
+          <td class="md" valign="top">&nbsp;)&nbsp;</td>
+          <td class="md" nowrap></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Returns a reference to the polyline component of a collection. 
+<p>
+The returned object is only a reference and remains owned by the collection and will remain valid only during the lifespan of the collection or until the polyline component is overwritten. The returned feature can be modified but CANNOT be destroyed by the caller.<p>
+If the object's geometry is ever modified then a call to <a class="el" href="mitab__capi_8cpp.html#a85">mitab_c_set_collection_polyline()</a> will be required to force updating the internal geometry of the collection.<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign=top><em>feature</em>&nbsp;</td><td>the TABFC_Collection feature to read from. </td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Returns:</b></dt><dd>the mitab_feature object that was read or NULL if there is no polyline component in the collection. </dd></dl>
+    </td>
+  </tr>
+</table>
+<a class="anchor" name="a81" doxytag="mitab_capi.cpp::mitab_c_get_collection_region_ref" ></a><p>
+<table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> mitab_feature MITAB_STDCALL mitab_c_get_collection_region_ref </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_feature&nbsp;</td>
+          <td class="mdname1" valign="top" nowrap> <em>feature</em>          </td>
+          <td class="md" valign="top">&nbsp;)&nbsp;</td>
+          <td class="md" nowrap></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Returns a reference to the region component of a collection. 
+<p>
+The returned object is only a reference and remains owned by the collection and will remain valid only during the lifespan of the collection or until the region component is overwritten. The returned feature can be modified but CANNOT be destroyed by the caller.<p>
+If the object's geometry is ever modified then a call to <a class="el" href="mitab__capi_8cpp.html#a84">mitab_c_set_collection_region()</a> will be required to force updating the internal geometry of the collection.<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign=top><em>feature</em>&nbsp;</td><td>the TABFC_Collection feature to read from. </td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Returns:</b></dt><dd>the mitab_feature object that was read or NULL if there is no region component in the collection. </dd></dl>
+    </td>
+  </tr>
+</table>
+<a class="anchor" name="a71" doxytag="mitab_capi.cpp::mitab_c_get_extended_mif_coordsys" ></a><p>
+<table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> const char* MITAB_STDCALL mitab_c_get_extended_mif_coordsys </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_handle&nbsp;</td>
+          <td class="mdname1" valign="top" nowrap> <em>dataset</em>          </td>
+          <td class="md" valign="top">&nbsp;)&nbsp;</td>
+          <td class="md" nowrap></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Get the MIF CoordSys string from an opened dataset including the affine transformation parameters if available. 
+<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign=top><em>dataset</em>&nbsp;</td><td>the mitab_handle of the source dataset. </td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Returns:</b></dt><dd>a string with the dataset coordinate system definition in MIF CoordSys format. Returns NULL if the information could not be read. The returned string is valid only until the next call to <a class="el" href="mitab__capi_8cpp.html#a70">mitab_c_get_mif_coordsys()</a>.</dd></dl>
+<p>
+MITAB_AFFINE_PARAMS     </td>
+  </tr>
+</table>
+<a class="anchor" name="a78" doxytag="mitab_capi.cpp::mitab_c_get_extended_mif_coordsys_vb" ></a><p>
+<table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> int MITAB_STDCALL mitab_c_get_extended_mif_coordsys_vb </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_handle&nbsp;</td>
+          <td class="mdname" nowrap> <em>dataset</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>char *&nbsp;</td>
+          <td class="mdname" nowrap> <em>coordsys</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>int&nbsp;</td>
+          <td class="mdname" nowrap> <em>l</em></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td class="md">)&nbsp;</td>
+          <td class="md" colspan="2"></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Get the MIF CoordSys string from an opened dataset including the affine transformation parameters if available. 
+<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign=top><em>dataset</em>&nbsp;</td><td>the mitab_handle of the source dataset. </td></tr>
+    <tr><td valign=top><em>coordsys</em>&nbsp;</td><td>a string buffer to return the dataset coordinate system definition in MIF CoordSys format. This value can then be passed to <a class="el" href="mitab__capi_8cpp.html#a12">mitab_c_create()</a> to create new datasets with the same coordinate system. Returns empty string if the information could not be read. </td></tr>
+    <tr><td valign=top><em>l</em>&nbsp;</td><td>the maximum length of the coordsys string including terminating null. </td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Returns:</b></dt><dd>the length of the string in coordsys or zero if the information could not be read </dd></dl>
+    </td>
+  </tr>
+</table>
+<a class="anchor" name="a59" doxytag="mitab_capi.cpp::mitab_c_get_feature_count" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -701,7 +958,7 @@ Return the number of features in a dataset.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a65" doxytag="mitab_capi.cpp::mitab_c_get_field_as_double" ></a><p>
+<a class="anchor" name="a67" doxytag="mitab_capi.cpp::mitab_c_get_field_as_double" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -748,7 +1005,7 @@ Fetch an attribute field value in a mitab_feature as a double.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a63" doxytag="mitab_capi.cpp::mitab_c_get_field_as_string" ></a><p>
+<a class="anchor" name="a65" doxytag="mitab_capi.cpp::mitab_c_get_field_as_string" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -796,7 +1053,7 @@ The function returns a reference to an internal string buffer that contains the 
     </td>
   </tr>
 </table>
-<a class="anchor" name="a64" doxytag="mitab_capi.cpp::mitab_c_get_field_as_string_vb" ></a><p>
+<a class="anchor" name="a66" doxytag="mitab_capi.cpp::mitab_c_get_field_as_string_vb" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -858,7 +1115,7 @@ The function returns a reference to the string representation of the attribute f
     </td>
   </tr>
 </table>
-<a class="anchor" name="a56" doxytag="mitab_capi.cpp::mitab_c_get_field_count" ></a><p>
+<a class="anchor" name="a58" doxytag="mitab_capi.cpp::mitab_c_get_field_count" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -895,7 +1152,7 @@ Return the number of attribute fields in a dataset's schema.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a59" doxytag="mitab_capi.cpp::mitab_c_get_field_name" ></a><p>
+<a class="anchor" name="a61" doxytag="mitab_capi.cpp::mitab_c_get_field_name" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -942,7 +1199,7 @@ Return the name of an attribute field in a dataset's schema.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a60" doxytag="mitab_capi.cpp::mitab_c_get_field_name_vb" ></a><p>
+<a class="anchor" name="a62" doxytag="mitab_capi.cpp::mitab_c_get_field_name_vb" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -1003,7 +1260,7 @@ Return the name of an attribute field in a dataset's schema (VB version).
     </td>
   </tr>
 </table>
-<a class="anchor" name="a62" doxytag="mitab_capi.cpp::mitab_c_get_field_precision" ></a><p>
+<a class="anchor" name="a64" doxytag="mitab_capi.cpp::mitab_c_get_field_precision" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -1050,7 +1307,7 @@ Return the precision of an attribute field in a dataset's schema.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a58" doxytag="mitab_capi.cpp::mitab_c_get_field_type" ></a><p>
+<a class="anchor" name="a60" doxytag="mitab_capi.cpp::mitab_c_get_field_type" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -1097,7 +1354,7 @@ Return the type of an attribute field in a dataset's schema.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a61" doxytag="mitab_capi.cpp::mitab_c_get_field_width" ></a><p>
+<a class="anchor" name="a63" doxytag="mitab_capi.cpp::mitab_c_get_field_width" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -1236,7 +1493,7 @@ Get the font name from a TABFC_Text or TABFC_FontPoint object, or the symbol nam
     </td>
   </tr>
 </table>
-<a class="anchor" name="a68" doxytag="mitab_capi.cpp::mitab_c_get_mif_coordsys" ></a><p>
+<a class="anchor" name="a70" doxytag="mitab_capi.cpp::mitab_c_get_mif_coordsys" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -1269,11 +1526,11 @@ Get the MIF CoordSys string from an opened dataset.
     <tr><td valign=top><em>dataset</em>&nbsp;</td><td>the mitab_handle of the source dataset. </td></tr>
   </table>
 </dl>
-<dl compact><dt><b>Returns:</b></dt><dd>a string with the dataset coordinate system definition in MIF CoordSys format. This value can be passed to <a class="el" href="mitab__capi_8cpp.html#a12">mitab_c_create()</a> to create new datasets with the same coordinate system. Returns NULL if the information could not be read. The returned string is valid only until the next call to <a class="el" href="mitab__capi_8cpp.html#a68">mitab_c_get_mif_coordsys()</a>. </dd></dl>
+<dl compact><dt><b>Returns:</b></dt><dd>a string with the dataset coordinate system definition in MIF CoordSys format. This value can be passed to <a class="el" href="mitab__capi_8cpp.html#a12">mitab_c_create()</a> to create new datasets with the same coordinate system. Returns NULL if the information could not be read. The returned string is valid only until the next call to <a class="el" href="mitab__capi_8cpp.html#a70">mitab_c_get_mif_coordsys()</a>. </dd></dl>
     </td>
   </tr>
 </table>
-<a class="anchor" name="a69" doxytag="mitab_capi.cpp::mitab_c_get_mif_coordsys_vb" ></a><p>
+<a class="anchor" name="a79" doxytag="mitab_capi.cpp::mitab_c_get_mif_coordsys_vb" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -1327,7 +1584,7 @@ Get the MIF CoordSys string from an opened dataset (VB Version).
     </td>
   </tr>
 </table>
-<a class="anchor" name="a51" doxytag="mitab_capi.cpp::mitab_c_get_parts" ></a><p>
+<a class="anchor" name="a53" doxytag="mitab_capi.cpp::mitab_c_get_parts" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -1478,7 +1735,7 @@ Applies only to polyline, region, rectangle, arc and ellipse objects.<p>
     </td>
   </tr>
 </table>
-<a class="anchor" name="a66" doxytag="mitab_capi.cpp::mitab_c_get_projinfo" ></a><p>
+<a class="anchor" name="a68" doxytag="mitab_capi.cpp::mitab_c_get_projinfo" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -1511,11 +1768,49 @@ Get the projinfo handle from an opened dataset.
     <tr><td valign=top><em>dataset</em>&nbsp;</td><td>the mitab_handle of the source dataset. </td></tr>
   </table>
 </dl>
-<dl compact><dt><b>Returns:</b></dt><dd>a mitab_projinfo handle usable with <a class="el" href="mitab__capi_8cpp.html#a67">mitab_c_set_projinfo()</a> or NULL if the information is not available. The handle is valid only until the next call to <a class="el" href="mitab__capi_8cpp.html#a66">mitab_c_get_projinfo()</a>. </dd></dl>
+<dl compact><dt><b>Returns:</b></dt><dd>a mitab_projinfo handle usable with <a class="el" href="mitab__capi_8cpp.html#a69">mitab_c_set_projinfo()</a> or NULL if the information is not available. The handle is valid only until the next call to <a class="el" href="mitab__capi_8cpp.html#a68">mitab_c_get_projinfo()</a>. </dd></dl>
     </td>
   </tr>
 </table>
-<a class="anchor" name="a47" doxytag="mitab_capi.cpp::mitab_c_get_symbol_color" ></a><p>
+<a class="anchor" name="a51" doxytag="mitab_capi.cpp::mitab_c_get_symbol_angle" ></a><p>
+<table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> double MITAB_STDCALL mitab_c_get_symbol_angle </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_feature&nbsp;</td>
+          <td class="mdname1" valign="top" nowrap> <em>feature</em>          </td>
+          <td class="md" valign="top">&nbsp;)&nbsp;</td>
+          <td class="md" nowrap></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Get an font point object's angle property. 
+<p>
+Applies only to point objects of type TABFC_FontPoint<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign=top><em>feature</em>&nbsp;</td><td>the mitab_feature object. </td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Returns:</b></dt><dd>the symbol angle in degrees </dd></dl>
+    </td>
+  </tr>
+</table>
+<a class="anchor" name="a48" doxytag="mitab_capi.cpp::mitab_c_get_symbol_color" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -1553,7 +1848,7 @@ Applies only to point and multipoint objects.<p>
     </td>
   </tr>
 </table>
-<a class="anchor" name="a48" doxytag="mitab_capi.cpp::mitab_c_get_symbol_no" ></a><p>
+<a class="anchor" name="a49" doxytag="mitab_capi.cpp::mitab_c_get_symbol_no" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -1591,7 +1886,7 @@ Applies only to point and multipoint objects.<p>
     </td>
   </tr>
 </table>
-<a class="anchor" name="a49" doxytag="mitab_capi.cpp::mitab_c_get_symbol_size" ></a><p>
+<a class="anchor" name="a50" doxytag="mitab_capi.cpp::mitab_c_get_symbol_size" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -2016,7 +2311,7 @@ Fetch a TABFC_Text object's MBR width property.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a50" doxytag="mitab_capi.cpp::mitab_c_get_type" ></a><p>
+<a class="anchor" name="a52" doxytag="mitab_capi.cpp::mitab_c_get_type" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -2049,11 +2344,11 @@ Return a mitab_feature's object type.
     <tr><td valign=top><em>feature</em>&nbsp;</td><td>the mitab_feature object. </td></tr>
   </table>
 </dl>
-<dl compact><dt><b>Returns:</b></dt><dd>the feature type, one of TABFC_NoGeom (0), TABFC_Point (1), TABFC_FontPoint (2), TABFC_CustomPoint (3), TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6), TABFC_Region (7), TABFC_Rectangle (8), TABFC_Ellipse (9) or TABFC_MultiPoint (10). </dd></dl>
+<dl compact><dt><b>Returns:</b></dt><dd>the feature type, one of TABFC_NoGeom (0), TABFC_Point (1), TABFC_FontPoint (2), TABFC_CustomPoint (3), TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6), TABFC_Region (7), TABFC_Rectangle (8), TABFC_Ellipse (9), TABFC_MultiPoint (10) or TABFC_Collection (11) </dd></dl>
     </td>
   </tr>
 </table>
-<a class="anchor" name="a53" doxytag="mitab_capi.cpp::mitab_c_get_vertex_count" ></a><p>
+<a class="anchor" name="a55" doxytag="mitab_capi.cpp::mitab_c_get_vertex_count" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -2100,7 +2395,7 @@ Return the number of points in a part of a mitab_feature object.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a54" doxytag="mitab_capi.cpp::mitab_c_get_vertex_x" ></a><p>
+<a class="anchor" name="a56" doxytag="mitab_capi.cpp::mitab_c_get_vertex_x" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -2147,14 +2442,14 @@ Return the X coordinate of a point in a part of a mitab_feature object.
   <table border="0" cellspacing="2" cellpadding="0">
     <tr><td valign=top><em>feature</em>&nbsp;</td><td>the mitab_feature object. </td></tr>
     <tr><td valign=top><em>part</em>&nbsp;</td><td>the part number we are interested in. Use 0 for objects which cannot have multiple parts. </td></tr>
-    <tr><td valign=top><em>point</em>&nbsp;</td><td>the point number, with 0 being the first point. </td></tr>
+    <tr><td valign=top><em>vertex</em>&nbsp;</td><td>the point number, with 0 being the first point. </td></tr>
   </table>
 </dl>
 <dl compact><dt><b>Returns:</b></dt><dd>the X coordinate of the specified point or if the object has no geometry or the part or the point number is invalid. </dd></dl>
     </td>
   </tr>
 </table>
-<a class="anchor" name="a55" doxytag="mitab_capi.cpp::mitab_c_get_vertex_y" ></a><p>
+<a class="anchor" name="a57" doxytag="mitab_capi.cpp::mitab_c_get_vertex_y" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -2201,7 +2496,7 @@ Return the Y coordinate of a point in a part of a mitab_feature object.
   <table border="0" cellspacing="2" cellpadding="0">
     <tr><td valign=top><em>feature</em>&nbsp;</td><td>the mitab_feature object. </td></tr>
     <tr><td valign=top><em>part</em>&nbsp;</td><td>the part number we are interested in. Use 0 for objects which cannot have multiple parts. </td></tr>
-    <tr><td valign=top><em>point</em>&nbsp;</td><td>the point number, with 0 being the first point. </td></tr>
+    <tr><td valign=top><em>vertex</em>&nbsp;</td><td>the point number, with 0 being the first point. </td></tr>
   </table>
 </dl>
 <dl compact><dt><b>Returns:</b></dt><dd>the Y coordinate of the specified point or if the object has no geometry or the part or the point number is invalid. </dd></dl>
@@ -2351,7 +2646,7 @@ Returns the version of the library.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a52" doxytag="mitab_capi.cpp::mitab_c_is_interior_ring" ></a><p>
+<a class="anchor" name="a54" doxytag="mitab_capi.cpp::mitab_c_is_interior_ring" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -2398,7 +2693,7 @@ Return a false if te ring is the first of a polygon.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a70" doxytag="mitab_capi.cpp::mitab_c_load_coordsys_table" ></a><p>
+<a class="anchor" name="a80" doxytag="mitab_capi.cpp::mitab_c_load_coordsys_table" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -2722,6 +3017,180 @@ See the MIF specs for more details on the meaning and valid values of each param
     </td>
   </tr>
 </table>
+<a class="anchor" name="a86" doxytag="mitab_capi.cpp::mitab_c_set_collection_multipoint" ></a><p>
+<table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> int MITAB_STDCALL mitab_c_set_collection_multipoint </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_feature&nbsp;</td>
+          <td class="mdname" nowrap> <em>feature</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>mitab_feature&nbsp;</td>
+          <td class="mdname" nowrap> <em>multipoint</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>int&nbsp;</td>
+          <td class="mdname" nowrap> <em>make_copy</em></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td class="md">)&nbsp;</td>
+          <td class="md" colspan="2"></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Set or update the multipoint component of a collection. 
+<p>
+This method can be used in three possible ways:<p>
+1- with a new multipoint feature to set a new multipoint component in the collection.<p>
+2- pass the multipoint handle obtained from <a class="el" href="mitab__capi_8cpp.html#a83">mitab_c_get_collection_multipoint_ref()</a> after making modifications to it to force an internal update of the multipoint geometry into the collection<p>
+3- pass NULL to remove the multipoint component of the collection.<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign=top><em>feature</em>&nbsp;</td><td>the target TABFC_Collection feature. </td></tr>
+    <tr><td valign=top><em>multipoint</em>&nbsp;</td><td>the TABFC_Multipoint feature to set in the collection. </td></tr>
+    <tr><td valign=top><em>make_copy</em>&nbsp;</td><td>if set to true then a copy of the multipoint is made, otherwise the multipoint becomes owned by the collection. </td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Returns:</b></dt><dd>0 on success, -1 on error. </dd></dl>
+    </td>
+  </tr>
+</table>
+<a class="anchor" name="a85" doxytag="mitab_capi.cpp::mitab_c_set_collection_polyline" ></a><p>
+<table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> int MITAB_STDCALL mitab_c_set_collection_polyline </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_feature&nbsp;</td>
+          <td class="mdname" nowrap> <em>feature</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>mitab_feature&nbsp;</td>
+          <td class="mdname" nowrap> <em>polyline</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>int&nbsp;</td>
+          <td class="mdname" nowrap> <em>make_copy</em></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td class="md">)&nbsp;</td>
+          <td class="md" colspan="2"></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Set or update the polyline component of a collection. 
+<p>
+This method can be used in three possible ways:<p>
+1- with a new polyline feature to set a new polyline component in the collection.<p>
+2- pass the polyline handle obtained from <a class="el" href="mitab__capi_8cpp.html#a82">mitab_c_get_collection_polyline_ref()</a> after making modifications to it to force an internal update of the polyline geometry into the collection<p>
+3- pass NULL to remove the polyline component of the collection.<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign=top><em>feature</em>&nbsp;</td><td>the target TABFC_Collection feature. </td></tr>
+    <tr><td valign=top><em>polyline</em>&nbsp;</td><td>the TABFC_Polyline feature to set in the collection. </td></tr>
+    <tr><td valign=top><em>make_copy</em>&nbsp;</td><td>if set to true then a copy of the polyline is made, otherwise the polyline becomes owned by the collection. </td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Returns:</b></dt><dd>0 on success, -1 on error. </dd></dl>
+    </td>
+  </tr>
+</table>
+<a class="anchor" name="a84" doxytag="mitab_capi.cpp::mitab_c_set_collection_region" ></a><p>
+<table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> int MITAB_STDCALL mitab_c_set_collection_region </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_feature&nbsp;</td>
+          <td class="mdname" nowrap> <em>feature</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>mitab_feature&nbsp;</td>
+          <td class="mdname" nowrap> <em>region</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>int&nbsp;</td>
+          <td class="mdname" nowrap> <em>make_copy</em></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td class="md">)&nbsp;</td>
+          <td class="md" colspan="2"></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Set or update the region component of a collection. 
+<p>
+This method can be used in three possible ways:<p>
+1- with a new region feature to set a new region component in the collection.<p>
+2- pass the region handle obtained from <a class="el" href="mitab__capi_8cpp.html#a81">mitab_c_get_collection_region_ref()</a> after making modifications to it to force an internal update of the region geometry into the collection<p>
+3- pass NULL to remove the region component of the collection.<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign=top><em>feature</em>&nbsp;</td><td>the target TABFC_Collection feature. </td></tr>
+    <tr><td valign=top><em>region</em>&nbsp;</td><td>the TABFC_Region feature to set in the collection. </td></tr>
+    <tr><td valign=top><em>make_copy</em>&nbsp;</td><td>if set to true then a copy of the region is made, otherwise the region becomes owned by the collection. </td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Returns:</b></dt><dd>0 on success, -1 on error. </dd></dl>
+    </td>
+  </tr>
+</table>
 <a class="anchor" name="a19" doxytag="mitab_capi.cpp::mitab_c_set_field" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
@@ -2950,7 +3419,7 @@ Set the feature's coordinates.
     </td>
   </tr>
 </table>
-<a class="anchor" name="a67" doxytag="mitab_capi.cpp::mitab_c_set_projinfo" ></a><p>
+<a class="anchor" name="a69" doxytag="mitab_capi.cpp::mitab_c_set_projinfo" ></a><p>
 <table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
@@ -2991,7 +3460,7 @@ Should be called immediately after creating the dataset and before adding featur
 <dl compact><dt><b>Parameters:</b></dt><dd>
   <table border="0" cellspacing="2" cellpadding="0">
     <tr><td valign=top><em>dataset</em>&nbsp;</td><td>the mitab_handle of the target dataset. </td></tr>
-    <tr><td valign=top><em>projinfo</em>&nbsp;</td><td>the mitab_projinfo to set on the target dataset, obtained from <a class="el" href="mitab__capi_8cpp.html#a66">mitab_c_get_projinfo()</a>. </td></tr>
+    <tr><td valign=top><em>projinfo</em>&nbsp;</td><td>the mitab_projinfo to set on the target dataset, obtained from <a class="el" href="mitab__capi_8cpp.html#a68">mitab_c_get_projinfo()</a>. </td></tr>
   </table>
 </dl>
 <dl compact><dt><b>Returns:</b></dt><dd>0 on success, -1 on failure. </dd></dl>
@@ -3055,6 +3524,53 @@ See the MIF specs for more details on the meaning and valid values of each param
     <tr><td valign=top><em>symbol_no</em>&nbsp;</td><td>the symbol number (valid range: 32 to 67) </td></tr>
     <tr><td valign=top><em>symbol_size</em>&nbsp;</td><td>the symbol size in pixels (valid range 1 to 48) </td></tr>
     <tr><td valign=top><em>symbol_color</em>&nbsp;</td><td>the symbol color (24 bits RGB value) </td></tr>
+  </table>
+</dl>
+    </td>
+  </tr>
+</table>
+<a class="anchor" name="a47" doxytag="mitab_capi.cpp::mitab_c_set_symbol_angle" ></a><p>
+<table class="mdTable" width="100%" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top"> void MITAB_STDCALL mitab_c_set_symbol_angle </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_feature&nbsp;</td>
+          <td class="mdname" nowrap> <em>feature</em>, </td>
+        </tr>
+        <tr>
+          <td class="md" nowrap align="right"></td>
+          <td></td>
+          <td class="md" nowrap>double&nbsp;</td>
+          <td class="mdname" nowrap> <em>symbol_angle</em></td>
+        </tr>
+        <tr>
+          <td></td>
+          <td class="md">)&nbsp;</td>
+          <td class="md" colspan="2"></td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing=5 cellpadding=0 border=0>
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Set the point symbol's angle. 
+<p>
+Applies only to point objects of type TABFC_FontPoint.<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign=top><em>feature</em>&nbsp;</td><td>the mitab_feature object. </td></tr>
+    <tr><td valign=top><em>symbol_angle</em>&nbsp;</td><td>the symbol angle in degrees </td></tr>
   </table>
 </dl>
     </td>
@@ -3252,7 +3768,7 @@ Also note that the mitab_feature object will NOT be owned by the dataset after t
     </td>
   </tr>
 </table>
-<hr size="1"><address style="align: right;"><small>Generated on Fri Apr 1 11:34:36 2005 for MITAB by
+<hr size="1"><address style="align: right;"><small>Generated on Fri Oct 7 15:09:44 2005 for MITAB by
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border=0 > 
 </a>1.3.6 </small></address>

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.59 2005-10-06 23:05:08 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.60 2005-10-07 21:22:33 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.59  2005-10-06 23:05:08  dmorissette
+ * Revision 1.60  2005-10-07 21:22:33  dmorissette
+ * Clone region/pline/mpoint components in TABCollection::CloneTABFeature()
+ *
+ * Revision 1.59  2005/10/06 23:05:08  dmorissette
  * TABCollection: Added automated sync'ing of OGRFeature's geometry in
  * SetRegion/Pline/MpointDirectly() methods (bug 1126)
  *
@@ -6192,13 +6195,13 @@ TABFeature *TABCollection::CloneTABFeature(OGRFeatureDefn *poNewDefn /*=NULL*/)
      *----------------------------------------------------------------*/
 
     if (m_poRegion)
-        poNew->SetRegionDirectly(m_poRegion);
+        poNew->SetRegionDirectly((TABRegion*)m_poRegion->CloneTABFeature());
 
     if (m_poPline)
-        poNew->SetPolylineDirectly(m_poPline);
+        poNew->SetPolylineDirectly((TABPolyline*)m_poPline->CloneTABFeature());
 
     if (m_poMpoint)
-        poNew->SetMultiPointDirectly(m_poMpoint);
+        poNew->SetMultiPointDirectly((TABMultiPoint*)m_poMpoint->CloneTABFeature());
 
     return poNew;
 }

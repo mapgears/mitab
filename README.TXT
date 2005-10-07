@@ -20,7 +20,7 @@ COPYRIGHT AND LICENSE TERMS:
 The most part of the MITAB library is 
    Copyright (c) 1998-2005, Daniel Morissette (morissette@dmsolutions.ca)
 it also contains parts and uses support libraries that are
-   Copyright (c) 1998-2004, Frank Warmerdam (warmerdam@pobox.com)
+   Copyright (c) 1998-2005, Frank Warmerdam (warmerdam@pobox.com)
 and 
    Copyright (c) 1999, 2000, Stephane Villeneuve (stephane.v@videotron.ca)
 
@@ -199,6 +199,16 @@ of them:
                      left corner of the
                      text)
 
+    TABMultiPoint    OGRMultiPoint          OGRMultiPoint
+
+    TABCollection    OGRCollection with     In write mode, the geometry
+                     3 optional components: cannot be set directly as an
+                     1- 0 or 1 OGRPolygon   OGRGeometry. The following methods
+                        or OGRMultiPolygon  must be used instead:
+                     2- 0 or 1 OGRLineString     SetRegionDirectly()
+                        or OGRMultiLineString    SetPolylineDirectly()
+                     3- 0 or 1 OGRMultiPoint     SetMultiPointDirectly()
+
 
 NOTE ABOUT "\n" IN STRINGS ON TABText OBJECTS:
 ----------------------------------------------
@@ -221,5 +231,5 @@ the "\n" sequence in char attribute field values.
 
 
 ------------
-$Id: README.TXT,v 1.11 2005-04-01 16:58:37 dmorissette Exp $
+$Id: README.TXT,v 1.12 2005-10-07 14:00:07 dmorissette Exp $
 ------------

@@ -13,6 +13,12 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+Version 1.5.0 ??? (CVS)
+--------------------------------
+
+- Fixed build problem (link with -ldl not available) on MacOSX (bug 1167)
+
+
 Version 1.5.0-beta1 (2005-10-07)
 --------------------------------
 
@@ -675,5 +681,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.148 2005-10-07 19:36:53 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.149 2005-10-11 19:02:28 dmorissette Exp $
 ------------

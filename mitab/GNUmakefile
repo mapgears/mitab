@@ -1,5 +1,7 @@
 # Makefile for the MapInfo TAB Read/Write library
 #
+# $Id: GNUmakefile,v 1.5 2005-10-11 18:57:54 dmorissette Exp $
+#
 
 include ../GNUmake.opt
 
@@ -25,7 +27,12 @@ OGRTAB_OBJS = mitab_ogr_driver.o mitab_ogr_datasource.o
 MITABLIB_OBJS= $(TAB_OBJS)
 MITAB_LIB=      mitab.a
 
-LIBS =	$(MITAB_LIB) ../ogr/ogr.a ../cpl/cpl.a $(LIB_DBMALLOC) -ldl
+# -ldl doesn't work on MacOSX
+ifneq "$(shell uname -s)" "Darwin"
+  DL_LIB = -ldl
+endif
+
+LIBS =	$(MITAB_LIB) ../ogr/ogr.a ../cpl/cpl.a $(LIB_DBMALLOC) $(DL_LIB)
 
 
 default: $(MITAB_LIB) tab2tab ogrinfo mitabc_test tabdump

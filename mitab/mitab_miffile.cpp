@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.39 2005-10-04 19:36:10 dmorissette Exp $
+ * $Id: mitab_miffile.cpp,v 1.40 2005-10-12 14:03:02 fwarmerdam Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.39  2005-10-04 19:36:10  dmorissette
+ * Revision 1.40  2005-10-12 14:03:02  fwarmerdam
+ * Fixed problem with white space parsing in mitab_miffile.cpp (bug GDAL:954)
+ *
+ * Revision 1.39  2005/10/04 19:36:10  dmorissette
  * Added support for reading collections from MIF files (bug 1126)
  *
  * Revision 1.38  2004/02/27 21:04:14  fwarmerdam
@@ -440,7 +443,7 @@ int MIFFile::ParseMIFHeader()
     while (((pszLine = m_poMIFFile->GetLine()) != NULL) && 
            !(EQUALN(pszLine,"Data",4)))
     {
-        while(pszLine && *pszLine == ' ')
+        while(pszLine && (*pszLine == ' ' || *pszLine == '\t') )
             pszLine++;  // skip leading spaces
 
         if (EQUALN(pszLine,"VERSION",7))

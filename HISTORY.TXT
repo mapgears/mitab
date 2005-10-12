@@ -18,6 +18,8 @@ Version 1.5.0 ??? (CVS)
 
 - Fixed build problem (link with -ldl not available) on MacOSX (bug 1167)
 
+- Fixed problem with white space parsing in mitab_miffile.cpp (bug GDAL:954)
+
 
 Version 1.5.0-beta1 (2005-10-07)
 --------------------------------
@@ -681,5 +683,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.149 2005-10-11 19:02:28 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.150 2005-10-12 14:03:02 fwarmerdam Exp $
 ------------

@@ -20,6 +20,10 @@ Version 1.5.0 ??? (CVS)
 
 - Fixed problem with white space parsing in mitab_miffile.cpp (bug GDAL:954)
 
+- layers with just regions can't be set as type wkbPolygon because they may
+  have multipolygons (bug GDAL:958)
+    http://bugzilla.remotesensing.org/show_bug.cgi?id=958
+
 
 Version 1.5.0-beta1 (2005-10-07)
 --------------------------------
@@ -683,5 +687,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.150 2005-10-12 14:03:02 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.151 2005-10-13 20:12:03 fwarmerdam Exp $
 ------------

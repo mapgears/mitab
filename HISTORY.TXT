@@ -16,6 +16,8 @@ CHANGES - Current Version:
 Version 1.5.0 ??? (CVS)
 --------------------------------
 
+- cast strstr() results as per email from Charles Savage for VC8.
+
 - Fixed build problem (link with -ldl not available) on MacOSX (bug 1167)
 
 - Fixed problem with white space parsing in mitab_miffile.cpp (bug GDAL:954)
@@ -687,5 +689,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.151 2005-10-13 20:12:03 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.152 2005-11-08 22:02:36 fwarmerdam Exp $
 ------------

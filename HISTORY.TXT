@@ -26,6 +26,8 @@ Version 1.5.0 ??? (CVS)
   have multipolygons (bug GDAL:958)
     http://bugzilla.remotesensing.org/show_bug.cgi?id=958
 
+- Fixed support for multi character delimiters in .mid file (bug 1266)
+
 
 Version 1.5.0-beta1 (2005-10-07)
 --------------------------------
@@ -689,5 +691,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.152 2005-11-08 22:02:36 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.153 2006-01-26 21:26:36 fwarmerdam Exp $
 ------------

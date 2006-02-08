@@ -16,6 +16,9 @@ CHANGES - Current Version:
 Version 1.5.0 ??? (CVS)
 --------------------------------
 
+- Fixed crash when attempting to write TABPolyline object with an invalid
+  geometry (GDAL bug 1059)
+
 - cast strstr() results as per email from Charles Savage for VC8.
 
 - Fixed build problem (link with -ldl not available) on MacOSX (bug 1167)
@@ -699,5 +702,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.156 2006-01-27 14:27:35 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.157 2006-02-08 05:02:57 dmorissette Exp $
 ------------

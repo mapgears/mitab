@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.40 2005-10-07 21:23:21 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.41 2006-02-16 14:59:45 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.40  2005-10-07 21:23:21  dmorissette
+ * Revision 1.41  2006-02-16 14:59:45  dmorissette
+ * Added comments clarifying that adAffineParams arg is a 6 entries array
+ *
+ * Revision 1.40  2005/10/07 21:23:21  dmorissette
  * Return all zeros for collections in _mitab_c_get_feature_info()
  *
  * Revision 1.39  2005/10/07 19:09:02  dmorissette
@@ -2584,7 +2587,8 @@ mitab_c_set_datum_info( mitab_projinfo projInfo,
 // Returns 0 if no affine params
 int MITAB_STDCALL
 mitab_c_get_affine_params( mitab_projinfo projInfo,
-                           int *nAffineUnits, double *adAffineParams)
+                           int *nAffineUnits, 
+                           double *adAffineParams /* array with six entries */ )
 {
     if (projInfo!=NULL)
     {
@@ -2612,7 +2616,8 @@ mitab_c_get_affine_params( mitab_projinfo projInfo,
 
 void MITAB_STDCALL
 mitab_c_set_affine_params( mitab_projinfo projInfo,
-                           int nAffineUnits, double *adAffineParams)
+                           int nAffineUnits, 
+                           double *adAffineParams /* array with six entries */ )
 {
     if (projInfo!=NULL)
     {
@@ -3180,3 +3185,4 @@ static int _mitab_c_get_feature_info( mitab_feature feature, int what_info,
 
     return -1;  /* Requested info could not be returned */
 }
+</div>

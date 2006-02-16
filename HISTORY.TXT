@@ -13,8 +13,12 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
-Version 1.5.0 ??? (CVS)
---------------------------------
+
+Version 1.5.0 (2006-02-16)
+--------------------------
+
+- Updated contrib/mitab_dyn.pas with new C API functions. Note that other
+  definition files for VB and .NET have *not* been updated for this release.
 
 - Fixed crash when attempting to write TABPolyline object with an invalid
   geometry (GDAL bug 1059)
@@ -702,5 +706,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.157 2006-02-08 05:02:57 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.158 2006-02-16 15:13:38 dmorissette Exp $
 ------------

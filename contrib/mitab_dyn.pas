@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.7 2005-03-24 17:21:05 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.8 2006-02-16 15:13:38 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.7  2005-03-24 17:21:05  dmorissette
+ * Revision 1.8  2006-02-16 15:13:38  dmorissette
+ * Updated for 1.5.0 release
+ *
+ * Revision 1.7  2005/03/24 17:21:05  dmorissette
  * Updated Libversion to 1004000 for 1.4.0 release
  *
  * Revision 1.6  2004/07/05 18:45:24  dmorissette
@@ -79,7 +82,7 @@
  *
  *}
 
-unit mitab;
+unit mitab_dyn;
 
 interface
 
@@ -97,10 +100,13 @@ Type
   TABTJ = 0..2;
   TABTS = 0..2;
   TABTL = 0..2;
+  TadProjParams = array [1..6] of double;
+  TadDatumParams = array [1..5] of double;
+  TadAffineParams = array [1..6] of double;
 
 const
-// update to match mitab.h (app. line 175), when new versions are released
-  Libversion = 1004000;
+// update to match mitab.h (app. line 97), when new versions are released
+  Libversion = 1005000;
   
 // feature type values
   TABFC_NoGeom      = 0;
@@ -206,7 +212,19 @@ type
   Tmitab_c_set_text               = procedure(feature: mitab_feature; text: pchar); stdcall;
   Tmitab_c_set_text_display       = procedure(feature: mitab_feature; angle, height, width: double; fg_color, bg_color, justification, spacing, linetype: longint); stdcall;
   Tmitab_c_write_feature          = function(handle: mitab_handle; feature: mitab_feature): longint; stdcall;
-  
+  Tmitab_c_get_collection_region_ref      = function(feature: mitab_feature): mitab_feature; stdcall;
+  Tmitab_c_get_collection_polyline_ref    = function(feature: mitab_feature): mitab_feature; stdcall;
+  Tmitab_c_get_collection_multipoint_ref  = function(feature: mitab_feature): mitab_feature; stdcall;
+  Tmitab_c_set_collection_region          = function(feature,region: mitab_feature; make_copy: integer): longint; stdcall;
+  Tmitab_c_set_collection_polyline        = function(feature,polyline: mitab_feature; make_copy: integer): longint; stdcall;
+  Tmitab_c_set_collection_multipoint      = function(feature,multipoint: mitab_feature; make_copy: integer): longint; stdcall;
+  Tmitab_c_get_projection_info            = procedure(projInfo: mitab_projinfo; var nProjId,nEllipsoidId,nUnitsId: longint; var adProjParams: TadProjParams); stdcall;
+  Tmitab_c_set_projection_info            = procedure(projInfo: mitab_projinfo; nProjId,nEllipsoidId,nUnitsId: longint; var adProjParams: TadProjParams); stdcall;
+  Tmitab_c_get_datum_info                 = procedure(projInfo: mitab_projinfo; var dDatumShiftX,dDatumShiftY,dDatumShiftZ: double; var adDatumParams: TadDatumParams); stdcall;
+  Tmitab_c_set_datum_info                 = procedure(projInfo: mitab_projinfo; dDatumShiftX,dDatumShiftY,dDatumShiftZ: double; var adDatumParams: TadDatumParams); stdcall;
+  Tmitab_c_get_affine_params              = function(projInfo: mitab_projinfo; var nAffineUnits: longint; var adAffineParams: TadAffineParams): longint; stdcall;
+  Tmitab_c_set_affine_params              = function(projInfo: mitab_projinfo; nAffineUnits: longint; var adAffineParams: TadAffineParams): longint; stdcall;
+    
 var
   MITAB_LibOK: boolean;   // false if DLL isn't loaded, true if loaded OK and correct version
   LibPath: string;        // Full path to the MITAB DLL, default value is just 'mitab.dll'
@@ -277,6 +295,19 @@ var
   mitab_c_set_text: Tmitab_c_set_text;
   mitab_c_set_text_display: Tmitab_c_set_text_display;
   mitab_c_write_feature: Tmitab_c_write_feature;
+  mitab_c_get_collection_region_ref: Tmitab_c_get_collection_region_ref;
+  mitab_c_get_collection_polyline_ref: Tmitab_c_get_collection_polyline_ref;
+  mitab_c_get_collection_multipoint_ref: Tmitab_c_get_collection_multipoint_ref;
+  mitab_c_set_collection_region: Tmitab_c_set_collection_region;
+  mitab_c_set_collection_polyline: Tmitab_c_set_collection_polyline;
+  mitab_c_set_collection_multipoint: Tmitab_c_set_collection_multipoint;
+  mitab_c_get_projection_info: Tmitab_c_get_projection_info;
+  mitab_c_set_projection_info: Tmitab_c_set_projection_info;
+  mitab_c_get_datum_info: Tmitab_c_get_datum_info;
+  mitab_c_set_datum_info: Tmitab_c_set_datum_info;
+  mitab_c_get_affine_params: Tmitab_c_get_affine_params;
+  mitab_c_set_affine_params: Tmitab_c_set_affine_params;
+
 
 // This allows compilation with Kylix. Later there may be a "mitab.so" ? 
 // On Kylix MITAB_LibOK will always be false and MITAB_load does nothing
@@ -373,6 +404,18 @@ begin
         @mitab_c_set_text:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_set_text@8');
         @mitab_c_set_text_display:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_set_text_display@48');
         @mitab_c_write_feature:=          GetProcAddress(MITABDLL_Handle,'_mitab_c_write_feature@8');
+        @mitab_c_get_collection_region_ref:=     GetProcAddress(MITABDLL_Handle,'_mitab_c_get_collection_region_ref@4');
+        @mitab_c_get_collection_polyline_ref:=   GetProcAddress(MITABDLL_Handle,'_mitab_c_get_collection_polyline_ref@4');
+        @mitab_c_get_collection_multipoint_ref:= GetProcAddress(MITABDLL_Handle,'_mitab_c_get_collection_multipoint_ref@4');
+        @mitab_c_set_collection_region:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_set_collection_region@12');
+        @mitab_c_set_collection_polyline:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_set_collection_polyline@12');
+        @mitab_c_set_collection_multipoint:=     GetProcAddress(MITABDLL_Handle,'_mitab_c_set_collection_multipoint@12');
+        @mitab_c_get_projection_info:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_get_projection_info@20');
+        @mitab_c_set_projection_info:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_set_projection_info@20');
+        @mitab_c_get_datum_info:=                GetProcAddress(MITABDLL_Handle,'_mitab_c_get_datum_info@20');
+        @mitab_c_set_datum_info:=                GetProcAddress(MITABDLL_Handle,'_mitab_c_set_datum_info@32');
+        @mitab_c_get_affine_params:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_get_affine_params@12');
+        @mitab_c_set_affine_params:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_set_affine_params@12');
       end;
     end;
   end;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.41 2006-02-16 14:59:45 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.42 2006-02-16 15:06:14 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,11 +32,14 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.41  2006-02-16 14:59:45  dmorissette
+ * Revision 1.42  2006-02-16 15:06:14  dmorissette
+ * Removed line of junk at end of file
+ *
+ * Revision 1.41  2006/02/16 14:59:45  dmorissette
  * Added comments clarifying that adAffineParams arg is a 6 entries array
  *
  * Revision 1.40  2005/10/07 21:23:21  dmorissette
- * Return all zeros for collections in _mitab_c_get_feature_info()
+ * Return all zeros for collections in _mitab_c_get_feature_
  *
  * Revision 1.39  2005/10/07 19:09:02  dmorissette
  * A few fixes to Doxygen docs
@@ -3185,4 +3188,4 @@ static int _mitab_c_get_feature_info( mitab_feature feature, int what_info,
 
     return -1;  /* Requested info could not be returned */
 }
-</div>
+

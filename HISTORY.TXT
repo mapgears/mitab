@@ -13,6 +13,10 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Coordsys false easting and northing are in the units of the coordsys, not
+  necessarily meters.  Adjusted mitab_coordsys.cpp to reflect this. 
+  http://bugzilla.remotesensing.org/show_bug.cgi?id=1113
+
 
 Version 1.5.0 (2006-02-16)
 --------------------------
@@ -706,5 +710,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.158 2006-02-16 15:13:38 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.159 2006-03-10 19:50:45 fwarmerdam Exp $
 ------------

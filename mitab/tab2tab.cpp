@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.12 2004-06-30 20:29:04 dmorissette Exp $
+ * $Id: tab2tab.cpp,v 1.13 2006-06-28 10:21:56 dmorissette Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.12  2004-06-30 20:29:04  dmorissette
+ * Revision 1.13  2006-06-28 10:21:56  dmorissette
+ * Set dataset bounds only after setting spatialref (bug 1511)
+ *
+ * Revision 1.12  2004/06/30 20:29:04  dmorissette
  * Fixed refs to old address danmo@videotron.ca
  *
  * Revision 1.11  2004/06/04 19:08:35  dmorissette
@@ -175,10 +178,6 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
         return -1;
     }
 
-    //  Set bounds
-    if (poSrcFile->GetBounds(dXMin, dYMin, dXMax, dYMax) == 0)
-        poDstFile->SetBounds(dXMin, dYMin, dXMax, dYMax);
-
     // Pass Proj. info directly
     // TABProjInfo sProjInfo;
     // if (poSrcFile->GetProjInfo(&sProjInfo) == 0)
@@ -191,6 +190,10 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
     {
         poDstFile->SetSpatialRef( poSR );
     }
+
+    //  Set bounds (must be done after setting spatialref)
+    if (poSrcFile->GetBounds(dXMin, dYMin, dXMax, dYMax) == 0)
+        poDstFile->SetBounds(dXMin, dYMin, dXMax, dYMax);
 
     /*---------------------------------------------------------------------
      * Pass compplete fields information

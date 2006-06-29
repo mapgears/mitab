@@ -13,6 +13,9 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Fixed problem writing PLINE MULTIPLE to TAB format introduced in
+  MITAB 1.5.0 (bug 1466).
+
 - tab2tab: Set dataset bounds only after setting spatialref to prevent
   default coordsys bounds from taking precedence when bounds are 
   available in source dataset (bug 1511)
@@ -718,5 +721,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.161 2006-06-28 10:21:56 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.162 2006-06-29 19:49:35 dmorissette Exp $
 ------------

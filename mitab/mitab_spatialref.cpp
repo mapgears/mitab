@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.45 2006-05-09 20:21:29 fwarmerdam Exp $
+ * $Id: mitab_spatialref.cpp,v 1.46 2006-07-07 19:41:32 dmorissette Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
- * Revision 1.45  2006-05-09 20:21:29  fwarmerdam
+ * Revision 1.46  2006-07-07 19:41:32  dmorissette
+ * Fixed problem with uninitialized sTABProj.nAffineFlag (bug 1254,1319)
+ *
+ * Revision 1.45  2006/05/09 20:21:29  fwarmerdam
  * Coordsys false easting and northing are in the units of the coordsys, not
  * necessarily meters.  Adjusted mitab_spatialref.cpp to reflect this.
  * http://bugzilla.remotesensing.org/show_bug.cgi?id=1113
@@ -1103,7 +1106,6 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     sTABProj.adDatumParams[3] = 0.0;
     sTABProj.adDatumParams[4] = 0.0;
 
-#ifdef MITAB_AFFINE_PARAMS  // See MITAB bug 1155
     // Encom 2003
     sTABProj.nAffineFlag   = 0;
     sTABProj.nAffineUnits  = 7;
@@ -1113,7 +1115,6 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     sTABProj.dAffineParamD = 0.0;
     sTABProj.dAffineParamE = 0.0;
     sTABProj.dAffineParamF = 0.0;
-#endif // MITAB_AFFINE_PARAMS
     
     /*-----------------------------------------------------------------
      * Get the linear units and conversion.

@@ -13,6 +13,8 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Added mapping for datum name "North_American_Datum_1927". 
+
 - Fixed problem with uninitialized affine parameters written to .MAP header, 
   resulting in files not readable in MapInfo, introduced by bug 1155 in 
   MITAB 1.5.0 (bug 1254, 1319)
@@ -725,5 +727,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.163 2006-07-07 19:41:32 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.164 2006-07-10 17:58:48 fwarmerdam Exp $
 ------------

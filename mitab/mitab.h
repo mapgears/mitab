@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.83 2006-02-16 15:13:38 dmorissette Exp $
+ * $Id: mitab.h,v 1.84 2006-07-25 13:22:58 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.83  2006-02-16 15:13:38  dmorissette
+ * Revision 1.84  2006-07-25 13:22:58  dmorissette
+ * Fixed initialization of MBR of TABCollection members (bug 1520)
+ *
+ * Revision 1.83  2006/02/16 15:13:38  dmorissette
  * Updated for 1.5.0 release
  *
  * Revision 1.82  2005/10/07 18:54:23  dmorissette
@@ -1018,7 +1021,9 @@ class TABFeature: public OGRFeature
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
     GBool       ValidateCoordType(TABMAPFile * poMapFile);
     void        ForceCoordTypeAndOrigin(int nMapInfoType, GBool bCompr,
-                                        GInt32 nComprOrgX, GInt32 nComprOrgY);
+                                        GInt32 nComprOrgX, GInt32 nComprOrgY,
+                                        GInt32 nXMin, GInt32 nYMin, 
+                                        GInt32 nXMax, GInt32 nYMax);
 
     /*-----------------------------------------------------------------
      * Mid/Mif Support
@@ -1040,6 +1045,8 @@ class TABFeature: public OGRFeature
                        double dXMax, double dYMax);
     void        GetMBR(double &dXMin, double &dYMin, 
                        double &dXMax, double &dYMax);
+    void        GetIntMBR(GInt32 &nXMin, GInt32 &nYMin, 
+                          GInt32 &nXMax, GInt32 &nYMax);
 
     virtual void DumpMID(FILE *fpOut = NULL);
     virtual void DumpMIF(FILE *fpOut = NULL);

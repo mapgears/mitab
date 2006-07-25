@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.84 2006-07-25 13:22:58 dmorissette Exp $
+ * $Id: mitab.h,v 1.85 2006-07-25 13:24:47 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.84  2006-07-25 13:22:58  dmorissette
+ * Revision 1.85  2006-07-25 13:24:47  dmorissette
+ * Updated for 1.5.1 release
+ *
+ * Revision 1.84  2006/07/25 13:22:58  dmorissette
  * Fixed initialization of MBR of TABCollection members (bug 1520)
  *
  * Revision 1.83  2006/02/16 15:13:38  dmorissette
@@ -99,8 +102,8 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION      "1.5.0 (2006-02-16)"
-#define MITAB_VERSION_INT  1005000  /* version x.y.z -> xxxyyyzzz */
+#define MITAB_VERSION      "1.5.1 (2006-07-25)"
+#define MITAB_VERSION_INT  1005001  /* version x.y.z -> xxxyyyzzz */
 
 #ifndef PI
 #  define PI 3.14159265358979323846

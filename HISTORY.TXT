@@ -13,6 +13,10 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+
+Version 1.5.1 (2006-07-25)
+--------------------------
+
 - Fixed initialization of MBR of TABCollection members (bug 1520)
 
 - Added mapping for datum name "North_American_Datum_1927". 
@@ -729,5 +733,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.165 2006-07-25 13:22:58 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.166 2006-07-25 13:24:47 dmorissette Exp $
 ------------

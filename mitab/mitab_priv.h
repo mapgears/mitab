@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.40 2005-10-06 19:15:31 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.41 2006-09-05 23:05:08 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.40  2005-10-06 19:15:31  dmorissette
+ * Revision 1.41  2006-09-05 23:05:08  dmorissette
+ * Added TABMAPFile::DumpSpatialIndex() (bug 1585)
+ *
+ * Revision 1.40  2005/10/06 19:15:31  dmorissette
  * Collections: added support for reading/writing pen/brush/symbol ids and
  * for writing collection objects to .TAB/.MAP (bug 1126)
  *
@@ -1293,6 +1296,8 @@ class TABMAPFile
 
 #ifdef DEBUG
     void Dump(FILE *fpOut = NULL);
+    void DumpSpatialIndex(TABMAPIndexBlock *poNode, FILE *fpOut=NULL, 
+                          const char *pszParentInfo=NULL, int nMaxDepth=-1);
 #endif
 
 };

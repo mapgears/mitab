@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.32 2005-10-06 19:15:31 dmorissette Exp $
+ * $Id: mitab_mapfile.cpp,v 1.33 2006-09-05 23:05:08 dmorissette Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.32  2005-10-06 19:15:31  dmorissette
+ * Revision 1.33  2006-09-05 23:05:08  dmorissette
+ * Added TABMAPFile::DumpSpatialIndex() (bug 1585)
+ *
+ * Revision 1.32  2005/10/06 19:15:31  dmorissette
  * Collections: added support for reading/writing pen/brush/symbol ids and
  * for writing collection objects to .TAB/.MAP (bug 1126)
  *
@@ -1948,6 +1951,98 @@ void TABMAPFile::Dump(FILE *fpOut /*=NULL*/)
         m_poIdIndex->Dump(fpOut);
         fprintf(fpOut, "... end of ID file dump.\n\n");
     }
+
+    fflush(fpOut);
+}
+
+#endif // DEBUG
+
+
+/**********************************************************************
+ *                   TABMAPFile::DumpSpatialIndex()
+ *
+ * Dump the spatial index tree... available only in DEBUG mode.
+ **********************************************************************/
+#ifdef DEBUG
+
+void TABMAPFile::DumpSpatialIndex(TABMAPIndexBlock *poNode, 
+                                  FILE *fpOut /*=NULL*/, 
+                                  const char *pszParentInfo /*=NULL*/, 
+                                  int nMaxDepth /*=-1*/)
+{
+    if (poNode == NULL)
+    {
+        if (m_poHeader && m_poHeader->m_nFirstIndexBlock != 0)
+        {
+            TABRawBinBlock *poBlock;
+
+            poBlock = GetIndexObjectBlock(m_poHeader->m_nFirstIndexBlock);
+            if (poBlock && poBlock->GetBlockType() == TABMAP_INDEX_BLOCK)
+                poNode = (TABMAPIndexBlock *)poBlock;
+        }
+
+        if (poNode == NULL)
+            return;
+    }
+
+    if (fpOut == NULL)
+        fpOut = stdout;
+
+    if (pszParentInfo == NULL)
+        pszParentInfo = "";
+
+    /*-------------------------------------------------------------
+     * Report info on current tree node
+     *------------------------------------------------------------*/
+    int numEntries = poNode->GetNumEntries();
+    GInt32 nXMin, nYMin, nXMax, nYMax;
+
+    poNode->RecomputeMBR();
+    poNode->GetMBR(nXMin, nYMin, nXMax, nYMax);
+
+    char *pszNodeInfo = CPLStrdup(CPLSPrintf("%s / [%d] (%d, %d)-(%d, %d)", 
+                                             pszParentInfo, 
+                                             poNode->GetStartAddress(), 
+                                             nXMin, nYMin, nXMax, nYMax));
+    VSIFPrintf(fpOut, "%s\n", pszNodeInfo);
+
+    if (nMaxDepth != 0)
+    {
+        /*-------------------------------------------------------------
+         * Loop through all entries, dumping each of them
+         *------------------------------------------------------------*/
+        for(int i=0; i<numEntries; i++)
+        {
+            TABMAPIndexEntry *psEntry = poNode->GetEntry(i);
+
+            TABRawBinBlock *poBlock;
+            poBlock = GetIndexObjectBlock( psEntry->nBlockPtr );
+            if( poBlock == NULL )
+                continue;
+
+            if( poBlock->GetBlockType() == TABMAP_INDEX_BLOCK )
+            {
+                /* Index block, dump recursively */
+                DumpSpatialIndex((TABMAPIndexBlock *)poBlock, 
+                                 fpOut, pszNodeInfo, nMaxDepth-1);
+            }
+            else
+            {
+                /* Object block, dump only extents */
+                CPLAssert( poBlock->GetBlockType() == TABMAP_OBJECT_BLOCK );
+        
+                VSIFPrintf(fpOut, "%s / [obj:%d] (%d, %d)-(%d, %d)\n", 
+                           pszNodeInfo, psEntry->nBlockPtr, 
+                           psEntry->XMin, psEntry->YMin,
+                           psEntry->XMax, psEntry->YMax);
+            }
+
+            delete poBlock;
+        }
+
+    }
+
+    CPLFree(pszNodeInfo);
 
     fflush(fpOut);
 }

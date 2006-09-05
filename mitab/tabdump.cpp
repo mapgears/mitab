@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.14 2005-03-22 23:24:54 dmorissette Exp $
+ * $Id: tabdump.cpp,v 1.15 2006-09-05 23:05:51 dmorissette Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.14  2005-03-22 23:24:54  dmorissette
+ * Revision 1.15  2006-09-05 23:05:51  dmorissette
+ * Added -spatialindex option to call TABMAPFile::DumpSpatialIndex() (bug 1585)
+ *
+ * Revision 1.14  2005/03/22 23:24:54  dmorissette
  * Added support for datum id in .MAP header (bug 910)
  *
  * Revision 1.13  2004/06/30 20:29:04  dmorissette
@@ -81,6 +84,7 @@
 
 static int DumpMapFileBlocks(const char *pszFname);
 static int DumpMapFileObjects(const char *pszFname);
+static int DumpMapFileIndexTree(const char *pszFname, int nMaxDepth);
 static int DumpMapFileBlockDetails(const char *pszFname, int nOffset);
 
 static int DumpIndFileObjects(const char *pszFname);
@@ -101,7 +105,10 @@ static int DumpViaSpatialIndex(const char *pszFname,
   "       tabdump -d|-details <filename> <block_offset>\n" \
   "       tabdump -o|-objects <filename>\n" \
   "       tabdump -i|-index   <filename> <indexno> <val>\n" \
-  "       tabdump -e|-envelope <filename> <xmin> <ymin> <ymax> <ymax>\n"
+  "       tabdump -s|-spatialindex <filename> [maxdepth]\n" \
+  "       tabdump -e|-envelope <filename> <xmin> <ymin> <ymax> <ymax>\n" \
+  "       tabdump -c|-coordsys <filename>\n" \
+  "       tabdump -Cc|-Ccoordsys <filename>\n"
 
 /**********************************************************************
  *                          main()
@@ -189,6 +196,22 @@ int main(int argc, char *argv[])
         }
     }
 /*---------------------------------------------------------------------
+ *      With option -spatialindex <filename> [maxdepth]
+ *      Dump Spatial Index Tree of .MAP file
+ *--------------------------------------------------------------------*/
+    else if (EQUALN(argv[1], "-spatialindex", 2))
+    {
+
+        if (strstr(pszFname, ".map") != NULL ||
+            strstr(pszFname, ".MAP") != NULL)
+        {
+            if (argc >= 4)
+                DumpMapFileIndexTree(pszFname, atoi(argv[3]));
+            else
+                DumpMapFileIndexTree(pszFname, -1);
+        }
+    }
+/*---------------------------------------------------------------------
  *      With option -all <filename>
  *      Dump the whole TAB dataset (all supported files)
  *--------------------------------------------------------------------*/
@@ -217,10 +240,10 @@ int main(int argc, char *argv[])
         }
     }
 /*---------------------------------------------------------------------
- *      With option -s <filename>
+ *      With option -Ccoordsys <filename>
  *      Dump the dataset's coordsys and bounds info in a C struct format
  *--------------------------------------------------------------------*/
-    else if (EQUALN(argv[1], "-s", 2))
+    else if (EQUALN(argv[1], "-Ccoordsys", 3))
     {
 
         if (strstr(pszFname, ".tab") != NULL ||
@@ -359,6 +382,37 @@ static int DumpMapFileObjects(const char *pszFname)
     {
 
     }
+
+    /*---------------------------------------------------------------------
+     * Cleanup and exit.
+     *--------------------------------------------------------------------*/
+    oMAPFile.Close();
+
+    return 0;
+}
+
+/**********************************************************************
+ *                          DumpMapFileIndexTree()
+ *
+ * Open a .MAP file and dump the index tree
+ **********************************************************************/
+static int DumpMapFileIndexTree(const char *pszFname, int nMaxDepth)
+{
+    TABMAPFile  oMAPFile;
+
+    /*---------------------------------------------------------------------
+     * Try to open source file
+     *--------------------------------------------------------------------*/
+    if (oMAPFile.Open(pszFname, "rb") != 0)
+    {
+        printf("Failed to open %s\n", pszFname);
+        return -1;
+    }
+
+    /*---------------------------------------------------------------------
+     * Dump spatial Index Tree
+     *--------------------------------------------------------------------*/
+    oMAPFile.DumpSpatialIndex(NULL, NULL, NULL, nMaxDepth);
 
     /*---------------------------------------------------------------------
      * Cleanup and exit.

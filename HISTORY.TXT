@@ -13,6 +13,9 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Fixed problem with null brush bg color becoming black when parsing
+  style strings (bug 1603)
+
 
 Version 1.5.1 (2006-07-25)
 --------------------------
@@ -733,5 +736,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.166 2006-07-25 13:24:47 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.167 2006-10-17 14:36:40 dmorissette Exp $
 ------------

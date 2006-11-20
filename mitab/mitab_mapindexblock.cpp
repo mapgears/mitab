@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapindexblock.cpp,v 1.9 2004-06-30 20:29:04 dmorissette Exp $
+ * $Id: mitab_mapindexblock.cpp,v 1.10 2006-11-20 20:05:58 dmorissette Exp $
  *
  * Name:     mitab_mapindexblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,14 @@
  **********************************************************************
  *
  * $Log: mitab_mapindexblock.cpp,v $
- * Revision 1.9  2004-06-30 20:29:04  dmorissette
+ * Revision 1.10  2006-11-20 20:05:58  dmorissette
+ * First pass at improving generation of spatial index in .map file (bug 1585)
+ * New methods for insertion and splittung in the spatial index are done.
+ * Also implemented a method to dump the spatial index to .mif/.mid
+ * Still need to implement splitting of TABMapObjectBlock to get optimal
+ * results.
+ *
+ * Revision 1.9  2004/06/30 20:29:04  dmorissette
  * Fixed refs to old address danmo@videotron.ca
  *
  * Revision 1.8  2001/09/14 03:23:55  warmerda
@@ -451,6 +458,91 @@ int     TABMAPIndexBlock::InsertEntry(GInt32 nXMin, GInt32 nYMin,
 }
 
 /**********************************************************************
+ *                   TABMAPIndexBlock::ChooseSubEntryForInsert()
+ *
+ * Select the entry in this index block in which the new entry should 
+ * be inserted. The criteria used is to select the node whose MBR needs
+ * the least enlargement to include the new entry. We resolve ties by
+ * chosing the entry with the rectangle of smallest area.
+ * (This is the ChooseSubtree part of Guttman's "ChooseLeaf" algorithm.)
+ *
+ * Returns the index of the best candidate or -1 of node is empty.
+ **********************************************************************/
+int     TABMAPIndexBlock::ChooseSubEntryForInsert(GInt32 nXMin, GInt32 nYMin,
+                                                  GInt32 nXMax, GInt32 nYMax)
+{
+    GInt32 i, nBestCandidate=-1;
+
+    double dOptimalAreaDiff=0;
+
+    double dNewEntryArea = MITAB_AREA(nXMin, nYMin, nXMax, nYMax);
+
+    for(i=0; i<m_numEntries; i++)
+    {
+        double dAreaDiff = 0;
+        double dAreaBefore = MITAB_AREA(m_asEntries[i].XMin,
+                                        m_asEntries[i].YMin,
+                                        m_asEntries[i].XMax,
+                                        m_asEntries[i].YMax);
+
+        /* Does this entry fully contain the new entry's MBR ?
+         */
+        GBool bIsContained = (nXMin >= m_asEntries[i].XMin &&
+                              nYMin >= m_asEntries[i].YMin &&
+                              nXMax <= m_asEntries[i].XMax &&
+                              nYMax <= m_asEntries[i].YMax );
+
+        if (bIsContained)
+        {
+            /* If new entry is fully contained in this entry then
+             * the area difference will be the difference between the area
+             * of the entry to insert and the area of m_asEntries[i]
+             *
+             * The diff value is negative in this case.
+             */
+            dAreaDiff = dNewEntryArea - dAreaBefore;
+        }
+        else
+        {
+            /* Need to calculate the expanded MBR to calculate the area
+             * difference.
+             */
+            GInt32 nXMin2, nYMin2, nXMax2, nYMax2;
+            nXMin2 = MIN(m_asEntries[i].XMin, nXMin);
+            nYMin2 = MIN(m_asEntries[i].YMin, nYMin);
+            nXMax2 = MAX(m_asEntries[i].XMax, nXMax);
+            nYMax2 = MAX(m_asEntries[i].YMax, nYMax);
+
+            dAreaDiff = MITAB_AREA(nXMin2,nYMin2,nXMax2,nYMax2) - dAreaBefore;
+        }
+
+        /* Is this a better candidate?
+         * Note, possible Optimization: In case of tie, we could to pick the 
+         * candidate with the smallest area
+         */
+
+        if (/* No best candidate yet */
+            (nBestCandidate == -1)
+            /* or current candidate is contained and best candidate is not contained */
+            || (dAreaDiff < 0 && dOptimalAreaDiff >= 0)
+            /* or if both are either contained or not contained then use the one
+             * with the smallest area diff, which means maximum coverage in the case
+             * of contained rects, or minimum area increase when not contained 
+             */
+            || (((dOptimalAreaDiff < 0 && dAreaDiff < 0) ||
+                 (dOptimalAreaDiff > 0 && dAreaDiff > 0)) && 
+                ABS(dAreaDiff) < ABS(dOptimalAreaDiff)) )
+        {
+            nBestCandidate = i;
+            dOptimalAreaDiff = dAreaDiff;
+        }
+
+    }
+
+    return nBestCandidate;
+}
+
+/**********************************************************************
  *                   TABMAPIndexBlock::AddEntry()
  *
  * Recursively search the tree until we encounter the best leaf to
@@ -470,7 +562,6 @@ int     TABMAPIndexBlock::AddEntry(GInt32 nXMin, GInt32 nYMin,
                                    GInt32 nBlockPtr,
                                    GBool bAddInThisNodeOnly /*=FALSE*/)
 {
-    int i;
     GBool bFound = FALSE;
 
     if (m_eAccess != TABWrite && m_eAccess != TABReadWrite)
@@ -495,9 +586,6 @@ int     TABMAPIndexBlock::AddEntry(GInt32 nXMin, GInt32 nYMin,
 
     /*-----------------------------------------------------------------
      * Look for the best candidate to contain the new entry
-     * __TODO__ For now we'll just look for the first entry that can 
-     *          contain the MBR, but we could probably have a better
-     *          search criteria to optimize the resulting tree
      *----------------------------------------------------------------*/
 
     /*-----------------------------------------------------------------
@@ -507,29 +595,8 @@ int     TABMAPIndexBlock::AddEntry(GInt32 nXMin, GInt32 nYMin,
     if (bAddInThisNodeOnly)
         bFound = TRUE;
 
-    /*-----------------------------------------------------------------
-     * First check if current child could be a valid candidate.
-     *----------------------------------------------------------------*/
-    if (!bFound &&
-        m_poCurChild && (m_asEntries[m_nCurChildIndex].XMin <= nXMin &&
-                         m_asEntries[m_nCurChildIndex].XMax >= nXMax &&
-                         m_asEntries[m_nCurChildIndex].YMin <= nYMin &&
-                         m_asEntries[m_nCurChildIndex].YMax >= nYMax ) )
+    if (!bFound && m_numEntries > 0)
     {
-
-        bFound = TRUE;
-    }
-
-    /*-----------------------------------------------------------------
-     * Scan all entries to find a valid candidate
-     * We look for the entry whose center is the closest to the center
-     * of the object to add.
-     *----------------------------------------------------------------*/
-    if (!bFound)
-    {
-        int nObjCenterX = (nXMin + nXMax)/2;
-        int nObjCenterY = (nYMin + nYMax)/2;
-
         // Make sure blocks currently in memory are written to disk.
         if (m_poCurChild)
         {
@@ -539,25 +606,10 @@ int     TABMAPIndexBlock::AddEntry(GInt32 nXMin, GInt32 nYMin,
             m_nCurChildIndex = -1;
         }
 
-        // Look for entry whose center is closest to center of new object
-        int nBestCandidate = -1;
-        int nMinDist = 2000000000;
+        int nBestCandidate = ChooseSubEntryForInsert(nXMin,nYMin,nXMax,nYMax);
+       
+        CPLAssert(nBestCandidate != -1);
 
-        for(i=0; i<m_numEntries; i++)
-        {
-            int nX = (m_asEntries[i].XMin + m_asEntries[i].XMax)/2;
-            int nY = (m_asEntries[i].YMin + m_asEntries[i].YMax)/2;
-
-            int nDist = (nX-nObjCenterX)*(nX-nObjCenterX) +
-                             (nY-nObjCenterY)*(nY-nObjCenterY);
-
-            if (nBestCandidate==-1 || nDist < nMinDist)
-            {
-                nBestCandidate = i;
-                nMinDist = nDist;
-            }
-        }
-        
         if (nBestCandidate != -1)
         {
             // Try to load corresponding child... if it fails then we are
@@ -617,7 +669,7 @@ int     TABMAPIndexBlock::AddEntry(GInt32 nXMin, GInt32 nYMin,
                  * after splitting we just redirect the call to the new
                  * child that's just been created.
                  *----------------------------------------------------*/
-                if (SplitRootNode((nXMin+nXMax)/2, (nYMin+nYMax)/2) != 0)
+                if (SplitRootNode(nXMin, nYMin, nXMax, nYMax) != 0)
                     return -1;  // Error happened and has already been reported
 
                 CPLAssert(m_poCurChild);
@@ -629,7 +681,7 @@ int     TABMAPIndexBlock::AddEntry(GInt32 nXMin, GInt32 nYMin,
                 /*-----------------------------------------------------
                  * Splitting a regular node
                  *----------------------------------------------------*/
-                if (SplitNode((nXMin+nXMax)/2, (nYMin+nYMax)/2) != 0)
+                if (SplitNode(nXMin, nYMin, nXMax, nYMax) != 0)
                     return -1; 
             }
         }
@@ -647,33 +699,87 @@ int     TABMAPIndexBlock::AddEntry(GInt32 nXMin, GInt32 nYMin,
 }
 
 /**********************************************************************
+ *                   TABMAPIndexBlock::ComputeAreaDiff()
+ *
+ * Compute the area difference between two MBRs. Used in the SplitNode
+ * algorithm to decide to which of the two nodes an entry should be added.
+ *
+ * The returned AreaDiff value is positive if NodeMBR has to be enlarged
+ * and negative if new Entry is fully contained in the NodeMBR.
+ **********************************************************************/
+double  TABMAPIndexBlock::ComputeAreaDiff(GInt32 nNodeXMin, GInt32 nNodeYMin,
+                                          GInt32 nNodeXMax, GInt32 nNodeYMax,
+                                          GInt32 nEntryXMin, GInt32 nEntryYMin,
+                                          GInt32 nEntryXMax, GInt32 nEntryYMax)
+{
+
+    double dAreaDiff=0;
+
+    double dNodeAreaBefore = MITAB_AREA(nNodeXMin,
+                                        nNodeYMin,
+                                        nNodeXMax,
+                                        nNodeYMax);
+
+    /* Does the node fully contain the new entry's MBR ?
+     */
+    GBool bIsContained = (nEntryXMin >= nNodeXMin &&
+                          nEntryYMin >= nNodeYMin &&
+                          nEntryXMax <= nNodeXMax &&
+                          nEntryYMax <= nNodeYMax );
+
+    if (bIsContained)
+    {
+        /* If new entry is fully contained in this entry then
+         * the area difference will be the difference between the area
+         * of the entry to insert and the area of the node
+         */
+        dAreaDiff = MITAB_AREA(nEntryXMin, nEntryYMin, 
+                               nEntryXMax, nEntryYMax) - dNodeAreaBefore;
+    }
+    else
+    {
+        /* Need to calculate the expanded MBR to calculate the area
+         * difference.
+         */
+        nNodeXMin = MIN(nNodeXMin, nEntryXMin);
+        nNodeYMin = MIN(nNodeYMin, nEntryYMin);
+        nNodeXMax = MAX(nNodeXMax, nEntryXMax);
+        nNodeYMax = MAX(nNodeYMax, nEntryYMax);
+
+        dAreaDiff = MITAB_AREA(nNodeXMin,nNodeYMin,
+                               nNodeXMax,nNodeYMax) - dNodeAreaBefore;
+    }
+
+    return dAreaDiff;
+}
+
+
+
+/**********************************************************************
  *                   TABMAPIndexBlock::SplitNode()
  *
  * Split current Node, update the references in the parent node, etc.
  * Note that Root Nodes cannot be split using this method... SplitRootNode()
  * should be used instead.
  *
- * nNewEntryX, nNewEntryY are the coord. of the center of the new entry that 
+ * nNewEntry* are the coord. of the new entry that 
  * will be added after the split.  The split is done so that the current
  * node will be the one in which the new object should be stored.
  *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
-int     TABMAPIndexBlock::SplitNode(int nNewEntryX, int nNewEntryY)
+int     TABMAPIndexBlock::SplitNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
+                                    GInt32 nNewEntryXMax, GInt32 nNewEntryYMax)
 {
-    int nSrcEntries = m_numEntries;
-    int nWidth, nHeight, nCenterX1, nCenterY1, nCenterX2, nCenterY2;
+    int nWidth, nHeight;
 
     CPLAssert(m_poBlockManagerRef);
 
+    nWidth = ABS(m_nMaxX - m_nMinX);
+    nHeight = ABS(m_nMaxY - m_nMinY);
+
     /*-----------------------------------------------------------------
-     * Create a 2nd node, and assign both nodes a MBR that is half
-     * of the biggest dimension (width or height) of the current node's MBR
-     *
-     * We also want to keep this node's current child in here.
-     * Since splitting happens only during an addentry() operation and 
-     * then both the current child and nNewEntryX/Y should fit in the same
-     * area.
+     * Create a 2nd node
      *----------------------------------------------------------------*/
     TABMAPIndexBlock *poNewNode = new TABMAPIndexBlock(m_eAccess);
     if (poNewNode->InitNewBlock(m_fp, 512, 
@@ -683,118 +789,237 @@ int     TABMAPIndexBlock::SplitNode(int nNewEntryX, int nNewEntryY)
     }
     poNewNode->SetMAPBlockManagerRef(m_poBlockManagerRef);
 
+    /*-----------------------------------------------------------------
+     * Make a temporary copy of the entries in current node
+     *----------------------------------------------------------------*/
+    int nSrcEntries = m_numEntries;
+    TABMAPIndexEntry *pasSrcEntries = (TABMAPIndexEntry*)CPLMalloc(m_numEntries*sizeof(TABMAPIndexEntry));
+    memcpy(pasSrcEntries, &m_asEntries, m_numEntries*sizeof(TABMAPIndexEntry));
 
-    nWidth = ABS(m_nMaxX - m_nMinX);
-    nHeight = ABS(m_nMaxY - m_nMinY);
+    int nSrcCurChildIndex = m_nCurChildIndex;
 
-    if (nWidth > nHeight)
+    /*-----------------------------------------------------------------
+     * Pick the seeds for each node. Guttman's LinearPickSeed:
+     * - Along each dimension find the entry whose rectangle has the 
+     *   highest low side, and the one with the lowest high side
+     * - Calculate the separation for each pair
+     * - Normalize the separation by dividing by the extents of the 
+     *   corresponding dimension
+     * - Choose the pair with the greatest normalized separation along
+     *   any dimension
+     *----------------------------------------------------------------*/
+    int nSeed1=-1, nSeed2=-1;
+    int nLowestMaxX=-1, nHighestMinX=-1, nLowestMaxY=-1, nHighestMinY=-1;
+    GInt32 nLowestMaxXId=-1, nHighestMinXId=-1, nLowestMaxYId=-1, nHighestMinYId=-1;
+
+    // Along each dimension find the entry whose rectangle has the 
+    // highest low side, and the one with the lowest high side
+    for(int iEntry=0; iEntry<nSrcEntries; iEntry++)
     {
-        // Split node horizontally
-        nCenterY1 = nCenterY2 = m_nMinY + nHeight/2;
+        if (nLowestMaxXId == -1 ||
+            m_asEntries[iEntry].XMax < nLowestMaxX)
+        {
+            nLowestMaxX = m_asEntries[iEntry].XMax;
+            nLowestMaxXId = iEntry;
+        }
 
-        if (nNewEntryX < (m_nMinX + m_nMaxX)/2)
+        if (nHighestMinXId == -1 ||
+            m_asEntries[iEntry].XMin > nHighestMinX)
         {
-            nCenterX1 = m_nMinX + nWidth/4;
-            nCenterX2 = m_nMaxX - nWidth/4;
+            nHighestMinX = m_asEntries[iEntry].XMin;
+            nHighestMinXId = iEntry;
         }
-        else
+
+        if (nLowestMaxYId == -1 ||
+            m_asEntries[iEntry].YMax < nLowestMaxY)
         {
-            nCenterX2 = m_nMinX + nWidth/4;
-            nCenterX1 = m_nMaxX - nWidth/4;
+            nLowestMaxY = m_asEntries[iEntry].YMax;
+            nLowestMaxYId = iEntry;
         }
+
+        if (nHighestMinYId == -1 ||
+            m_asEntries[iEntry].YMin > nHighestMinY)
+        {
+            nHighestMinY = m_asEntries[iEntry].YMin;
+            nHighestMinYId = iEntry;
+        }
+
+    }
+
+    // Calculate the separation for each pair (note that it may be negative
+    // in case of overlap)
+    // Normalize the separation by dividing by the extents of the 
+    // corresponding dimension
+    double dX, dY;
+
+    dX = (double)(nHighestMinX - nLowestMaxX) / nWidth;
+    dY = (double)(nHighestMinY - nLowestMaxY) / nHeight;
+
+    // Choose the pair with the greatest normalized separation along
+    // any dimension
+    if (dX > dY)
+    {
+        nSeed1 = nHighestMinXId;
+        nSeed2 = nLowestMaxXId;
     }
     else
     {
-        // Split node vertically
-        nCenterX1 = nCenterX2 = m_nMinX + nWidth/2;
-
-        if (nNewEntryY < (m_nMinY + m_nMaxY)/2)
-        {
-            nCenterY1 = m_nMinY + nHeight/4;
-            nCenterY2 = m_nMaxY - nHeight/4;
-        }
-        else
-        {
-            nCenterY2 = m_nMinY + nHeight/4;
-            nCenterY1 = m_nMaxY - nHeight/4;
-        }
+        nSeed1 = nHighestMinYId;
+        nSeed2 = nLowestMaxYId;
     }
 
+    // If nSeed1==nSeed2 then just pick any two (giving pref to current child)
+    if (nSeed1 == nSeed2)
+    {
+        if (nSeed1 != nSrcCurChildIndex && nSrcCurChildIndex != -1)
+            nSeed1 = nSrcCurChildIndex;
+        else if (nSeed1 != 0)
+            nSeed1 = 0;
+        else
+            nSeed1 = 1;
+    }
+
+    // Decide which of the two seeds best matches the new entry. That seed and
+    // the new entry will stay in current node (new entry will be added by the
+    // caller later). The other seed will go in the 2nd node
+    double dAreaDiff1, dAreaDiff2;
+    dAreaDiff1 = ComputeAreaDiff(m_asEntries[nSeed1].XMin, 
+                                 m_asEntries[nSeed1].YMin,
+                                 m_asEntries[nSeed1].XMax,
+                                 m_asEntries[nSeed1].YMax,
+                                 nNewEntryXMin, nNewEntryYMin,
+                                 nNewEntryXMax, nNewEntryYMax);
+
+    dAreaDiff2 = ComputeAreaDiff(m_asEntries[nSeed2].XMin, 
+                                 m_asEntries[nSeed2].YMin,
+                                 m_asEntries[nSeed2].XMax,
+                                 m_asEntries[nSeed2].YMax,
+                                 nNewEntryXMin, nNewEntryYMin,
+                                 nNewEntryXMax, nNewEntryYMax);
+
     /*-----------------------------------------------------------------
-     * Go through all entries and assign them to one of the 2 nodes.
-     *
-     * Criteria is that entries are assigned to the node in which their
-     * center falls.
-     *
-     * Hummm... this does not prevent the possibility that one of the
-     * 2 nodes might end up empty at the end.
+     * Reset number of entries in this node and start moving new entries
      *----------------------------------------------------------------*/
     m_numEntries = 0;
+
+
+    /* Note that we want to keep this node's current child in here.
+     * Since splitting happens only during an addentry() operation and 
+     * then both the current child and the New Entry should fit in the same
+     * area.
+     */
+    if (nSeed1 != nSrcCurChildIndex && 
+        (dAreaDiff1 > dAreaDiff2 || nSeed2 == nSrcCurChildIndex))
+    {
+        // Seed2 stays in this node, Seed1 moves to new node
+        // ... swap Seed1 and Seed2 indices
+        int nTmp = nSeed1;
+        nSeed1 = nSeed2;
+        nSeed2 = nTmp;
+    }
+
+    // Insert nSeed1 in this node
+    InsertEntry(pasSrcEntries[nSeed1].XMin, 
+                pasSrcEntries[nSeed1].YMin,
+                pasSrcEntries[nSeed1].XMax, 
+                pasSrcEntries[nSeed1].YMax,
+                pasSrcEntries[nSeed1].nBlockPtr);
+
+    // Move nSeed2 to 2nd node
+    poNewNode->InsertEntry(pasSrcEntries[nSeed2].XMin, 
+                           pasSrcEntries[nSeed2].YMin,
+                           pasSrcEntries[nSeed2].XMax, 
+                           pasSrcEntries[nSeed2].YMax,
+                           pasSrcEntries[nSeed2].nBlockPtr);
+
+    // Update cur child index if necessary
+    if (nSeed1 == nSrcCurChildIndex)
+        m_nCurChildIndex = m_numEntries-1;
+
+    /*-----------------------------------------------------------------
+     * Go through the rest of the entries and assign them to one 
+     * of the 2 nodes.
+     *
+     * Criteria is minimal area difference.
+     * Resolve ties by adding the entry to the node with smaller total
+     * area, then to the one with fewer entries, then to either.
+     *----------------------------------------------------------------*/
     for(int iEntry=0; iEntry<nSrcEntries; iEntry++)
     {
-        int nEntryCenterX = (m_asEntries[iEntry].XMax +
-                             m_asEntries[iEntry].XMin) / 2;
-        int nEntryCenterY = (m_asEntries[iEntry].YMax +
-                             m_asEntries[iEntry].YMin) / 2;
+        if (iEntry == nSeed1 || iEntry == nSeed2)
+            continue;
 
-        if (iEntry == m_nCurChildIndex ||
-            (nWidth > nHeight && 
-             ABS(nEntryCenterX-nCenterX1) < ABS(nEntryCenterX-nCenterX2)) ||
-            (nWidth <= nHeight &&
-             ABS(nEntryCenterY-nCenterY1) < ABS(nEntryCenterY-nCenterY2) ) )
+        // If one of the two nodes is almost full then all remaining
+        // entries should go to the other node
+        // The entry corresponding to the current child also automatically
+        // stays in this node.
+        if (iEntry == nSrcCurChildIndex)
         {
-            // This entry stays in current node.
-            InsertEntry(m_asEntries[iEntry].XMin, m_asEntries[iEntry].YMin,
-                        m_asEntries[iEntry].XMax, m_asEntries[iEntry].YMax,
-                        m_asEntries[iEntry].nBlockPtr);
+            InsertEntry(pasSrcEntries[iEntry].XMin, 
+                        pasSrcEntries[iEntry].YMin,
+                        pasSrcEntries[iEntry].XMax, 
+                        pasSrcEntries[iEntry].YMax,
+                        pasSrcEntries[iEntry].nBlockPtr);
 
-            // We have to keep track of new m_nCurChildIndex value
-            if (iEntry == m_nCurChildIndex) 
-            {
-                m_nCurChildIndex = m_numEntries-1;
-            }
+            // Update current child index
+            m_nCurChildIndex = m_numEntries-1;
+
+            continue;
+
+        }
+        else if (m_numEntries >= TAB_MAX_ENTRIES_INDEX_BLOCK-1)
+        {
+            poNewNode->InsertEntry(pasSrcEntries[iEntry].XMin, 
+                                   pasSrcEntries[iEntry].YMin,
+                                   pasSrcEntries[iEntry].XMax, 
+                                   pasSrcEntries[iEntry].YMax,
+                                   pasSrcEntries[iEntry].nBlockPtr);
+            continue;
+        }
+        else if (poNewNode->GetNumEntries() >= TAB_MAX_ENTRIES_INDEX_BLOCK-1)
+        {
+            InsertEntry(pasSrcEntries[iEntry].XMin, 
+                        pasSrcEntries[iEntry].YMin,
+                        pasSrcEntries[iEntry].XMax, 
+                        pasSrcEntries[iEntry].YMax,
+                        pasSrcEntries[iEntry].nBlockPtr);
+            continue;
+        }
+
+
+        // Decide which of the two nodes to put this entry in
+        RecomputeMBR();
+        dAreaDiff1 = ComputeAreaDiff(m_nMinX, m_nMinY, m_nMaxX, m_nMaxY,
+                                     pasSrcEntries[iEntry].XMin, 
+                                     pasSrcEntries[iEntry].YMin,
+                                     pasSrcEntries[iEntry].XMax,
+                                     pasSrcEntries[iEntry].YMax);
+
+        GInt32 nXMin2, nYMin2, nXMax2, nYMax2;
+        poNewNode->RecomputeMBR();
+        poNewNode->GetMBR(nXMin2, nYMin2, nXMax2, nYMax2);
+        dAreaDiff2 = ComputeAreaDiff(nXMin2, nYMin2, nXMax2, nYMax2,
+                                     pasSrcEntries[iEntry].XMin, 
+                                     pasSrcEntries[iEntry].YMin,
+                                     pasSrcEntries[iEntry].XMax,
+                                     pasSrcEntries[iEntry].YMax);
+        if (dAreaDiff1 < dAreaDiff2)
+        {
+            // This entry stays in this node
+            InsertEntry(pasSrcEntries[iEntry].XMin, 
+                        pasSrcEntries[iEntry].YMin,
+                        pasSrcEntries[iEntry].XMax, 
+                        pasSrcEntries[iEntry].YMax,
+                        pasSrcEntries[iEntry].nBlockPtr);
         }
         else
         {
-            // This entry goes in the new node.
-            poNewNode->InsertEntry(m_asEntries[iEntry].XMin, 
-                                   m_asEntries[iEntry].YMin,
-                                   m_asEntries[iEntry].XMax, 
-                                   m_asEntries[iEntry].YMax,
-                                   m_asEntries[iEntry].nBlockPtr);
-        }
-    }
-
-    /*-----------------------------------------------------------------
-     * If no entry was moved to second node, then move ALL entries except
-     * the current child to the second node... this way current node will
-     * have room for a new entry when this function exits.
-     *----------------------------------------------------------------*/
-    if (poNewNode->GetNumEntries() == 0)
-    {
-        nSrcEntries = m_numEntries;
-        m_numEntries = 0;
-        for(int iEntry=0; iEntry<nSrcEntries; iEntry++)
-        {
-            if (iEntry == m_nCurChildIndex)
-            {
-                // Keep current child in current node
-                InsertEntry(m_asEntries[iEntry].XMin, 
-                            m_asEntries[iEntry].YMin,
-                            m_asEntries[iEntry].XMax,
-                            m_asEntries[iEntry].YMax,
-                            m_asEntries[iEntry].nBlockPtr);
-                m_nCurChildIndex = m_numEntries-1;
-            }
-            else
-            {
-                // All other entries go to second node
-                poNewNode->InsertEntry(m_asEntries[iEntry].XMin, 
-                                       m_asEntries[iEntry].YMin,
-                                       m_asEntries[iEntry].XMax, 
-                                       m_asEntries[iEntry].YMax,
-                                       m_asEntries[iEntry].nBlockPtr);
-            }
+            // This entry goes to new node
+            poNewNode->InsertEntry(pasSrcEntries[iEntry].XMin, 
+                                   pasSrcEntries[iEntry].YMin,
+                                   pasSrcEntries[iEntry].XMax, 
+                                   pasSrcEntries[iEntry].YMax,
+                                   pasSrcEntries[iEntry].nBlockPtr);
         }
     }
 
@@ -816,6 +1041,8 @@ int     TABMAPIndexBlock::SplitNode(int nNewEntryX, int nNewEntryY)
     poNewNode->CommitToFile();
     delete poNewNode;
 
+    CPLFree(pasSrcEntries);
+
     return 0;
 }
 
@@ -831,7 +1058,8 @@ int     TABMAPIndexBlock::SplitNode(int nNewEntryX, int nNewEntryY)
  *
  * Returns 0 on success, -1 on error
  **********************************************************************/
-int TABMAPIndexBlock::SplitRootNode(int nNewEntryX, int nNewEntryY)
+int TABMAPIndexBlock::SplitRootNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
+                                    GInt32 nNewEntryXMax, GInt32 nNewEntryYMax)
 {
     CPLAssert(m_poBlockManagerRef);
     CPLAssert(m_poParentRef == NULL);
@@ -890,7 +1118,8 @@ int TABMAPIndexBlock::SplitRootNode(int nNewEntryX, int nNewEntryY)
     /*-----------------------------------------------------------------
      * And finally force the child to split itself
      *----------------------------------------------------------------*/
-    return m_poCurChild->SplitNode(nNewEntryX, nNewEntryY);
+    return m_poCurChild->SplitNode(nNewEntryXMin, nNewEntryYMin,
+                                   nNewEntryXMax, nNewEntryYMax);
 }
 
 
@@ -1044,5 +1273,6 @@ void TABMAPIndexBlock::Dump(FILE *fpOut /*=NULL*/)
 
     fflush(fpOut);
 }
-
 #endif // DEBUG
+
+

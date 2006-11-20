@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.41 2006-09-05 23:05:08 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.42 2006-11-20 20:05:58 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,14 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.41  2006-09-05 23:05:08  dmorissette
+ * Revision 1.42  2006-11-20 20:05:58  dmorissette
+ * First pass at improving generation of spatial index in .map file (bug 1585)
+ * New methods for insertion and splittung in the spatial index are done.
+ * Also implemented a method to dump the spatial index to .mif/.mid
+ * Still need to implement splitting of TABMapObjectBlock to get optimal
+ * results.
+ *
+ * Revision 1.41  2006/09/05 23:05:08  dmorissette
  * Added TABMAPFile::DumpSpatialIndex() (bug 1585)
  *
  * Revision 1.40  2005/10/06 19:15:31  dmorissette
@@ -942,14 +949,22 @@ class TABMAPIndexBlock: public TABRawBinBlock
     TABMAPIndexBlock *GetCurChild() { return m_poCurChild; }
     TABMAPIndexBlock *GetParentRef() { return m_poParentRef; } 
 
-    int         SplitNode(int nNewEntryX, int nNewEntryY);
-    int         SplitRootNode(int nNewEntryX, int nNewEntryY);
+    int         SplitNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
+                          GInt32 nNewEntryXMax, GInt32 nNewEntryYMax);
+    int         SplitRootNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
+                              GInt32 nNewEntryXMax, GInt32 nNewEntryYMax);
     void        UpdateCurChildMBR(GInt32 nXMin, GInt32 nYMin,
                                   GInt32 nXMax, GInt32 nYMax,
                                   GInt32 nBlockPtr);
     void        RecomputeMBR();
     int         InsertEntry(GInt32 XMin, GInt32 YMin,
                             GInt32 XMax, GInt32 YMax, GInt32 nBlockPtr);
+    int         ChooseSubEntryForInsert(GInt32 nXMin, GInt32 nYMin,
+                                        GInt32 nXMax, GInt32 nYMax);
+    double      ComputeAreaDiff(GInt32 nNodeXMin, GInt32 nNodeYMin,
+                                GInt32 nNodeXMax, GInt32 nNodeYMax,
+                                GInt32 nEntryXMin, GInt32 nEntryYMin,
+                                GInt32 nEntryXMax, GInt32 nEntryYMax);
 #ifdef DEBUG
     virtual void Dump(FILE *fpOut = NULL);
 #endif
@@ -1296,8 +1311,12 @@ class TABMAPFile
 
 #ifdef DEBUG
     void Dump(FILE *fpOut = NULL);
-    void DumpSpatialIndex(TABMAPIndexBlock *poNode, FILE *fpOut=NULL, 
-                          const char *pszParentInfo=NULL, int nMaxDepth=-1);
+    void DumpSpatialIndexToMIF(TABMAPIndexBlock *poNode, 
+                               FILE *fpMIF, FILE *fpMID, 
+                               int nIndexInNode=-1, 
+                               int nParentId=-1, 
+                               int nCurDepth=0,
+                               int nMaxDepth=-1);
 #endif
 
 };

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.85 2006-07-25 13:24:47 dmorissette Exp $
+ * $Id: mitab.h,v 1.86 2006-11-20 20:05:58 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,14 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.85  2006-07-25 13:24:47  dmorissette
+ * Revision 1.86  2006-11-20 20:05:58  dmorissette
+ * First pass at improving generation of spatial index in .map file (bug 1585)
+ * New methods for insertion and splittung in the spatial index are done.
+ * Also implemented a method to dump the spatial index to .mif/.mid
+ * Still need to implement splitting of TABMapObjectBlock to get optimal
+ * results.
+ *
+ * Revision 1.85  2006/07/25 13:24:47  dmorissette
  * Updated for 1.5.1 release
  *
  * Revision 1.84  2006/07/25 13:22:58  dmorissette
@@ -112,6 +119,9 @@
 #ifndef ROUND_INT
 #  define ROUND_INT(dX) ((int)((dX) < 0.0 ? (dX)-0.5 : (dX)+0.5 ))
 #endif
+
+
+#define MITAB_AREA(x1, y1, x2, y2)  ((double)((x2)-(x1))*(double)((y2)-(y1)))
 
 class TABFeature;
 

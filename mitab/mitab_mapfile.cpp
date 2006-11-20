@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.33 2006-09-05 23:05:08 dmorissette Exp $
+ * $Id: mitab_mapfile.cpp,v 1.34 2006-11-20 20:05:58 dmorissette Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,14 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.33  2006-09-05 23:05:08  dmorissette
+ * Revision 1.34  2006-11-20 20:05:58  dmorissette
+ * First pass at improving generation of spatial index in .map file (bug 1585)
+ * New methods for insertion and splittung in the spatial index are done.
+ * Also implemented a method to dump the spatial index to .mif/.mid
+ * Still need to implement splitting of TABMapObjectBlock to get optimal
+ * results.
+ *
+ * Revision 1.33  2006/09/05 23:05:08  dmorissette
  * Added TABMAPFile::DumpSpatialIndex() (bug 1585)
  *
  * Revision 1.32  2005/10/06 19:15:31  dmorissette
@@ -1959,16 +1966,18 @@ void TABMAPFile::Dump(FILE *fpOut /*=NULL*/)
 
 
 /**********************************************************************
- *                   TABMAPFile::DumpSpatialIndex()
+ *                   TABMAPFile::DumpSpatialIndexToMIF()
  *
  * Dump the spatial index tree... available only in DEBUG mode.
  **********************************************************************/
 #ifdef DEBUG
 
-void TABMAPFile::DumpSpatialIndex(TABMAPIndexBlock *poNode, 
-                                  FILE *fpOut /*=NULL*/, 
-                                  const char *pszParentInfo /*=NULL*/, 
-                                  int nMaxDepth /*=-1*/)
+void TABMAPFile::DumpSpatialIndexToMIF(TABMAPIndexBlock *poNode, 
+                                       FILE *fpMIF, FILE *fpMID, 
+                                       int nParentId /*=-1*/, 
+                                       int nIndexInNode /*=-1*/,
+                                       int nCurDepth /*=0*/,
+                                       int nMaxDepth /*=-1*/)
 {
     if (poNode == NULL)
     {
@@ -1985,26 +1994,29 @@ void TABMAPFile::DumpSpatialIndex(TABMAPIndexBlock *poNode,
             return;
     }
 
-    if (fpOut == NULL)
-        fpOut = stdout;
-
-    if (pszParentInfo == NULL)
-        pszParentInfo = "";
 
     /*-------------------------------------------------------------
      * Report info on current tree node
      *------------------------------------------------------------*/
     int numEntries = poNode->GetNumEntries();
     GInt32 nXMin, nYMin, nXMax, nYMax;
+    double dXMin, dYMin, dXMax, dYMax;
 
     poNode->RecomputeMBR();
     poNode->GetMBR(nXMin, nYMin, nXMax, nYMax);
 
-    char *pszNodeInfo = CPLStrdup(CPLSPrintf("%s / [%d] (%d, %d)-(%d, %d)", 
-                                             pszParentInfo, 
-                                             poNode->GetStartAddress(), 
-                                             nXMin, nYMin, nXMax, nYMax));
-    VSIFPrintf(fpOut, "%s\n", pszNodeInfo);
+    Int2Coordsys(nXMin, nYMin, dXMin, dYMin);
+    Int2Coordsys(nXMax, nYMax, dXMax, dYMax);
+
+    VSIFPrintf(fpMIF, "RECT %g %g %g %g\n", dXMin, dYMin, dXMax, dYMax);
+               
+    VSIFPrintf(fpMID, "%d,%d,%d,%d,%g,%d,%d,%d,%d\n", 
+               poNode->GetStartAddress(),
+               nParentId,
+               nIndexInNode,
+               nCurDepth,
+               MITAB_AREA(nXMin, nYMin, nXMax, nYMax),
+               nXMin, nYMin, nXMax, nYMax);
 
     if (nMaxDepth != 0)
     {
@@ -2023,16 +2035,28 @@ void TABMAPFile::DumpSpatialIndex(TABMAPIndexBlock *poNode,
             if( poBlock->GetBlockType() == TABMAP_INDEX_BLOCK )
             {
                 /* Index block, dump recursively */
-                DumpSpatialIndex((TABMAPIndexBlock *)poBlock, 
-                                 fpOut, pszNodeInfo, nMaxDepth-1);
+                DumpSpatialIndexToMIF((TABMAPIndexBlock *)poBlock, 
+                                      fpMIF, fpMID, 
+                                      poNode->GetStartAddress(), 
+                                      i, nCurDepth+1, nMaxDepth-1);
             }
             else
             {
-                /* Object block, dump only extents */
+                /* Object block, dump directly */
                 CPLAssert( poBlock->GetBlockType() == TABMAP_OBJECT_BLOCK );
         
-                VSIFPrintf(fpOut, "%s / [obj:%d] (%d, %d)-(%d, %d)\n", 
-                           pszNodeInfo, psEntry->nBlockPtr, 
+                Int2Coordsys(psEntry->XMin, psEntry->YMin, dXMin, dYMin);
+                Int2Coordsys(psEntry->XMax, psEntry->YMax, dXMax, dYMax);
+
+                VSIFPrintf(fpMIF, "RECT %g %g %g %g\n", dXMin, dYMin, dXMax, dYMax);
+
+                VSIFPrintf(fpMID, "%d,%d,%d,%d,%g,%d,%d,%d,%d\n", 
+                           psEntry->nBlockPtr,
+                           poNode->GetStartAddress(),
+                           i,
+                           nCurDepth+1,
+                           MITAB_AREA(psEntry->XMin, psEntry->YMin,
+                                      psEntry->XMax, psEntry->YMax),
                            psEntry->XMin, psEntry->YMin,
                            psEntry->XMax, psEntry->YMax);
             }
@@ -2042,9 +2066,6 @@ void TABMAPFile::DumpSpatialIndex(TABMAPIndexBlock *poNode,
 
     }
 
-    CPLFree(pszNodeInfo);
-
-    fflush(fpOut);
 }
 
 #endif // DEBUG

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.15 2006-09-05 23:05:51 dmorissette Exp $
+ * $Id: tabdump.cpp,v 1.16 2006-11-20 20:05:58 dmorissette Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,14 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.15  2006-09-05 23:05:51  dmorissette
+ * Revision 1.16  2006-11-20 20:05:58  dmorissette
+ * First pass at improving generation of spatial index in .map file (bug 1585)
+ * New methods for insertion and splittung in the spatial index are done.
+ * Also implemented a method to dump the spatial index to .mif/.mid
+ * Still need to implement splitting of TABMapObjectBlock to get optimal
+ * results.
+ *
+ * Revision 1.15  2006/09/05 23:05:51  dmorissette
  * Added -spatialindex option to call TABMAPFile::DumpSpatialIndex() (bug 1585)
  *
  * Revision 1.14  2005/03/22 23:24:54  dmorissette
@@ -84,7 +91,7 @@
 
 static int DumpMapFileBlocks(const char *pszFname);
 static int DumpMapFileObjects(const char *pszFname);
-static int DumpMapFileIndexTree(const char *pszFname, int nMaxDepth);
+static int DumpMapFileIndexTree2MIF(const char *pszFname, int nMaxDepth);
 static int DumpMapFileBlockDetails(const char *pszFname, int nOffset);
 
 static int DumpIndFileObjects(const char *pszFname);
@@ -206,9 +213,9 @@ int main(int argc, char *argv[])
             strstr(pszFname, ".MAP") != NULL)
         {
             if (argc >= 4)
-                DumpMapFileIndexTree(pszFname, atoi(argv[3]));
+                DumpMapFileIndexTree2MIF(pszFname, atoi(argv[3]));
             else
-                DumpMapFileIndexTree(pszFname, -1);
+                DumpMapFileIndexTree2MIF(pszFname, -1);
         }
     }
 /*---------------------------------------------------------------------
@@ -391,14 +398,16 @@ static int DumpMapFileObjects(const char *pszFname)
     return 0;
 }
 
+
 /**********************************************************************
- *                          DumpMapFileIndexTree()
+ *                          DumpMapFileIndexTree2MIF()
  *
- * Open a .MAP file and dump the index tree
+ * Open a .MAP file and dump the index tree to a .MIF file
  **********************************************************************/
-static int DumpMapFileIndexTree(const char *pszFname, int nMaxDepth)
+static int DumpMapFileIndexTree2MIF(const char *pszFname, int nMaxDepth)
 {
     TABMAPFile  oMAPFile;
+    FILE *fpMIF, *fpMID;
 
     /*---------------------------------------------------------------------
      * Try to open source file
@@ -410,14 +419,51 @@ static int DumpMapFileIndexTree(const char *pszFname, int nMaxDepth)
     }
 
     /*---------------------------------------------------------------------
+     * Create MIF/MID dataset
+     *--------------------------------------------------------------------*/
+    if ((fpMIF=VSIFOpen(CPLSPrintf("%s.spindex.mif",pszFname),"wt"))==NULL)
+    {
+        printf("Unable to create %s\n", CPLSPrintf("%s.spindex.mif",pszFname));
+        return -1;
+    }
+
+    if ((fpMID=VSIFOpen(CPLSPrintf("%s.spindex.mid",pszFname),"wt"))==NULL)
+    {
+        printf("Unable to create %s\n", CPLSPrintf("%s.spindex.mid",pszFname));
+        return -1;
+    }
+
+    printf("Dumping spatial index from %s to %s.spindex.mif/.mid\n", 
+           pszFname, pszFname);
+
+    VSIFPrintf(fpMIF, 
+               "VERSION 300\n"
+               "CHARSET \"Neutral\"\n"
+               "DELIMITER \",\"\n"
+               "COLUMNS 9\n"
+               "  ID        integer\n"
+               "  PARENT_ID integer\n"
+               "  ID_IN_NODE integer\n"
+               "  DEPTH     integer\n"
+               "  AREA      integer\n"
+               "  XMIN      integer\n"
+               "  YMIN      integer\n"
+               "  XMAX      integer\n"
+               "  YMAX      integer\n"
+               "DATA\n");
+
+    /*---------------------------------------------------------------------
      * Dump spatial Index Tree
      *--------------------------------------------------------------------*/
-    oMAPFile.DumpSpatialIndex(NULL, NULL, NULL, nMaxDepth);
+    oMAPFile.DumpSpatialIndexToMIF(NULL, fpMIF, fpMID, -1, -1, 0, nMaxDepth);
 
     /*---------------------------------------------------------------------
      * Cleanup and exit.
      *--------------------------------------------------------------------*/
     oMAPFile.Close();
+
+    VSIFClose(fpMIF);
+    VSIFClose(fpMID);
 
     return 0;
 }

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.13 2006-06-28 10:21:56 dmorissette Exp $
+ * $Id: tab2tab.cpp,v 1.14 2006-11-20 20:05:58 dmorissette Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,14 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.13  2006-06-28 10:21:56  dmorissette
+ * Revision 1.14  2006-11-20 20:05:58  dmorissette
+ * First pass at improving generation of spatial index in .map file (bug 1585)
+ * New methods for insertion and splittung in the spatial index are done.
+ * Also implemented a method to dump the spatial index to .mif/.mid
+ * Still need to implement splitting of TABMapObjectBlock to get optimal
+ * results.
+ *
+ * Revision 1.13  2006/06/28 10:21:56  dmorissette
  * Set dataset bounds only after setting spatialref (bug 1511)
  *
  * Revision 1.12  2004/06/30 20:29:04  dmorissette
@@ -76,7 +83,8 @@
 #include "mitab.h"
 #include <ctype.h>
 
-static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname);
+static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname,
+                   int nMaxFeatures);
 
 
 /**********************************************************************
@@ -86,6 +94,7 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname);
 int main(int argc, char *argv[])
 {
     const char  *pszSrcFname, *pszDstFname;
+    int nMaxFeatures = -1;
 
 /*---------------------------------------------------------------------
  *      Read program arguments.
@@ -93,7 +102,7 @@ int main(int argc, char *argv[])
     if (argc<3)
     {
         printf("\nTAB2TAB Conversion Program - MITAB Version %s\n\n", MITAB_VERSION);
-        printf("Usage: tab2tab <src_filename> <dst_filename>\n");
+        printf("Usage: tab2tab <src_filename> <dst_filename> [num_features]\n");
         printf("    Converts TAB or MIF file <src_filename> to TAB or MIF format.\n");
         printf("    The extension of <dst_filename> (.tab or .mif) defines the output format.\n\n");
         printf("For the latest version of this program and of the library, see: \n");
@@ -106,8 +115,12 @@ int main(int argc, char *argv[])
         pszDstFname = argv[2];
     }
     
+    if (argc > 3)
+    {
+        nMaxFeatures = atoi(argv[3]);
+    }
 
-    return Tab2Tab(pszSrcFname, pszDstFname);
+    return Tab2Tab(pszSrcFname, pszDstFname, nMaxFeatures);
 }
 
 
@@ -116,10 +129,11 @@ int main(int argc, char *argv[])
  *
  * Copy features from source dataset to a new dataset
  **********************************************************************/
-static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
+static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname,
+                   int nMaxFeatures)
 {
     IMapInfoFile *poSrcFile = NULL, *poDstFile = NULL;
-    int      nFeatureId, iField;
+    int      nFeatureId, iField, numFeatures=0;
     TABFeature *poFeature;
     double dXMin, dYMin, dXMax, dYMax;
 
@@ -214,7 +228,8 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname)
      * Copy objects until EOF is reached
      *--------------------------------------------------------------------*/
     nFeatureId = -1;
-    while ( (nFeatureId = poSrcFile->GetNextFeatureId(nFeatureId)) != -1 )
+    while ( (nFeatureId = poSrcFile->GetNextFeatureId(nFeatureId)) != -1 &&
+            (nMaxFeatures < 1 || numFeatures++ < nMaxFeatures ))
     {
         poFeature = poSrcFile->GetFeatureRef(nFeatureId);
         if (poFeature)

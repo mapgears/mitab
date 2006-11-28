@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapheaderblock.cpp,v 1.31 2005-09-29 20:16:54 dmorissette Exp $
+ * $Id: mitab_mapheaderblock.cpp,v 1.32 2006-11-28 18:49:08 dmorissette Exp $
  *
  * Name:     mitab_mapheaderblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapheaderblock.cpp,v $
- * Revision 1.31  2005-09-29 20:16:54  dmorissette
+ * Revision 1.32  2006-11-28 18:49:08  dmorissette
+ * Completed changes to split TABMAPObjectBlocks properly and produce an
+ * optimal spatial index (bug 1585)
+ *
+ * Revision 1.31  2005/09/29 20:16:54  dmorissette
  *  Support for writing affine projection params in .MAP header (AJD, bug 1155)
  *
  * Revision 1.30  2005/05/12 20:46:15  dmorissette
@@ -254,10 +258,11 @@ TABMAPHeaderBlock::~TABMAPHeaderBlock()
  * Returns 0 if succesful or -1 if an error happened, in which case 
  * CPLError() will have been called.
  **********************************************************************/
-int     TABMAPHeaderBlock::InitBlockFromData(GByte *pabyBuf, int nSize, 
-                                         GBool bMakeCopy /* = TRUE */,
-                                         FILE *fpSrc /* = NULL */, 
-                                         int nOffset /* = 0 */)
+int     TABMAPHeaderBlock::InitBlockFromData(GByte *pabyBuf, 
+                                             int nBlockSize, int nSizeUsed, 
+                                             GBool bMakeCopy /* = TRUE */,
+                                             FILE *fpSrc /* = NULL */, 
+                                             int nOffset /* = 0 */)
 {
     int i, nStatus;
     GInt32 nMagicCookie;
@@ -265,8 +270,10 @@ int     TABMAPHeaderBlock::InitBlockFromData(GByte *pabyBuf, int nSize,
     /*-----------------------------------------------------------------
      * First of all, we must call the base class' InitBlockFromData()
      *----------------------------------------------------------------*/
-    nStatus = TABRawBinBlock::InitBlockFromData(pabyBuf, nSize, bMakeCopy,
-                                            fpSrc, nOffset);
+    nStatus = TABRawBinBlock::InitBlockFromData(pabyBuf, 
+                                                nBlockSize, nSizeUsed,
+                                                bMakeCopy,
+                                                fpSrc, nOffset);
     if (nStatus != 0)   
         return nStatus;
 

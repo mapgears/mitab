@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.66 2006-10-17 14:34:31 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.67 2006-11-28 18:49:07 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.66  2006-10-17 14:34:31  dmorissette
+ * Revision 1.67  2006-11-28 18:49:07  dmorissette
+ * Completed changes to split TABMAPObjectBlocks properly and produce an
+ * optimal spatial index (bug 1585)
+ *
+ * Revision 1.66  2006/10/17 14:34:31  dmorissette
  * Fixed problem with null brush bg color (bug 1603)
  *
  * Revision 1.65  2006/07/25 13:22:58  dmorissette
@@ -500,6 +504,42 @@ int TABFeature::ReadGeometryFromMAPFile(TABMAPFile * /*poMapFile*/,
 
 
 /**********************************************************************
+ *                   TABFeature::UpdateMBR()
+ *
+ * Fetch envelope of poGeom and update MBR.
+ * Integer coord MBR is updated only if poMapFile is not NULL.
+ *
+ * Returns 0 on success, or -1 if there is no geometry in object
+ **********************************************************************/
+int TABFeature::UpdateMBR(TABMAPFile * poMapFile /*=NULL*/)
+{
+    OGRGeometry *poGeom;
+
+    poGeom = GetGeometryRef();
+
+    if (poGeom)
+    {
+        OGREnvelope oEnv;
+        poGeom->getEnvelope(&oEnv);
+
+        m_dXMin = oEnv.MinX;
+        m_dYMin = oEnv.MinY;
+        m_dXMax = oEnv.MaxX;
+        m_dYMax = oEnv.MaxY;
+
+        if (poMapFile)
+        {
+            poMapFile->Coordsys2Int(oEnv.MinX, oEnv.MinY, m_nXMin, m_nYMin);
+            poMapFile->Coordsys2Int(oEnv.MaxX, oEnv.MaxY, m_nXMax, m_nYMax);
+        }
+
+        return 0;
+    }
+
+    return -1;
+}
+
+/**********************************************************************
  *                   TABFeature::ValidateCoordType()
  *
  * Checks the feature envelope to establish if the feature should be
@@ -515,19 +555,12 @@ int TABFeature::ReadGeometryFromMAPFile(TABMAPFile * /*poMapFile*/,
 GBool TABFeature::ValidateCoordType(TABMAPFile * poMapFile)
 {
     GBool bCompr = FALSE;
-    OGRGeometry *poGeom;
-
-    poGeom = GetGeometryRef();
 
     /*-------------------------------------------------------------
      * Decide if coordinates should be compressed or not.
      *------------------------------------------------------------*/
-    if (poGeom && poMapFile)
+    if (UpdateMBR(poMapFile) == 0)
     {
-        OGREnvelope oEnv;
-        poGeom->getEnvelope(&oEnv);
-        poMapFile->Coordsys2Int(oEnv.MinX, oEnv.MinY, m_nXMin, m_nYMin);
-        poMapFile->Coordsys2Int(oEnv.MaxX, oEnv.MaxY, m_nXMax, m_nYMax);
         if ((m_nXMax - m_nXMin) < 65536 && (m_nYMax-m_nYMin) < 65536)
         {
             bCompr = TRUE;
@@ -535,7 +568,6 @@ GBool TABFeature::ValidateCoordType(TABMAPFile * poMapFile)
         m_nComprOrgX = (m_nXMin + m_nXMax) / 2;
         m_nComprOrgY = (m_nYMin + m_nYMax) / 2;
     }
-
 
     /*-------------------------------------------------------------
      * Adjust native type
@@ -748,6 +780,8 @@ int  TABPoint::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
         m_nMapInfoType = TAB_GEOM_NONE;
     }
 
+    UpdateMBR(poMapFile);
+
     return m_nMapInfoType;
 }
 
@@ -766,32 +800,16 @@ int  TABPoint::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
 int TABPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
                                       TABMAPObjHdr *poObjHdr)
 {
-    GInt32              nX, nY;
     double              dX, dY;
     OGRGeometry         *poGeometry;
-    TABMAPObjectBlock   *poObjBlock;
-    GBool               bComprCoord;
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry type
      *----------------------------------------------------------------*/
     m_nMapInfoType = poMapFile->GetCurObjType();
 
-    poObjBlock = poMapFile->GetCurObjBlock();
-
-    bComprCoord = (m_nMapInfoType == TAB_GEOM_SYMBOL_C);
-
-    /*-----------------------------------------------------------------
-     * Read object information
-     *----------------------------------------------------------------*/
-    if (m_nMapInfoType == TAB_GEOM_SYMBOL ||
-        m_nMapInfoType == TAB_GEOM_SYMBOL_C )
-    {
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-        m_nSymbolDefIndex = poObjBlock->ReadByte();   // Symbol index
-        poMapFile->ReadSymbolDef(m_nSymbolDefIndex, &m_sSymbolDef);
-    }
-    else
+    if (m_nMapInfoType != TAB_GEOM_SYMBOL &&
+        m_nMapInfoType != TAB_GEOM_SYMBOL_C )
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
            "ReadGeometryFromMAPFile(): unsupported geometry type %d (0x%2.2x)",
@@ -800,9 +818,18 @@ int TABPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
     }
 
     /*-----------------------------------------------------------------
+     * Read object information
+     *----------------------------------------------------------------*/
+    TABMAPObjPoint *poPointHdr = (TABMAPObjPoint *)poObjHdr;
+
+    m_nSymbolDefIndex = poPointHdr->m_nSymbolId;   // Symbol index
+
+    poMapFile->ReadSymbolDef(m_nSymbolDefIndex, &m_sSymbolDef);
+    
+    /*-----------------------------------------------------------------
      * Create and fill geometry object
      *----------------------------------------------------------------*/
-    poMapFile->Int2Coordsys(nX, nY, dX, dY);
+    poMapFile->Int2Coordsys(poPointHdr->m_nX, poPointHdr->m_nY, dX, dY);
     poGeometry = new OGRPoint(dX, dY);
     
     SetGeometryDirectly(poGeometry);
@@ -1076,60 +1103,16 @@ TABFeature *TABFontPoint::CloneTABFeature(OGRFeatureDefn *poNewDefn /*=NULL*/)
 int TABFontPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
                                           TABMAPObjHdr *poObjHdr)
 {
-    GInt32              nX, nY;
     double              dX, dY;
     OGRGeometry         *poGeometry;
-    TABMAPObjectBlock   *poObjBlock;
-    GBool               bComprCoord;
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry type
      *----------------------------------------------------------------*/
     m_nMapInfoType = poMapFile->GetCurObjType();
 
-    poObjBlock = poMapFile->GetCurObjBlock();
-
-    bComprCoord = (m_nMapInfoType == TAB_GEOM_FONTSYMBOL_C );
-
-    /*-----------------------------------------------------------------
-     * Read object information
-     * NOTE: This symbol type does not contain a reference to a
-     * SymbolDef block in the file, but we still use the m_sSymbolDef
-     * structure to store the information inside the class so that the
-     * ITABFeatureSymbol methods work properly for the class user.
-     *----------------------------------------------------------------*/
-    if (m_nMapInfoType == TAB_GEOM_FONTSYMBOL ||
-        m_nMapInfoType == TAB_GEOM_FONTSYMBOL_C )
-    {
-        m_nSymbolDefIndex = -1;
-        m_sSymbolDef.nRefCount = 0;
-
-        m_sSymbolDef.nSymbolNo  = poObjBlock->ReadByte();  // shape
-        m_sSymbolDef.nPointSize = poObjBlock->ReadByte();  // point size
-
-        m_nFontStyle            = poObjBlock->ReadInt16();  // font style
-
-        m_sSymbolDef.rgbColor   = poObjBlock->ReadByte()*256*256 +
-                                  poObjBlock->ReadByte()*256 +
-                                  poObjBlock->ReadByte();
-
-        poObjBlock->ReadByte();         // ??? BG Color ???
-        poObjBlock->ReadByte();         // ???
-        poObjBlock->ReadByte();         // ???
-
-        /*-------------------------------------------------------------
-         * Symbol Angle, in thenths of degree.
-         * Contrary to arc start/end angles, no conversion based on 
-         * origin quadrant is required here
-         *------------------------------------------------------------*/
-        m_dAngle       = poObjBlock->ReadInt16()/10.0;
-
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-
-        m_nFontDefIndex = poObjBlock->ReadByte();      // Font name index
-        poMapFile->ReadFontDef(m_nFontDefIndex, &m_sFontDef);
-    }
-    else
+    if (m_nMapInfoType != TAB_GEOM_FONTSYMBOL &&
+        m_nMapInfoType != TAB_GEOM_FONTSYMBOL_C )
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
            "ReadGeometryFromMAPFile(): unsupported geometry type %d (0x%2.2x)",
@@ -1138,9 +1121,41 @@ int TABFontPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
     }
 
     /*-----------------------------------------------------------------
+     * Read object information
+     * NOTE: This symbol type does not contain a reference to a
+     * SymbolDef block in the file, but we still use the m_sSymbolDef
+     * structure to store the information inside the class so that the
+     * ITABFeatureSymbol methods work properly for the class user.
+     *----------------------------------------------------------------*/
+    TABMAPObjFontPoint *poPointHdr = (TABMAPObjFontPoint *)poObjHdr;
+
+    m_nSymbolDefIndex = -1;
+    m_sSymbolDef.nRefCount = 0;
+
+    m_sSymbolDef.nSymbolNo  = poPointHdr->m_nSymbolId;  // shape
+    m_sSymbolDef.nPointSize = poPointHdr->m_nPointSize; // point size
+
+    m_nFontStyle            = poPointHdr->m_nFontStyle; // font style
+
+    m_sSymbolDef.rgbColor   = (poPointHdr->m_nR*256*256 +
+                               poPointHdr->m_nG*256 +
+                               poPointHdr->m_nB);
+
+    /*-------------------------------------------------------------
+     * Symbol Angle, in thenths of degree.
+     * Contrary to arc start/end angles, no conversion based on 
+     * origin quadrant is required here
+     *------------------------------------------------------------*/
+    m_dAngle       = poPointHdr->m_nAngle/10.0;
+
+    m_nFontDefIndex = poPointHdr->m_nFontId;      // Font name index
+
+    poMapFile->ReadFontDef(m_nFontDefIndex, &m_sFontDef);
+
+    /*-----------------------------------------------------------------
      * Create and fill geometry object
      *----------------------------------------------------------------*/
-    poMapFile->Int2Coordsys(nX, nY, dX, dY);
+    poMapFile->Int2Coordsys(poPointHdr->m_nX, poPointHdr->m_nY, dX, dY);
     poGeometry = new OGRPoint(dX, dY);
     
     SetGeometryDirectly(poGeometry);
@@ -1381,40 +1396,16 @@ TABFeature *TABCustomPoint::CloneTABFeature(OGRFeatureDefn *poNewDefn/*=NULL*/)
 int TABCustomPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
                                             TABMAPObjHdr *poObjHdr)
 {
-    GInt32              nX, nY;
     double              dX, dY;
     OGRGeometry         *poGeometry;
-    TABMAPObjectBlock   *poObjBlock;
-    GBool               bComprCoord;
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry type
      *----------------------------------------------------------------*/
     m_nMapInfoType = poMapFile->GetCurObjType();
 
-    poObjBlock = poMapFile->GetCurObjBlock();
-
-    bComprCoord = (m_nMapInfoType == TAB_GEOM_CUSTOMSYMBOL_C);
-
-    /*-----------------------------------------------------------------
-     * Read object information
-     *----------------------------------------------------------------*/
-    if (m_nMapInfoType == TAB_GEOM_CUSTOMSYMBOL ||
-        m_nMapInfoType == TAB_GEOM_CUSTOMSYMBOL_C )
-    {
-        m_nUnknown_    = poObjBlock->ReadByte();  // ??? 
-        m_nCustomStyle = poObjBlock->ReadByte();  // 0x01=Show BG,
-                                                  // 0x02=Apply Color
-
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-
-        m_nSymbolDefIndex = poObjBlock->ReadByte();   // Symbol index
-        poMapFile->ReadSymbolDef(m_nSymbolDefIndex, &m_sSymbolDef);
-
-        m_nFontDefIndex = poObjBlock->ReadByte();    // Font index
-        poMapFile->ReadFontDef(m_nFontDefIndex, &m_sFontDef);
-    }
-    else
+    if (m_nMapInfoType != TAB_GEOM_CUSTOMSYMBOL &&
+        m_nMapInfoType != TAB_GEOM_CUSTOMSYMBOL_C )
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
            "ReadGeometryFromMAPFile(): unsupported geometry type %d (0x%2.2x)",
@@ -1423,9 +1414,24 @@ int TABCustomPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
     }
 
     /*-----------------------------------------------------------------
+     * Read object information
+     *----------------------------------------------------------------*/
+    TABMAPObjCustomPoint *poPointHdr = (TABMAPObjCustomPoint *)poObjHdr;
+
+    m_nUnknown_    = poPointHdr->m_nUnknown_;   // ??? 
+    m_nCustomStyle = poPointHdr->m_nCustomStyle;// 0x01=Show BG,
+                                                // 0x02=Apply Color
+
+    m_nSymbolDefIndex = poPointHdr->m_nSymbolId;   // Symbol index
+    poMapFile->ReadSymbolDef(m_nSymbolDefIndex, &m_sSymbolDef);
+
+    m_nFontDefIndex = poPointHdr->m_nFontId;    // Font index
+    poMapFile->ReadFontDef(m_nFontDefIndex, &m_sFontDef);
+
+    /*-----------------------------------------------------------------
      * Create and fill geometry object
      *----------------------------------------------------------------*/
-    poMapFile->Int2Coordsys(nX, nY, dX, dY);
+    poMapFile->Int2Coordsys(poPointHdr->m_nX, poPointHdr->m_nY, dX, dY);
     poGeometry = new OGRPoint(dX, dY);
     
     SetGeometryDirectly(poGeometry);
@@ -1738,6 +1744,10 @@ int  TABPolyline::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
     if (m_nMapInfoType != TAB_GEOM_LINE)
     {
         ValidateCoordType(poMapFile);
+    }
+    else
+    {
+        UpdateMBR(poMapFile);
     }
 
     return m_nMapInfoType;
@@ -3552,11 +3562,55 @@ int  TABRectangle::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
      * Decide if coordinates should be compressed or not.
      *----------------------------------------------------------------*/
     // __TODO__ For now we always write uncompressed for this class...
-    // ValidateCoordType(poMapFile);
+    // ValidateCoordType(poMapFile);    
+    UpdateMBR(poMapFile);
 
     return m_nMapInfoType;
 }
 
+/**********************************************************************
+ *                   TABRectangle::UpdateMBR()
+ *
+ * Update the feature MBR members using the geometry
+ *
+ * Returns 0 on success, or -1 if there is no geometry in object
+ **********************************************************************/
+int TABRectangle::UpdateMBR(TABMAPFile * poMapFile /*=NULL*/)
+{
+    OGRGeometry *poGeom;
+    OGREnvelope sEnvelope;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if (poGeom && wkbFlatten(poGeom->getGeometryType()) == wkbPolygon)
+        poGeom->getEnvelope(&sEnvelope);
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABRectangle: Missing or Invalid Geometry!");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * Note that we will simply use the rectangle's MBR and don't really 
+     * read the polygon geometry... this should be OK unless the 
+     * polygon geometry was not really a rectangle.
+     *----------------------------------------------------------------*/
+    m_dXMin = sEnvelope.MinX;
+    m_dYMin = sEnvelope.MinY;
+    m_dXMax = sEnvelope.MaxX;
+    m_dYMax = sEnvelope.MaxY;
+
+    if (poMapFile)
+    {
+        poMapFile->Coordsys2Int(m_dXMin, m_dYMin, m_nXMin, m_nYMin);
+        poMapFile->Coordsys2Int(m_dXMax, m_dYMax, m_nXMax, m_nYMax);
+    }
+
+    return 0;
+}
 
 /**********************************************************************
  *                   TABRectangle::ReadGeometryFromMAPFile()
@@ -3573,73 +3627,65 @@ int  TABRectangle::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
 int TABRectangle::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
                                           TABMAPObjHdr *poObjHdr)
 {
-    GInt32              nX, nY;
     double              dXMin, dYMin, dXMax, dYMax;
     OGRPolygon          *poPolygon;
     OGRLinearRing       *poRing;
-    TABMAPObjectBlock   *poObjBlock;
-    GBool               bComprCoord;
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry type
      *----------------------------------------------------------------*/
     m_nMapInfoType = poMapFile->GetCurObjType();
 
-    poObjBlock = poMapFile->GetCurObjBlock();
-
-    bComprCoord = (m_nMapInfoType == TAB_GEOM_RECT_C ||
-                   m_nMapInfoType == TAB_GEOM_ROUNDRECT_C );
-
-    /*-----------------------------------------------------------------
-     * Read object information
-     *----------------------------------------------------------------*/
-    if (m_nMapInfoType == TAB_GEOM_RECT ||
-        m_nMapInfoType == TAB_GEOM_RECT_C ||
-        m_nMapInfoType == TAB_GEOM_ROUNDRECT ||
-        m_nMapInfoType == TAB_GEOM_ROUNDRECT_C)
-    {
-
-        // Read the corners radius
-
-        if (m_nMapInfoType == TAB_GEOM_ROUNDRECT ||
-            m_nMapInfoType == TAB_GEOM_ROUNDRECT_C)
-        {
-            // Read the corner's diameters
-            nX = bComprCoord? poObjBlock->ReadInt16():poObjBlock->ReadInt32();
-            nY = bComprCoord? poObjBlock->ReadInt16():poObjBlock->ReadInt32();
-            poMapFile->Int2CoordsysDist(nX, nY, 
-                                        m_dRoundXRadius, m_dRoundYRadius);
-            // Divide by 2 since we store the corner's radius
-            m_dRoundXRadius /= 2.0;
-            m_dRoundYRadius /= 2.0;
-
-            m_bRoundCorners = TRUE;
-        }
-        else
-        {
-            m_bRoundCorners = FALSE;
-            m_dRoundXRadius = m_dRoundYRadius = 0.0;
-        }
-
-        // A rectangle is defined by its MBR
-
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-        poMapFile->Int2Coordsys(nX, nY, dXMin, dYMin);
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-        poMapFile->Int2Coordsys(nX, nY, dXMax, dYMax);
-
-        m_nPenDefIndex = poObjBlock->ReadByte();      // Pen index
-        poMapFile->ReadPenDef(m_nPenDefIndex, &m_sPenDef);
-        m_nBrushDefIndex = poObjBlock->ReadByte();    // Brush index
-        poMapFile->ReadBrushDef(m_nBrushDefIndex, &m_sBrushDef);
-    }
-    else
+    if (m_nMapInfoType != TAB_GEOM_RECT &&
+        m_nMapInfoType != TAB_GEOM_RECT_C &&
+        m_nMapInfoType != TAB_GEOM_ROUNDRECT &&
+        m_nMapInfoType != TAB_GEOM_ROUNDRECT_C)
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
            "ReadGeometryFromMAPFile(): unsupported geometry type %d (0x%2.2x)",
                  m_nMapInfoType, m_nMapInfoType);
         return -1;
     }
+
+    /*-----------------------------------------------------------------
+     * Read object information
+     *----------------------------------------------------------------*/
+    TABMAPObjRectEllipse *poRectHdr = (TABMAPObjRectEllipse *)poObjHdr;
+
+    // Read the corners radius
+
+    if (m_nMapInfoType == TAB_GEOM_ROUNDRECT ||
+        m_nMapInfoType == TAB_GEOM_ROUNDRECT_C)
+    {
+        // Read the corner's diameters
+        poMapFile->Int2CoordsysDist(poRectHdr->m_nCornerWidth, 
+                                    poRectHdr->m_nCornerHeight,
+                                    m_dRoundXRadius, m_dRoundYRadius);
+
+        // Divide by 2 since we store the corner's radius
+        m_dRoundXRadius /= 2.0;
+        m_dRoundYRadius /= 2.0;
+
+        m_bRoundCorners = TRUE;
+    }
+    else
+    {
+        m_bRoundCorners = FALSE;
+        m_dRoundXRadius = m_dRoundYRadius = 0.0;
+    }
+
+    // A rectangle is defined by its MBR
+
+    poMapFile->Int2Coordsys(poRectHdr->m_nMinX, poRectHdr->m_nMinY, 
+                            dXMin, dYMin);
+    poMapFile->Int2Coordsys(poRectHdr->m_nMaxX, poRectHdr->m_nMaxY, 
+                            dXMax, dYMax);
+
+    m_nPenDefIndex = poRectHdr->m_nPenId;       // Pen index
+    poMapFile->ReadPenDef(m_nPenDefIndex, &m_sPenDef);
+
+    m_nBrushDefIndex = poRectHdr->m_nBrushId;   // Brush index
+    poMapFile->ReadBrushDef(m_nBrushDefIndex, &m_sBrushDef);
 
     /*-----------------------------------------------------------------
      * Call SetMBR() and GetMBR() now to make sure that min values are
@@ -3711,9 +3757,6 @@ int TABRectangle::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
 int TABRectangle::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                                        TABMAPObjHdr *poObjHdr)
 {
-    OGRGeometry         *poGeom;
-    OGRPolygon          *poPolygon;
-    OGREnvelope         sEnvelope;
 
     /*-----------------------------------------------------------------
      * We assume that ValidateMapInfoType() was called already and that
@@ -3722,24 +3765,13 @@ int TABRectangle::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     CPLAssert(m_nMapInfoType == poObjHdr->m_nType);
 
     /*-----------------------------------------------------------------
-     * Fetch and validate geometry
-     *----------------------------------------------------------------*/
-    poGeom = GetGeometryRef();
-    if (poGeom && wkbFlatten(poGeom->getGeometryType()) == wkbPolygon)
-        poPolygon = (OGRPolygon*)poGeom;
-    else
-    {
-        CPLError(CE_Failure, CPLE_AssertionFailed,
-                 "TABRectangle: Missing or Invalid Geometry!");
-        return -1;
-    }
-
-    /*-----------------------------------------------------------------
-     * Note that we will simply use the rectangle's MBR and don't really 
+     * Fetch and validate geometry and update MBR
+     * Note that we will simply use the geometry's MBR and don't really 
      * read the polygon geometry... this should be OK unless the 
      * polygon geometry was not really a rectangle.
      *----------------------------------------------------------------*/
-    poPolygon->getEnvelope(&sEnvelope);
+    if (UpdateMBR(poMapFile) != 0)
+        return -1;  /* Error already reported */
 
     /*-----------------------------------------------------------------
      * Copy object information
@@ -3758,11 +3790,11 @@ int TABRectangle::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         poRectHdr->m_nCornerWidth = poRectHdr->m_nCornerHeight = 0;
     }
 
-    // A rectangle is defined by its MBR
-    poMapFile->Coordsys2Int(sEnvelope.MinX, sEnvelope.MinY, 
-                            poRectHdr->m_nMinX, poRectHdr->m_nMinY);
-    poMapFile->Coordsys2Int(sEnvelope.MaxX, sEnvelope.MaxY, 
-                            poRectHdr->m_nMaxX, poRectHdr->m_nMaxY);
+    // A rectangle is defined by its MBR (values were set in UpdateMBR())
+    poRectHdr->m_nMinX = m_nXMin;
+    poRectHdr->m_nMinY = m_nYMin;
+    poRectHdr->m_nMaxX = m_nXMax;
+    poRectHdr->m_nMaxY = m_nYMax;
 
     m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
     poRectHdr->m_nPenId = m_nPenDefIndex;      // Pen index
@@ -3972,8 +4004,66 @@ int  TABEllipse::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
      *----------------------------------------------------------------*/
     // __TODO__ For now we always write uncompressed for this class...
     // ValidateCoordType(poMapFile);
+    UpdateMBR(poMapFile);
 
     return m_nMapInfoType;
+}
+
+/**********************************************************************
+ *                   TABEllipse::UpdateMBR()
+ *
+ * Update the feature MBR members using the geometry
+ *
+ * Returns 0 on success, or -1 if there is no geometry in object
+ **********************************************************************/
+int TABEllipse::UpdateMBR(TABMAPFile * poMapFile /*=NULL*/)
+{
+    OGRGeometry *poGeom;
+    OGREnvelope sEnvelope;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry... Polygon and point are accepted.
+     * Note that we will simply use the ellipse's MBR and don't really 
+     * read the polygon geometry... this should be OK unless the 
+     * polygon geometry was not really an ellipse.
+     *----------------------------------------------------------------*/
+    poGeom = GetGeometryRef();
+    if ( (poGeom && wkbFlatten(poGeom->getGeometryType()) == wkbPolygon ) ||
+         (poGeom && wkbFlatten(poGeom->getGeometryType()) == wkbPoint )  )
+        poGeom->getEnvelope(&sEnvelope);
+    else
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "TABEllipse: Missing or Invalid Geometry!");
+        return -1;
+    }
+
+    /*-----------------------------------------------------------------
+     * We use the center of the MBR as the ellipse center, and the 
+     * X/Y radius to define the MBR size.  If X/Y radius are null then
+     * we'll try to use the MBR to recompute them.
+     *----------------------------------------------------------------*/
+    double      dXCenter, dYCenter;
+    dXCenter = (sEnvelope.MaxX + sEnvelope.MinX)/2.0;
+    dYCenter = (sEnvelope.MaxY + sEnvelope.MinY)/2.0;
+    if (m_dXRadius == 0.0 && m_dYRadius == 0.0)
+    {
+        m_dXRadius = ABS(sEnvelope.MaxX - sEnvelope.MinX) / 2.0;
+        m_dYRadius = ABS(sEnvelope.MaxY - sEnvelope.MinY) / 2.0;
+    }
+
+    m_dXMin = dXCenter - m_dXRadius;
+    m_dYMin = dYCenter - m_dYRadius;
+    m_dXMax = dXCenter + m_dXRadius;
+    m_dYMax = dYCenter + m_dYRadius;
+
+    if (poMapFile)
+    {
+        poMapFile->Coordsys2Int(m_dXMin, m_dYMin, m_nXMin, m_nYMin);
+        poMapFile->Coordsys2Int(m_dXMax, m_dYMax, m_nXMax, m_nYMax);
+    }
+
+    return 0;
 }
 
 /**********************************************************************
@@ -3991,48 +4081,41 @@ int  TABEllipse::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
 int TABEllipse::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
                                         TABMAPObjHdr *poObjHdr)
 {
-    GInt32              nX, nY;
     double              dXMin, dYMin, dXMax, dYMax;
     OGRPolygon          *poPolygon;
     OGRLinearRing       *poRing;
-    TABMAPObjectBlock   *poObjBlock;
-    GBool               bComprCoord;
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry type
      *----------------------------------------------------------------*/
     m_nMapInfoType = poMapFile->GetCurObjType();
 
-    poObjBlock = poMapFile->GetCurObjBlock();
-
-    bComprCoord = (m_nMapInfoType == TAB_GEOM_ELLIPSE_C );
-
-    /*-----------------------------------------------------------------
-     * Read object information
-     *----------------------------------------------------------------*/
-    if (m_nMapInfoType == TAB_GEOM_ELLIPSE ||
-        m_nMapInfoType == TAB_GEOM_ELLIPSE_C )
-    {
-
-        // An ellipse is defined by its MBR
-
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-        poMapFile->Int2Coordsys(nX, nY, dXMin, dYMin);
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-        poMapFile->Int2Coordsys(nX, nY, dXMax, dYMax);
-
-        m_nPenDefIndex = poObjBlock->ReadByte();      // Pen index
-        poMapFile->ReadPenDef(m_nPenDefIndex, &m_sPenDef);
-        m_nBrushDefIndex = poObjBlock->ReadByte();    // Brush index
-        poMapFile->ReadBrushDef(m_nBrushDefIndex, &m_sBrushDef);
-    }
-    else
+    if (m_nMapInfoType != TAB_GEOM_ELLIPSE &&
+        m_nMapInfoType != TAB_GEOM_ELLIPSE_C )
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
            "ReadGeometryFromMAPFile(): unsupported geometry type %d (0x%2.2x)",
                  m_nMapInfoType, m_nMapInfoType);
         return -1;
     }
+
+    /*-----------------------------------------------------------------
+     * Read object information
+     *----------------------------------------------------------------*/
+    TABMAPObjRectEllipse *poRectHdr = (TABMAPObjRectEllipse *)poObjHdr;
+
+    // An ellipse is defined by its MBR
+
+    poMapFile->Int2Coordsys(poRectHdr->m_nMinX, poRectHdr->m_nMinY, 
+                            dXMin, dYMin);
+    poMapFile->Int2Coordsys(poRectHdr->m_nMaxX, poRectHdr->m_nMaxY, 
+                            dXMax, dYMax);
+
+    m_nPenDefIndex = poRectHdr->m_nPenId;       // Pen index
+    poMapFile->ReadPenDef(m_nPenDefIndex, &m_sPenDef);
+
+    m_nBrushDefIndex = poRectHdr->m_nBrushId;   // Brush index
+    poMapFile->ReadBrushDef(m_nBrushDefIndex, &m_sBrushDef);
 
     /*-----------------------------------------------------------------
      * Save info about the ellipse def. inside class members
@@ -4082,8 +4165,6 @@ int TABEllipse::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                                        TABMAPObjHdr *poObjHdr)
 {
     TABMAPObjectBlock   *poObjBlock;
-    OGRGeometry         *poGeom;
-    OGREnvelope         sEnvelope;
 
     /*-----------------------------------------------------------------
      * We assume that ValidateMapInfoType() was called already and that
@@ -4098,44 +4179,27 @@ int TABEllipse::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
      * Note that we will simply use the ellipse's MBR and don't really 
      * read the polygon geometry... this should be OK unless the 
      * polygon geometry was not really an ellipse.
-     *----------------------------------------------------------------*/
-    poGeom = GetGeometryRef();
-    if ( (poGeom && wkbFlatten(poGeom->getGeometryType()) == wkbPolygon ) ||
-         (poGeom && wkbFlatten(poGeom->getGeometryType()) == wkbPoint )  )
-        poGeom->getEnvelope(&sEnvelope);
-    else
-    {
-        CPLError(CE_Failure, CPLE_AssertionFailed,
-                 "TABEllipse: Missing or Invalid Geometry!");
-        return -1;
-    }
-
-    /*-----------------------------------------------------------------
-     * Copy object information
      *
      * We use the center of the MBR as the ellipse center, and the 
      * X/Y radius to define the MBR size.  If X/Y radius are null then
      * we'll try to use the MBR to recompute them.
+     *----------------------------------------------------------------*/
+    if (UpdateMBR(poMapFile) != 0)
+        return -1;  /* Error already reported */
+
+    /*-----------------------------------------------------------------
+     * Copy object information
      *----------------------------------------------------------------*/
     TABMAPObjRectEllipse *poRectHdr = (TABMAPObjRectEllipse *)poObjHdr;
 
     // Reset RoundRect Corner members... just in case (unused for ellipse)
     poRectHdr->m_nCornerWidth = poRectHdr->m_nCornerHeight = 0;
 
-    // An ellipse is defined by its MBR
-    double      dXCenter, dYCenter;
-    dXCenter = (sEnvelope.MaxX + sEnvelope.MinX)/2.0;
-    dYCenter = (sEnvelope.MaxY + sEnvelope.MinY)/2.0;
-    if (m_dXRadius == 0.0 && m_dYRadius == 0.0)
-    {
-        m_dXRadius = ABS(sEnvelope.MaxX - sEnvelope.MinX) / 2.0;
-        m_dYRadius = ABS(sEnvelope.MaxY - sEnvelope.MinY);
-    }
-
-    poMapFile->Coordsys2Int(dXCenter - m_dXRadius, dYCenter - m_dYRadius,
-                            poRectHdr->m_nMinX, poRectHdr->m_nMinY);
-    poMapFile->Coordsys2Int(dXCenter + m_dXRadius, dYCenter + m_dYRadius,
-                            poRectHdr->m_nMaxX, poRectHdr->m_nMaxY);
+    // An ellipse is defined by its MBR (values were set in UpdateMBR())
+    poRectHdr->m_nMinX = m_nXMin;
+    poRectHdr->m_nMinY = m_nYMin;
+    poRectHdr->m_nMaxX = m_nXMax;
+    poRectHdr->m_nMaxY = m_nYMax;
 
     m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
     poRectHdr->m_nPenId = m_nPenDefIndex;      // Pen index
@@ -4343,212 +4407,23 @@ int  TABArc::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
      *----------------------------------------------------------------*/
     // __TODO__ For now we always write uncompressed for this class...
     // ValidateCoordType(poMapFile);
+    UpdateMBR(poMapFile);
 
     return m_nMapInfoType;
 }
 
 /**********************************************************************
- *                   TABArc::ReadGeometryFromMAPFile()
+ *                   TABArc::UpdateMBR()
  *
- * Fill the geometry and representation (color, etc...) part of the
- * feature from the contents of the .MAP object pointed to by poMAPFile.
+ * Update the feature MBR members using the geometry
  *
- * It is assumed that poMAPFile currently points to the beginning of
- * a map object.
- *
- * Returns 0 on success, -1 on error, in which case CPLError() will have
- * been called.
+ * Returns 0 on success, or -1 if there is no geometry in object
  **********************************************************************/
-int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
-                                    TABMAPObjHdr *poObjHdr)
+int TABArc::UpdateMBR(TABMAPFile * poMapFile /*=NULL*/)
 {
-    GInt32              nX, nY;
-    double              dXMin, dYMin, dXMax, dYMax;
-    OGRLineString       *poLine;
-    TABMAPObjectBlock   *poObjBlock;
-    GBool               bComprCoord;
-    int                 numPts;
+    OGRGeometry *poGeom;
+    OGREnvelope sEnvelope;
 
-    /*-----------------------------------------------------------------
-     * Fetch and validate geometry type
-     *----------------------------------------------------------------*/
-    m_nMapInfoType = poMapFile->GetCurObjType();
-
-    poObjBlock = poMapFile->GetCurObjBlock();
-
-    bComprCoord = (m_nMapInfoType == TAB_GEOM_ARC_C );
-
-    /*-----------------------------------------------------------------
-     * Read object information
-     *----------------------------------------------------------------*/
-    if (m_nMapInfoType == TAB_GEOM_ARC ||
-        m_nMapInfoType == TAB_GEOM_ARC_C )
-    {
-        /*-------------------------------------------------------------
-         * Start/End angles
-         * Since the angles are specified for integer coordinates, and
-         * that these coordinates can have the X axis reversed, we have to
-         * adjust the angle values for the change in the X axis
-         * direction.
-         *
-         * This should be necessary only when X axis is flipped.
-         * __TODO__ Why is order of start/end values reversed as well???
-         *------------------------------------------------------------*/
-
-        /*-------------------------------------------------------------
-         * OK, Arc angles again!!!!!!!!!!!!
-         * After some tests in 1999-11, it appeared that the angle values
-         * ALWAYS had to be flipped (read order= end angle followed by 
-         * start angle), no matter which quadrant the file is in.
-         * This does not make any sense, so I suspect that there is something
-         * that we are missing here!
-         *
-         * 2000-01-14.... Again!!!  Based on some sample data files:
-         *  File         Ver Quadr  ReflXAxis  Read_Order   Adjust_Angle
-         * test_symb.tab 300    2        1      end,start    X=yes Y=no
-         * alltypes.tab: 300    1        0      start,end    X=no  Y=no
-         * arcs.tab:     300    2        0      end,start    X=yes Y=no
-         *
-         * Until we prove it wrong, the rule would be:
-         *  -> Quadrant 1 and 3, angles order = start, end
-         *  -> Quadrant 2 and 4, angles order = end, start
-         * + Always adjust angles for x and y axis based on quadrant.
-         *
-         * This was confirmed using some more files in which the quadrant was 
-         * manually changed, but whether these are valid results is 
-         * discutable.
-         *
-         * The ReflectXAxis flag seems to have no effect here...
-         *------------------------------------------------------------*/
-
-        /*-------------------------------------------------------------
-         * In version 100 .tab files (version 400 .map), it is possible
-         * to have a quadrant value of 0 and it should be treated the 
-         * same way as quadrant 3
-         *------------------------------------------------------------*/
-        if ( poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==1 ||
-             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
-             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==0  )
-        {
-            // Quadrants 1 and 3 ... read order = start, end
-            m_dStartAngle = poObjBlock->ReadInt16()/10.0;
-            m_dEndAngle = poObjBlock->ReadInt16()/10.0;
-        }
-        else
-        {
-            // Quadrants 2 and 4 ... read order = end, start
-            m_dEndAngle = poObjBlock->ReadInt16()/10.0;
-            m_dStartAngle = poObjBlock->ReadInt16()/10.0;
-        }
-
-        if ( poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==2 ||
-             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
-             poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==0 )
-        {
-            // X axis direction is flipped... adjust angle
-            m_dStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
-                                                 (540.0-m_dStartAngle);
-            m_dEndAngle   = (m_dEndAngle<=180.0) ? (180.0-m_dEndAngle):
-                                               (540.0-m_dEndAngle);
-        }
-
-        if (poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
-            poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==4 ||
-            poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==0 )
-        {
-            // Y axis direction is flipped... this reverses angle direction
-            // Unfortunately we never found any file that contains this case,
-            // but this should be the behavior to expect!!!
-            //
-            // 2000-01-14: some files in which quadrant was set to 3 and 4
-            // manually seemed to confirm that this is the right thing to do.
-            m_dStartAngle = 360.0 - m_dStartAngle;
-            m_dEndAngle = 360.0 - m_dEndAngle;
-        }
-
-        // An arc is defined by its defining ellipse's MBR:
-
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-        poMapFile->Int2Coordsys(nX, nY, dXMin, dYMin);
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-        poMapFile->Int2Coordsys(nX, nY, dXMax, dYMax);
-
-        m_dCenterX = (dXMin + dXMax) / 2.0;
-        m_dCenterY = (dYMin + dYMax) / 2.0;
-        m_dXRadius = ABS( (dXMax - dXMin) / 2.0 );
-        m_dYRadius = ABS( (dYMax - dYMin) / 2.0 );
-
-        // Read the Arc's MBR and use that as this feature's MBR
-
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-        poMapFile->Int2Coordsys(nX, nY, dXMin, dYMin);
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-        poMapFile->Int2Coordsys(nX, nY, dXMax, dYMax);
-
-        SetMBR(dXMin, dYMin, dXMax, dYMax);
-
-        m_nPenDefIndex = poObjBlock->ReadByte();      // Pen index
-        poMapFile->ReadPenDef(m_nPenDefIndex, &m_sPenDef);
-
-
-    }
-    else
-    {
-        CPLError(CE_Failure, CPLE_AssertionFailed,
-           "ReadGeometryFromMAPFile(): unsupported geometry type %d (0x%2.2x)",
-                 m_nMapInfoType, m_nMapInfoType);
-        return -1;
-    }
-
-    /*-----------------------------------------------------------------
-     * Create and fill geometry object
-     * For the OGR geometry, we generate an arc with 2 degrees line
-     * segments.
-     *----------------------------------------------------------------*/
-    poLine = new OGRLineString;
-
-    if (m_dEndAngle < m_dStartAngle)
-        numPts = (int) ABS( ((m_dEndAngle+360.0)-m_dStartAngle)/2.0 ) + 1;
-    else
-        numPts = (int) ABS( (m_dEndAngle-m_dStartAngle)/2.0 ) + 1;
-    numPts = MAX(2, numPts);
-
-    TABGenerateArc(poLine, numPts,
-                   m_dCenterX, m_dCenterY,
-                   m_dXRadius, m_dYRadius,
-                   m_dStartAngle*PI/180.0, m_dEndAngle*PI/180.0);
-
-    SetGeometryDirectly(poLine);
-
-    return 0;
-}
-
-/**********************************************************************
- *                   TABArc::WriteGeometryToMAPFile()
- *
- * Write the geometry and representation (color, etc...) part of the
- * feature to the .MAP object pointed to by poMAPFile.
- *
- * It is assumed that poMAPFile currently points to a valid map object.
- *
- * Returns 0 on success, -1 on error, in which case CPLError() will have
- * been called.
- **********************************************************************/
-int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
-                                       TABMAPObjHdr *poObjHdr)
-{
-    OGRGeometry         *poGeom;
-    OGREnvelope         sEnvelope;
-
-    /*-----------------------------------------------------------------
-     * We assume that ValidateMapInfoType() was called already and that
-     * the type in poObjHdr->m_nType is valid.
-     *----------------------------------------------------------------*/
-    CPLAssert(m_nMapInfoType == poObjHdr->m_nType);
-
-    /*-----------------------------------------------------------------
-     * Fetch and validate geometry
-     *----------------------------------------------------------------*/
     poGeom = GetGeometryRef();
     if ( (poGeom && wkbFlatten(poGeom->getGeometryType()) == wkbLineString ) )
     {
@@ -4597,6 +4472,215 @@ int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         return -1;
     }
 
+    // Update the Arc's MBR
+    m_dXMin = sEnvelope.MinX;
+    m_dYMin = sEnvelope.MinY;
+    m_dXMax = sEnvelope.MaxX;
+    m_dYMax = sEnvelope.MaxY;
+
+    if (poMapFile)
+    {
+        poMapFile->Coordsys2Int(m_dXMin, m_dYMin, m_nXMin, m_nYMin);
+        poMapFile->Coordsys2Int(m_dXMax, m_dYMax, m_nXMax, m_nYMax);
+    }
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABArc::ReadGeometryFromMAPFile()
+ *
+ * Fill the geometry and representation (color, etc...) part of the
+ * feature from the contents of the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to the beginning of
+ * a map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABArc::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
+                                    TABMAPObjHdr *poObjHdr)
+{
+    double              dXMin, dYMin, dXMax, dYMax;
+    OGRLineString       *poLine;
+    int                 numPts;
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry type
+     *----------------------------------------------------------------*/
+    m_nMapInfoType = poMapFile->GetCurObjType();
+
+    if (m_nMapInfoType != TAB_GEOM_ARC &&
+        m_nMapInfoType != TAB_GEOM_ARC_C )
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+           "ReadGeometryFromMAPFile(): unsupported geometry type %d (0x%2.2x)",
+                 m_nMapInfoType, m_nMapInfoType);
+        return -1;
+    }
+
+
+    /*-----------------------------------------------------------------
+     * Read object information
+     *----------------------------------------------------------------*/
+    TABMAPObjArc *poArcHdr = (TABMAPObjArc *)poObjHdr;
+
+    /*-------------------------------------------------------------
+     * Start/End angles
+     * Since the angles are specified for integer coordinates, and
+     * that these coordinates can have the X axis reversed, we have to
+     * adjust the angle values for the change in the X axis
+     * direction.
+     *
+     * This should be necessary only when X axis is flipped.
+     * __TODO__ Why is order of start/end values reversed as well???
+     *------------------------------------------------------------*/
+
+    /*-------------------------------------------------------------
+     * OK, Arc angles again!!!!!!!!!!!!
+     * After some tests in 1999-11, it appeared that the angle values
+     * ALWAYS had to be flipped (read order= end angle followed by 
+     * start angle), no matter which quadrant the file is in.
+     * This does not make any sense, so I suspect that there is something
+     * that we are missing here!
+     *
+     * 2000-01-14.... Again!!!  Based on some sample data files:
+     *  File         Ver Quadr  ReflXAxis  Read_Order   Adjust_Angle
+     * test_symb.tab 300    2        1      end,start    X=yes Y=no
+     * alltypes.tab: 300    1        0      start,end    X=no  Y=no
+     * arcs.tab:     300    2        0      end,start    X=yes Y=no
+     *
+     * Until we prove it wrong, the rule would be:
+     *  -> Quadrant 1 and 3, angles order = start, end
+     *  -> Quadrant 2 and 4, angles order = end, start
+     * + Always adjust angles for x and y axis based on quadrant.
+     *
+     * This was confirmed using some more files in which the quadrant was 
+     * manually changed, but whether these are valid results is 
+     * discutable.
+     *
+     * The ReflectXAxis flag seems to have no effect here...
+     *------------------------------------------------------------*/
+
+    /*-------------------------------------------------------------
+     * In version 100 .tab files (version 400 .map), it is possible
+     * to have a quadrant value of 0 and it should be treated the 
+     * same way as quadrant 3
+     *------------------------------------------------------------*/
+    if ( poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==1 ||
+         poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
+         poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==0  )
+    {
+        // Quadrants 1 and 3 ... read order = start, end
+        m_dStartAngle = poArcHdr->m_nStartAngle/10.0;
+        m_dEndAngle = poArcHdr->m_nEndAngle/10.0;
+    }
+    else
+    {
+        // Quadrants 2 and 4 ... read order = end, start
+        m_dStartAngle = poArcHdr->m_nEndAngle/10.0;
+        m_dEndAngle = poArcHdr->m_nStartAngle/10.0;
+    }
+
+    if ( poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==2 ||
+         poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
+         poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==0 )
+    {
+        // X axis direction is flipped... adjust angle
+        m_dStartAngle = (m_dStartAngle<=180.0) ? (180.0-m_dStartAngle):
+            (540.0-m_dStartAngle);
+        m_dEndAngle   = (m_dEndAngle<=180.0) ? (180.0-m_dEndAngle):
+            (540.0-m_dEndAngle);
+    }
+
+    if (poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==3 ||
+        poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==4 ||
+        poMapFile->GetHeaderBlock()->m_nCoordOriginQuadrant==0 )
+    {
+        // Y axis direction is flipped... this reverses angle direction
+        // Unfortunately we never found any file that contains this case,
+        // but this should be the behavior to expect!!!
+        //
+        // 2000-01-14: some files in which quadrant was set to 3 and 4
+        // manually seemed to confirm that this is the right thing to do.
+        m_dStartAngle = 360.0 - m_dStartAngle;
+        m_dEndAngle = 360.0 - m_dEndAngle;
+    }
+
+    // An arc is defined by its defining ellipse's MBR:
+
+    poMapFile->Int2Coordsys(poArcHdr->m_nArcEllipseMinX, 
+                            poArcHdr->m_nArcEllipseMinY , dXMin, dYMin);
+    poMapFile->Int2Coordsys(poArcHdr->m_nArcEllipseMaxX, 
+                            poArcHdr->m_nArcEllipseMaxY , dXMax, dYMax);
+
+    m_dCenterX = (dXMin + dXMax) / 2.0;
+    m_dCenterY = (dYMin + dYMax) / 2.0;
+    m_dXRadius = ABS( (dXMax - dXMin) / 2.0 );
+    m_dYRadius = ABS( (dYMax - dYMin) / 2.0 );
+
+    // Read the Arc's MBR and use that as this feature's MBR
+    poMapFile->Int2Coordsys(poArcHdr->m_nMinX, poArcHdr->m_nMinY, 
+                            dXMin, dYMin);
+    poMapFile->Int2Coordsys(poArcHdr->m_nMaxX, poArcHdr->m_nMaxY, 
+                            dXMax, dYMax);
+    SetMBR(dXMin, dYMin, dXMax, dYMax);
+
+    m_nPenDefIndex = poArcHdr->m_nPenId;        // Pen index
+    poMapFile->ReadPenDef(m_nPenDefIndex, &m_sPenDef);
+
+
+    /*-----------------------------------------------------------------
+     * Create and fill geometry object
+     * For the OGR geometry, we generate an arc with 2 degrees line
+     * segments.
+     *----------------------------------------------------------------*/
+    poLine = new OGRLineString;
+
+    if (m_dEndAngle < m_dStartAngle)
+        numPts = (int) ABS( ((m_dEndAngle+360.0)-m_dStartAngle)/2.0 ) + 1;
+    else
+        numPts = (int) ABS( (m_dEndAngle-m_dStartAngle)/2.0 ) + 1;
+    numPts = MAX(2, numPts);
+
+    TABGenerateArc(poLine, numPts,
+                   m_dCenterX, m_dCenterY,
+                   m_dXRadius, m_dYRadius,
+                   m_dStartAngle*PI/180.0, m_dEndAngle*PI/180.0);
+
+    SetGeometryDirectly(poLine);
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABArc::WriteGeometryToMAPFile()
+ *
+ * Write the geometry and representation (color, etc...) part of the
+ * feature to the .MAP object pointed to by poMAPFile.
+ *
+ * It is assumed that poMAPFile currently points to a valid map object.
+ *
+ * Returns 0 on success, -1 on error, in which case CPLError() will have
+ * been called.
+ **********************************************************************/
+int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
+                                       TABMAPObjHdr *poObjHdr)
+{
+    /*-----------------------------------------------------------------
+     * We assume that ValidateMapInfoType() was called already and that
+     * the type in poObjHdr->m_nType is valid.
+     *----------------------------------------------------------------*/
+    CPLAssert(m_nMapInfoType == poObjHdr->m_nType);
+
+    /*-----------------------------------------------------------------
+     * Fetch and validate geometry
+     * In the case of ARCs, this is all done inside UpdateMBR()
+     *----------------------------------------------------------------*/
+    if (UpdateMBR(poMapFile) != 0)
+        return -1;  /* Error already reported */
+
     /*-----------------------------------------------------------------
      * Copy object information
      *----------------------------------------------------------------*/
@@ -4622,11 +4706,11 @@ int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                             poArcHdr->m_nArcEllipseMaxX, 
                             poArcHdr->m_nArcEllipseMaxY);
 
-    // Write the Arc's actual MBR
-    poMapFile->Coordsys2Int(sEnvelope.MinX, sEnvelope.MinY, 
-                            poArcHdr->m_nMinX, poArcHdr->m_nMinY);
-    poMapFile->Coordsys2Int(sEnvelope.MaxX, sEnvelope.MaxY, 
-                            poArcHdr->m_nMaxX, poArcHdr->m_nMaxY);
+    // Pass the Arc's actual MBR (values were set in UpdateMBR())
+    poArcHdr->m_nMinX = m_nXMin;
+    poArcHdr->m_nMinY = m_nYMin;
+    poArcHdr->m_nMaxX = m_nXMax;
+    poArcHdr->m_nMaxY = m_nYMax;
 
     m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
     poArcHdr->m_nPenId = m_nPenDefIndex;      // Pen index
@@ -4844,6 +4928,7 @@ int  TABText::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
      *----------------------------------------------------------------*/
     // __TODO__ For now we always write uncompressed for this class...
     // ValidateCoordType(poMapFile);
+    UpdateMBR(poMapFile);
 
     return m_nMapInfoType;
 }
@@ -4865,108 +4950,103 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
 {
     double              dXMin, dYMin, dXMax, dYMax;
     OGRGeometry         *poGeometry;
-    TABMAPObjectBlock   *poObjBlock;
-    GBool               bComprCoord;
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry type
      *----------------------------------------------------------------*/
     m_nMapInfoType = poMapFile->GetCurObjType();
 
-    poObjBlock = poMapFile->GetCurObjBlock();
-
-    bComprCoord = (m_nMapInfoType == TAB_GEOM_TEXT_C);
-
-    if (m_nMapInfoType == TAB_GEOM_TEXT ||
-        m_nMapInfoType == TAB_GEOM_TEXT_C )
-    {
-        /*=============================================================
-         * TEXT
-         *============================================================*/
-        int     nStringLen;
-        GInt32  nCoordBlockPtr;
-        GInt32  nX, nY;
-        double  dJunk;
-        TABMAPCoordBlock        *poCoordBlock;
-
-        /*-------------------------------------------------------------
-         * Read data from poObjBlock
-         *------------------------------------------------------------*/
-        nCoordBlockPtr = poObjBlock->ReadInt32();  // String position
-        nStringLen     = poObjBlock->ReadInt16();  // String length
-        m_nTextAlignment = poObjBlock->ReadInt16();  // just./spacing/arrow
-
-        /*-------------------------------------------------------------
-         * Text Angle, in thenths of degree.
-         * Contrary to arc start/end angles, no conversion based on 
-         * origin quadrant is required here
-         *------------------------------------------------------------*/
-        m_dAngle       = poObjBlock->ReadInt16()/10.0;
-
-        m_nFontStyle = poObjBlock->ReadInt16();          // Font style
-
-        m_rgbForeground = poObjBlock->ReadByte()*256*256 +
-                          poObjBlock->ReadByte()*256 +
-                          poObjBlock->ReadByte();
-        m_rgbBackground = poObjBlock->ReadByte()*256*256 +
-                          poObjBlock->ReadByte()*256 +
-                          poObjBlock->ReadByte();
-
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);    // arrow endpoint
-        poMapFile->Int2Coordsys(nX, nY, m_dfLineEndX, m_dfLineEndY);
-        m_bLineEndSet = TRUE;
-
-        // Text Height
-        nY = bComprCoord? poObjBlock->ReadInt16():poObjBlock->ReadInt32();
-        poMapFile->Int2CoordsysDist(0, nY, dJunk, m_dHeight);
-
-        m_nFontDefIndex = poObjBlock->ReadByte();      // Font name index
-        poMapFile->ReadFontDef(m_nFontDefIndex, &m_sFontDef);
-
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);    // Read MBR
-        poMapFile->Int2Coordsys(nX, nY, dXMin, dYMin);
-        poObjBlock->ReadIntCoord(bComprCoord, nX, nY);
-        poMapFile->Int2Coordsys(nX, nY, dXMax, dYMax);
-
-        m_nPenDefIndex = poObjBlock->ReadByte();      // Pen index for line
-        poMapFile->ReadPenDef(m_nPenDefIndex, &m_sPenDef);
-
-        /*-------------------------------------------------------------
-         * Read text string from the coord. block
-         * Note that the string may contain binary '\n' and '\\' chars
-         * that we keep to an unescaped form internally. This is to
-         * be like OGR drivers. See bug 1107 for details.
-         *------------------------------------------------------------*/
-        char *pszTmpString = (char*)CPLMalloc((nStringLen+1)*sizeof(char));
-
-        if (nStringLen > 0)
-        {
-            CPLAssert(nCoordBlockPtr > 0);
-            poCoordBlock = poMapFile->GetCoordBlock(nCoordBlockPtr);
-            if (poCoordBlock == NULL ||
-                poCoordBlock->ReadBytes(nStringLen,(GByte*)pszTmpString) != 0)
-            {
-                CPLError(CE_Failure, CPLE_FileIO,
-                         "Failed reading text string at offset %d", 
-                         nCoordBlockPtr);
-                CPLFree(pszTmpString);                
-                return -1;
-            }
-        }
-
-        pszTmpString[nStringLen] = '\0';
-
-        CPLFree(m_pszString);
-        m_pszString = pszTmpString; // This string was Escaped before 20050714
-    }
-    else
+    if (m_nMapInfoType != TAB_GEOM_TEXT &&
+        m_nMapInfoType != TAB_GEOM_TEXT_C )
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
            "ReadGeometryFromMAPFile(): unsupported geometry type %d (0x%2.2x)",
                  m_nMapInfoType, m_nMapInfoType);
         return -1;
     }
-    
+
+    /*=============================================================
+     * TEXT
+     *============================================================*/
+    int     nStringLen;
+    GInt32  nCoordBlockPtr;
+    double  dJunk;
+    TABMAPCoordBlock        *poCoordBlock;
+
+    /*-----------------------------------------------------------------
+     * Read object information
+     *----------------------------------------------------------------*/
+    TABMAPObjText *poTextHdr = (TABMAPObjText *)poObjHdr;
+
+    nCoordBlockPtr = poTextHdr->m_nCoordBlockPtr;   // String position
+    nStringLen      = poTextHdr->m_nCoordDataSize;   // String length
+    m_nTextAlignment = poTextHdr->m_nTextAlignment; // just./spacing/arrow
+
+    /*-------------------------------------------------------------
+     * Text Angle, in thenths of degree.
+     * Contrary to arc start/end angles, no conversion based on 
+     * origin quadrant is required here
+     *------------------------------------------------------------*/
+    m_dAngle       = poTextHdr->m_nAngle/10.0;
+
+    m_nFontStyle   = poTextHdr->m_nFontStyle;          // Font style
+
+    m_rgbForeground = (poTextHdr->m_nFGColorR*256*256 +
+                       poTextHdr->m_nFGColorG*256 +
+                       poTextHdr->m_nFGColorB);
+    m_rgbBackground = (poTextHdr->m_nBGColorR*256*256 +
+                       poTextHdr->m_nBGColorG*256 +
+                       poTextHdr->m_nBGColorB);
+
+    // arrow endpoint
+    poMapFile->Int2Coordsys(poTextHdr->m_nLineEndX, poTextHdr->m_nLineEndY, 
+                            m_dfLineEndX, m_dfLineEndY);
+    m_bLineEndSet = TRUE;
+
+    // Text Height
+    poMapFile->Int2CoordsysDist(0, poTextHdr->m_nHeight, dJunk, m_dHeight);
+
+    m_nFontDefIndex = poTextHdr->m_nFontId;      // Font name index
+    poMapFile->ReadFontDef(m_nFontDefIndex, &m_sFontDef);
+
+    // MBR after rotation
+    poMapFile->Int2Coordsys(poTextHdr->m_nMinX, poTextHdr->m_nMinY, 
+                            dXMin, dYMin);
+    poMapFile->Int2Coordsys(poTextHdr->m_nMaxX, poTextHdr->m_nMaxY, 
+                            dXMax, dYMax);
+
+    m_nPenDefIndex = poTextHdr->m_nPenId;      // Pen index for line
+    poMapFile->ReadPenDef(m_nPenDefIndex, &m_sPenDef);
+
+    /*-------------------------------------------------------------
+     * Read text string from the coord. block
+     * Note that the string may contain binary '\n' and '\\' chars
+     * that we keep to an unescaped form internally. This is to
+     * be like OGR drivers. See bug 1107 for details.
+     *------------------------------------------------------------*/
+    char *pszTmpString = (char*)CPLMalloc((nStringLen+1)*sizeof(char));
+
+    if (nStringLen > 0)
+    {
+        CPLAssert(nCoordBlockPtr > 0);
+        poCoordBlock = poMapFile->GetCoordBlock(nCoordBlockPtr);
+        if (poCoordBlock == NULL ||
+            poCoordBlock->ReadBytes(nStringLen,(GByte*)pszTmpString) != 0)
+        {
+            CPLError(CE_Failure, CPLE_FileIO,
+                     "Failed reading text string at offset %d", 
+                     nCoordBlockPtr);
+            CPLFree(pszTmpString);                
+            return -1;
+        }
+    }
+
+    pszTmpString[nStringLen] = '\0';
+
+    CPLFree(m_pszString);
+    m_pszString = pszTmpString; // This string was Escaped before 20050714
+
+
     /* Set/retrieve the MBR to make sure Mins are smaller than Maxs
      */
     SetMBR(dXMin, dYMin, dXMax, dYMax);
@@ -5144,7 +5224,7 @@ int TABText::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     double dXMin, dYMin, dXMax, dYMax;
     // Make sure Feature MBR is in sync with other params
  
-    UpdateTextMBR();
+    UpdateMBR();
     GetMBR(dXMin, dYMin, dXMax, dYMax);
 
     poMapFile->Coordsys2Int(dXMin, dYMin, nXMin, nYMin);
@@ -5225,7 +5305,7 @@ void TABText::SetTextAngle(double dAngle)
     while(dAngle < 0.0)   dAngle += 360.0;
     while(dAngle > 360.0) dAngle -= 360.0;
     m_dAngle = dAngle;
-    UpdateTextMBR();
+    UpdateMBR();
 }
 
 /**********************************************************************
@@ -5241,7 +5321,7 @@ double TABText::GetTextBoxHeight()
 void TABText::SetTextBoxHeight(double dHeight)
 {
     m_dHeight = dHeight;
-    UpdateTextMBR();
+    UpdateMBR();
 }
 
 /**********************************************************************
@@ -5266,7 +5346,7 @@ double TABText::GetTextBoxWidth()
 void TABText::SetTextBoxWidth(double dWidth)
 {
     m_dWidth = dWidth;
-    UpdateTextMBR();
+    UpdateMBR();
 }
 
 /**********************************************************************
@@ -5281,7 +5361,7 @@ void TABText::GetTextLineEndPoint(double &dX, double &dY)
     {
         // Set default location at center of text MBR
         double dXMin, dYMin, dXMax, dYMax;
-        UpdateTextMBR();
+        UpdateMBR();
         GetMBR(dXMin, dYMin, dXMax, dYMax);
         m_dfLineEndX = (dXMin + dXMax) /2.0;
         m_dfLineEndY = (dYMin + dYMax) /2.0;
@@ -5301,14 +5381,16 @@ void TABText::SetTextLineEndPoint(double dX, double dY)
 }
 
 /**********************************************************************
- *                   TABText::UpdateTextMBR()
+ *                   TABText::UpdateMBR()
  *
  * Update the feature MBR using the text origin (OGRPoint geometry), the
  * rotation angle, and the Width/height before rotation.
  *
  * This function cannot perform properly unless all the above have been set.
+ *
+ * Returns 0 on success, or -1 if there is no geometry in object
  **********************************************************************/
-void TABText::UpdateTextMBR()
+int TABText::UpdateMBR(TABMAPFile * poMapFile /*=NULL*/)
 {
     OGRGeometry *poGeom;
     OGRPoint *poPoint=NULL;
@@ -5350,7 +5432,17 @@ void TABText::UpdateTextMBR()
             if (dY1 < m_dYMin) m_dYMin = dY1;
             if (dY1 > m_dYMax) m_dYMax = dY1;
         }
+
+        if (poMapFile)
+        {
+            poMapFile->Coordsys2Int(m_dXMin, m_dYMin, m_nXMin, m_nYMin);
+            poMapFile->Coordsys2Int(m_dXMax, m_dYMax, m_nXMax, m_nYMax);
+        }
+
+        return 0;
     }
+
+    return -1;
 }
 
 /**********************************************************************

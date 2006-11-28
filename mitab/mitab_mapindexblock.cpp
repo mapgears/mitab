@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapindexblock.cpp,v 1.10 2006-11-20 20:05:58 dmorissette Exp $
+ * $Id: mitab_mapindexblock.cpp,v 1.11 2006-11-28 18:49:08 dmorissette Exp $
  *
  * Name:     mitab_mapindexblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapindexblock.cpp,v $
- * Revision 1.10  2006-11-20 20:05:58  dmorissette
+ * Revision 1.11  2006-11-28 18:49:08  dmorissette
+ * Completed changes to split TABMAPObjectBlocks properly and produce an
+ * optimal spatial index (bug 1585)
+ *
+ * Revision 1.10  2006/11/20 20:05:58  dmorissette
  * First pass at improving generation of spatial index in .map file (bug 1585)
  * New methods for insertion and splittung in the spatial index are done.
  * Also implemented a method to dump the spatial index to .mif/.mid
@@ -120,7 +124,8 @@ TABMAPIndexBlock::~TABMAPIndexBlock()
  * Returns 0 if succesful or -1 if an error happened, in which case 
  * CPLError() will have been called.
  **********************************************************************/
-int     TABMAPIndexBlock::InitBlockFromData(GByte *pabyBuf, int nSize, 
+int     TABMAPIndexBlock::InitBlockFromData(GByte *pabyBuf, 
+                                            int nBlockSize, int nSizeUsed, 
                                             GBool bMakeCopy /* = TRUE */,
                                             FILE *fpSrc /* = NULL */, 
                                             int nOffset /* = 0 */)
@@ -130,8 +135,10 @@ int     TABMAPIndexBlock::InitBlockFromData(GByte *pabyBuf, int nSize,
     /*-----------------------------------------------------------------
      * First of all, we must call the base class' InitBlockFromData()
      *----------------------------------------------------------------*/
-    nStatus = TABRawBinBlock::InitBlockFromData(pabyBuf, nSize, bMakeCopy,
-                                            fpSrc, nOffset);
+    nStatus = TABRawBinBlock::InitBlockFromData(pabyBuf, 
+                                                nBlockSize, nSizeUsed,
+                                                bMakeCopy,
+                                                fpSrc, nOffset);
     if (nStatus != 0)   
         return nStatus;
 
@@ -543,6 +550,187 @@ int     TABMAPIndexBlock::ChooseSubEntryForInsert(GInt32 nXMin, GInt32 nYMin,
 }
 
 /**********************************************************************
+ *                   TABMAPIndexBlock::ChooseLeafForInsert()
+ *
+ * Recursively search the tree until we find the best leaf to
+ * contain the specified object MBR.
+ *
+ * Returns the nBlockPtr of the selected leaf node entry (should be a
+ * ref to a TABMAPObjectBlock) or -1 on error.
+ *
+ * After this call, m_poCurChild will be pointing at the selected child 
+ * node, for use by later calls to UpdateLeafEntry()
+ **********************************************************************/
+GInt32  TABMAPIndexBlock::ChooseLeafForInsert(GInt32 nXMin, GInt32 nYMin,
+                                              GInt32 nXMax, GInt32 nYMax)
+{
+    GBool bFound = FALSE;
+
+    if (m_numEntries < 0)
+        return -1;
+
+    /*-----------------------------------------------------------------
+     * Look for the best candidate to contain the new entry
+     *----------------------------------------------------------------*/
+
+    // Make sure blocks currently in memory are written to disk.
+    // TODO: Could we avoid deleting m_poCurChild if it's already 
+    //       the best candidate for insert?
+    if (m_poCurChild)
+    {
+        m_poCurChild->CommitToFile();
+        delete m_poCurChild;
+        m_poCurChild = NULL;
+        m_nCurChildIndex = -1;
+    }
+
+    int nBestCandidate = ChooseSubEntryForInsert(nXMin,nYMin,nXMax,nYMax);
+       
+    CPLAssert(nBestCandidate != -1);
+    if (nBestCandidate == -1)
+        return -1;  /* This should never happen! */
+
+    // Try to load corresponding child... if it fails then we are
+    // likely in a leaf node, so we'll add the new entry in the current
+    // node.
+    TABRawBinBlock *poBlock = NULL;
+
+    // Prevent error message if referred block not committed yet.
+    CPLPushErrorHandler(CPLQuietErrorHandler);
+
+    if ((poBlock = TABCreateMAPBlockFromFile(m_fp, 
+                                    m_asEntries[nBestCandidate].nBlockPtr,
+                                    512, TRUE, TABReadWrite)) &&
+        poBlock->GetBlockClass() == TABMAP_INDEX_BLOCK)
+    {
+        m_poCurChild = (TABMAPIndexBlock*)poBlock;
+        poBlock = NULL;
+        m_nCurChildIndex = nBestCandidate;
+        m_poCurChild->SetParentRef(this);
+        m_poCurChild->SetMAPBlockManagerRef(m_poBlockManagerRef);
+        bFound = TRUE;
+    }
+                
+    if (poBlock)
+        delete poBlock;
+            
+    CPLPopErrorHandler();
+    CPLErrorReset();
+
+
+    if (bFound)
+    {
+        /*-------------------------------------------------------------
+         * Found a child leaf... pass the call to it.
+         *------------------------------------------------------------*/
+        return m_poCurChild->ChooseLeafForInsert(nXMin, nYMin, nXMax, nYMax);
+    }
+
+    /*-------------------------------------------------------------
+     * Found no child index node... we must be at the leaf level 
+     * (leaf points at map object data blocks) so we return a ref 
+     * to the TABMAPObjBlock for insertion
+     *------------------------------------------------------------*/
+    return m_asEntries[nBestCandidate].nBlockPtr;
+}
+
+
+/**********************************************************************
+ *                   TABMAPIndexBlock::GetCurLeafEntryMBR()
+ *
+ * Get the MBR for specified nBlockPtr in the leaf at the end of the
+ * chain of m_poCurChild refs.
+ *
+ * This method requires that the chain of m_poCurChild refs already point
+ * to a leaf that contains the specified nBlockPtr, it is usually called
+ * right after ChooseLeafForInsert().
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int     TABMAPIndexBlock::GetCurLeafEntryMBR(GInt32 nBlockPtr,
+                                             GInt32 &nXMin, GInt32 &nYMin,
+                                             GInt32 &nXMax, GInt32 &nYMax)
+{
+    if (m_poCurChild)
+    {
+        /* Pass the call down to current child */
+        return m_poCurChild->GetCurLeafEntryMBR(nBlockPtr,
+                                                nXMin, nYMin, nXMax, nYMax);
+    }
+
+    /* We're at the leaf level, look for the entry */
+    for(int i=0; i<m_numEntries; i++)
+    {
+        if (m_asEntries[i].nBlockPtr == nBlockPtr)
+        {
+            /* Found it. Return its MBR */
+            nXMin = m_asEntries[i].XMin;
+            nYMin = m_asEntries[i].YMin;
+            nXMax = m_asEntries[i].XMax;
+            nYMax = m_asEntries[i].YMax;
+
+            return 0;
+        }
+    }
+
+    /* Not found! This should not happen if method is used properly. */
+    CPLError(CE_Failure, CPLE_AssertionFailed,
+             "Entry to update not found in GetCurLeafEntryMBR()!");
+    return -1; 
+
+}
+
+
+/**********************************************************************
+ *                   TABMAPIndexBlock::UpdateLeafEntry()
+ *
+ * Update the MBR for specified nBlockPtr in the leaf at the end of the
+ * chain of m_poCurChild refs and update MBR of parents if required.
+ *
+ * This method requires that the chain of m_poCurChild refs already point
+ * to a leaf that contains the specified nBlockPtr, it is usually called
+ * right after ChooseLeafForInsert().
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int     TABMAPIndexBlock::UpdateLeafEntry(GInt32 nBlockPtr,
+                                          GInt32 nXMin, GInt32 nYMin,
+                                          GInt32 nXMax, GInt32 nYMax )
+{
+    if (m_poCurChild)
+    {
+        /* Pass the call down to current child */
+        return m_poCurChild->UpdateLeafEntry(nBlockPtr,
+                                             nXMin, nYMin, nXMax, nYMax);
+    }
+
+    /* We're at the leaf level, look for the entry to update */
+    for(int i=0; i<m_numEntries; i++)
+    {
+        if (m_asEntries[i].nBlockPtr == nBlockPtr)
+        {
+            /* Found it. Update MBR of entry */
+            m_asEntries[i].XMin = nXMin;
+            m_asEntries[i].YMin = nYMin;
+            m_asEntries[i].XMax = nXMax;
+            m_asEntries[i].YMax = nYMax;
+            m_asEntries[i].nBlockPtr = nBlockPtr;
+
+            /* Update MBR of this node and all parents */
+            RecomputeMBR();
+
+            return 0;
+        }
+    }
+
+    /* Not found! This should not happen if method is used properly. */
+    CPLError(CE_Failure, CPLE_AssertionFailed,
+             "Entry to update not found in UpdateLeafEntry()!");
+    return -1; 
+}
+
+
+/**********************************************************************
  *                   TABMAPIndexBlock::AddEntry()
  *
  * Recursively search the tree until we encounter the best leaf to
@@ -701,6 +889,8 @@ int     TABMAPIndexBlock::AddEntry(GInt32 nXMin, GInt32 nYMin,
 /**********************************************************************
  *                   TABMAPIndexBlock::ComputeAreaDiff()
  *
+ * (static method, also used by the TABMAPObjBlock class)
+ *
  * Compute the area difference between two MBRs. Used in the SplitNode
  * algorithm to decide to which of the two nodes an entry should be added.
  *
@@ -756,95 +946,89 @@ double  TABMAPIndexBlock::ComputeAreaDiff(GInt32 nNodeXMin, GInt32 nNodeYMin,
 
 
 /**********************************************************************
- *                   TABMAPIndexBlock::SplitNode()
+ *                   TABMAPIndexBlock::PickSeedsForSplit()
  *
- * Split current Node, update the references in the parent node, etc.
- * Note that Root Nodes cannot be split using this method... SplitRootNode()
- * should be used instead.
+ * (static method, also used by the TABMAPObjBlock class)
  *
- * nNewEntry* are the coord. of the new entry that 
- * will be added after the split.  The split is done so that the current
- * node will be the one in which the new object should be stored.
+ * Pick two seeds to use to start splitting this node.
  *
- * Returns 0 on success, -1 on error.
+ * Guttman's LinearPickSeed:
+ * - Along each dimension find the entry whose rectangle has the 
+ *   highest low side, and the one with the lowest high side
+ * - Calculate the separation for each pair
+ * - Normalize the separation by dividing by the extents of the 
+ *   corresponding dimension
+ * - Choose the pair with the greatest normalized separation along
+ *   any dimension
  **********************************************************************/
-int     TABMAPIndexBlock::SplitNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
-                                    GInt32 nNewEntryXMax, GInt32 nNewEntryYMax)
+int  TABMAPIndexBlock::PickSeedsForSplit(TABMAPIndexEntry *pasEntries,
+                                         int numEntries,
+                                         int nSrcCurChildIndex,
+                                         GInt32 nNewEntryXMin, 
+                                         GInt32 nNewEntryYMin,
+                                         GInt32 nNewEntryXMax, 
+                                         GInt32 nNewEntryYMax,
+                                         int &nSeed1, int &nSeed2)
 {
-    int nWidth, nHeight;
-
-    CPLAssert(m_poBlockManagerRef);
-
-    nWidth = ABS(m_nMaxX - m_nMinX);
-    nHeight = ABS(m_nMaxY - m_nMinY);
-
-    /*-----------------------------------------------------------------
-     * Create a 2nd node
-     *----------------------------------------------------------------*/
-    TABMAPIndexBlock *poNewNode = new TABMAPIndexBlock(m_eAccess);
-    if (poNewNode->InitNewBlock(m_fp, 512, 
-                                m_poBlockManagerRef->AllocNewBlock()) != 0)
-    {
-        return -1;
-    }
-    poNewNode->SetMAPBlockManagerRef(m_poBlockManagerRef);
-
-    /*-----------------------------------------------------------------
-     * Make a temporary copy of the entries in current node
-     *----------------------------------------------------------------*/
-    int nSrcEntries = m_numEntries;
-    TABMAPIndexEntry *pasSrcEntries = (TABMAPIndexEntry*)CPLMalloc(m_numEntries*sizeof(TABMAPIndexEntry));
-    memcpy(pasSrcEntries, &m_asEntries, m_numEntries*sizeof(TABMAPIndexEntry));
-
-    int nSrcCurChildIndex = m_nCurChildIndex;
-
-    /*-----------------------------------------------------------------
-     * Pick the seeds for each node. Guttman's LinearPickSeed:
-     * - Along each dimension find the entry whose rectangle has the 
-     *   highest low side, and the one with the lowest high side
-     * - Calculate the separation for each pair
-     * - Normalize the separation by dividing by the extents of the 
-     *   corresponding dimension
-     * - Choose the pair with the greatest normalized separation along
-     *   any dimension
-     *----------------------------------------------------------------*/
-    int nSeed1=-1, nSeed2=-1;
+    GInt32 nSrcMinX, nSrcMinY, nSrcMaxX, nSrcMaxY;
     int nLowestMaxX=-1, nHighestMinX=-1, nLowestMaxY=-1, nHighestMinY=-1;
     GInt32 nLowestMaxXId=-1, nHighestMinXId=-1, nLowestMaxYId=-1, nHighestMinYId=-1;
 
+    nSeed1=-1;
+    nSeed2=-1;
+
     // Along each dimension find the entry whose rectangle has the 
     // highest low side, and the one with the lowest high side
-    for(int iEntry=0; iEntry<nSrcEntries; iEntry++)
+    for(int iEntry=0; iEntry<numEntries; iEntry++)
     {
         if (nLowestMaxXId == -1 ||
-            m_asEntries[iEntry].XMax < nLowestMaxX)
+            pasEntries[iEntry].XMax < nLowestMaxX)
         {
-            nLowestMaxX = m_asEntries[iEntry].XMax;
+            nLowestMaxX = pasEntries[iEntry].XMax;
             nLowestMaxXId = iEntry;
         }
 
         if (nHighestMinXId == -1 ||
-            m_asEntries[iEntry].XMin > nHighestMinX)
+            pasEntries[iEntry].XMin > nHighestMinX)
         {
-            nHighestMinX = m_asEntries[iEntry].XMin;
+            nHighestMinX = pasEntries[iEntry].XMin;
             nHighestMinXId = iEntry;
         }
 
         if (nLowestMaxYId == -1 ||
-            m_asEntries[iEntry].YMax < nLowestMaxY)
+            pasEntries[iEntry].YMax < nLowestMaxY)
         {
-            nLowestMaxY = m_asEntries[iEntry].YMax;
+            nLowestMaxY = pasEntries[iEntry].YMax;
             nLowestMaxYId = iEntry;
         }
 
         if (nHighestMinYId == -1 ||
-            m_asEntries[iEntry].YMin > nHighestMinY)
+            pasEntries[iEntry].YMin > nHighestMinY)
         {
-            nHighestMinY = m_asEntries[iEntry].YMin;
+            nHighestMinY = pasEntries[iEntry].YMin;
             nHighestMinYId = iEntry;
         }
 
+        // Also keep track of MBR of all entries
+        if (iEntry == 0)
+        {
+            nSrcMinX = pasEntries[iEntry].XMin;
+            nSrcMinY = pasEntries[iEntry].YMin;
+            nSrcMaxX = pasEntries[iEntry].XMax;
+            nSrcMaxY = pasEntries[iEntry].YMax;
+        }
+        else
+        {
+            nSrcMinX = MIN(nSrcMinX, pasEntries[iEntry].XMin);
+            nSrcMinY = MIN(nSrcMinY ,pasEntries[iEntry].YMin);
+            nSrcMaxX = MAX(nSrcMaxX ,pasEntries[iEntry].XMax);
+            nSrcMaxY = MAX(nSrcMaxY ,pasEntries[iEntry].YMax);
+        }
     }
+
+    int nSrcWidth, nSrcHeight;
+    nSrcWidth = ABS(nSrcMaxX - nSrcMinX);
+    nSrcHeight = ABS(nSrcMaxY - nSrcMinY);
 
     // Calculate the separation for each pair (note that it may be negative
     // in case of overlap)
@@ -852,8 +1036,8 @@ int     TABMAPIndexBlock::SplitNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
     // corresponding dimension
     double dX, dY;
 
-    dX = (double)(nHighestMinX - nLowestMaxX) / nWidth;
-    dY = (double)(nHighestMinY - nLowestMaxY) / nHeight;
+    dX = (double)(nHighestMinX - nLowestMaxX) / nSrcWidth;
+    dY = (double)(nHighestMinY - nLowestMaxY) / nSrcHeight;
 
     // Choose the pair with the greatest normalized separation along
     // any dimension
@@ -883,25 +1067,19 @@ int     TABMAPIndexBlock::SplitNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
     // the new entry will stay in current node (new entry will be added by the
     // caller later). The other seed will go in the 2nd node
     double dAreaDiff1, dAreaDiff2;
-    dAreaDiff1 = ComputeAreaDiff(m_asEntries[nSeed1].XMin, 
-                                 m_asEntries[nSeed1].YMin,
-                                 m_asEntries[nSeed1].XMax,
-                                 m_asEntries[nSeed1].YMax,
+    dAreaDiff1 = ComputeAreaDiff(pasEntries[nSeed1].XMin, 
+                                 pasEntries[nSeed1].YMin,
+                                 pasEntries[nSeed1].XMax,
+                                 pasEntries[nSeed1].YMax,
                                  nNewEntryXMin, nNewEntryYMin,
                                  nNewEntryXMax, nNewEntryYMax);
 
-    dAreaDiff2 = ComputeAreaDiff(m_asEntries[nSeed2].XMin, 
-                                 m_asEntries[nSeed2].YMin,
-                                 m_asEntries[nSeed2].XMax,
-                                 m_asEntries[nSeed2].YMax,
+    dAreaDiff2 = ComputeAreaDiff(pasEntries[nSeed2].XMin, 
+                                 pasEntries[nSeed2].YMin,
+                                 pasEntries[nSeed2].XMax,
+                                 pasEntries[nSeed2].YMax,
                                  nNewEntryXMin, nNewEntryYMin,
                                  nNewEntryXMax, nNewEntryYMax);
-
-    /*-----------------------------------------------------------------
-     * Reset number of entries in this node and start moving new entries
-     *----------------------------------------------------------------*/
-    m_numEntries = 0;
-
 
     /* Note that we want to keep this node's current child in here.
      * Since splitting happens only during an addentry() operation and 
@@ -917,6 +1095,62 @@ int     TABMAPIndexBlock::SplitNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
         nSeed1 = nSeed2;
         nSeed2 = nTmp;
     }
+
+    return 0;
+}
+
+
+/**********************************************************************
+ *                   TABMAPIndexBlock::SplitNode()
+ *
+ * Split current Node, update the references in the parent node, etc.
+ * Note that Root Nodes cannot be split using this method... SplitRootNode()
+ * should be used instead.
+ *
+ * nNewEntry* are the coord. of the new entry that 
+ * will be added after the split.  The split is done so that the current
+ * node will be the one in which the new object should be stored.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int     TABMAPIndexBlock::SplitNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
+                                    GInt32 nNewEntryXMax, GInt32 nNewEntryYMax)
+{
+    CPLAssert(m_poBlockManagerRef);
+
+    /*-----------------------------------------------------------------
+     * Create a 2nd node
+     *----------------------------------------------------------------*/
+    TABMAPIndexBlock *poNewNode = new TABMAPIndexBlock(m_eAccess);
+    if (poNewNode->InitNewBlock(m_fp, 512, 
+                                m_poBlockManagerRef->AllocNewBlock()) != 0)
+    {
+        return -1;
+    }
+    poNewNode->SetMAPBlockManagerRef(m_poBlockManagerRef);
+
+    /*-----------------------------------------------------------------
+     * Make a temporary copy of the entries in current node
+     *----------------------------------------------------------------*/
+    int nSrcEntries = m_numEntries;
+    TABMAPIndexEntry *pasSrcEntries = (TABMAPIndexEntry*)CPLMalloc(m_numEntries*sizeof(TABMAPIndexEntry));
+    memcpy(pasSrcEntries, &m_asEntries, m_numEntries*sizeof(TABMAPIndexEntry));
+
+    int nSrcCurChildIndex = m_nCurChildIndex;
+
+    /*-----------------------------------------------------------------
+     * Pick Seeds for each node
+     *----------------------------------------------------------------*/
+    int nSeed1, nSeed2;
+    PickSeedsForSplit(pasSrcEntries, nSrcEntries, nSrcCurChildIndex,
+                      nNewEntryXMin, nNewEntryYMin, 
+                      nNewEntryXMax, nNewEntryYMax,
+                      nSeed1, nSeed2);
+
+    /*-----------------------------------------------------------------
+     * Reset number of entries in this node and start moving new entries
+     *----------------------------------------------------------------*/
+    m_numEntries = 0;
 
     // Insert nSeed1 in this node
     InsertEntry(pasSrcEntries[nSeed1].XMin, 
@@ -988,6 +1222,7 @@ int     TABMAPIndexBlock::SplitNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
 
 
         // Decide which of the two nodes to put this entry in
+        double dAreaDiff1, dAreaDiff2;
         RecomputeMBR();
         dAreaDiff1 = ComputeAreaDiff(m_nMinX, m_nMinY, m_nMaxX, m_nMaxY,
                                      pasSrcEntries[iEntry].XMin, 

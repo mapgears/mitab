@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.42 2006-11-20 20:05:58 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.43 2006-11-28 18:49:08 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.42  2006-11-20 20:05:58  dmorissette
+ * Revision 1.43  2006-11-28 18:49:08  dmorissette
+ * Completed changes to split TABMAPObjectBlocks properly and produce an
+ * optimal spatial index (bug 1585)
+ *
+ * Revision 1.42  2006/11/20 20:05:58  dmorissette
  * First pass at improving generation of spatial index in .map file (bug 1585)
  * New methods for insertion and splittung in the spatial index are done.
  * Also implemented a method to dump the spatial index to .mif/.mid
@@ -691,6 +695,12 @@ class TABMAPObjCollection: public TABMAPObjHdrWithCoord
           Classes to handle .MAP files low-level blocks
  =====================================================================*/
 
+typedef struct TABBlockRef_t
+{
+    GInt32                nBlockPtr;
+    struct TABBlockRef_t *psNext;
+} TABBlockRef;
+
 /*---------------------------------------------------------------------
  *                      class TABBinBlockManager
  *
@@ -702,18 +712,19 @@ class TABBinBlockManager
   protected:
     int         m_nBlockSize;
     GInt32      m_nLastAllocatedBlock;
-  public:
-    TABBinBlockManager(int nBlockSize=512) {m_nBlockSize=nBlockSize;
-                                            m_nLastAllocatedBlock = -1; };
-    ~TABBinBlockManager()  {};
+    TABBlockRef *m_psGarbageBlocks;
 
-    GInt32      AllocNewBlock()   {if (m_nLastAllocatedBlock==-1)
-                                        m_nLastAllocatedBlock = 0;
-                                   else
-                                        m_nLastAllocatedBlock+=m_nBlockSize;
-                                   return m_nLastAllocatedBlock; };
-    void        Reset()  {m_nLastAllocatedBlock=-1; };
+  public:
+    TABBinBlockManager(int nBlockSize=512);
+    ~TABBinBlockManager();
+
+    GInt32      AllocNewBlock();
+    void        Reset();
     void        SetLastPtr(int nBlockPtr) {m_nLastAllocatedBlock=nBlockPtr; };
+
+    void        PushGarbageBlock(GInt32 nBlockPtr);
+    GInt32      GetFirstGarbageBlock();
+    GInt32      PopGarbageBlock();
 };
 
 /*---------------------------------------------------------------------
@@ -750,10 +761,12 @@ class TABRawBinBlock
 
     virtual int ReadFromFile(FILE *fpSrc, int nOffset, int nSize = 512);
     virtual int CommitToFile();
+    int         CommitAsDeleted(GInt32 nNextBlockPtr);
 
-    virtual int InitBlockFromData(GByte *pabyBuf, int nSize, 
-                              GBool bMakeCopy = TRUE,
-                              FILE *fpSrc = NULL, int nOffset = 0);
+    virtual int InitBlockFromData(GByte *pabyBuf, 
+                                  int nBlockSize, int nSizeUsed,
+                                  GBool bMakeCopy = TRUE,
+                                  FILE *fpSrc = NULL, int nOffset = 0);
     virtual int InitNewBlock(FILE *fpSrc, int nBlockSize, int nFileOffset=0);
 
     int         GetBlockType();
@@ -815,9 +828,10 @@ class TABMAPHeaderBlock: public TABRawBinBlock
 
     virtual int CommitToFile();
 
-    virtual int InitBlockFromData(GByte *pabyBuf, int nSize, 
-                              GBool bMakeCopy = TRUE,
-                              FILE *fpSrc = NULL, int nOffset = 0);
+    virtual int InitBlockFromData(GByte *pabyBuf,
+                                  int nBlockSize, int nSizeUsed,
+                                  GBool bMakeCopy = TRUE,
+                                  FILE *fpSrc = NULL, int nOffset = 0);
     virtual int InitNewBlock(FILE *fpSrc, int nBlockSize, int nFileOffset=0);
 
     virtual int GetBlockClass() { return TABMAP_HEADER_BLOCK; };
@@ -921,9 +935,10 @@ class TABMAPIndexBlock: public TABRawBinBlock
     TABMAPIndexBlock(TABAccess eAccessMode = TABRead);
     ~TABMAPIndexBlock();
 
-    virtual int InitBlockFromData(GByte *pabyBuf, int nSize, 
-                              GBool bMakeCopy = TRUE,
-                              FILE *fpSrc = NULL, int nOffset = 0);
+    virtual int InitBlockFromData(GByte *pabyBuf,
+                                  int nBlockSize, int nSizeUsed,
+                                  GBool bMakeCopy = TRUE,
+                                  FILE *fpSrc = NULL, int nOffset = 0);
     virtual int InitNewBlock(FILE *fpSrc, int nBlockSize, int nFileOffset=0);
     virtual int CommitToFile();
 
@@ -961,10 +976,29 @@ class TABMAPIndexBlock: public TABRawBinBlock
                             GInt32 XMax, GInt32 YMax, GInt32 nBlockPtr);
     int         ChooseSubEntryForInsert(GInt32 nXMin, GInt32 nYMin,
                                         GInt32 nXMax, GInt32 nYMax);
-    double      ComputeAreaDiff(GInt32 nNodeXMin, GInt32 nNodeYMin,
-                                GInt32 nNodeXMax, GInt32 nNodeYMax,
-                                GInt32 nEntryXMin, GInt32 nEntryYMin,
-                                GInt32 nEntryXMax, GInt32 nEntryYMax);
+    GInt32      ChooseLeafForInsert(GInt32 nXMin, GInt32 nYMin,
+                                    GInt32 nXMax, GInt32 nYMax);
+    int         UpdateLeafEntry(GInt32 nBlockPtr,
+                                GInt32 nXMin, GInt32 nYMin,
+                                GInt32 nXMax, GInt32 nYMax);
+    int         GetCurLeafEntryMBR(GInt32 nBlockPtr,
+                                   GInt32 &nXMin, GInt32 &nYMin,
+                                   GInt32 &nXMax, GInt32 &nYMax);
+
+    // Static utility functions for node splitting, also used by
+    // the TABMAPObjectBlock class.
+    static double ComputeAreaDiff(GInt32 nNodeXMin, GInt32 nNodeYMin,
+                                  GInt32 nNodeXMax, GInt32 nNodeYMax,
+                                  GInt32 nEntryXMin, GInt32 nEntryYMin,
+                                  GInt32 nEntryXMax, GInt32 nEntryYMax);
+    static int    PickSeedsForSplit(TABMAPIndexEntry *pasEntries,
+                                    int numEntries,
+                                    int nSrcCurChildIndex,
+                                    GInt32 nNewEntryXMin, 
+                                    GInt32 nNewEntryYMin,
+                                    GInt32 nNewEntryXMax, 
+                                    GInt32 nNewEntryYMax,
+                                    int &nSeed1, int &nSeed2);
 #ifdef DEBUG
     virtual void Dump(FILE *fpOut = NULL);
 #endif
@@ -992,24 +1026,20 @@ class TABMAPObjectBlock: public TABRawBinBlock
     GInt32      m_nMaxX;
     GInt32      m_nMaxY;
 
+    // Keep track of current object either in read or read/write mode
     int         m_nCurObjectOffset; // -1 if there is no current object.
     int         m_nCurObjectId;     // -1 if there is no current object.
     int         m_nCurObjectType;   // -1 if there is no current object.
 
-    // Array of object headers held in memory until CommitToFile() is called
-    TABMAPObjHdr **m_papoObjHdr;
-    int         m_numObjects;
-
-    void        FreeObjectArray();
-    
   public:
     TABMAPObjectBlock(TABAccess eAccessMode = TABRead);
     ~TABMAPObjectBlock();
 
     virtual int CommitToFile();
-    virtual int InitBlockFromData(GByte *pabyBuf, int nSize, 
-                              GBool bMakeCopy = TRUE,
-                              FILE *fpSrc = NULL, int nOffset = 0);
+    virtual int InitBlockFromData(GByte *pabyBuf,
+                                  int nBlockSize, int nSizeUsed,
+                                  GBool bMakeCopy = TRUE,
+                                  FILE *fpSrc = NULL, int nOffset = 0);
     virtual int InitNewBlock(FILE *fpSrc, int nBlockSize, int nFileOffset=0);
 
     virtual int GetBlockClass() { return TABMAP_OBJECT_BLOCK; };
@@ -1021,13 +1051,19 @@ class TABMAPObjectBlock: public TABRawBinBlock
                                  GBool bCompressed);
     int         UpdateMBR(GInt32 nX, GInt32 nY);
 
-    int         AddObject(TABMAPObjHdr *poObjHdr);
+    int         PrepareNewObject(TABMAPObjHdr *poObjHdr);
+    int         CommitNewObject(TABMAPObjHdr *poObjHdr);
 
     void        AddCoordBlockRef(GInt32 nCoordBlockAddress);
+    GInt32      GetFirstCoordBlockAddress() { return m_nFirstCoordBlock; }
+    GInt32      GetLastCoordBlockAddress() { return m_nLastCoordBlock; }
 
     void        GetMBR(GInt32 &nXMin, GInt32 &nYMin, 
                        GInt32 &nXMax, GInt32 &nYMax);
+    void        SetMBR(GInt32 nXMin, GInt32 nYMin, 
+                       GInt32 nXMax, GInt32 nYMax);
 
+    void        Rewind();
     int         AdvanceToNextObject( TABMAPHeaderBlock * );
     int         GetCurObjectOffset() { return m_nCurObjectOffset; }
     int         GetCurObjectId() { return m_nCurObjectId; }
@@ -1076,9 +1112,10 @@ class TABMAPCoordBlock: public TABRawBinBlock
     TABMAPCoordBlock(TABAccess eAccessMode = TABRead);
     ~TABMAPCoordBlock();
 
-    virtual int InitBlockFromData(GByte *pabyBuf, int nSize, 
-                              GBool bMakeCopy = TRUE,
-                              FILE *fpSrc = NULL, int nOffset = 0);
+    virtual int InitBlockFromData(GByte *pabyBuf,
+                                  int nBlockSize, int nSizeUsed,
+                                  GBool bMakeCopy = TRUE,
+                                  FILE *fpSrc = NULL, int nOffset = 0);
     virtual int InitNewBlock(FILE *fpSrc, int nBlockSize, int nFileOffset=0);
     virtual int CommitToFile();
 
@@ -1098,6 +1135,7 @@ class TABMAPCoordBlock: public TABRawBinBlock
                                   GBool bCompressed);
 
     void        SetNextCoordBlock(GInt32 nNextCoordBlockAddress);
+    GInt32      GetNextCoordBlock()   { return m_nNextCoordBlock; };
 
     int         WriteIntCoord(GInt32 nX, GInt32 nY, GBool bCompressed);
 
@@ -1106,6 +1144,7 @@ class TABMAPCoordBlock: public TABRawBinBlock
     void        ResetTotalDataSize() {m_nTotalDataSize = 0;};
     int         GetTotalDataSize() {return m_nTotalDataSize;};
 
+    void        SeekEnd();
     void        StartNewFeature();
     int         GetFeatureDataSize() {return m_nFeatureDataSize;};
 //__TODO__ Can we flush GetFeatureMBR() and all MBR tracking in this class???
@@ -1140,9 +1179,10 @@ class TABMAPToolBlock: public TABRawBinBlock
     TABMAPToolBlock(TABAccess eAccessMode = TABRead);
     ~TABMAPToolBlock();
 
-    virtual int InitBlockFromData(GByte *pabyBuf, int nSize, 
-                              GBool bMakeCopy = TRUE,
-                              FILE *fpSrc = NULL, int nOffset = 0);
+    virtual int InitBlockFromData(GByte *pabyBuf,
+                                  int nBlockSize, int nSizeUsed,
+                                  GBool bMakeCopy = TRUE,
+                                  FILE *fpSrc = NULL, int nOffset = 0);
     virtual int InitNewBlock(FILE *fpSrc, int nBlockSize, int nFileOffset=0);
     virtual int CommitToFile();
 
@@ -1249,7 +1289,17 @@ class TABMAPFile
     GInt32      m_XMaxFilter;
     GInt32      m_YMaxFilter;
 
-    int         CommitObjBlock(GBool bInitNewBlock =TRUE);
+    int         CommitObjAndCoordBlocks(GBool bDeleteObjects =FALSE);
+    int         LoadObjAndCoordBlocks(GInt32 nBlockPtr);
+    TABMAPObjectBlock *SplitObjBlock(TABMAPObjHdr *poObjHdrToAdd,
+                                     int nSizeOfObjToAdd);
+    int         MoveObjToBlock(TABMAPObjHdr       *poObjHdr,
+                               TABMAPCoordBlock   *poSrcCoordBlock,
+                               TABMAPObjectBlock  *poDstObjBlock,
+                               TABMAPCoordBlock   **ppoDstCoordBlock);
+    int         PrepareCoordBlock(int nObjType,
+                                  TABMAPObjectBlock *poObjBlock,
+                                  TABMAPCoordBlock  **ppoCoordBlock);
 
     int         InitDrawingTools();
     int         CommitDrawingTools();
@@ -1284,7 +1334,8 @@ class TABMAPFile
     GInt32      GetMaxObjId();
     int         MoveToObjId(int nObjId);
     void        UpdateMapHeaderInfo(GByte nObjType);
-    int         PrepareNewObj(int nObjId, GByte nObjType);
+    int         PrepareNewObj(TABMAPObjHdr *poObjHdr);
+    int         CommitNewObj(TABMAPObjHdr *poObjHdr);
 
     void        ResetReading();
     int         GetNextFeatureId( int nPrevId );

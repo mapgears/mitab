@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapcoordblock.cpp,v 1.14 2005-10-06 19:15:31 dmorissette Exp $
+ * $Id: mitab_mapcoordblock.cpp,v 1.15 2006-11-28 18:49:08 dmorissette Exp $
  *
  * Name:     mitab_mapcoordblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapcoordblock.cpp,v $
- * Revision 1.14  2005-10-06 19:15:31  dmorissette
+ * Revision 1.15  2006-11-28 18:49:08  dmorissette
+ * Completed changes to split TABMAPObjectBlocks properly and produce an
+ * optimal spatial index (bug 1585)
+ *
+ * Revision 1.14  2005/10/06 19:15:31  dmorissette
  * Collections: added support for reading/writing pen/brush/symbol ids and
  * for writing collection objects to .TAB/.MAP (bug 1126)
  *
@@ -129,18 +133,19 @@ TABMAPCoordBlock::~TABMAPCoordBlock()
  * Returns 0 if succesful or -1 if an error happened, in which case 
  * CPLError() will have been called.
  **********************************************************************/
-int     TABMAPCoordBlock::InitBlockFromData(GByte *pabyBuf, int nSize, 
-                                         GBool bMakeCopy /* = TRUE */,
-                                         FILE *fpSrc /* = NULL */, 
-                                         int nOffset /* = 0 */)
+int     TABMAPCoordBlock::InitBlockFromData(GByte *pabyBuf,
+                                            int nBlockSize, int nSizeUsed, 
+                                            GBool bMakeCopy /* = TRUE */,
+                                            FILE *fpSrc /* = NULL */, 
+                                            int nOffset /* = 0 */)
 {
     int nStatus;
 
     /*-----------------------------------------------------------------
      * First of all, we must call the base class' InitBlockFromData()
      *----------------------------------------------------------------*/
-    nStatus = TABRawBinBlock::InitBlockFromData(pabyBuf, nSize, bMakeCopy,
-                                            fpSrc, nOffset);
+    nStatus = TABRawBinBlock::InitBlockFromData(pabyBuf, nBlockSize, nSizeUsed,
+                                                bMakeCopy, fpSrc, nOffset);
     if (nStatus != 0)   
         return nStatus;
 
@@ -655,7 +660,7 @@ int     TABMAPCoordBlock::ReadBytes(int numBytes, GByte *pabyDstBuf)
     {
         // We're at end of current block... advance to next block.
 
-        if ( (nStatus=GotoByteInFile(m_nNextCoordBlock)) != 0)
+        if ( (nStatus=GotoByteInFile(m_nNextCoordBlock, TRUE)) != 0)
         {
             // Failed.... an error has already been reported.
             return nStatus;
@@ -772,6 +777,16 @@ int  TABMAPCoordBlock::WriteBytes(int nBytesToWrite, GByte *pabySrcBuf)
     }
 
     return TABRawBinBlock::WriteBytes(nBytesToWrite, pabySrcBuf);
+}
+
+/**********************************************************************
+ *                   TABMAPObjectBlock::SeekEnd()
+ *
+ * Move read/write pointer to end of used part of the block
+ **********************************************************************/
+void     TABMAPCoordBlock::SeekEnd()
+{
+    m_nCurPos = m_nSizeUsed;
 }
 
 /**********************************************************************

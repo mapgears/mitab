@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.86 2006-11-20 20:05:58 dmorissette Exp $
+ * $Id: mitab.h,v 1.87 2006-11-28 18:49:07 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.86  2006-11-20 20:05:58  dmorissette
+ * Revision 1.87  2006-11-28 18:49:07  dmorissette
+ * Completed changes to split TABMAPObjectBlocks properly and produce an
+ * optimal spatial index (bug 1585)
+ *
+ * Revision 1.86  2006/11/20 20:05:58  dmorissette
  * First pass at improving generation of spatial index in .map file (bug 1585)
  * New methods for insertion and splittung in the spatial index are done.
  * Also implemented a method to dump the spatial index to .mif/.mid
@@ -1009,6 +1013,8 @@ class TABFeature: public OGRFeature
     GInt32      m_nComprOrgX;
     GInt32      m_nComprOrgY;
 
+    virtual int UpdateMBR(TABMAPFile *poMapFile = NULL);
+
   public:
              TABFeature(OGRFeatureDefn *poDefnIn );
     virtual ~TABFeature();
@@ -1353,6 +1359,9 @@ class TABRectangle: public TABFeature,
                     public ITABFeaturePen, 
                     public ITABFeatureBrush
 {
+  private:
+    virtual int UpdateMBR(TABMAPFile *poMapFile = NULL);
+
   public:
              TABRectangle(OGRFeatureDefn *poDefnIn);
     virtual ~TABRectangle();
@@ -1407,6 +1416,8 @@ class TABEllipse: public TABFeature,
                   public ITABFeaturePen, 
                   public ITABFeatureBrush
 {
+  private:
+    virtual int UpdateMBR(TABMAPFile *poMapFile = NULL);
 
   public:
              TABEllipse(OGRFeatureDefn *poDefnIn);
@@ -1463,6 +1474,8 @@ class TABArc: public TABFeature,
   private:
     double      m_dStartAngle;  // In degrees, counterclockwise, 
     double      m_dEndAngle;    // starting at 3 o'clock
+
+    virtual int UpdateMBR(TABMAPFile *poMapFile = NULL);
 
   public:
              TABArc(OGRFeatureDefn *poDefnIn);
@@ -1534,6 +1547,8 @@ class TABText: public TABFeature,
     GInt16      m_nFontStyle;           // Bold/italic/underlined/shadow/...
 
     const char *GetLabelStyleString();
+
+    virtual int UpdateMBR(TABMAPFile *poMapFile = NULL);
 
   public:
              TABText(OGRFeatureDefn *poDefnIn);

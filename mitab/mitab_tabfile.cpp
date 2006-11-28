@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.59 2006-02-08 05:02:58 dmorissette Exp $
+ * $Id: mitab_tabfile.cpp,v 1.60 2006-11-28 18:49:08 dmorissette Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.59  2006-02-08 05:02:58  dmorissette
+ * Revision 1.60  2006-11-28 18:49:08  dmorissette
+ * Completed changes to split TABMAPObjectBlocks properly and produce an
+ * optimal spatial index (bug 1585)
+ *
+ * Revision 1.59  2006/02/08 05:02:58  dmorissette
  * Fixed crash when attempting to write TABPolyline object with an invalid
  * geometry (GDAL bug 1059)
  *
@@ -1470,8 +1474,6 @@ int TABFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
     TABMAPObjHdr *poObjHdr = 
         TABMAPObjHdr::NewObj(poFeature->ValidateMapInfoType(m_poMAPFile),
                              nFeatureId);
-    TABMAPObjectBlock *poObjBlock = NULL;
-
     
     /*-----------------------------------------------------------------
      * ValidateMapInfoType() may have returned TAB_GEOM_NONE if feature
@@ -1487,29 +1489,31 @@ int TABFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
         return -1;
     }
 
+    /*-----------------------------------------------------------------
+     * The ValidateMapInfoType() call above has forced calculation of the
+     * feature's IntMBR. Store that value in the ObjHdr for use by
+     * PrepareNewObj() to search the best node to insert the feature.
+     *----------------------------------------------------------------*/
+    if ( poObjHdr && poObjHdr->m_nType != TAB_GEOM_NONE)
+    {
+        poFeature->GetIntMBR(poObjHdr->m_nMinX, poObjHdr->m_nMinY,
+                             poObjHdr->m_nMaxX, poObjHdr->m_nMaxY);
+    }
+
     if ( poObjHdr == NULL || m_poMAPFile == NULL ||
-        m_poMAPFile->PrepareNewObj(nFeatureId, poObjHdr->m_nType) != 0 ||
-         poFeature->WriteGeometryToMAPFile(m_poMAPFile, poObjHdr) != 0 )
+         m_poMAPFile->PrepareNewObj(poObjHdr) != 0 ||
+         poFeature->WriteGeometryToMAPFile(m_poMAPFile, poObjHdr) != 0 ||
+         m_poMAPFile->CommitNewObj(poObjHdr) != 0 )
     {
         CPLError(CE_Failure, CPLE_FileIO,
                  "Failed writing geometry for feature id %d in %s",
                  nFeatureId, m_pszFname);
+        if (poObjHdr)
+            delete poObjHdr;
         return -1;
     }
 
-    if (poObjHdr->m_nType == TAB_GEOM_NONE)
-    {
-        // NONE objects have no reference in the ObjectBlocks.  Just flush it.
-        delete poObjHdr;
-    }
-    else if ( (poObjBlock = m_poMAPFile->GetCurObjBlock()) == NULL ||
-              poObjBlock->AddObject(poObjHdr) != 0 )
-    {
-        CPLError(CE_Failure, CPLE_FileIO,
-                 "Failed writing object header for feature id %d in %s",
-                 nFeatureId, m_pszFname);
-        return -1;
-    }
+    delete poObjHdr;
 
     return nFeatureId;
 }

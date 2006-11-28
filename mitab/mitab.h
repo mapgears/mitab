@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.87 2006-11-28 18:49:07 dmorissette Exp $
+ * $Id: mitab.h,v 1.88 2006-11-28 19:11:20 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.87  2006-11-28 18:49:07  dmorissette
+ * Revision 1.88  2006-11-28 19:11:20  dmorissette
+ * Set version to 1.6.0-dev
+ *
+ * Revision 1.87  2006/11/28 18:49:07  dmorissette
  * Completed changes to split TABMAPObjectBlocks properly and produce an
  * optimal spatial index (bug 1585)
  *
@@ -113,8 +116,8 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION      "1.5.1 (2006-07-25)"
-#define MITAB_VERSION_INT  1005001  /* version x.y.z -> xxxyyyzzz */
+#define MITAB_VERSION      "1.6.0-dev (2006-11-28)"
+#define MITAB_VERSION_INT  1006000  /* version x.y.z -> xxxyyyzzz */
 
 #ifndef PI
 #  define PI 3.14159265358979323846

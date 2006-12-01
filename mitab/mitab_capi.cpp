@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.42 2006-02-16 15:06:14 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.43 2006-12-01 20:26:27 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.42  2006-02-16 15:06:14  dmorissette
+ * Revision 1.43  2006-12-01 20:26:27  dmorissette
+ * Added mitab_is_field_indexed() and mitab_is_field_unique() (bug 1621)
+ *
+ * Revision 1.42  2006/02/16 15:06:14  dmorissette
  * Removed line of junk at end of file
  *
  * Revision 1.41  2006/02/16 14:59:45  dmorissette
@@ -2250,6 +2253,55 @@ mitab_c_get_field_precision( mitab_handle handle, int field )
     return 0;
 }
 
+
+/************************************************************************/
+/*                       mitab_c_is_field_indexed()                     */
+/************************************************************************/
+
+/**
+ * Test whether specified field in a dataset's schema is indexed or not.
+ *
+ * @param handle the dataset's handle.
+ * @param field the index of the field to look at, with 0 being the first 
+ *        field.
+ * @return TRUE (1) if field is indexed, FALSE (0) otherwise.
+ */
+
+int MITAB_STDCALL 
+mitab_c_is_field_indexed( mitab_handle handle, int field )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+
+    if (poFile)
+        return poFile->IsFieldIndexed(field);
+
+    return FALSE;
+}
+
+/************************************************************************/
+/*                       mitab_c_is_field_unique()                      */
+/************************************************************************/
+
+/**
+ * For indexed fields only, test whether the specified indexed 
+ * field in a dataset's schema has the unique flag set.
+ *
+ * @param handle the dataset's handle.
+ * @param field the index of the field to look at, with 0 being the first 
+ *        field.
+ * @return TRUE (1) if indexed field has unique flag set, FALSE (0) otherwise.
+ */
+
+int MITAB_STDCALL 
+mitab_c_is_field_unique( mitab_handle handle, int field )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+
+    if (poFile)
+        return poFile->IsFieldUnique(field);
+
+    return FALSE;
+}
 
 /************************************************************************/
 /*                    mitab_c_get_field_as_string()                     */

@@ -25,6 +25,9 @@ Version 1.6.0-dev
 - Fixed problem with null brush bg color becoming black when parsing
   style strings (bug 1603)
 
+- Added mitab_is_field_indexed() and mitab_is_field_unique() to C API
+  (bug 1621)
+
 
 Version 1.5.1 (2006-07-25)
 --------------------------
@@ -745,5 +748,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.168 2006-11-28 19:12:14 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.169 2006-12-01 20:26:27 dmorissette Exp $
 ------------

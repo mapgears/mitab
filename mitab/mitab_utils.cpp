@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.20 2005-08-07 21:02:14 fwarmerdam Exp $
+ * $Id: mitab_utils.cpp,v 1.21 2006-12-01 16:53:15 dmorissette Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
- * Revision 1.20  2005-08-07 21:02:14  fwarmerdam
+ * Revision 1.21  2006-12-01 16:53:15  dmorissette
+ * Wrapped <mbctype.h> stuff with !defined(WIN32CE) (done by mloskot in OGR)
+ *
+ * Revision 1.20  2005/08/07 21:02:14  fwarmerdam
  * avoid warnings about testing for characters > 255.
  *
  * Revision 1.19  2004/06/30 20:29:04  dmorissette
@@ -100,7 +103,7 @@
 #include <math.h>       /* sin()/cos() */
 #include <ctype.h>      /* toupper()/tolower() */
 
-#if defined(_WIN32) && !defined(unix)
+#if defined(_WIN32) && !defined(unix) && !defined(WIN32CE)
 #  include <mbctype.h>  /* Multibyte chars stuff */
 #endif
 
@@ -607,7 +610,7 @@ char *TABCleanFieldName(const char *pszSrcName)
                  "'%s' will be used instead.", pszSrcName, pszNewName);
     }
 
-#if defined(_WIN32) && !defined(unix)
+#if defined(_WIN32) && !defined(unix) && !defined(WIN32CE)
     /*-----------------------------------------------------------------
      * On Windows, check if we're using a double-byte codepage, and
      * if so then just keep the field name as is... 

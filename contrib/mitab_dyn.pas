@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.9 2006-07-25 13:24:47 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.10 2006-12-04 20:45:36 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.9  2006-07-25 13:24:47  dmorissette
+ * Revision 1.10  2006-12-04 20:45:36  dmorissette
+ * Upgrade for MITAB 1.6.0 from Uffe (bug 1621)
+ *
+ * Revision 1.9  2006/07/25 13:24:47  dmorissette
  * Updated for 1.5.1 release
  *
  * Revision 1.8  2006/02/16 15:13:38  dmorissette
@@ -109,7 +112,7 @@ Type
 
 const
 // update to match mitab.h (app. line 97), when new versions are released
-  Libversion = 1005001;
+  Libversion = 1006000;
   
 // feature type values
   TABFC_NoGeom      = 0;
@@ -227,6 +230,8 @@ type
   Tmitab_c_set_datum_info                 = procedure(projInfo: mitab_projinfo; dDatumShiftX,dDatumShiftY,dDatumShiftZ: double; var adDatumParams: TadDatumParams); stdcall;
   Tmitab_c_get_affine_params              = function(projInfo: mitab_projinfo; var nAffineUnits: longint; var adAffineParams: TadAffineParams): longint; stdcall;
   Tmitab_c_set_affine_params              = function(projInfo: mitab_projinfo; nAffineUnits: longint; var adAffineParams: TadAffineParams): longint; stdcall;
+  Tmitab_c_is_field_indexed               = function(handle: mitab_handle; field: longint): longint; stdcall;
+  Tmitab_c_is_field_unique                = function(handle: mitab_handle; field: longint): longint; stdcall;
     
 var
   MITAB_LibOK: boolean;   // false if DLL isn't loaded, true if loaded OK and correct version
@@ -310,6 +315,8 @@ var
   mitab_c_set_datum_info: Tmitab_c_set_datum_info;
   mitab_c_get_affine_params: Tmitab_c_get_affine_params;
   mitab_c_set_affine_params: Tmitab_c_set_affine_params;
+  mitab_c_is_field_indexed: Tmitab_c_is_field_indexed;
+  mitab_c_is_field_unique: Tmitab_c_is_field_unique;
 
 
 // This allows compilation with Kylix. Later there may be a "mitab.so" ? 
@@ -419,6 +426,8 @@ begin
         @mitab_c_set_datum_info:=                GetProcAddress(MITABDLL_Handle,'_mitab_c_set_datum_info@32');
         @mitab_c_get_affine_params:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_get_affine_params@12');
         @mitab_c_set_affine_params:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_set_affine_params@12');
+        @mitab_c_is_field_indexed:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_is_field_indexed@8');
+        @mitab_c_is_field_unique:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_is_field_unique@8');
       end;
     end;
   end;

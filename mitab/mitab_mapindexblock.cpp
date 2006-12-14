@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapindexblock.cpp,v 1.11 2006-11-28 18:49:08 dmorissette Exp $
+ * $Id: mitab_mapindexblock.cpp,v 1.12 2006-12-14 20:03:02 dmorissette Exp $
  *
  * Name:     mitab_mapindexblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapindexblock.cpp,v $
- * Revision 1.11  2006-11-28 18:49:08  dmorissette
+ * Revision 1.12  2006-12-14 20:03:02  dmorissette
+ * Improve write performance by keeping track of changes to index blocks
+ * and committing to disk only if modified (related to bug 1585)
+ *
+ * Revision 1.11  2006/11/28 18:49:08  dmorissette
  * Completed changes to split TABMAPObjectBlocks properly and produce an
  * optimal spatial index (bug 1585)
  *
@@ -199,6 +203,12 @@ int     TABMAPIndexBlock::CommitToFile()
         if (m_poCurChild->CommitToFile() != 0)
             return -1;
     }
+
+    /*-----------------------------------------------------------------
+     * Nothing to do here if block has not been modified
+     *----------------------------------------------------------------*/
+    if (!m_bModified)
+        return 0;
 
     /*-----------------------------------------------------------------
      * Make sure 4 bytes block header is up to date.
@@ -461,6 +471,8 @@ int     TABMAPIndexBlock::InsertEntry(GInt32 nXMin, GInt32 nYMin,
     m_asEntries[m_numEntries-1].YMax = nYMax;
     m_asEntries[m_numEntries-1].nBlockPtr = nBlockPtr;
 
+    m_bModified = TRUE;
+
     return 0;
 }
 
@@ -709,15 +721,25 @@ int     TABMAPIndexBlock::UpdateLeafEntry(GInt32 nBlockPtr,
     {
         if (m_asEntries[i].nBlockPtr == nBlockPtr)
         {
-            /* Found it. Update MBR of entry */
-            m_asEntries[i].XMin = nXMin;
-            m_asEntries[i].YMin = nYMin;
-            m_asEntries[i].XMax = nXMax;
-            m_asEntries[i].YMax = nYMax;
-            m_asEntries[i].nBlockPtr = nBlockPtr;
+            /* Found it. */
+            TABMAPIndexEntry *psEntry = &m_asEntries[i];
 
-            /* Update MBR of this node and all parents */
-            RecomputeMBR();
+            if (psEntry->XMin != nXMin ||
+                psEntry->YMin != nYMin ||
+                psEntry->XMax != nXMax ||
+                psEntry->YMax != nYMax )
+            {
+                /* MBR changed. Update MBR of entry */
+                psEntry->XMin = nXMin;
+                psEntry->YMin = nYMin;
+                psEntry->XMax = nXMax;
+                psEntry->YMax = nYMax;
+
+                m_bModified = TRUE;
+
+                /* Update MBR of this node and all parents */
+                RecomputeMBR();
+            }
 
             return 0;
         }
@@ -758,19 +780,6 @@ int     TABMAPIndexBlock::AddEntry(GInt32 nXMin, GInt32 nYMin,
                "Failed adding index entry: File not opened for write access.");
         return -1;
     }
-
-    /*-----------------------------------------------------------------
-     * Update MBR now... even if we're going to split current node later.
-     *----------------------------------------------------------------*/
-    if (nXMin < m_nMinX)
-        m_nMinX = nXMin;
-    if (nXMax > m_nMaxX)
-        m_nMaxX = nXMax;
-    
-    if (nYMin < m_nMinY)
-        m_nMinY = nYMin;
-    if (nYMax > m_nMaxY)
-        m_nMaxY = nYMax;
 
     /*-----------------------------------------------------------------
      * Look for the best candidate to contain the new entry
@@ -1365,27 +1374,43 @@ int TABMAPIndexBlock::SplitRootNode(GInt32 nNewEntryXMin, GInt32 nNewEntryYMin,
  **********************************************************************/
 void TABMAPIndexBlock::RecomputeMBR()
 {
-    m_nMinX = 1000000000;
-    m_nMinY = 1000000000;
-    m_nMaxX = -1000000000;
-    m_nMaxY = -1000000000;
+    GInt32 nMinX, nMinY, nMaxX, nMaxY;
+
+    nMinX = 1000000000;
+    nMinY = 1000000000;
+    nMaxX = -1000000000;
+    nMaxY = -1000000000;
 
     for(int i=0; i<m_numEntries; i++)
     {
-        if (m_asEntries[i].XMin < m_nMinX)
-            m_nMinX = m_asEntries[i].XMin;
-        if (m_asEntries[i].XMax > m_nMaxX)
-            m_nMaxX = m_asEntries[i].XMax;
-    
-        if (m_asEntries[i].YMin < m_nMinY)
-            m_nMinY = m_asEntries[i].YMin;
-        if (m_asEntries[i].YMax > m_nMaxY)
-            m_nMaxY = m_asEntries[i].YMax;
+        if (m_asEntries[i].XMin < nMinX)
+            nMinX = m_asEntries[i].XMin;
+        if (m_asEntries[i].XMax > nMaxX)
+            nMaxX = m_asEntries[i].XMax;
+
+        if (m_asEntries[i].YMin < nMinY)
+            nMinY = m_asEntries[i].YMin;
+        if (m_asEntries[i].YMax > nMaxY)
+            nMaxY = m_asEntries[i].YMax;
     }
 
-    if (m_poParentRef)
-        m_poParentRef->UpdateCurChildMBR(m_nMinX, m_nMinY, m_nMaxX, m_nMaxY,
-                                         GetNodeBlockPtr());
+    if (m_nMinX != nMinX ||
+        m_nMinY != nMinY ||
+        m_nMaxX != nMaxX ||
+        m_nMaxY != nMaxY )
+    {
+        m_nMinX = nMinX;
+        m_nMinY = nMinY;
+        m_nMaxX = nMaxX;
+        m_nMaxY = nMaxY;
+
+        m_bModified = TRUE;
+
+        if (m_poParentRef)
+            m_poParentRef->UpdateCurChildMBR(m_nMinX, m_nMinY, 
+                                             m_nMaxX, m_nMaxY,
+                                             GetNodeBlockPtr());
+    }
 
 }
 
@@ -1402,6 +1427,16 @@ void TABMAPIndexBlock::UpdateCurChildMBR(GInt32 nXMin, GInt32 nYMin,
 {
     CPLAssert(m_poCurChild);
     CPLAssert(m_asEntries[m_nCurChildIndex].nBlockPtr == nBlockPtr);
+
+    if (m_asEntries[m_nCurChildIndex].XMin == nXMin &&
+        m_asEntries[m_nCurChildIndex].YMin == nYMin &&
+        m_asEntries[m_nCurChildIndex].XMax == nXMax &&
+        m_asEntries[m_nCurChildIndex].YMax == nYMax)
+    {
+        return;  /* Nothing changed... nothing to do */
+    }
+
+    m_bModified = TRUE;
 
     m_asEntries[m_nCurChildIndex].XMin = nXMin;
     m_asEntries[m_nCurChildIndex].YMin = nYMin;

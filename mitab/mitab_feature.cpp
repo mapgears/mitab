@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.67 2006-11-28 18:49:07 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.68 2007-02-22 18:35:53 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.67  2006-11-28 18:49:07  dmorissette
+ * Revision 1.68  2007-02-22 18:35:53  dmorissette
+ * Fixed problem writing collections where MITAB was sometimes trying to
+ * read past EOF in write mode (bug 1657).
+ *
+ * Revision 1.67  2006/11/28 18:49:07  dmorissette
  * Completed changes to split TABMAPObjectBlocks properly and produce an
  * optimal spatial index (bug 1585)
  *
@@ -6840,7 +6844,7 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                          poRegionHdr->m_nLabelX, poRegionHdr->m_nLabelY);
 
         // And finally move the pointer back to the end of this component
-        if (poCoordBlock->GotoByteInFile(nEndOfObjectPtr, TRUE) != 0)
+        if (poCoordBlock->GotoByteInFile(nEndOfObjectPtr, TRUE, TRUE) != 0)
         {
             delete poRegionHdr;
             return -1;
@@ -6924,7 +6928,7 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                          poPlineHdr->m_nLabelX, poPlineHdr->m_nLabelY);
 
         // And finally move the pointer back to the end of this component
-        if (poCoordBlock->GotoByteInFile(nEndOfObjectPtr, TRUE) != 0)
+        if (poCoordBlock->GotoByteInFile(nEndOfObjectPtr, TRUE, TRUE) != 0)
         {
             delete poPlineHdr;
             return -1;
@@ -7007,7 +7011,7 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                          poMpointHdr->m_nLabelX, poMpointHdr->m_nLabelY);
 
         // And finally move the pointer back to the end of this component
-        if (poCoordBlock->GotoByteInFile(nEndOfObjectPtr, TRUE) != 0)
+        if (poCoordBlock->GotoByteInFile(nEndOfObjectPtr, TRUE, TRUE) != 0)
         {
             delete poMpointHdr;
             return -1;

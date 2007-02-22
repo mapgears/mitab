@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.43 2006-11-28 18:49:08 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.44 2007-02-22 18:35:53 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.43  2006-11-28 18:49:08  dmorissette
+ * Revision 1.44  2007-02-22 18:35:53  dmorissette
+ * Fixed problem writing collections where MITAB was sometimes trying to
+ * read past EOF in write mode (bug 1657).
+ *
+ * Revision 1.43  2006/11/28 18:49:08  dmorissette
  * Completed changes to split TABMAPObjectBlocks properly and produce an
  * optimal spatial index (bug 1585)
  *
@@ -780,7 +784,9 @@ class TABRawBinBlock
 
     int         GotoByteRel(int nOffset);
     int         GotoByteInBlock(int nOffset);
-    int         GotoByteInFile(int nOffset, GBool bForceReadFromFile=FALSE);
+    int         GotoByteInFile(int nOffset, 
+                               GBool bForceReadFromFile = FALSE,
+                               GBool bOffsetIsEndOfData = FALSE);
     void        SetFirstBlockPtr(int nOffset);
 
     int         GetNumUnusedBytes();

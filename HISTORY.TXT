@@ -16,6 +16,9 @@ CHANGES - Current Version:
 - Fixed problem writing collections where MITAB was sometimes trying to 
   read past EOF in write mode (bug 1657).
 
+- Fixed another problem writing collections when the header of objects 
+  part of a collection were split on multiple blocks (bug 1663)
+
 
 Version 1.6.0 (2007-02-15)
 --------------------------
@@ -752,5 +755,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.171 2007-02-22 18:35:52 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.172 2007-02-23 18:56:44 dmorissette Exp $
 ------------

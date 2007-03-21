@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.60 2006-11-28 18:49:08 dmorissette Exp $
+ * $Id: mitab_tabfile.cpp,v 1.61 2007-03-21 21:15:56 dmorissette Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.60  2006-11-28 18:49:08  dmorissette
+ * Revision 1.61  2007-03-21 21:15:56  dmorissette
+ * Added SetQuickSpatialIndexMode() which generates a non-optimal spatial
+ * index but results in faster write time (bug 1669)
+ *
+ * Revision 1.60  2006/11/28 18:49:08  dmorissette
  * Completed changes to split TABMAPObjectBlocks properly and produce an
  * optimal spatial index (bug 1585)
  *
@@ -1109,6 +1113,38 @@ int TABFile::Close()
 
     return 0;
 }
+
+/**********************************************************************
+ *                   TABFile::SetQuickSpatialIndexMode()
+ *
+ * Select "quick spatial index mode". 
+ *
+ * The default behavior of MITAB is to generate an optimized spatial index,
+ * but this results in slower write speed. 
+ *
+ * Applications that want faster write speed and do not care
+ * about the performance of spatial queries on the resulting file can
+ * use SetQuickSpatialIndexMode() to require the creation of a non-optimal
+ * spatial index (actually emulating the type of spatial index produced
+ * by MITAB before version 1.6.0). In this mode writing files can be 
+ * about 5 times faster, but spatial queries can be up to 30 times slower.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABFile::SetQuickSpatialIndexMode()
+{
+    if (m_eAccessMode != TABWrite || m_poMAPFile == NULL)
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "SetQuickSpatialIndexMode() failed: file not opened for write access.");
+        return -1;
+    }
+
+
+    return m_poMAPFile->SetQuickSpatialIndexMode();
+}
+
+
 
 /**********************************************************************
  *                   TABFile::GetNextFeatureId()

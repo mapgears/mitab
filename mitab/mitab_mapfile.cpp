@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.35 2006-11-28 18:49:08 dmorissette Exp $
+ * $Id: mitab_mapfile.cpp,v 1.36 2007-03-21 21:15:56 dmorissette Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.35  2006-11-28 18:49:08  dmorissette
+ * Revision 1.36  2007-03-21 21:15:56  dmorissette
+ * Added SetQuickSpatialIndexMode() which generates a non-optimal spatial
+ * index but results in faster write time (bug 1669)
+ *
+ * Revision 1.35  2006/11/28 18:49:08  dmorissette
  * Completed changes to split TABMAPObjectBlocks properly and produce an
  * optimal spatial index (bug 1585)
  *
@@ -170,6 +174,7 @@ TABMAPFile::TABMAPFile()
     m_poHeader = NULL;
     m_poSpIndex = NULL;
     m_poSpIndexLeaf = NULL;
+    m_bQuickSpatialIndexMode = FALSE;
 
     m_poCurObjBlock = NULL;
     m_nCurObjPtr = -1;
@@ -513,6 +518,45 @@ int TABMAPFile::Close()
 
     CPLFree(m_pszFname);
     m_pszFname = NULL;
+
+    return 0;
+}
+
+
+/**********************************************************************
+ *                   TABMAPFile::SetQuickSpatialIndexMode()
+ *
+ * Select "quick spatial index mode". 
+ *
+ * The default behavior of MITAB is to generate an optimized spatial index,
+ * but this results in slower write speed. 
+ *
+ * Applications that want faster write speed and do not care
+ * about the performance of spatial queries on the resulting file can
+ * use SetQuickSpatialIndexMode() to require the creation of a non-optimal
+ * spatial index (actually emulating the type of spatial index produced
+ * by MITAB before version 1.6.0). In this mode writing files can be 
+ * about 5 times faster, but spatial queries can be up to 30 times slower.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int TABMAPFile::SetQuickSpatialIndexMode()
+{
+    if (m_eAccessMode != TABWrite)
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "SetQuickSpatialIndexMode() failed: file not opened for write access.");
+        return -1;
+    }
+
+    if (m_poCurObjBlock != NULL || m_poSpIndex != NULL)
+    {
+        CPLError(CE_Failure, CPLE_AssertionFailed,
+                 "SetQuickSpatialIndexMode() must be called before writing the first object.");
+        return -1;
+    }
+
+    m_bQuickSpatialIndexMode = TRUE;
 
     return 0;
 }
@@ -1040,9 +1084,15 @@ void  TABMAPFile::UpdateMapHeaderInfo(GByte nObjType)
  * poObjHdr's m_nId (featureId), m_nType and IntMBR members which must 
  * have been set by the caller).
  *
- * We walk through the spatial index to find the best place to insert the
+ * Depending on whether "quick spatial index mode" is selected, we either:
+ *
+ * 1- Walk through the spatial index to find the best place to insert the
  * new object, update the spatial index references, and prepare the object
  * data block to be ready to write the object to it.
+ * ... or ...
+ * 2- prepare the current object data block to be ready to write the 
+ * object to it. If the object block is full then it is inserted in the 
+ * spatial index and committed to disk, and a new obj block is created.
  *
  * m_poCurObjBlock will be set to be ready to receive the new object, and
  * a new block will be created if necessary (in which case the current 
@@ -1061,8 +1111,6 @@ void  TABMAPFile::UpdateMapHeaderInfo(GByte nObjType)
  **********************************************************************/
 int   TABMAPFile::PrepareNewObj(TABMAPObjHdr *poObjHdr)
 {
-    int nObjSize;
-    GInt32 nObjBlockForInsert = -1;
 
     m_nCurObjPtr = m_nCurObjId = m_nCurObjType = -1;
 
@@ -1093,6 +1141,75 @@ int   TABMAPFile::PrepareNewObj(TABMAPObjHdr *poObjHdr)
      *----------------------------------------------------------------*/
     UpdateMapHeaderInfo(poObjHdr->m_nType);
 
+
+    /*-----------------------------------------------------------------
+     * Depending on the selected spatial index mode, we will either insert
+     * new objects via the spatial index (slower write but results in optimal
+     * spatial index) or directly in the current ObjBlock (faster write
+     * but non-optimal spatial index)
+     *----------------------------------------------------------------*/
+    if ( !m_bQuickSpatialIndexMode )
+    {
+        if (PrepareNewObjViaSpatialIndex(poObjHdr) != 0)
+            return -1;  /* Error already reported */
+    }
+    else
+    {
+        if (PrepareNewObjViaObjBlock(poObjHdr) != 0)
+            return -1;  /* Error already reported */
+    }
+
+    /*-----------------------------------------------------------------
+     * Prepare ObjBlock for this new object.
+     * Real data won't be written to the object block until CommitNewObj()
+     * is called.
+     *----------------------------------------------------------------*/
+    m_nCurObjPtr = m_poCurObjBlock->PrepareNewObject(poObjHdr);
+    if (m_nCurObjPtr < 0 )
+    {
+        CPLError(CE_Failure, CPLE_FileIO,
+                 "Failed writing object header for feature id %d",
+                 poObjHdr->m_nId);
+        return -1;
+    }
+
+    m_nCurObjType = poObjHdr->m_nType;
+    m_nCurObjId   = poObjHdr->m_nId;
+
+    /*-----------------------------------------------------------------
+     * Update .ID Index
+     *----------------------------------------------------------------*/
+    m_poIdIndex->SetObjPtr(m_nCurObjId, m_nCurObjPtr);
+
+    /*-----------------------------------------------------------------
+     * Prepare Coords block... 
+     * create a new TABMAPCoordBlock if it was not done yet.
+     *----------------------------------------------------------------*/
+    PrepareCoordBlock(m_nCurObjType, m_poCurObjBlock, &m_poCurCoordBlock);
+
+    if (CPLGetLastErrorNo() != 0 && CPLGetLastErrorType() == CE_Failure)
+        return -1;
+
+    return 0;
+}
+
+/**********************************************************************
+ *                   TABMAPFile::PrepareNewObjViaSpatialIndex()
+ *
+ * Used by TABMAPFile::PrepareNewObj() to walk through the spatial index
+ * to find the best place to insert the new object, update the spatial 
+ * index references, and prepare the object data block to be ready to 
+ * write the object to it.
+ *
+ * This method is used when "quick spatial index mode" is NOT selected,
+ * i.e. when we want to produce a file with an optimal spatial index
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int   TABMAPFile::PrepareNewObjViaSpatialIndex(TABMAPObjHdr *poObjHdr)
+{
+    int nObjSize;
+    GInt32 nObjBlockForInsert = -1;
 
     /*-----------------------------------------------------------------
      * Create spatial index if we don't have one yet.
@@ -1263,37 +1380,78 @@ int   TABMAPFile::PrepareNewObj(TABMAPObjHdr *poObjHdr)
         delete poNewObjBlock;
     }
 
+    return 0;
+}
 
-    /*-----------------------------------------------------------------
-     * Prepare ObjBlock for this new object.
-     * Real data won't be written to the object block until CommitNewObj()
-     * is called.
-     *----------------------------------------------------------------*/
-    m_nCurObjPtr = m_poCurObjBlock->PrepareNewObject(poObjHdr);
-    if (m_nCurObjPtr < 0 )
+/**********************************************************************
+ *                   TABMAPFile::PrepareNewObjViaObjBlock()
+ *
+ * Used by TABMAPFile::PrepareNewObj() to prepare the current object 
+ * data block to be ready to write the object to it. If the object block 
+ * is full then it is inserted in the spatial index and committed to disk,
+ * and a new obj block is created.
+ *
+ * This method is used when "quick spatial index mode" is selected,
+ * i.e. faster write, but non-optimal spatial index.
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int   TABMAPFile::PrepareNewObjViaObjBlock(TABMAPObjHdr *poObjHdr)
+{
+    int nObjSize;
+
+    /*-------------------------------------------------------------
+     * We will need an object block... check if it exists and
+     * create it if it has not been created yet (first time for this file).
+     * We do not create the object block in the open() call because
+     * files that contained only "NONE" geometries ended up with empty
+     * object and spatial index blocks.
+     * Note: A coord block will be created only if needed later.
+     *------------------------------------------------------------*/
+    if (m_poCurObjBlock == NULL)
     {
-        CPLError(CE_Failure, CPLE_FileIO,
-                 "Failed writing object header for feature id %d",
-                 poObjHdr->m_nId);
-        return -1;
+        m_poCurObjBlock = new TABMAPObjectBlock(m_eAccessMode);
+
+        int nBlockOffset = m_oBlockManager.AllocNewBlock();
+
+        m_poCurObjBlock->InitNewBlock(m_fp, 512, nBlockOffset);
+
+        // The reference to the first object block should 
+        // actually go through the index blocks... this will be 
+        // updated when file is closed.
+        m_poHeader->m_nFirstIndexBlock = nBlockOffset;
     }
 
-    m_nCurObjType = poObjHdr->m_nType;
-    m_nCurObjId   = poObjHdr->m_nId;
-
     /*-----------------------------------------------------------------
-     * Update .ID Index
+     * Fetch new object size, make sure there is enough room in obj. 
+     * block for new object, and save/create a new one if necessary.
      *----------------------------------------------------------------*/
-    m_poIdIndex->SetObjPtr(m_nCurObjId, m_nCurObjPtr);
+    nObjSize = m_poHeader->GetMapObjectSize(poObjHdr->m_nType);
+    if (m_poCurObjBlock->GetNumUnusedBytes() < nObjSize )
+    {
+        /*-------------------------------------------------------------
+         * OK, the new object won't fit in the current block. Add the
+         * current block to the spatial index, commit it to disk and init
+         * a new block
+         *------------------------------------------------------------*/
+        CommitObjAndCoordBlocks(FALSE);
 
-    /*-----------------------------------------------------------------
-     * Prepare Coords block... 
-     * create a new TABMAPCoordBlock if it was not done yet.
-     *----------------------------------------------------------------*/
-    PrepareCoordBlock(m_nCurObjType, m_poCurObjBlock, &m_poCurCoordBlock);
+        if (m_poCurObjBlock->InitNewBlock(m_fp,512,
+                                  m_oBlockManager.AllocNewBlock())!=0)
+            return -1; /* Error already reported */
 
-    if (CPLGetLastErrorNo() != 0 && CPLGetLastErrorType() == CE_Failure)
-        return -1;
+        /*-------------------------------------------------------------
+         * Coord block has been committed to disk but not deleted.
+         * Delete it to require the creation of a new coord block chain
+         * as needed.
+         *-------------------------------------------------------------*/
+        if (m_poCurCoordBlock)
+        {
+            delete m_poCurCoordBlock;
+            m_poCurCoordBlock = NULL;
+        }
+
+    }
 
     return 0;
 }
@@ -1365,17 +1523,53 @@ int TABMAPFile::CommitObjAndCoordBlocks(GBool bDeleteObjects /*=FALSE*/)
     }
 
     /*-----------------------------------------------------------------
-     * Commit the obj block (and delete only if requested)
+     * Commit the obj block
      *----------------------------------------------------------------*/
     if (nStatus == 0)
     {
         nStatus = m_poCurObjBlock->CommitToFile();
+    }
 
-        if (bDeleteObjects)
+
+    /*-----------------------------------------------------------------
+     * Update the spatial index ** only in "quick spatial index" mode ** 
+     * In the (default) optimized spatial index mode, the spatial index 
+     * is already maintained up to date as part of inserting the objects in
+     * PrepareNewObj().
+     *
+     * Spatial index will be created here if it was not done yet.
+     *----------------------------------------------------------------*/
+    if (nStatus == 0 && m_bQuickSpatialIndexMode)
+    {
+        GInt32 nXMin, nYMin, nXMax, nYMax;
+
+        if (m_poSpIndex == NULL)
         {
-            delete m_poCurObjBlock;
-            m_poCurObjBlock = NULL;
+            // Spatial Index not created yet...
+            m_poSpIndex = new TABMAPIndexBlock(m_eAccessMode);
+
+            m_poSpIndex->InitNewBlock(m_fp, 512, 
+                                      m_oBlockManager.AllocNewBlock());
+            m_poSpIndex->SetMAPBlockManagerRef(&m_oBlockManager);
+
+            m_poHeader->m_nFirstIndexBlock = m_poSpIndex->GetNodeBlockPtr();
         }
+
+        m_poCurObjBlock->GetMBR(nXMin, nYMin, nXMax, nYMax);
+        nStatus = m_poSpIndex->AddEntry(nXMin, nYMin, nXMax, nYMax,
+                                        m_poCurObjBlock->GetStartAddress());
+
+        m_poHeader->m_nMaxSpIndexDepth = MAX(m_poHeader->m_nMaxSpIndexDepth,
+                                             m_poSpIndex->GetCurMaxDepth()+1);
+    }
+
+    /*-----------------------------------------------------------------
+     * Delete obj block only if requested
+     *----------------------------------------------------------------*/
+    if (bDeleteObjects)
+    {
+        delete m_poCurObjBlock;
+        m_poCurObjBlock = NULL;
     }
 
     return nStatus;

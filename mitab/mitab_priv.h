@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.44 2007-02-22 18:35:53 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.45 2007-03-21 21:15:56 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.44  2007-02-22 18:35:53  dmorissette
+ * Revision 1.45  2007-03-21 21:15:56  dmorissette
+ * Added SetQuickSpatialIndexMode() which generates a non-optimal spatial
+ * index but results in faster write time (bug 1669)
+ *
+ * Revision 1.44  2007/02/22 18:35:53  dmorissette
  * Fixed problem writing collections where MITAB was sometimes trying to
  * read past EOF in write mode (bug 1657).
  *
@@ -1274,6 +1278,9 @@ class TABMAPFile
     // Members used to access objects using the spatial index
     TABMAPIndexBlock  *m_poSpIndex;
 
+    // Defaults to FALSE, i.e. optimized spatial index
+    GBool       m_bQuickSpatialIndexMode;
+
     // Member used to access objects using the object ids (.ID file)
     TABIDFile   *m_poIdIndex;
 
@@ -1326,6 +1333,8 @@ class TABMAPFile
                      GBool bNoErrorMsg = FALSE );
     int         Close();
 
+    int         SetQuickSpatialIndexMode();
+
     int         Int2Coordsys(GInt32 nX, GInt32 nY, double &dX, double &dY);
     int         Coordsys2Int(double dX, double dY, GInt32 &nX, GInt32 &nY, 
                              GBool bIgnoreOveflow=FALSE);
@@ -1341,6 +1350,8 @@ class TABMAPFile
     int         MoveToObjId(int nObjId);
     void        UpdateMapHeaderInfo(GByte nObjType);
     int         PrepareNewObj(TABMAPObjHdr *poObjHdr);
+    int         PrepareNewObjViaSpatialIndex(TABMAPObjHdr *poObjHdr);
+    int         PrepareNewObjViaObjBlock(TABMAPObjHdr *poObjHdr);
     int         CommitNewObj(TABMAPObjHdr *poObjHdr);
 
     void        ResetReading();

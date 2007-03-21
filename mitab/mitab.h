@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.89 2007-02-15 20:19:06 dmorissette Exp $
+ * $Id: mitab.h,v 1.90 2007-03-21 21:15:56 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.89  2007-02-15 20:19:06  dmorissette
+ * Revision 1.90  2007-03-21 21:15:56  dmorissette
+ * Added SetQuickSpatialIndexMode() which generates a non-optimal spatial
+ * index but results in faster write time (bug 1669)
+ *
+ * Revision 1.89  2007/02/15 20:19:06  dmorissette
  * Update for v1.6.0
  *
  * Revision 1.88  2006/11/28 19:11:20  dmorissette
@@ -176,6 +180,8 @@ class IMapInfoFile : public OGRLayer
                      GBool bTestOpenNoError = FALSE ) = 0;
     virtual int Close() = 0;
 
+    virtual int SetQuickSpatialIndexMode() {return -1;}
+
     virtual const char *GetTableName() = 0;
 
     ///////////////
@@ -295,6 +301,8 @@ class TABFile: public IMapInfoFile
     virtual int Open(const char *pszFname, const char *pszAccess,
                      GBool bTestOpenNoError = FALSE );
     virtual int Close();
+
+    virtual int SetQuickSpatialIndexMode();
 
     virtual const char *GetTableName()
                             {return m_poDefn?m_poDefn->GetName():"";};
@@ -419,6 +427,8 @@ class TABView: public IMapInfoFile
     virtual int Open(const char *pszFname, const char *pszAccess,
                      GBool bTestOpenNoError = FALSE );
     virtual int Close();
+
+    virtual int SetQuickSpatialIndexMode();
 
     virtual const char *GetTableName()
            {return m_poRelation?m_poRelation->GetFeatureDefn()->GetName():"";};

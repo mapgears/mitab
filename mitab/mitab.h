@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.90 2007-03-21 21:15:56 dmorissette Exp $
+ * $Id: mitab.h,v 1.91 2007-03-22 21:01:37 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.90  2007-03-21 21:15:56  dmorissette
+ * Revision 1.91  2007-03-22 21:01:37  dmorissette
+ * Update for v1.6.1
+ *
+ * Revision 1.90  2007/03/21 21:15:56  dmorissette
  * Added SetQuickSpatialIndexMode() which generates a non-optimal spatial
  * index but results in faster write time (bug 1669)
  *
@@ -123,8 +126,8 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION      "1.6.0 (2007-02-15)"
-#define MITAB_VERSION_INT  1006000  /* version x.y.z -> xxxyyyzzz */
+#define MITAB_VERSION      "1.6.1 (2007-03-22)"
+#define MITAB_VERSION_INT  1006001  /* version x.y.z -> xxxyyyzzz */
 
 #ifndef PI
 #  define PI 3.14159265358979323846

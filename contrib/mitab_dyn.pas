@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.10 2006-12-04 20:45:36 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.11 2007-03-22 21:01:37 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.10  2006-12-04 20:45:36  dmorissette
+ * Revision 1.11  2007-03-22 21:01:37  dmorissette
+ * Update for v1.6.1
+ *
+ * Revision 1.10  2006/12/04 20:45:36  dmorissette
  * Upgrade for MITAB 1.6.0 from Uffe (bug 1621)
  *
  * Revision 1.9  2006/07/25 13:24:47  dmorissette
@@ -112,7 +115,7 @@ Type
 
 const
 // update to match mitab.h (app. line 97), when new versions are released
-  Libversion = 1006000;
+  Libversion = 1006001;
   
 // feature type values
   TABFC_NoGeom      = 0;

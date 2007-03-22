@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr2ogr.cpp,v 1.3 2007-03-22 19:19:51 dmorissette Exp $
+ * $Id: ogr2ogr.cpp,v 1.4 2007-03-22 19:48:35 dmorissette Exp $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Simple client for translating between formats.
@@ -28,7 +28,10 @@
  ******************************************************************************
  *
  * $Log: ogr2ogr.cpp,v $
- * Revision 1.3  2007-03-22 19:19:51  dmorissette
+ * Revision 1.4  2007-03-22 19:48:35  dmorissette
+ * Set default output format to "MapInfo File" for this local copy
+ *
+ * Revision 1.3  2007/03/22 19:19:51  dmorissette
  * Update MITAB copy to a more recent version of ogr2ogr.cpp
  *
  * Revision 1.28  2005/04/14 14:20:24  fwarmerdam
@@ -121,7 +124,7 @@
 #include "cpl_conv.h"
 #include "cpl_string.h"
 
-CPL_CVSID("$Id: ogr2ogr.cpp,v 1.3 2007-03-22 19:19:51 dmorissette Exp $");
+CPL_CVSID("$Id: ogr2ogr.cpp,v 1.4 2007-03-22 19:48:35 dmorissette Exp $");
 
 static void Usage();
 
@@ -148,7 +151,7 @@ static int nFIDToFetch = OGRNullFID;
 int main( int nArgc, char ** papszArgv )
 
 {
-    const char  *pszFormat = "ESRI Shapefile";
+    const char  *pszFormat = "MapInfo File";
     const char  *pszDataSource = NULL;
     const char  *pszDestDataSource = NULL;
     char        **papszLayers = NULL;

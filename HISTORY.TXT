@@ -13,7 +13,7 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
-Version 1.6.1 (2007-03-22)
+Version 1.6.1 (2007-03-30)
 --------------------------
 
 - Added "Quick Spatial Index Mode" which generates a non-optimal spatial
@@ -768,5 +768,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.177 2007-03-30 18:03:51 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.178 2007-03-30 18:05:49 dmorissette Exp $
 ------------

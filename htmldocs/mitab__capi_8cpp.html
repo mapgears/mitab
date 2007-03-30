@@ -54,6 +54,9 @@
 <tr><td class="memItemLeft" nowrap align="right" valign="top">mitab_handle MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="mitab__capi_8cpp.html#00001954939919bc111937e9b82adce3">mitab_c_create</a> (const char *filename, const char *mif_or_tab, const char *mif_projection, double north, double south, double east, double west)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Create a new .TAB or .MIF dataset.  <a href="#00001954939919bc111937e9b82adce3"></a><br></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="mitab__capi_8cpp.html#0d8bbd4835d9596064d26c6ca13fe5fa">mitab_c_set_quick_spatial_index_mode</a> (mitab_handle dataset)</td></tr>
+
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Select "quick spatial index mode".  <a href="#0d8bbd4835d9596064d26c6ca13fe5fa"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">int MITAB_STDCALL&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="mitab__capi_8cpp.html#49647accca61dfbc57b2dcc35fef325b">mitab_c_add_field</a> (mitab_handle dataset, const char *field_name, int field_type, int width, int precision, int indexed, int unique)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Add a new field to the dataset's schema.  <a href="#49647accca61dfbc57b2dcc35fef325b"></a><br></td></tr>
@@ -3503,6 +3506,45 @@ Should be called immediately after creating the dataset and before adding featur
     </td>
   </tr>
 </table>
+<a class="anchor" name="0d8bbd4835d9596064d26c6ca13fe5fa"></a><!-- doxytag: member="mitab_capi.cpp::mitab_c_set_quick_spatial_index_mode" ref="0d8bbd4835d9596064d26c6ca13fe5fa" args="(mitab_handle dataset)" --><p>
+<table class="mdTable" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top">int MITAB_STDCALL mitab_c_set_quick_spatial_index_mode           </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">mitab_handle&nbsp;</td>
+          <td class="mdname1" valign="top" nowrap> <em>dataset</em>          </td>
+          <td class="md" valign="top">&nbsp;)&nbsp;</td>
+          <td class="md" nowrap></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing="5" cellpadding="0" border="0">
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Select "quick spatial index mode". 
+<p>
+The default behavior of MITAB is to generate an optimized spatial index, but this results in slower write speed.<p>
+Applications that want faster write speed and do not care about the performance of spatial queries on the resulting file can use this function to require the creation of a non-optimal spatial index (actually emulating the type of spatial index produced by MITAB before version 1.6.0). In this mode writing files can be about 5 times faster, but spatial queries can be up to 30 times slower.<p>
+<a class="el" href="mitab__capi_8cpp.html#0d8bbd4835d9596064d26c6ca13fe5fa">mitab_c_set_quick_spatial_index_mode()</a> must be called immediately after <a class="el" href="mitab__capi_8cpp.html#00001954939919bc111937e9b82adce3">mitab_c_create()</a> and before starting to write any data to the file. This function applies only to newly created TAB files and does not do anything useful for MIF files.<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign="top"></td><td valign="top"><em>dataset</em>&nbsp;</td><td>the mitab_handle of the newly created dataset. </td></tr>
+  </table>
+</dl>
+<dl compact><dt><b>Returns:</b></dt><dd>0 on success, -1 on error. </dd></dl>
+    </td>
+  </tr>
+</table>
 <a class="anchor" name="6995adf86ecb363228df74d26dd3835d"></a><!-- doxytag: member="mitab_capi.cpp::mitab_c_set_symbol" ref="6995adf86ecb363228df74d26dd3835d" args="(mitab_feature feature, int symbol_no, int symbol_size, int symbol_color)" --><p>
 <table class="mdTable" cellpadding="2" cellspacing="0">
   <tr>
@@ -3799,7 +3841,7 @@ Also note that the mitab_feature object will NOT be owned by the dataset after t
     </td>
   </tr>
 </table>
-<hr size="1"><address style="align: right;"><small>Generated on Thu Feb 15 15:15:41 2007 for MITAB by&nbsp;
+<hr size="1"><address style="align: right;"><small>Generated on Fri Mar 30 14:04:00 2007 for MITAB by&nbsp;
 <a href="http://www.doxygen.org/index.html">
 <img src="doxygen.png" alt="doxygen" align="middle" border="0"></a> 1.4.6 </small></address>
 </body>

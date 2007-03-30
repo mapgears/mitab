@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.43 2006-12-01 20:26:27 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.44 2007-03-30 18:03:51 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.43  2006-12-01 20:26:27  dmorissette
+ * Revision 1.44  2007-03-30 18:03:51  dmorissette
+ * Added mitab_c_set_quick_spatial_index_mode() to C API (bug 1669)
+ *
+ * Revision 1.43  2006/12/01 20:26:27  dmorissette
  * Added mitab_is_field_indexed() and mitab_is_field_unique() (bug 1621)
  *
  * Revision 1.42  2006/02/16 15:06:14  dmorissette
@@ -469,6 +472,42 @@ mitab_c_create( const char * filename,
 
     return (mitab_handle) poFile;
 }
+
+
+/************************************************************************/
+/*                   mitab_c_set_quick_spatial_index_mode()             */
+/************************************************************************/
+
+/**
+ * Select "quick spatial index mode". 
+ *
+ * The default behavior of MITAB is to generate an optimized spatial index,
+ * but this results in slower write speed. 
+ *
+ * Applications that want faster write speed and do not care
+ * about the performance of spatial queries on the resulting file can
+ * use this function to require the creation of a non-optimal
+ * spatial index (actually emulating the type of spatial index produced
+ * by MITAB before version 1.6.0). In this mode writing files can be 
+ * about 5 times faster, but spatial queries can be up to 30 times slower.
+ *
+ * mitab_c_set_quick_spatial_index_mode() must be called immediately after
+ * mitab_c_create() and before starting to write any data to the file.
+ * This function applies only to newly created TAB files and does not
+ * do anything useful for MIF files.
+ *
+ * @param dataset the mitab_handle of the newly created dataset.
+ * @return 0 on success, -1 on error.
+ */
+
+int MITAB_STDCALL 
+mitab_c_set_quick_spatial_index_mode( mitab_handle dataset )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) dataset;
+
+    return poFile->SetQuickSpatialIndexMode();
+}
+
 
 /************************************************************************/
 /*                         mitab_c_add_field()                          */

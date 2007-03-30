@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.30 2006-12-01 20:26:27 dmorissette Exp $
+ * $Id: mitab_capi.h,v 1.31 2007-03-30 18:03:51 dmorissette Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.30  2006-12-01 20:26:27  dmorissette
+ * Revision 1.31  2007-03-30 18:03:51  dmorissette
+ * Added mitab_c_set_quick_spatial_index_mode() to C API (bug 1669)
+ *
+ * Revision 1.30  2006/12/01 20:26:27  dmorissette
  * Added mitab_is_field_indexed() and mitab_is_field_unique() (bug 1621)
  *
  * Revision 1.29  2005/10/07 18:49:40  dmorissette
@@ -211,6 +214,8 @@ mitab_handle MITAB_DLL MITAB_STDCALL mitab_c_create( const char * filename,
                                        const char * mif_projectiondef,
                                        double north, double south,
                                        double east, double west );
+
+int MITAB_DLL MITAB_STDCALL mitab_c_set_quick_spatial_index_mode( mitab_handle handle );
 
 int MITAB_DLL MITAB_STDCALL mitab_c_add_field( mitab_handle handle, const char * field_name,
                                  int field_type, int width, int precision, 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapindexblock.cpp,v 1.12 2006-12-14 20:03:02 dmorissette Exp $
+ * $Id: mitab_mapindexblock.cpp,v 1.13 2007-04-02 18:58:03 dmorissette Exp $
  *
  * Name:     mitab_mapindexblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapindexblock.cpp,v $
- * Revision 1.12  2006-12-14 20:03:02  dmorissette
+ * Revision 1.13  2007-04-02 18:58:03  dmorissette
+ * Fixed uninitialized variable warning in PickSeedsForSplit()
+ *
+ * Revision 1.12  2006/12/14 20:03:02  dmorissette
  * Improve write performance by keeping track of changes to index blocks
  * and committing to disk only if modified (related to bug 1585)
  *
@@ -979,7 +982,7 @@ int  TABMAPIndexBlock::PickSeedsForSplit(TABMAPIndexEntry *pasEntries,
                                          GInt32 nNewEntryYMax,
                                          int &nSeed1, int &nSeed2)
 {
-    GInt32 nSrcMinX, nSrcMinY, nSrcMaxX, nSrcMaxY;
+    GInt32 nSrcMinX=0, nSrcMinY=0, nSrcMaxX=0, nSrcMaxY=0;
     int nLowestMaxX=-1, nHighestMinX=-1, nLowestMaxY=-1, nHighestMinY=-1;
     GInt32 nLowestMaxXId=-1, nHighestMinXId=-1, nLowestMaxYId=-1, nHighestMinYId=-1;
 

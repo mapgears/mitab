@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.11 2007-03-22 21:01:37 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.12 2007-04-16 14:58:29 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.11  2007-03-22 21:01:37  dmorissette
+ * Revision 1.12  2007-04-16 14:58:29  dmorissette
+ * Added missing mitab_c_set_quick_spatial_index_mode defn in 1.6.1 (Uffe)
+ *
+ * Revision 1.11  2007/03/22 21:01:37  dmorissette
  * Update for v1.6.1
  *
  * Revision 1.10  2006/12/04 20:45:36  dmorissette
@@ -235,6 +238,7 @@ type
   Tmitab_c_set_affine_params              = function(projInfo: mitab_projinfo; nAffineUnits: longint; var adAffineParams: TadAffineParams): longint; stdcall;
   Tmitab_c_is_field_indexed               = function(handle: mitab_handle; field: longint): longint; stdcall;
   Tmitab_c_is_field_unique                = function(handle: mitab_handle; field: longint): longint; stdcall;
+  Tmitab_c_set_quick_spatial_index_mode   = function(handle: mitab_handle): longint; stdcall;
     
 var
   MITAB_LibOK: boolean;   // false if DLL isn't loaded, true if loaded OK and correct version
@@ -320,6 +324,7 @@ var
   mitab_c_set_affine_params: Tmitab_c_set_affine_params;
   mitab_c_is_field_indexed: Tmitab_c_is_field_indexed;
   mitab_c_is_field_unique: Tmitab_c_is_field_unique;
+  mitab_c_set_quick_spatial_index_mode: Tmitab_c_set_quick_spatial_index_mode;
 
 
 // This allows compilation with Kylix. Later there may be a "mitab.so" ? 
@@ -431,6 +436,7 @@ begin
         @mitab_c_set_affine_params:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_set_affine_params@12');
         @mitab_c_is_field_indexed:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_is_field_indexed@8');
         @mitab_c_is_field_unique:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_is_field_unique@8');
+        @mitab_c_set_quick_spatial_index_mode:=  GetProcAddress(MITABDLL_Handle,'_mitab_c_set_quick_spatial_index_mode@4');
       end;
     end;
   end;

@@ -13,6 +13,9 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Fixed error reading compressed text objects introduced in v1.6.0 (bug 1722)
+
+
 Version 1.6.1 (2007-03-30)
 --------------------------
 
@@ -768,5 +771,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.178 2007-03-30 18:05:49 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.179 2007-05-22 14:53:10 dmorissette Exp $
 ------------

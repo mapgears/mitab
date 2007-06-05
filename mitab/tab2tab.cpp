@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.15 2007-03-21 21:15:56 dmorissette Exp $
+ * $Id: tab2tab.cpp,v 1.16 2007-06-05 13:03:15 dmorissette Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.15  2007-03-21 21:15:56  dmorissette
+ * Revision 1.16  2007-06-05 13:03:15  dmorissette
+ * Fixed a few minor leaks when fatal errors happen in Tab2Tab()
+ *
+ * Revision 1.15  2007/03/21 21:15:56  dmorissette
  * Added SetQuickSpatialIndexMode() which generates a non-optimal spatial
  * index but results in faster write time (bug 1669)
  *
@@ -198,12 +201,19 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname,
     if (poDstFile->Open(pszDstFname, "wb") != 0)
     {
         printf("Failed to open %s\n", pszDstFname);
+        poSrcFile->Close();
+        delete poSrcFile;
+        delete poDstFile;
         return -1;
     }
 
     if (bQuickSpatialIndexMode && poDstFile->SetQuickSpatialIndexMode() != 0)
     {
         printf("Failed setting Quick Spatial Index Mode (-q) on %s\n", pszDstFname);
+        poSrcFile->Close();
+        delete poSrcFile;
+        poDstFile->Close();
+        delete poDstFile;
         return -1;
     }
 

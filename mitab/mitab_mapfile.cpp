@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.36 2007-03-21 21:15:56 dmorissette Exp $
+ * $Id: mitab_mapfile.cpp,v 1.37 2007-06-05 13:23:57 dmorissette Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.36  2007-03-21 21:15:56  dmorissette
+ * Revision 1.37  2007-06-05 13:23:57  dmorissette
+ * Fixed memory leak when writing .TAB with new (optimized) spatial index
+ * introduced in v1.6.0 (bug 1725)
+ *
+ * Revision 1.36  2007/03/21 21:15:56  dmorissette
  * Added SetQuickSpatialIndexMode() which generates a non-optimal spatial
  * index but results in faster write time (bug 1669)
  *
@@ -1813,6 +1817,11 @@ TABMAPObjectBlock *TABMAPFile::SplitObjBlock(TABMAPObjHdr *poObjHdrToAdd,
         }
     }
 
+    /* Cleanup papoSrcObjHdrs[] */
+    for(int i=0; i<numSrcObj; i++)
+    {
+        delete papoSrcObjHdrs[i];
+    }
     CPLFree(papoSrcObjHdrs);
     papoSrcObjHdrs = NULL;
 

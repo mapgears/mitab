@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.70 2007-06-11 14:52:30 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.71 2007-06-11 17:57:06 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.70  2007-06-11 14:52:30  dmorissette
+ * Revision 1.71  2007-06-11 17:57:06  dmorissette
+ * Removed stray calls to poMapFile->GetCurObjBlock()
+ *
+ * Revision 1.70  2007/06/11 14:52:30  dmorissette
  * Return a valid m_nCoordDatasize value for Collection objects to prevent
  * trashing of collection data during object splitting (bug 1728)
  *
@@ -2051,7 +2054,6 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                                        TABMAPObjHdr *poObjHdr)
 {
     GInt32              nX, nY;
-    TABMAPObjectBlock   *poObjBlock;
     OGRGeometry         *poGeom;
     OGRLineString       *poLine=NULL;
 
@@ -2061,8 +2063,6 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
      *----------------------------------------------------------------*/
     CPLAssert(m_nMapInfoType == poObjHdr->m_nType);
     CPLErrorReset();
-
-    poObjBlock = poMapFile->GetCurObjBlock();
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry
@@ -4176,15 +4176,11 @@ int TABEllipse::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
 int TABEllipse::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                                        TABMAPObjHdr *poObjHdr)
 {
-    TABMAPObjectBlock   *poObjBlock;
-
     /*-----------------------------------------------------------------
      * We assume that ValidateMapInfoType() was called already and that
      * the type in poObjHdr->m_nType is valid.
      *----------------------------------------------------------------*/
     CPLAssert(m_nMapInfoType == poObjHdr->m_nType);
-
-    poObjBlock = poMapFile->GetCurObjBlock();
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry... Polygon and point are accepted.

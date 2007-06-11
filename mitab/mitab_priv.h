@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.45 2007-03-21 21:15:56 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.46 2007-06-11 14:52:31 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.45  2007-03-21 21:15:56  dmorissette
+ * Revision 1.46  2007-06-11 14:52:31  dmorissette
+ * Return a valid m_nCoordDatasize value for Collection objects to prevent
+ * trashing of collection data during object splitting (bug 1728)
+ *
+ * Revision 1.45  2007/03/21 21:15:56  dmorissette
  * Added SetQuickSpatialIndexMode() which generates a non-optimal spatial
  * index but results in faster write time (bug 1669)
  *
@@ -676,8 +680,6 @@ class TABMAPObjCollection: public TABMAPObjHdrWithCoord
     GInt32      m_nNumMultiPoints;
     GInt16      m_nNumRegSections;
     GInt16      m_nNumPLineSections;
-    GInt32      m_nTotalRegDataSize;
-    GInt32      m_nTotalPolyDataSize;
 
     GByte       m_nMultiPointSymbolId;
     GByte       m_nRegionPenId;

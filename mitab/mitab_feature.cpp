@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.69 2007-02-28 20:41:40 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.70 2007-06-11 14:52:30 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.69  2007-02-28 20:41:40  dmorissette
+ * Revision 1.70  2007-06-11 14:52:30  dmorissette
+ * Return a valid m_nCoordDatasize value for Collection objects to prevent
+ * trashing of collection data during object splitting (bug 1728)
+ *
+ * Revision 1.69  2007/02/28 20:41:40  dmorissette
  * Added missing NULL pointer checks in SetPenFromStyleString(),
  * SetBrushFromStyleString() and SetSymbolFromStyleString() (bug 1670)
  *
@@ -6871,7 +6875,6 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
 
         poCollHdr->m_nRegionDataSize = 0;
         poCollHdr->m_nNumRegSections = 0;
-        poCollHdr->m_nTotalRegDataSize = 0;
         poCollHdr->m_nRegionPenId = 0;
         poCollHdr->m_nRegionBrushId = 0;
     }
@@ -6954,7 +6957,6 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
 
         poCollHdr->m_nPolylineDataSize = 0;
         poCollHdr->m_nNumPLineSections = 0;
-        poCollHdr->m_nTotalPolyDataSize = 0;
         poCollHdr->m_nPolylinePenId = 0;
     }
 

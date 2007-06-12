@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.22 2007-06-12 13:52:37 dmorissette Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.23 2007-06-12 14:43:19 dmorissette Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.22  2007-06-12 13:52:37  dmorissette
+ * Revision 1.23  2007-06-12 14:43:19  dmorissette
+ * Use iswspace instead of sispace in IMapInfoFile::SmartOpen() (bug 1737)
+ *
+ * Revision 1.22  2007/06/12 13:52:37  dmorissette
  * Added IMapInfoFile::SetCharset() method (bug 1734)
  *
  * Revision 1.21  2005/05/19 21:10:50  fwarmerdam
@@ -104,7 +107,11 @@
 #include "mitab.h"
 #include "mitab_utils.h"
 
-#include <ctype.h>      /* isspace() */
+#ifdef __HP_aCC
+#  include <wchar.h>      /* iswspace() */
+#else
+#  include <wctype.h>      /* iswspace() */
+#endif
 
 /**********************************************************************
  *                   IMapInfoFile::IMapInfoFile()
@@ -181,7 +188,9 @@ IMapInfoFile *IMapInfoFile::SmartOpen(const char *pszFname,
         fp = VSIFOpen(pszAdjFname, "r");
         while(fp && (pszLine = CPLReadLine(fp)) != NULL)
         {
-            while (isspace(*pszLine))  pszLine++;
+            // PR3257 - Use iswspace() instead of isspace so that we can handle
+            // wide chars and not end up crashing when we encounter one.
+            while (iswspace(*pszLine))  pszLine++;
             if (EQUALN(pszLine, "Fields", 6))
                 bFoundFields = TRUE;
             else if (EQUALN(pszLine, "create view", 11))

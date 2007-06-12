@@ -29,6 +29,8 @@ CHANGES - Current Version:
 - Added TABFile::TwoPointLineAsPolyline() to allow writing two point lines
   as polylines (bug 1735)
 
+- Use iswspace instead of sispace in IMapInfoFile::SmartOpen() (bug 1737)
+
 - Fixed memory leak when writing .TAB with new (optimized) spatial index
   introduced in v1.6.0 (bug 1725)
 
@@ -794,5 +796,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.184 2007-06-12 14:17:16 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.185 2007-06-12 14:46:53 dmorissette Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.93 2007-06-12 12:50:39 dmorissette Exp $
+ * $Id: mitab.h,v 1.94 2007-06-12 13:52:37 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.93  2007-06-12 12:50:39  dmorissette
+ * Revision 1.94  2007-06-12 13:52:37  dmorissette
+ * Added IMapInfoFile::SetCharset() method (bug 1734)
+ *
+ * Revision 1.93  2007/06/12 12:50:39  dmorissette
  * Use Quick Spatial Index by default until bug 1732 is fixed (broken files
  * produced by current coord block splitting technique).
  *
@@ -180,6 +183,8 @@ class IMapInfoFile : public OGRLayer
     TABFeature         *m_poCurFeature;
     GBool               m_bBoundsSet;
 
+    char                *m_pszCharset;
+
   public:
     IMapInfoFile() ;
     virtual ~IMapInfoFile();
@@ -251,6 +256,8 @@ class IMapInfoFile : public OGRLayer
 
     virtual int SetFieldIndexed(int nFieldId) = 0;
 
+    virtual int SetCharset(const char* charset);
+
     ///////////////
     // semi-private.
     virtual int  GetProjInfo(TABProjInfo *poPI) = 0;
@@ -276,7 +283,6 @@ class TABFile: public IMapInfoFile
     TABAccess   m_eAccessMode;
     char        **m_papszTABFile;
     int         m_nVersion;
-    char        *m_pszCharset;
     int         *m_panIndexNo;
     TABTableType m_eTableType;  // NATIVE (.DAT) or DBF
 
@@ -399,7 +405,6 @@ class TABView: public IMapInfoFile
     TABAccess   m_eAccessMode;
     char        **m_papszTABFile;
     char        *m_pszVersion;
-    char        *m_pszCharset;
     
     char        **m_papszTABFnames;
     TABFile     **m_papoTABFiles;
@@ -630,7 +635,6 @@ class MIFFile: public IMapInfoFile
     char        *m_pszFname;
     TABAccess    m_eAccessMode;
     char        *m_pszVersion;
-    char        *m_pszCharset;
     char        *m_pszDelimiter;
     char        *m_pszUnique;
     char        *m_pszIndex;

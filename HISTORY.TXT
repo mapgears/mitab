@@ -22,10 +22,12 @@ CHANGES - Current Version:
 
 - Fixed error reading compressed text objects introduced in v1.6.0 (bug 1722)
 
+- Fixed memory leaks when reading multipoint objects from .MIF files
+
+- Added IMapInfoFile::SetCharset() method (bug 1734)
+
 - Fixed memory leak when writing .TAB with new (optimized) spatial index
   introduced in v1.6.0 (bug 1725)
-
-- Fixed memory leaks when reading multipoint objects from .MIF files
 
 - Fixed another issue related to attempting to read past EOF while writing
   collections (bug 1657)
@@ -789,5 +791,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.182 2007-06-12 12:50:39 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.183 2007-06-12 13:52:37 dmorissette Exp $
 ------------

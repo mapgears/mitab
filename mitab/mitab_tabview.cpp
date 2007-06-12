@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabview.cpp,v 1.15 2007-06-12 12:50:40 dmorissette Exp $
+ * $Id: mitab_tabview.cpp,v 1.16 2007-06-12 13:52:38 dmorissette Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabview.cpp,v $
- * Revision 1.15  2007-06-12 12:50:40  dmorissette
+ * Revision 1.16  2007-06-12 13:52:38  dmorissette
+ * Added IMapInfoFile::SetCharset() method (bug 1734)
+ *
+ * Revision 1.15  2007/06/12 12:50:40  dmorissette
  * Use Quick Spatial Index by default until bug 1732 is fixed (broken files
  * produced by current coord block splitting technique).
  *
@@ -104,7 +107,6 @@ TABView::TABView()
     m_eAccessMode = TABRead;
     m_papszTABFile = NULL;
     m_pszVersion = NULL;
-    m_pszCharset = NULL;
 
     m_numTABFiles = 0;
     m_papszTABFnames = NULL;
@@ -520,6 +522,7 @@ int TABView::ParseTABFile(const char *pszDatasetPath,
         }
         else if (EQUAL(papszTok[0], "!charset"))
         {
+            CPLFree(m_pszCharset);
             m_pszCharset = CPLStrdup(papszTok[1]);
         }
         else if (EQUAL(papszTok[0], "open") &&

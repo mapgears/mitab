@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.21 2005-05-19 21:10:50 fwarmerdam Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.22 2007-06-12 13:52:37 dmorissette Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.21  2005-05-19 21:10:50  fwarmerdam
+ * Revision 1.22  2007-06-12 13:52:37  dmorissette
+ * Added IMapInfoFile::SetCharset() method (bug 1734)
+ *
+ * Revision 1.21  2005/05/19 21:10:50  fwarmerdam
  * changed to use OGRLayers spatial filter support
  *
  * Revision 1.20  2005/05/19 15:27:00  jlacroix
@@ -113,6 +116,7 @@ IMapInfoFile::IMapInfoFile()
     m_nCurFeatureId = 0;
     m_poCurFeature = NULL;
     m_bBoundsSet = FALSE;
+    m_pszCharset = NULL;
 }
 
 
@@ -128,6 +132,9 @@ IMapInfoFile::~IMapInfoFile()
         delete m_poCurFeature;
         m_poCurFeature = NULL;
     }
+
+    CPLFree(m_pszCharset);
+    m_pszCharset = NULL;
 }
 
 /**********************************************************************
@@ -440,3 +447,23 @@ OGRErr IMapInfoFile::CreateField( OGRFieldDefn *poField, int bApproxOK )
     else
         return OGRERR_FAILURE;
 }
+
+
+/**********************************************************************
+ *                   IMapInfoFile::SetCharset()
+ *
+ * Set the charset for the tab header. 
+ *
+ *
+ * Returns 0 on success, -1 on error.
+ **********************************************************************/
+int IMapInfoFile::SetCharset(const char* pszCharset)
+{
+    if(pszCharset && strlen(pszCharset) > 0)
+    {
+        CPLFree(m_pszCharset);
+        m_pszCharset = CPLStrdup(pszCharset);
+    }
+    return 0;
+}
+

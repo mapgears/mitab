@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.95 2007-06-12 14:17:16 dmorissette Exp $
+ * $Id: mitab.h,v 1.96 2007-06-12 14:48:44 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.95  2007-06-12 14:17:16  dmorissette
+ * Revision 1.96  2007-06-12 14:48:44  dmorissette
+ * Set version to 1.6.2-dev
+ *
+ * Revision 1.95  2007/06/12 14:17:16  dmorissette
  * Added TABFile::TwoPointLineAsPolyline() to allow writing two point lines
  * as polylines (bug 1735)
  *
@@ -140,8 +143,8 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION      "1.6.1 (2007-03-30)"
-#define MITAB_VERSION_INT  1006001  /* version x.y.z -> xxxyyyzzz */
+#define MITAB_VERSION      "1.6.2-dev (2007-06-xx)"
+#define MITAB_VERSION_INT  1006002  /* version x.y.z -> xxxyyyzzz */
 
 #ifndef PI
 #  define PI 3.14159265358979323846

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.61 2007-03-21 21:15:56 dmorissette Exp $
+ * $Id: mitab_tabfile.cpp,v 1.62 2007-06-12 12:50:40 dmorissette Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.61  2007-03-21 21:15:56  dmorissette
+ * Revision 1.62  2007-06-12 12:50:40  dmorissette
+ * Use Quick Spatial Index by default until bug 1732 is fixed (broken files
+ * produced by current coord block splitting technique).
+ *
+ * Revision 1.61  2007/03/21 21:15:56  dmorissette
  * Added SetQuickSpatialIndexMode() which generates a non-optimal spatial
  * index but results in faster write time (bug 1669)
  *
@@ -1131,7 +1135,7 @@ int TABFile::Close()
  *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
-int TABFile::SetQuickSpatialIndexMode()
+int TABFile::SetQuickSpatialIndexMode(GBool bQuickSpatialIndexMode/*=TRUE*/)
 {
     if (m_eAccessMode != TABWrite || m_poMAPFile == NULL)
     {
@@ -1141,7 +1145,7 @@ int TABFile::SetQuickSpatialIndexMode()
     }
 
 
-    return m_poMAPFile->SetQuickSpatialIndexMode();
+    return m_poMAPFile->SetQuickSpatialIndexMode(bQuickSpatialIndexMode);
 }
 
 

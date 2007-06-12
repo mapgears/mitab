@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.16 2007-06-05 13:03:15 dmorissette Exp $
+ * $Id: tab2tab.cpp,v 1.17 2007-06-12 12:50:40 dmorissette Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.16  2007-06-05 13:03:15  dmorissette
+ * Revision 1.17  2007-06-12 12:50:40  dmorissette
+ * Use Quick Spatial Index by default until bug 1732 is fixed (broken files
+ * produced by current coord block splitting technique).
+ *
+ * Revision 1.16  2007/06/05 13:03:15  dmorissette
  * Fixed a few minor leaks when fatal errors happen in Tab2Tab()
  *
  * Revision 1.15  2007/03/21 21:15:56  dmorissette
@@ -91,7 +95,8 @@
 #include <ctype.h>
 
 static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname,
-                   int nMaxFeatures, GBool bQuickSpatialIndexMode);
+                   int nMaxFeatures, 
+                   GBool bQuickSpatialIndexMode, GBool bOptSpatialIndexMode);
 
 
 /**********************************************************************
@@ -103,6 +108,7 @@ int main(int argc, char *argv[])
     const char  *pszSrcFname, *pszDstFname;
     int nMaxFeatures = -1;
     GBool bQuickSpatialIndexMode = FALSE;
+    GBool bOptSpatialIndexMode = FALSE;
 
 /*---------------------------------------------------------------------
  *      Read program arguments.
@@ -110,7 +116,7 @@ int main(int argc, char *argv[])
     if (argc<3)
     {
         printf("\nTAB2TAB Conversion Program - MITAB Version %s\n\n", MITAB_VERSION);
-        printf("Usage: tab2tab <src_filename> <dst_filename> [-q] [-n num_features]\n");
+        printf("Usage: tab2tab <src_filename> <dst_filename> [-q|-o] [-n num_features]\n");
         printf("    Converts TAB or MIF file <src_filename> to TAB or MIF format.\n");
         printf("    The extension of <dst_filename> (.tab or .mif) defines the output format.\n\n");
         printf("For the latest version of this program and of the library, see: \n");
@@ -127,12 +133,14 @@ int main(int argc, char *argv[])
     {
         if (EQUAL(argv[iArg], "-q"))
             bQuickSpatialIndexMode = TRUE;
+        if (EQUAL(argv[iArg], "-o"))
+            bOptSpatialIndexMode = TRUE;
         else if (EQUAL(argv[iArg], "-n") && iArg+1 < argc)
             nMaxFeatures = atoi(argv[++iArg]);
     }
 
     return Tab2Tab(pszSrcFname, pszDstFname, 
-                   nMaxFeatures, bQuickSpatialIndexMode);
+                   nMaxFeatures, bQuickSpatialIndexMode, bOptSpatialIndexMode);
 }
 
 
@@ -142,7 +150,8 @@ int main(int argc, char *argv[])
  * Copy features from source dataset to a new dataset
  **********************************************************************/
 static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname,
-                   int nMaxFeatures, GBool bQuickSpatialIndexMode)
+                   int nMaxFeatures, 
+                   GBool bQuickSpatialIndexMode, GBool bOptSpatialIndexMode)
 {
     IMapInfoFile *poSrcFile = NULL, *poDstFile = NULL;
     int      nFeatureId, iField, numFeatures=0;
@@ -207,9 +216,12 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname,
         return -1;
     }
 
-    if (bQuickSpatialIndexMode && poDstFile->SetQuickSpatialIndexMode() != 0)
+    if ( (bQuickSpatialIndexMode && 
+          poDstFile->SetQuickSpatialIndexMode(TRUE) != 0) ||
+         (bOptSpatialIndexMode && 
+          poDstFile->SetQuickSpatialIndexMode(FALSE) != 0) )
     {
-        printf("Failed setting Quick Spatial Index Mode (-q) on %s\n", pszDstFname);
+        printf("Failed setting Quick Spatial Index Mode (-q|-o) on %s\n", pszDstFname);
         poSrcFile->Close();
         delete poSrcFile;
         poDstFile->Close();

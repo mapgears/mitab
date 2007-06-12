@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.92 2007-03-30 18:05:49 dmorissette Exp $
+ * $Id: mitab.h,v 1.93 2007-06-12 12:50:39 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.92  2007-03-30 18:05:49  dmorissette
+ * Revision 1.93  2007-06-12 12:50:39  dmorissette
+ * Use Quick Spatial Index by default until bug 1732 is fixed (broken files
+ * produced by current coord block splitting technique).
+ *
+ * Revision 1.92  2007/03/30 18:05:49  dmorissette
  * Updated 1.6.1 release date
  *
  * Revision 1.91  2007/03/22 21:01:37  dmorissette
@@ -186,7 +190,7 @@ class IMapInfoFile : public OGRLayer
                      GBool bTestOpenNoError = FALSE ) = 0;
     virtual int Close() = 0;
 
-    virtual int SetQuickSpatialIndexMode() {return -1;}
+    virtual int SetQuickSpatialIndexMode(GBool bQuickSpatialIndexMode=TRUE) {return -1;}
 
     virtual const char *GetTableName() = 0;
 
@@ -308,7 +312,7 @@ class TABFile: public IMapInfoFile
                      GBool bTestOpenNoError = FALSE );
     virtual int Close();
 
-    virtual int SetQuickSpatialIndexMode();
+    virtual int SetQuickSpatialIndexMode(GBool bQuickSpatialIndexMode=TRUE);
 
     virtual const char *GetTableName()
                             {return m_poDefn?m_poDefn->GetName():"";};
@@ -434,7 +438,7 @@ class TABView: public IMapInfoFile
                      GBool bTestOpenNoError = FALSE );
     virtual int Close();
 
-    virtual int SetQuickSpatialIndexMode();
+    virtual int SetQuickSpatialIndexMode(GBool bQuickSpatialIndexMode=TRUE);
 
     virtual const char *GetTableName()
            {return m_poRelation?m_poRelation->GetFeatureDefn()->GetName():"";};

@@ -13,6 +13,13 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+***   ***   ***   ***   ***
+- IMPORTANT: The optimized spatial index introduced in V1.6.0 has been 
+  disabled by default in this release after we found that the current block
+  splitting technique often produces files that confuse MapInfo (bug 1732).
+  The Quick Spatial Index Mode is used by default until bug 1732 is fixed.
+***   ***   ***   ***   ***
+
 - Fixed error reading compressed text objects introduced in v1.6.0 (bug 1722)
 
 - Fixed memory leak when writing .TAB with new (optimized) spatial index
@@ -782,5 +789,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.181 2007-06-11 14:53:09 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.182 2007-06-12 12:50:39 dmorissette Exp $
 ------------

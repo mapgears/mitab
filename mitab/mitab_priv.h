@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.46 2007-06-11 14:52:31 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.47 2007-06-12 12:50:39 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.46  2007-06-11 14:52:31  dmorissette
+ * Revision 1.47  2007-06-12 12:50:39  dmorissette
+ * Use Quick Spatial Index by default until bug 1732 is fixed (broken files
+ * produced by current coord block splitting technique).
+ *
+ * Revision 1.46  2007/06/11 14:52:31  dmorissette
  * Return a valid m_nCoordDatasize value for Collection objects to prevent
  * trashing of collection data during object splitting (bug 1728)
  *
@@ -1335,7 +1339,7 @@ class TABMAPFile
                      GBool bNoErrorMsg = FALSE );
     int         Close();
 
-    int         SetQuickSpatialIndexMode();
+    int         SetQuickSpatialIndexMode(GBool bQuickSpatialIndexMode = TRUE);
 
     int         Int2Coordsys(GInt32 nX, GInt32 nY, double &dX, double &dY);
     int         Coordsys2Int(double dX, double dY, GInt32 &nX, GInt32 &nY, 

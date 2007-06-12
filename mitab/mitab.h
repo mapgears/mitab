@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.94 2007-06-12 13:52:37 dmorissette Exp $
+ * $Id: mitab.h,v 1.95 2007-06-12 14:17:16 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.94  2007-06-12 13:52:37  dmorissette
+ * Revision 1.95  2007-06-12 14:17:16  dmorissette
+ * Added TABFile::TwoPointLineAsPolyline() to allow writing two point lines
+ * as polylines (bug 1735)
+ *
+ * Revision 1.94  2007/06/12 13:52:37  dmorissette
  * Added IMapInfoFile::SetCharset() method (bug 1734)
  *
  * Revision 1.93  2007/06/12 12:50:39  dmorissette
@@ -1265,6 +1269,7 @@ class TABPolyline: public TABFeature,
   private:
     GBool       m_bCenterIsSet;
     double      m_dCenterX, m_dCenterY;
+    GBool       m_bWriteTwoPointLineAsPolyline;
 
   public:
              TABPolyline(OGRFeatureDefn *poDefnIn);
@@ -1282,6 +1287,10 @@ class TABPolyline: public TABFeature,
 
     int         ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *,
                                         TABMAPCoordBlock **ppoCoordBlock);
+
+    GBool       TwoPointLineAsPolyline();
+    void        TwoPointLineAsPolyline(GBool bTwoPointLineAsPolyline);
+
     virtual int ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
     virtual int WriteGeometryToMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *);
 

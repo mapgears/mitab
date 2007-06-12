@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.12 2007-04-16 14:58:29 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.13 2007-06-12 14:49:34 dmorissette Exp $
  *
  * Name:     mitab.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.12  2007-04-16 14:58:29  dmorissette
+ * Revision 1.13  2007-06-12 14:49:34  dmorissette
+ * Upgrade to Libversion = 1006002 (no API changes)
+ *
+ * Revision 1.12  2007/04/16 14:58:29  dmorissette
  * Added missing mitab_c_set_quick_spatial_index_mode defn in 1.6.1 (Uffe)
  *
  * Revision 1.11  2007/03/22 21:01:37  dmorissette
@@ -118,7 +121,7 @@ Type
 
 const
 // update to match mitab.h (app. line 97), when new versions are released
-  Libversion = 1006001;
+  Libversion = 1006002;
   
 // feature type values
   TABFC_NoGeom      = 0;

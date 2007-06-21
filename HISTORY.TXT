@@ -40,6 +40,9 @@ CHANGES - Current Version:
 - Fixed a problem writing collections where collection objects were trashed
   during object block splitting (bug 1728)
 
+- Fixed support for predefined datums with non-greenwich prime meridians per
+  http://trac.osgeo.org/gdal/ticket/1416
+
 
 Version 1.6.1 (2007-03-30)
 --------------------------
@@ -796,5 +799,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.185 2007-06-12 14:46:53 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.186 2007-06-21 13:23:43 fwarmerdam Exp $
 ------------

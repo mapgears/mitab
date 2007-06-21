@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.23 2007-06-12 14:43:19 dmorissette Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.24 2007-06-21 14:00:23 dmorissette Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.23  2007-06-12 14:43:19  dmorissette
+ * Revision 1.24  2007-06-21 14:00:23  dmorissette
+ * Added missing cast in isspace() calls to avoid failed assertion on Windows
+ * (MITAB bug 1737, GDAL ticket 1678))
+ *
+ * Revision 1.23  2007/06/12 14:43:19  dmorissette
  * Use iswspace instead of sispace in IMapInfoFile::SmartOpen() (bug 1737)
  *
  * Revision 1.22  2007/06/12 13:52:37  dmorissette
@@ -188,9 +192,7 @@ IMapInfoFile *IMapInfoFile::SmartOpen(const char *pszFname,
         fp = VSIFOpen(pszAdjFname, "r");
         while(fp && (pszLine = CPLReadLine(fp)) != NULL)
         {
-            // PR3257 - Use iswspace() instead of isspace so that we can handle
-            // wide chars and not end up crashing when we encounter one.
-            while (iswspace(*pszLine))  pszLine++;
+            while (isspace((unsigned char)*pszLine))  pszLine++;
             if (EQUALN(pszLine, "Fields", 6))
                 bFoundFields = TRUE;
             else if (EQUALN(pszLine, "create view", 11))

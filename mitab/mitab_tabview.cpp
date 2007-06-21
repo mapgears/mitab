@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabview.cpp,v 1.16 2007-06-12 13:52:38 dmorissette Exp $
+ * $Id: mitab_tabview.cpp,v 1.17 2007-06-21 14:00:23 dmorissette Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_tabview.cpp,v $
- * Revision 1.16  2007-06-12 13:52:38  dmorissette
+ * Revision 1.17  2007-06-21 14:00:23  dmorissette
+ * Added missing cast in isspace() calls to avoid failed assertion on Windows
+ * (MITAB bug 1737, GDAL ticket 1678))
+ *
+ * Revision 1.16  2007/06/12 13:52:38  dmorissette
  * Added IMapInfoFile::SetCharset() method (bug 1734)
  *
  * Revision 1.15  2007/06/12 12:50:40  dmorissette
@@ -257,7 +261,7 @@ int TABView::OpenForRead(const char *pszFname,
          i++)
     {
         const char *pszStr = m_papszTABFile[i];
-        while(*pszStr != '\0' && isspace(*pszStr))
+        while(*pszStr != '\0' && isspace((unsigned char)*pszStr))
             pszStr++;
         if (EQUALN(pszStr, "create view", 11))
             bCreateViewFound = TRUE;

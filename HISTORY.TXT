@@ -29,7 +29,8 @@ CHANGES - Current Version:
 - Added TABFile::TwoPointLineAsPolyline() to allow writing two point lines
   as polylines (bug 1735)
 
-- Use iswspace instead of sispace in IMapInfoFile::SmartOpen() (bug 1737)
+- Added missing cast in isspace() calls to avoid failed assertion on Windows
+  (MITAB bug 1737, GDAL ticket 1678))
 
 - Fixed memory leak when writing .TAB with new (optimized) spatial index
   introduced in v1.6.0 (bug 1725)
@@ -41,8 +42,7 @@ CHANGES - Current Version:
   during object block splitting (bug 1728)
 
 - Fixed support for predefined datums with non-greenwich prime meridians per
-  http://trac.osgeo.org/gdal/ticket/1416
-
+   http://trac.osgeo.org/gdal/ticket/1416
 
 Version 1.6.1 (2007-03-30)
 --------------------------
@@ -799,5 +799,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.186 2007-06-21 13:23:43 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.187 2007-06-21 14:00:23 dmorissette Exp $
 ------------

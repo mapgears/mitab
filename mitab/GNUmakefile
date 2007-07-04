@@ -1,6 +1,6 @@
 # Makefile for the MapInfo TAB Read/Write library
 #
-# $Id: GNUmakefile,v 1.5 2005-10-11 18:57:54 dmorissette Exp $
+# $Id: GNUmakefile,v 1.6 2007-07-04 16:49:24 dmorissette Exp $
 #
 
 include ../GNUmake.opt
@@ -24,8 +24,11 @@ TAB_HDRS= mitab.h mitab_priv.h mitab_utils.h
 OGRTAB_OBJS = mitab_ogr_driver.o mitab_ogr_datasource.o
 
 
-MITABLIB_OBJS= $(TAB_OBJS)
-MITAB_LIB=      mitab.a
+MITABLIB_OBJS=   $(TAB_OBJS)
+MITAB_LIB=       mitab.a
+MITAB_SHARED_LIB_LINKNAME=libmitab.so
+MITAB_SHARED_LIB_SONAME  =libmitab.so.1
+MITAB_SHARED_LIB_FULLNAME=libmitab.so.1.0.1
 
 # -ldl doesn't work on MacOSX
 ifneq "$(shell uname -s)" "Darwin"
@@ -35,7 +38,7 @@ endif
 LIBS =	$(MITAB_LIB) ../ogr/ogr.a ../cpl/cpl.a $(LIB_DBMALLOC) $(DL_LIB)
 
 
-default: $(MITAB_LIB) tab2tab ogrinfo mitabc_test tabdump
+default: $(MITAB_LIB) $(MITAB_SHARED_LIB_FULLNAME) tab2tab ogrinfo mitabc_test tabdump
 
 
 $(TAB_OBJS):	$(TAB_HDRS)
@@ -70,8 +73,14 @@ $(MITAB_LIB): $(MITABLIB_OBJS)
 	rm -f $(MITAB_LIB)
 	$(AR) rc $(MITAB_LIB) $(MITABLIB_OBJS)
 
+$(MITAB_SHARED_LIB_FULLNAME): $(MITABLIB_OBJS)
+	rm -f $(MITAB_SHARED_LIB).0.1
+	$(CXX) $(MITABLIB_OBJS) ../ogr/ogr.a ../cpl/cpl.a -shared -Wl,-soname,$(MITAB_SHARED_LIB_SONAME) -o $(MITAB_SHARED_LIB_FULLNAME) -ldl
+	ln -s $(MITAB_SHARED_LIB_FULLNAME) $(MITAB_SHARED_LIB_SONAME) 
+	ln -s $(MITAB_SHARED_LIB_SONAME) $(MITAB_SHARED_LIB_LINKNAME) 
+
 clean:
-	rm -f $(MITAB_LIB) $(MITABLIB_OBJS) $(OGRTAB_OBJS)
+	rm -f $(MITAB_LIB) $(MITAB_SHARED_LIB) $(MITABLIB_OBJS) $(OGRTAB_OBJS)
 	rm -f tab2tab.o tab2tab
 	rm -f ogr2ogr.o ogr2ogr
 	rm -f ogrinfo.o ogrinfo

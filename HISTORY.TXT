@@ -44,6 +44,13 @@ CHANGES - Current Version:
 - Fixed support for predefined datums with non-greenwich prime meridians per
    http://trac.osgeo.org/gdal/ticket/1416
 
+- Updated mitab_dyn.pas to support both Delphi and Kylix (contrib by 
+  UffeK and MaximV, bug 1746)
+
+- Added support for building libmitab.so shared lib (contrib by UffeK and
+  MaximV, bug 1746)
+
+
 Version 1.6.1 (2007-03-30)
 --------------------------
 
@@ -799,5 +806,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.187 2007-06-21 14:00:23 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.188 2007-07-04 16:55:46 dmorissette Exp $
 ------------

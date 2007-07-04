@@ -1,7 +1,7 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.13 2007-06-12 14:49:34 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.14 2007-07-04 16:28:22 dmorissette Exp $
  *
- * Name:     mitab.pas
+ * Name:     mitab_dyn.pas
  * Project:  MapInfo TAB Read/Write library
  * Language: Pascal
  * Purpose:  Pascal interface unit for MITAB API prototypes using STDCALL
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.13  2007-06-12 14:49:34  dmorissette
+ * Revision 1.14  2007-07-04 16:28:22  dmorissette
+ * Updated to support both Delphi and Kylix (UffeK and MaximV, bug 1746)
+ *
+ * Revision 1.13  2007/06/12 14:49:34  dmorissette
  * Upgrade to Libversion = 1006002 (no API changes)
  *
  * Revision 1.12  2007/04/16 14:58:29  dmorissette
@@ -161,91 +164,95 @@ const
   TABTL_Arrow       = 2;
 
 type
-  Tmitab_c_add_field              = function(handle: mitab_handle; field_name: pchar; field_type, width, precision, indexed, unique: longint): longint; stdcall;
-  Tmitab_c_close                  = procedure(handle: mitab_handle); stdcall;
-  Tmitab_c_create                 = function(filename, mif_or_tab, mif_projectiondef: pchar; north, south, east, west: double): mitab_handle; stdcall;
-  Tmitab_c_create_feature         = function(handle: mitab_handle; feature_type: longint): mitab_feature; stdcall;
-  Tmitab_c_destroy_feature        = procedure(feature: mitab_feature); stdcall;
-  Tmitab_c_getlasterrormsg        = function(): pchar; stdcall;
-  Tmitab_c_getlasterrormsg_vb     = function(errormsg: pchar; l: longint): longint; stdcall;
-  Tmitab_c_getlasterrorno         = function(): longint; stdcall;
-  Tmitab_c_getlibversion          = function(): longint; stdcall;
-  Tmitab_c_get_brush_bgcolor      = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_brush_fgcolor      = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_brush_pattern      = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_brush_transparent  = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_extended_mif_coordsys = function(dataset: mitab_handle): pchar; stdcall;
-  Tmitab_c_get_feature_count      = function(feature: mitab_handle): longint; stdcall;
-  Tmitab_c_get_field_as_double    = function(feature: mitab_feature; field: longint): double; stdcall;
-  Tmitab_c_get_field_as_string    = function(feature: mitab_feature; field: longint): pchar; stdcall;
-  Tmitab_c_get_field_as_string_vb = function(feature: mitab_feature; field: longint; value: pchar; l: longint): longint; stdcall;
-  Tmitab_c_get_field_count        = function(handle: mitab_handle): longint; stdcall;
-  Tmitab_c_get_field_name         = function(handle: mitab_handle; field: longint): pchar; stdcall;
-  Tmitab_c_get_field_name_vb      = function(handle: mitab_handle; field: longint; name: pchar; l: longint): longint; stdcall;
-  Tmitab_c_get_field_precision    = function(handle: mitab_handle; field: longint): longint; stdcall;
-  Tmitab_c_get_field_type         = function(handle: mitab_handle; field: longint): longint; stdcall;
-  Tmitab_c_get_field_width        = function(handle: mitab_handle; field: longint): longint; stdcall;
-  Tmitab_c_get_font               = function(feature: mitab_feature): pchar; stdcall;
-  Tmitab_c_get_font_vb            = function(feature: mitab_feature; font: pchar; l: longint): longint; stdcall;
-  Tmitab_c_get_mif_coordsys       = function(dataset: mitab_handle): pchar; stdcall;
-  Tmitab_c_get_mif_coordsys_vb    = function(dataset: mitab_handle; coordsys: pchar; l: longint): longint; stdcall;
-  Tmitab_c_get_parts              = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_pen_color          = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_pen_pattern        = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_pen_width          = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_projinfo           = function(dataset: mitab_handle): mitab_projinfo; stdcall;
-  Tmitab_c_get_symbol_color       = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_symbol_no          = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_symbol_size        = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_text               = function(feature: mitab_feature): pchar; stdcall;
-  Tmitab_c_get_text_angle         = function(feature: mitab_feature): double; stdcall;
-  Tmitab_c_get_text_bgcolor       = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_text_fgcolor       = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_text_height        = function(feature: mitab_feature): double; stdcall;
-  Tmitab_c_get_text_justification = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_text_linetype      = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_text_spacing       = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_text_vb            = function(feature: mitab_feature; text: pchar; l: longint): longint; stdcall;
-  Tmitab_c_get_text_width         = function(feature: mitab_feature): double; stdcall;
-  Tmitab_c_get_type               = function(feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_vertex_count       = function(feature: mitab_feature; part: longint): longint; stdcall;
-  Tmitab_c_get_vertex_x           = function(feature: mitab_feature; part, vertex: longint): double; stdcall;
-  Tmitab_c_get_vertex_y           = function(feature: mitab_feature; part, vertex: longint): double; stdcall;
-  Tmitab_c_is_interior_ring       = function(feature: mitab_feature; requestedringindex: longint): longint; stdcall;
-  Tmitab_c_load_coordsys_table    = function(filename: pchar): longint; stdcall;
-  Tmitab_c_next_feature_id        = function(handle: mitab_handle; last_feature_id: longint): longint; stdcall;
-  Tmitab_c_open                   = function(filename: pchar): mitab_handle; stdcall;
-  Tmitab_c_read_feature           = function(handle:  mitab_handle; feature_id: longint): mitab_feature; stdcall;
-  Tmitab_c_set_arc                = procedure(feature: mitab_feature; center_x, center_y, x_radius, y_radius, start_angle, end_angle: double); stdcall;
-  Tmitab_c_set_brush              = procedure(feature: mitab_feature; fg_color, bg_color, pattern, transparent: longint); stdcall;
-  Tmitab_c_set_field              = procedure(feature: mitab_feature; field_index: longint; value: pchar); stdcall;
-  Tmitab_c_set_font               = procedure(feature: mitab_feature; font_name: pchar); stdcall;
-  Tmitab_c_set_pen                = procedure(feature: mitab_feature; width, pattern, color: longint); stdcall;
-  Tmitab_c_set_points             = procedure(feature: mitab_feature; part, vertex_count: longint; var x,y: double); stdcall;
-  Tmitab_c_set_projinfo           = function(dataset: mitab_handle; projinfo: mitab_projinfo): longint; stdcall;
-  Tmitab_c_set_symbol             = procedure(feature: mitab_feature; symbol_no, symbol_size, symbol_color: longint); stdcall;
-  Tmitab_c_set_text               = procedure(feature: mitab_feature; text: pchar); stdcall;
-  Tmitab_c_set_text_display       = procedure(feature: mitab_feature; angle, height, width: double; fg_color, bg_color, justification, spacing, linetype: longint); stdcall;
-  Tmitab_c_write_feature          = function(handle: mitab_handle; feature: mitab_feature): longint; stdcall;
-  Tmitab_c_get_collection_region_ref      = function(feature: mitab_feature): mitab_feature; stdcall;
-  Tmitab_c_get_collection_polyline_ref    = function(feature: mitab_feature): mitab_feature; stdcall;
-  Tmitab_c_get_collection_multipoint_ref  = function(feature: mitab_feature): mitab_feature; stdcall;
-  Tmitab_c_set_collection_region          = function(feature,region: mitab_feature; make_copy: integer): longint; stdcall;
-  Tmitab_c_set_collection_polyline        = function(feature,polyline: mitab_feature; make_copy: integer): longint; stdcall;
-  Tmitab_c_set_collection_multipoint      = function(feature,multipoint: mitab_feature; make_copy: integer): longint; stdcall;
-  Tmitab_c_get_projection_info            = procedure(projInfo: mitab_projinfo; var nProjId,nEllipsoidId,nUnitsId: longint; var adProjParams: TadProjParams); stdcall;
-  Tmitab_c_set_projection_info            = procedure(projInfo: mitab_projinfo; nProjId,nEllipsoidId,nUnitsId: longint; var adProjParams: TadProjParams); stdcall;
-  Tmitab_c_get_datum_info                 = procedure(projInfo: mitab_projinfo; var dDatumShiftX,dDatumShiftY,dDatumShiftZ: double; var adDatumParams: TadDatumParams); stdcall;
-  Tmitab_c_set_datum_info                 = procedure(projInfo: mitab_projinfo; dDatumShiftX,dDatumShiftY,dDatumShiftZ: double; var adDatumParams: TadDatumParams); stdcall;
-  Tmitab_c_get_affine_params              = function(projInfo: mitab_projinfo; var nAffineUnits: longint; var adAffineParams: TadAffineParams): longint; stdcall;
-  Tmitab_c_set_affine_params              = function(projInfo: mitab_projinfo; nAffineUnits: longint; var adAffineParams: TadAffineParams): longint; stdcall;
-  Tmitab_c_is_field_indexed               = function(handle: mitab_handle; field: longint): longint; stdcall;
-  Tmitab_c_is_field_unique                = function(handle: mitab_handle; field: longint): longint; stdcall;
-  Tmitab_c_set_quick_spatial_index_mode   = function(handle: mitab_handle): longint; stdcall;
-    
+  Tmitab_c_add_field                      = function(handle: mitab_handle; field_name: pchar; field_type, width, precision, indexed, unique: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_close                          = procedure(handle: mitab_handle); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_create                         = function(filename, mif_or_tab, mif_projectiondef: pchar; north, south, east, west: double): mitab_handle; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_create_feature                 = function(handle: mitab_handle; feature_type: longint): mitab_feature; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_destroy_feature                = procedure(feature: mitab_feature); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_getlasterrormsg                = function(): pchar; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_getlasterrormsg_vb             = function(errormsg: pchar; l: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_getlasterrorno                 = function(): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_getlibversion                  = function(): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_brush_bgcolor              = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_brush_fgcolor              = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_brush_pattern              = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_brush_transparent          = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_extended_mif_coordsys      = function(dataset: mitab_handle): pchar; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_feature_count              = function(feature: mitab_handle): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_field_as_double            = function(feature: mitab_feature; field: longint): double; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_field_as_string            = function(feature: mitab_feature; field: longint): pchar; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_field_as_string_vb         = function(feature: mitab_feature; field: longint; value: pchar; l: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_field_count                = function(handle: mitab_handle): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_field_name                 = function(handle: mitab_handle; field: longint): pchar; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_field_name_vb              = function(handle: mitab_handle; field: longint; name: pchar; l: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_field_precision            = function(handle: mitab_handle; field: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_field_type                 = function(handle: mitab_handle; field: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_field_width                = function(handle: mitab_handle; field: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_font                       = function(feature: mitab_feature): pchar; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_font_vb                    = function(feature: mitab_feature; font: pchar; l: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_mif_coordsys               = function(dataset: mitab_handle): pchar; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_mif_coordsys_vb            = function(dataset: mitab_handle; coordsys: pchar; l: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_parts                      = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_pen_color                  = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_pen_pattern                = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_pen_width                  = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_projinfo                   = function(dataset: mitab_handle): mitab_projinfo; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_symbol_color               = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_symbol_no                  = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_symbol_size                = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text                       = function(feature: mitab_feature): pchar; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text_angle                 = function(feature: mitab_feature): double; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text_bgcolor               = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text_fgcolor               = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text_height                = function(feature: mitab_feature): double; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text_justification         = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text_linetype              = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text_spacing               = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text_vb                    = function(feature: mitab_feature; text: pchar; l: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text_width                 = function(feature: mitab_feature): double; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_type                       = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_vertex_count               = function(feature: mitab_feature; part: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_vertex_x                   = function(feature: mitab_feature; part, vertex: longint): double; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_vertex_y                   = function(feature: mitab_feature; part, vertex: longint): double; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_is_interior_ring               = function(feature: mitab_feature; requestedringindex: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_load_coordsys_table            = function(filename: pchar): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_next_feature_id                = function(handle: mitab_handle; last_feature_id: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_open                           = function(filename: pchar): mitab_handle; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_read_feature                   = function(handle:  mitab_handle; feature_id: longint): mitab_feature; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_arc                        = procedure(feature: mitab_feature; center_x, center_y, x_radius, y_radius, start_angle, end_angle: double); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_brush                      = procedure(feature: mitab_feature; fg_color, bg_color, pattern, transparent: longint); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_field                      = procedure(feature: mitab_feature; field_index: longint; value: pchar); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_font                       = procedure(feature: mitab_feature; font_name: pchar); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_pen                        = procedure(feature: mitab_feature; width, pattern, color: longint); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_points                     = procedure(feature: mitab_feature; part, vertex_count: longint; var x,y: double); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_projinfo                   = function(dataset: mitab_handle; projinfo: mitab_projinfo): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_symbol                     = procedure(feature: mitab_feature; symbol_no, symbol_size, symbol_color: longint); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_text                       = procedure(feature: mitab_feature; text: pchar); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_text_display               = procedure(feature: mitab_feature; angle, height, width: double; fg_color, bg_color, justification, spacing, linetype: longint); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_write_feature                  = function(handle: mitab_handle; feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_collection_region_ref      = function(feature: mitab_feature): mitab_feature; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_collection_polyline_ref    = function(feature: mitab_feature): mitab_feature; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_collection_multipoint_ref  = function(feature: mitab_feature): mitab_feature; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_collection_region          = function(feature,region: mitab_feature; make_copy: integer): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_collection_polyline        = function(feature,polyline: mitab_feature; make_copy: integer): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_collection_multipoint      = function(feature,multipoint: mitab_feature; make_copy: integer): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_projection_info            = procedure(projInfo: mitab_projinfo; var nProjId,nEllipsoidId,nUnitsId: longint; var adProjParams: TadProjParams); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_projection_info            = procedure(projInfo: mitab_projinfo; nProjId,nEllipsoidId,nUnitsId: longint; var adProjParams: TadProjParams); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_datum_info                 = procedure(projInfo: mitab_projinfo; var dDatumShiftX,dDatumShiftY,dDatumShiftZ: double; var adDatumParams: TadDatumParams); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_datum_info                 = procedure(projInfo: mitab_projinfo; dDatumShiftX,dDatumShiftY,dDatumShiftZ: double; var adDatumParams: TadDatumParams); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_affine_params              = function(projInfo: mitab_projinfo; var nAffineUnits: longint; var adAffineParams: TadAffineParams): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_affine_params              = function(projInfo: mitab_projinfo; nAffineUnits: longint; var adAffineParams: TadAffineParams): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_is_field_indexed               = function(handle: mitab_handle; field: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_is_field_unique                = function(handle: mitab_handle; field: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_quick_spatial_index_mode   = function(handle: mitab_handle): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+
 var
-  MITAB_LibOK: boolean;   // false if DLL isn't loaded, true if loaded OK and correct version
   LibPath: string;        // Full path to the MITAB DLL, default value is just 'mitab.dll'
+  MITAB_LoadErr: integer; //  0: Loaded OK
+                          // -1: Not loaded yet (default)
+                          // -2: DLL/SO not found
+                          // -3: DLL/SO found, but mitab_c_getlibversion is missing
+                          // -4: Wrong version of library
 
   mitab_c_add_field: Tmitab_c_add_field;
   mitab_c_close: Tmitab_c_close;
@@ -329,21 +336,43 @@ var
   mitab_c_is_field_unique: Tmitab_c_is_field_unique;
   mitab_c_set_quick_spatial_index_mode: Tmitab_c_set_quick_spatial_index_mode;
 
-
-// This allows compilation with Kylix. Later there may be a "mitab.so" ? 
-// On Kylix MITAB_LibOK will always be false and MITAB_load does nothing
-
 procedure MITAB_load;
+function MITAB_LibOK: boolean;
+
 
 implementation
 
-{$IFDEF MSwindows}
 uses
-  windows;
+  SysUtils,
+  {$IFDEF MSwindows}
+  Windows;
+  {$ENDIF}
+  {$IFDEF LINUX}
+  Libc;
+  {$ENDIF}
 
 var
+{$IFDEF MSwindows}
   MITABDLL_Handle: THandle;
 {$ENDIF}
+{$IFDEF LINUX}
+  MITABDLL_Handle: Pointer;
+{$ENDIF}
+
+function GenericGetProcAddress(lpProcName: PChar; length: integer): Pointer;
+begin
+  {$IFDEF MSwindows}
+  result:= GetProcAddress(MITABDLL_Handle,PAnsiChar('_'+lpProcName+'@'+inttostr(length)));
+  {$ENDIF}
+  {$IFDEF LINUX}
+  result:= dlsym(MITABDLL_Handle, lpProcName);
+  {$ENDIF}
+end;
+
+function MITAB_LibOK: boolean;
+begin
+  result:= (MITAB_LoadErr=0);
+end;
 
 // To test if a function was found in the DLL before using it, do like this:
 // if @mitab_c_create<>nil then mitab_c_create(.....)
@@ -352,102 +381,112 @@ procedure MITAB_load;
 begin
   {$IFDEF MSwindows}
   MITABDLL_Handle:= LoadLibrary(pchar(LibPath));
-  if MITABDLL_Handle<>0 then
+  {$ENDIF}
+  {$IFDEF LINUX}
+  MITABDLL_Handle:= dlopen(Pchar(LibPath), RTLD_LAZY);
+  {$ENDIF}
+
+  if Pointer(MITABDLL_Handle)<>nil then
   begin
-    @mitab_c_getlibversion:= GetProcAddress(MITABDLL_Handle,'_mitab_c_getlibversion@0');
+    @mitab_c_getlibversion:= GenericGetProcAddress('mitab_c_getlibversion',0);
     if @mitab_c_getlibversion<>nil then  // does the function exist?
     begin
       if mitab_c_getlibversion=Libversion then  // does it return the correct number?
       begin
-        MITAB_LibOK:= true;
-        @mitab_c_add_field:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_add_field@28');
-        @mitab_c_close:=                  GetProcAddress(MITABDLL_Handle,'_mitab_c_close@4');
-        @mitab_c_create:=                 GetProcAddress(MITABDLL_Handle,'_mitab_c_create@44');
-        @mitab_c_create_feature:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_create_feature@8');
-        @mitab_c_destroy_feature:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_destroy_feature@4');
-        @mitab_c_getlasterrormsg:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_getlasterrormsg@0');
-        @mitab_c_getlasterrormsg_vb:=     GetProcAddress(MITABDLL_Handle,'_mitab_c_getlasterrormsg_vb@8');
-        @mitab_c_getlasterrorno:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_getlasterrorno@0');
-        @mitab_c_get_brush_bgcolor:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_bgcolor@4');
-        @mitab_c_get_brush_fgcolor:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_fgcolor@4');
-        @mitab_c_get_brush_pattern:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_pattern@4');
-        @mitab_c_get_brush_transparent:=  GetProcAddress(MITABDLL_Handle,'_mitab_c_get_brush_transparent@4');
-        @mitab_c_get_extended_mif_coordsys:= GetProcAddress(MITABDLL_Handle,'_mitab_c_get_extended_mif_coordsys@4');
-        @mitab_c_get_feature_count:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_feature_count@4');
-        @mitab_c_get_field_as_double:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_as_double@8');
-        @mitab_c_get_field_as_string:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_as_string@8');
-        @mitab_c_get_field_as_string_vb:= GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_as_string_vb@16');
-        @mitab_c_get_field_count:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_count@4');
-        @mitab_c_get_field_name:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_name@8');
-        @mitab_c_get_field_name_vb:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_name_vb@16');
-        @mitab_c_get_field_precision:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_precision@8');
-        @mitab_c_get_field_type:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_type@8');
-        @mitab_c_get_field_width:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_field_width@8');
-        @mitab_c_get_font:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_get_font@4');
-        @mitab_c_get_font_vb:=            GetProcAddress(MITABDLL_Handle,'_mitab_c_get_font_vb@12');
-        @mitab_c_get_mif_coordsys:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_mif_coordsys@4');
-        @mitab_c_get_mif_coordsys_vb:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_get_mif_coordsys_vb@12');
-        @mitab_c_get_parts:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_get_parts@4');
-        @mitab_c_get_pen_color:=          GetProcAddress(MITABDLL_Handle,'_mitab_c_get_pen_color@4');
-        @mitab_c_get_pen_pattern:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_pen_pattern@4');
-        @mitab_c_get_pen_width:=          GetProcAddress(MITABDLL_Handle,'_mitab_c_get_pen_width@4');
-        @mitab_c_get_projinfo:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_get_projinfo@4');
-        @mitab_c_get_symbol_color:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_symbol_color@4');
-        @mitab_c_get_symbol_no:=          GetProcAddress(MITABDLL_Handle,'_mitab_c_get_symbol_no@4');
-        @mitab_c_get_symbol_size:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_symbol_size@4');
-        @mitab_c_get_text:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text@4');
-        @mitab_c_get_text_angle:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_angle@4');
-        @mitab_c_get_text_bgcolor:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_bgcolor@4');
-        @mitab_c_get_text_fgcolor:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_fgcolor@4');
-        @mitab_c_get_text_height:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_height@4');
-        @mitab_c_get_text_justification:= GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_justification@4');
-        @mitab_c_get_text_linetype:=      GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_linetype@4');
-        @mitab_c_get_text_spacing:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_spacing@4');
-        @mitab_c_get_text_vb:=            GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_vb@12');
-        @mitab_c_get_text_width:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_get_text_width@4');
-        @mitab_c_get_type:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_get_type@4');
-        @mitab_c_get_vertex_count:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_get_vertex_count@8');
-        @mitab_c_get_vertex_x:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_get_vertex_x@12');
-        @mitab_c_get_vertex_y:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_get_vertex_y@12');
-        @mitab_c_is_interior_ring:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_is_interior_ring@8');
-        @mitab_c_load_coordsys_table:=    GetProcAddress(MITABDLL_Handle,'_mitab_c_load_coordsys_table@4');
-        @mitab_c_next_feature_id:=        GetProcAddress(MITABDLL_Handle,'_mitab_c_next_feature_id@8');
-        @mitab_c_open:=                   GetProcAddress(MITABDLL_Handle,'_mitab_c_open@4');
-        @mitab_c_read_feature:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_read_feature@8');
-        @mitab_c_set_arc:=                GetProcAddress(MITABDLL_Handle,'_mitab_c_set_arc@52');
-        @mitab_c_set_brush:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_set_brush@20');
-        @mitab_c_set_field:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_set_field@12');
-        @mitab_c_set_font:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_set_font@8');
-        @mitab_c_set_pen:=                GetProcAddress(MITABDLL_Handle,'_mitab_c_set_pen@16');
-        @mitab_c_set_points:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_set_points@20');
-        @mitab_c_set_projinfo:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_set_projinfo@8');
-        @mitab_c_set_symbol:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_set_symbol@16');
-        @mitab_c_set_text:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_set_text@8');
-        @mitab_c_set_text_display:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_set_text_display@48');
-        @mitab_c_write_feature:=          GetProcAddress(MITABDLL_Handle,'_mitab_c_write_feature@8');
-        @mitab_c_get_collection_region_ref:=     GetProcAddress(MITABDLL_Handle,'_mitab_c_get_collection_region_ref@4');
-        @mitab_c_get_collection_polyline_ref:=   GetProcAddress(MITABDLL_Handle,'_mitab_c_get_collection_polyline_ref@4');
-        @mitab_c_get_collection_multipoint_ref:= GetProcAddress(MITABDLL_Handle,'_mitab_c_get_collection_multipoint_ref@4');
-        @mitab_c_set_collection_region:=         GetProcAddress(MITABDLL_Handle,'_mitab_c_set_collection_region@12');
-        @mitab_c_set_collection_polyline:=       GetProcAddress(MITABDLL_Handle,'_mitab_c_set_collection_polyline@12');
-        @mitab_c_set_collection_multipoint:=     GetProcAddress(MITABDLL_Handle,'_mitab_c_set_collection_multipoint@12');
-        @mitab_c_get_projection_info:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_get_projection_info@20');
-        @mitab_c_set_projection_info:=           GetProcAddress(MITABDLL_Handle,'_mitab_c_set_projection_info@20');
-        @mitab_c_get_datum_info:=                GetProcAddress(MITABDLL_Handle,'_mitab_c_get_datum_info@20');
-        @mitab_c_set_datum_info:=                GetProcAddress(MITABDLL_Handle,'_mitab_c_set_datum_info@32');
-        @mitab_c_get_affine_params:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_get_affine_params@12');
-        @mitab_c_set_affine_params:=             GetProcAddress(MITABDLL_Handle,'_mitab_c_set_affine_params@12');
-        @mitab_c_is_field_indexed:=              GetProcAddress(MITABDLL_Handle,'_mitab_c_is_field_indexed@8');
-        @mitab_c_is_field_unique:=               GetProcAddress(MITABDLL_Handle,'_mitab_c_is_field_unique@8');
-        @mitab_c_set_quick_spatial_index_mode:=  GetProcAddress(MITABDLL_Handle,'_mitab_c_set_quick_spatial_index_mode@4');
-      end;
-    end;
-  end;
-  {$ENDIF}
+        MITAB_LoadErr:= 0;
+        @mitab_c_add_field:=                     GenericGetProcAddress('mitab_c_add_field',28);
+        @mitab_c_close:=                         GenericGetProcAddress('mitab_c_close',4);
+        @mitab_c_create:=                        GenericGetProcAddress('mitab_c_create',44);
+        @mitab_c_create_feature:=                GenericGetProcAddress('mitab_c_create_feature',8);
+        @mitab_c_destroy_feature:=               GenericGetProcAddress('mitab_c_destroy_feature',4);
+        @mitab_c_getlasterrormsg:=               GenericGetProcAddress('mitab_c_getlasterrormsg',0);
+        @mitab_c_getlasterrormsg_vb:=            GenericGetProcAddress('mitab_c_getlasterrormsg_vb',8);
+        @mitab_c_getlasterrorno:=                GenericGetProcAddress('mitab_c_getlasterrorno',0);
+        @mitab_c_get_brush_bgcolor:=             GenericGetProcAddress('mitab_c_get_brush_bgcolor',4);
+        @mitab_c_get_brush_fgcolor:=             GenericGetProcAddress('mitab_c_get_brush_fgcolor',4);
+        @mitab_c_get_brush_pattern:=             GenericGetProcAddress('mitab_c_get_brush_pattern',4);
+        @mitab_c_get_brush_transparent:=         GenericGetProcAddress('mitab_c_get_brush_transparent',4);
+        @mitab_c_get_extended_mif_coordsys:=     GenericGetProcAddress('mitab_c_get_extended_mif_coordsys',4);
+        @mitab_c_get_feature_count:=             GenericGetProcAddress('mitab_c_get_feature_count',4);
+        @mitab_c_get_field_as_double:=           GenericGetProcAddress('mitab_c_get_field_as_double',8);
+        @mitab_c_get_field_as_string:=           GenericGetProcAddress('mitab_c_get_field_as_string',8);
+        @mitab_c_get_field_as_string_vb:=        GenericGetProcAddress('mitab_c_get_field_as_string_vb',16);
+        @mitab_c_get_field_count:=               GenericGetProcAddress('mitab_c_get_field_count',4);
+        @mitab_c_get_field_name:=                GenericGetProcAddress('mitab_c_get_field_name',8);
+        @mitab_c_get_field_name_vb:=             GenericGetProcAddress('mitab_c_get_field_name_vb',16);
+        @mitab_c_get_field_precision:=           GenericGetProcAddress('mitab_c_get_field_precision',8);
+        @mitab_c_get_field_type:=                GenericGetProcAddress('mitab_c_get_field_type',8);
+        @mitab_c_get_field_width:=               GenericGetProcAddress('mitab_c_get_field_width',8);
+        @mitab_c_get_font:=                      GenericGetProcAddress('mitab_c_get_font',4);
+        @mitab_c_get_font_vb:=                   GenericGetProcAddress('mitab_c_get_font_vb',12);
+        @mitab_c_get_mif_coordsys:=              GenericGetProcAddress('mitab_c_get_mif_coordsys',4);
+        @mitab_c_get_mif_coordsys_vb:=           GenericGetProcAddress('mitab_c_get_mif_coordsys_vb',12);
+        @mitab_c_get_parts:=                     GenericGetProcAddress('mitab_c_get_parts',4);
+        @mitab_c_get_pen_color:=                 GenericGetProcAddress('mitab_c_get_pen_color',4);
+        @mitab_c_get_pen_pattern:=               GenericGetProcAddress('mitab_c_get_pen_pattern',4);
+        @mitab_c_get_pen_width:=                 GenericGetProcAddress('mitab_c_get_pen_width',4);
+        @mitab_c_get_projinfo:=                  GenericGetProcAddress('mitab_c_get_projinfo',4);
+        @mitab_c_get_symbol_color:=              GenericGetProcAddress('mitab_c_get_symbol_color',4);
+        @mitab_c_get_symbol_no:=                 GenericGetProcAddress('mitab_c_get_symbol_no',4);
+        @mitab_c_get_symbol_size:=               GenericGetProcAddress('mitab_c_get_symbol_size',4);
+        @mitab_c_get_text:=                      GenericGetProcAddress('mitab_c_get_text',4);
+        @mitab_c_get_text_angle:=                GenericGetProcAddress('mitab_c_get_text_angle',4);
+        @mitab_c_get_text_bgcolor:=              GenericGetProcAddress('mitab_c_get_text_bgcolor',4);
+        @mitab_c_get_text_fgcolor:=              GenericGetProcAddress('mitab_c_get_text_fgcolor',4);
+        @mitab_c_get_text_height:=               GenericGetProcAddress('mitab_c_get_text_height',4);
+        @mitab_c_get_text_justification:=        GenericGetProcAddress('mitab_c_get_text_justification',4);
+        @mitab_c_get_text_linetype:=             GenericGetProcAddress('mitab_c_get_text_linetype',4);
+        @mitab_c_get_text_spacing:=              GenericGetProcAddress('mitab_c_get_text_spacing',4);
+        @mitab_c_get_text_vb:=                   GenericGetProcAddress('mitab_c_get_text_vb',12);
+        @mitab_c_get_text_width:=                GenericGetProcAddress('mitab_c_get_text_width',4);
+        @mitab_c_get_type:=                      GenericGetProcAddress('mitab_c_get_type',4);
+        @mitab_c_get_vertex_count:=              GenericGetProcAddress('mitab_c_get_vertex_count',8);
+        @mitab_c_get_vertex_x:=                  GenericGetProcAddress('mitab_c_get_vertex_x',12);
+        @mitab_c_get_vertex_y:=                  GenericGetProcAddress('mitab_c_get_vertex_y',12);
+        @mitab_c_is_interior_ring:=              GenericGetProcAddress('mitab_c_is_interior_ring',8);
+        @mitab_c_load_coordsys_table:=           GenericGetProcAddress('mitab_c_load_coordsys_table',4);
+        @mitab_c_next_feature_id:=               GenericGetProcAddress('mitab_c_next_feature_id',8);
+        @mitab_c_open:=                          GenericGetProcAddress('mitab_c_open',4);
+        @mitab_c_read_feature:=                  GenericGetProcAddress('mitab_c_read_feature',8);
+        @mitab_c_set_arc:=                       GenericGetProcAddress('mitab_c_set_arc',52);
+        @mitab_c_set_brush:=                     GenericGetProcAddress('mitab_c_set_brush',20);
+        @mitab_c_set_field:=                     GenericGetProcAddress('mitab_c_set_field',12);
+        @mitab_c_set_font:=                      GenericGetProcAddress('mitab_c_set_font',8);
+        @mitab_c_set_pen:=                       GenericGetProcAddress('mitab_c_set_pen',16);
+        @mitab_c_set_points:=                    GenericGetProcAddress('mitab_c_set_points',20);
+        @mitab_c_set_projinfo:=                  GenericGetProcAddress('mitab_c_set_projinfo',8);
+        @mitab_c_set_symbol:=                    GenericGetProcAddress('mitab_c_set_symbol',16);
+        @mitab_c_set_text:=                      GenericGetProcAddress('mitab_c_set_text',8);
+        @mitab_c_set_text_display:=              GenericGetProcAddress('mitab_c_set_text_display',48);
+        @mitab_c_write_feature:=                 GenericGetProcAddress('mitab_c_write_feature',8);
+        @mitab_c_get_collection_region_ref:=     GenericGetProcAddress('mitab_c_get_collection_region_ref',4);
+        @mitab_c_get_collection_polyline_ref:=   GenericGetProcAddress('mitab_c_get_collection_polyline_ref',4);
+        @mitab_c_get_collection_multipoint_ref:= GenericGetProcAddress('mitab_c_get_collection_multipoint_ref',4);
+        @mitab_c_set_collection_region:=         GenericGetProcAddress('mitab_c_set_collection_region',12);
+        @mitab_c_set_collection_polyline:=       GenericGetProcAddress('mitab_c_set_collection_polyline',12);
+        @mitab_c_set_collection_multipoint:=     GenericGetProcAddress('mitab_c_set_collection_multipoint',12);
+        @mitab_c_get_projection_info:=           GenericGetProcAddress('mitab_c_get_projection_info',20);
+        @mitab_c_set_projection_info:=           GenericGetProcAddress('mitab_c_set_projection_info',20);
+        @mitab_c_get_datum_info:=                GenericGetProcAddress('mitab_c_get_datum_info',20);
+        @mitab_c_set_datum_info:=                GenericGetProcAddress('mitab_c_set_datum_info',32);
+        @mitab_c_get_affine_params:=             GenericGetProcAddress('mitab_c_get_affine_params',12);
+        @mitab_c_set_affine_params:=             GenericGetProcAddress('mitab_c_set_affine_params',12);
+        @mitab_c_is_field_indexed:=              GenericGetProcAddress('mitab_c_is_field_indexed',8);
+        @mitab_c_is_field_unique:=               GenericGetProcAddress('mitab_c_is_field_unique',8);
+        @mitab_c_set_quick_spatial_index_mode:=  GenericGetProcAddress('mitab_c_set_quick_spatial_index_mode',4);
+      end else MITAB_LoadErr:= -4;
+    end else MITAB_LoadErr:= -3;
+  end else MITAB_LoadErr:= -2;
 end;
 
 initialization
-  MITAB_libOK:= false;
+  MITAB_LoadErr:= -1;
+  {$IFDEF MSWINDOWS}
   LibPath:= 'mitab.dll';
+  {$ENDIF}
+  {$IFDEF LINUX}
+  LibPath:= 'libmitab.so.1.0.1';
+  {$ENDIF}
 
 end.
+

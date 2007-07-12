@@ -1,6 +1,7 @@
+# $Id: nmake.opt,v 1.4 2007-07-12 12:19:24 dmorissette Exp $
 
 INC	=	-I. -I.. -I../ogr -I../cpl
-OPTFLAGS=	/Zi /nologo
+OPTFLAGS=	/Zi /nologo /D_CRT_SECURE_NO_DEPRECATE /D_CRT_NONSTDC_NO_DEPRECATE
 
 CFLAGS	=	$(OPTFLAGS) $(INC) $(EXTRAFLAGS)
 MAKE	=	nmake /nologo

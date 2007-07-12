@@ -148,6 +148,19 @@
 #  define WIN32
 #endif
 
+/* -------------------------------------------------------------------- */
+/*      The following apparently allow you to use strcpy() and other    */
+/*      functions judged "unsafe" by microsoft in VS 8 (2005).          */
+/* -------------------------------------------------------------------- */
+#ifdef _MSC_VER
+#  ifndef _CRT_SECURE_NO_DEPRECATE
+#    define _CRT_SECURE_NO_DEPRECATE
+#  endif
+#  ifndef _CRT_NONSTDC_NO_DEPRECATE
+#    define _CRT_NONSTDC_NO_DEPRECATE
+#  endif
+#endif
+
 #include "cpl_config.h"
 
 /* ==================================================================== */

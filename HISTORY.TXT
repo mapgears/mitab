@@ -50,6 +50,8 @@ CHANGES - Current Version:
 - Added support for building libmitab.so shared lib (contrib by UffeK and
   MaximV, bug 1746)
 
+- Avoid deprecation warnings for some common functions with VC7+ (bug 1749)
+
 
 Version 1.6.1 (2007-03-30)
 --------------------------
@@ -806,5 +808,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.188 2007-07-04 16:55:46 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.189 2007-07-12 12:24:16 dmorissette Exp $
 ------------

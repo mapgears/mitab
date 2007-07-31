@@ -13,6 +13,10 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+
+Version 1.6.2 (2007-07-12)
+--------------------------
+
 ***   ***   ***   ***   ***
 - IMPORTANT: The optimized spatial index introduced in V1.6.0 has been 
   disabled by default in this release after we found that the current block
@@ -808,5 +812,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.189 2007-07-12 12:24:16 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.190 2007-07-31 21:06:51 dmorissette Exp $
 ------------

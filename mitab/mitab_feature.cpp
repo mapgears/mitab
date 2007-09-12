@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.72 2007-06-12 14:17:16 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.73 2007-09-12 20:22:31 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.72  2007-06-12 14:17:16  dmorissette
+ * Revision 1.73  2007-09-12 20:22:31  dmorissette
+ * Added TABFeature::CreateFromMapInfoType()
+ *
+ * Revision 1.72  2007/06/12 14:17:16  dmorissette
  * Added TABFile::TwoPointLineAsPolyline() to allow writing two point lines
  * as polylines (bug 1735)
  *
@@ -228,6 +231,101 @@ TABFeature::TABFeature(OGRFeatureDefn *poDefnIn):
  **********************************************************************/
 TABFeature::~TABFeature()
 {
+}
+
+
+/**********************************************************************
+ *                     TABFeature::CreateFromMapInfoType()
+ *
+ * Factory that creates a TABFeature of the right class for the specified
+ * MapInfo Type
+ *
+ **********************************************************************/
+TABFeature *TABFeature::CreateFromMapInfoType(int nMapInfoType,
+                                              OGRFeatureDefn *poDefn)
+{
+    TABFeature *poFeature = NULL;
+
+    /*-----------------------------------------------------------------
+     * Create new feature object of the right type
+     *----------------------------------------------------------------*/
+    switch(nMapInfoType)
+    {
+      case TAB_GEOM_NONE:
+        poFeature = new TABFeature(poDefn);
+        break;
+      case TAB_GEOM_SYMBOL_C:
+      case TAB_GEOM_SYMBOL:
+        poFeature = new TABPoint(poDefn);
+        break;
+      case TAB_GEOM_FONTSYMBOL_C:
+      case TAB_GEOM_FONTSYMBOL:
+        poFeature = new TABFontPoint(poDefn);
+        break;
+      case TAB_GEOM_CUSTOMSYMBOL_C:
+      case TAB_GEOM_CUSTOMSYMBOL:
+        poFeature = new TABCustomPoint(poDefn);
+        break;
+      case TAB_GEOM_LINE_C:
+      case TAB_GEOM_LINE:
+      case TAB_GEOM_PLINE_C:
+      case TAB_GEOM_PLINE:
+      case TAB_GEOM_MULTIPLINE_C:
+      case TAB_GEOM_MULTIPLINE:
+      case TAB_GEOM_V450_MULTIPLINE_C:
+      case TAB_GEOM_V450_MULTIPLINE:
+       poFeature = new TABPolyline(poDefn);
+        break;
+      case TAB_GEOM_ARC_C:
+      case TAB_GEOM_ARC:
+        poFeature = new TABArc(poDefn);
+        break;
+
+      case TAB_GEOM_REGION_C:
+      case TAB_GEOM_REGION:
+      case TAB_GEOM_V450_REGION_C:
+      case TAB_GEOM_V450_REGION:
+        poFeature = new TABRegion(poDefn);
+        break;
+      case TAB_GEOM_RECT_C:
+      case TAB_GEOM_RECT:
+      case TAB_GEOM_ROUNDRECT_C:
+      case TAB_GEOM_ROUNDRECT:
+        poFeature = new TABRectangle(poDefn);
+        break;
+      case TAB_GEOM_ELLIPSE_C:
+      case TAB_GEOM_ELLIPSE:
+        poFeature = new TABEllipse(poDefn);
+        break;
+      case TAB_GEOM_TEXT_C:
+      case TAB_GEOM_TEXT:
+        poFeature = new TABText(poDefn);
+        break;
+      case TAB_GEOM_MULTIPOINT_C:
+      case TAB_GEOM_MULTIPOINT:
+        poFeature = new TABMultiPoint(poDefn);
+        break;
+      case TAB_GEOM_COLLECTION_C:
+      case TAB_GEOM_COLLECTION:
+        poFeature = new TABCollection(poDefn);  
+        break;
+      default:
+        /*-------------------------------------------------------------
+         * Unsupported feature type... we still return a valid feature
+         * with NONE geometry after producing a Warning.
+         * Callers can trap that case by checking CPLGetLastErrorNo() 
+         * against TAB_WarningFeatureTypeNotSupported
+         *------------------------------------------------------------*/
+//        poFeature = new TABDebugFeature(poDefn);
+        poFeature = new TABFeature(poDefn);
+
+        CPLError(CE_Warning, TAB_WarningFeatureTypeNotSupported,
+                 "Unsupported object type %d (0x%2.2x).  Feature will be "
+                 "returned with NONE geometry.",
+                 nMapInfoType, nMapInfoType);
+    }
+
+    return poFeature;
 }
 
 

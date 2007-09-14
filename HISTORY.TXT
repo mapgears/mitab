@@ -13,6 +13,9 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Fixed problem with MIF parser being confused by special attribute 
+  names (bug 1795)
+
 
 Version 1.6.2 (2007-07-12)
 --------------------------
@@ -812,5 +815,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.190 2007-07-31 21:06:51 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.191 2007-09-14 15:35:21 dmorissette Exp $
 ------------

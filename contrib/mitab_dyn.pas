@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.14 2007-07-04 16:28:22 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.15 2007-09-14 19:42:39 dmorissette Exp $
  *
  * Name:     mitab_dyn.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.14  2007-07-04 16:28:22  dmorissette
+ * Revision 1.15  2007-09-14 19:42:39  dmorissette
+ * Updated for 1.6.3-beta1
+ *
+ * Revision 1.14  2007/07/04 16:28:22  dmorissette
  * Updated to support both Delphi and Kylix (UffeK and MaximV, bug 1746)
  *
  * Revision 1.13  2007/06/12 14:49:34  dmorissette
@@ -124,7 +127,7 @@ Type
 
 const
 // update to match mitab.h (app. line 97), when new versions are released
-  Libversion = 1006002;
+  Libversion = 1006003;
   
 // feature type values
   TABFC_NoGeom      = 0;

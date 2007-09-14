@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.99 2007-09-14 18:30:18 dmorissette Exp $
+ * $Id: mitab.h,v 1.100 2007-09-14 19:42:39 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.99  2007-09-14 18:30:18  dmorissette
+ * Revision 1.100  2007-09-14 19:42:39  dmorissette
+ * Updated for 1.6.3-beta1
+ *
+ * Revision 1.99  2007/09/14 18:30:18  dmorissette
  * Fixed the splitting of object blocks with the optimized spatial
  * index mode that was producing files with misaligned bytes that
  * confused MapInfo (bug 1732)
@@ -154,8 +157,8 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION      "1.6.2 (2007-07-12)"
-#define MITAB_VERSION_INT  1006002  /* version x.y.z -> xxxyyyzzz */
+#define MITAB_VERSION      "1.6.3 (2007-09-14)"
+#define MITAB_VERSION_INT  1006003  /* version x.y.z -> xxxyyyzzz */
 
 #ifndef PI
 #  define PI 3.14159265358979323846

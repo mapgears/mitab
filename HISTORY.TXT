@@ -13,6 +13,10 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Fixed the splitting of object blocks with the optimized spatial
+  index mode that was producing files with misaligned bytes that
+  confused MapInfo (bug 1732)
+
 - Fixed problem with MIF parser being confused by special attribute 
   names (bug 1795)
 
@@ -815,5 +819,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.191 2007-09-14 15:35:21 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.192 2007-09-14 18:30:18 dmorissette Exp $
 ------------

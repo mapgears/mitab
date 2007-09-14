@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.100 2007-09-14 19:42:39 dmorissette Exp $
+ * $Id: mitab.h,v 1.101 2007-09-14 20:03:08 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.100  2007-09-14 19:42:39  dmorissette
+ * Revision 1.101  2007-09-14 20:03:08  dmorissette
+ * Removed stray ReadGeometryFromMAPFile() declaration
+ *
+ * Revision 1.100  2007/09/14 19:42:39  dmorissette
  * Updated for 1.6.3-beta1
  *
  * Revision 1.99  2007/09/14 18:30:18  dmorissette
@@ -1322,11 +1325,6 @@ class TABPolyline: public TABFeature,
      */
     int                 GetNumParts();
     OGRLineString      *GetPartRef(int nPartIndex);
-
-    int         ReadGeometryFromMAPFile(TABMAPFile *poMapFile, TABMAPObjHdr *,
-                                        TABMAPCoordBlock **ppoCoordBlock,
-                                        GBool bCoordDataOnly=FALSE,
-                                        TABMAPCoordBlock **ppoCoordBlock=NULL);
 
     GBool       TwoPointLineAsPolyline();
     void        TwoPointLineAsPolyline(GBool bTwoPointLineAsPolyline);

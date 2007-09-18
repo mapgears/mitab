@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.75 2007-09-14 19:29:24 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.76 2007-09-18 17:43:56 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.75  2007-09-14 19:29:24  dmorissette
+ * Revision 1.76  2007-09-18 17:43:56  dmorissette
+ * Fixed another index splitting issue: compr coordinates origin was not
+ * stored in the TABFeature in ReadGeometry... (bug 1732)
+ *
+ * Revision 1.75  2007/09/14 19:29:24  dmorissette
  * Completed handling of bCoordBlockDataOnly arg to Read/WriteGeometry()
  * functions to avoid screwing up pen/brush ref counters (bug 1732)
  *
@@ -1912,7 +1916,7 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
          *============================================================*/
         int     i, numPoints, nStatus;
         GUInt32 nCoordDataSize;
-        GInt32  nCoordBlockPtr, nCenterX, nCenterY;
+        GInt32  nCoordBlockPtr;
 
         /*-------------------------------------------------------------
          * Copy data from poObjHdr
@@ -1930,8 +1934,8 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         SetCenter(dX, dY);
 
         // Compressed coordinate origin (useful only in compressed case!)
-        nCenterX = poPLineHdr->m_nComprOrgX;
-        nCenterY = poPLineHdr->m_nComprOrgY;
+        m_nComprOrgX = poPLineHdr->m_nComprOrgX;
+        m_nComprOrgY = poPLineHdr->m_nComprOrgY;
 
         // MBR
         poMapFile->Int2Coordsys(poPLineHdr->m_nMinX, poPLineHdr->m_nMinY, 
@@ -1962,7 +1966,7 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             return -1;
         }
 
-        poCoordBlock->SetComprCoordOrigin(nCenterX, nCenterY);
+        poCoordBlock->SetComprCoordOrigin(m_nComprOrgX, m_nComprOrgY);
 
         poGeometry = poLine = new OGRLineString();
         poLine->setNumPoints(numPoints);
@@ -1994,7 +1998,7 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
          * PLINE MULTIPLE
          *============================================================*/
         int     i, iSection;
-        GInt32  nCoordBlockPtr, numLineSections, nCenterX, nCenterY;
+        GInt32  nCoordBlockPtr, numLineSections;
         GInt32  nCoordDataSize, numPointsTotal, *panXY;
         OGRMultiLineString      *poMultiLine;
         TABMAPCoordSecHdr       *pasSecHdrs;
@@ -2017,8 +2021,8 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         SetCenter(dX, dY);
 
         // Compressed coordinate origin (useful only in compressed case!)
-        nCenterX = poPLineHdr->m_nComprOrgX;
-        nCenterY = poPLineHdr->m_nComprOrgY;
+        m_nComprOrgX = poPLineHdr->m_nComprOrgX;
+        m_nComprOrgY = poPLineHdr->m_nComprOrgY;
 
         // MBR
         poMapFile->Int2Coordsys(poPLineHdr->m_nMinX, poPLineHdr->m_nMinY, 
@@ -2054,7 +2058,7 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             return -1;
         }
 
-        poCoordBlock->SetComprCoordOrigin(nCenterX, nCenterY);
+        poCoordBlock->SetComprCoordOrigin(m_nComprOrgX, m_nComprOrgY);
 
         panXY = (GInt32*)CPLMalloc(numPointsTotal*2*sizeof(GInt32));
 
@@ -2799,7 +2803,7 @@ int TABRegion::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
          * REGION (Similar to PLINE MULTIPLE)
          *============================================================*/
         int     i, iSection;
-        GInt32  nCoordBlockPtr, numLineSections, nCenterX, nCenterY;
+        GInt32  nCoordBlockPtr, numLineSections;
         GInt32  nCoordDataSize, numPointsTotal, *panXY;
         OGRMultiPolygon         *poMultiPolygon = NULL;
         OGRPolygon              *poPolygon = NULL;
@@ -2824,8 +2828,8 @@ int TABRegion::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         SetCenter(dX, dY);
 
         // Compressed coordinate origin (useful only in compressed case!)
-        nCenterX = poPLineHdr->m_nComprOrgX;
-        nCenterY = poPLineHdr->m_nComprOrgY;
+        m_nComprOrgX = poPLineHdr->m_nComprOrgX;
+        m_nComprOrgY = poPLineHdr->m_nComprOrgY;
 
         // MBR
         poMapFile->Int2Coordsys(poPLineHdr->m_nMinX, poPLineHdr->m_nMinY, 
@@ -2853,7 +2857,7 @@ int TABRegion::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             poCoordBlock = poMapFile->GetCoordBlock(nCoordBlockPtr);
 
         if (poCoordBlock)
-            poCoordBlock->SetComprCoordOrigin(nCenterX, nCenterY);
+            poCoordBlock->SetComprCoordOrigin(m_nComprOrgX, m_nComprOrgY);
 
         if (poCoordBlock == NULL ||
             poCoordBlock->ReadCoordSecHdrs(bComprCoord, bV450, numLineSections,
@@ -6144,6 +6148,10 @@ int TABMultiPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
                                 dX, dY);
         SetCenter(dX, dY);
 
+        // Compressed coordinate origin (useful only in compressed case!)
+        m_nComprOrgX = poMPointHdr->m_nComprOrgX;
+        m_nComprOrgY = poMPointHdr->m_nComprOrgY;
+
         /*-------------------------------------------------------------
          * Read Point Coordinates
          *------------------------------------------------------------*/
@@ -6154,8 +6162,8 @@ int TABMultiPoint::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             poCoordBlock = *ppoCoordBlock;
         else
             poCoordBlock = poMapFile->GetCoordBlock(poMPointHdr->m_nCoordBlockPtr);
-        poCoordBlock->SetComprCoordOrigin(poMPointHdr->m_nComprOrgX, 
-                                          poMPointHdr->m_nComprOrgY);
+        poCoordBlock->SetComprCoordOrigin(m_nComprOrgX, 
+                                          m_nComprOrgY);
 
         for(int iPoint=0; iPoint<poMPointHdr->m_nNumPoints; iPoint++)
         {
@@ -6840,6 +6848,10 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         poCoordBlock = *ppoCoordBlock;
     else
         poCoordBlock = poMapFile->GetCoordBlock(nCurCoordBlockPtr);
+
+    // Compressed coordinate origin (useful only in compressed case!)
+    m_nComprOrgX = poCollHdr->m_nComprOrgX;
+    m_nComprOrgY = poCollHdr->m_nComprOrgY;
 
     /*-----------------------------------------------------------------
      * Region Component

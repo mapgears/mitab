@@ -13,6 +13,13 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+Version 1.6.3-beta2 (2007-09-18)
+--------------------------------
+
+- Fixed another issue related to splitting of object blocks with the 
+  optimized spatial index. The compressed coordinate origin values were
+  not initialized properly before being written (bug 1732)
+
 
 Version 1.6.3-beta1 (2007-09-14)
 --------------------------------
@@ -826,5 +833,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.193 2007-09-14 19:42:39 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.194 2007-09-18 17:44:27 dmorissette Exp $
 ------------

@@ -20,6 +20,9 @@ Version 1.6.3-beta2 (2007-09-18)
   optimized spatial index. The compressed coordinate origin values were
   not initialized properly before being written (bug 1732)
 
+- Remove static variables that interfere with reentrancy. 
+  http://trac.osgeo.org/gdal/ticket/1883
+
 
 Version 1.6.3-beta1 (2007-09-14)
 --------------------------------
@@ -833,5 +836,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.194 2007-09-18 17:44:27 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.195 2007-10-09 17:43:16 fwarmerdam Exp $
 ------------

@@ -13,6 +13,9 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Fixed leak of SRS in OGRGeometry (bug 1816)
+
+
 Version 1.6.3 (2007-10-12)
 --------------------------
 
@@ -840,5 +843,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.196 2007-10-12 15:47:48 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.197 2007-11-02 20:18:08 dmorissette Exp $
 ------------

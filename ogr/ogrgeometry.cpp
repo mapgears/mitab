@@ -159,7 +159,8 @@ OGRGeometry::~OGRGeometry()
 {
     if( poSRS != NULL )
     {
-        poSRS->Dereference();
+        if (poSRS->Dereference() <= 0)
+            delete poSRS;
     }
 }
 
@@ -238,7 +239,8 @@ void OGRGeometry::assignSpatialReference( OGRSpatialReference * poSR )
 
 {
     if( poSRS != NULL )
-        poSRS->Dereference();
+        if (poSRS->Dereference() <= 0)
+            delete poSRS;
 
     poSRS = poSR;
     if( poSRS != NULL )

@@ -12,7 +12,13 @@ OBJ	=	cpl_conv.obj \
 		cplgetsymbol.obj \
 		cpl_findfile.obj \
 		cpl_minixml.obj \
-		cpl_vsil_win32.obj
+		cpl_vsil_win32.obj \
+		cpl_vsil.obj \
+		cpl_vsi_mem.obj \
+		cpl_vsil_unix_stdio_64.obj \
+		cpl_multiproc.obj \
+		cplstring.obj \
+		cpl_getexecpath.obj
 
 LIB	=	cpl.lib
 

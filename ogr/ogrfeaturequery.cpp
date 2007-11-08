@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrfeaturequery.cpp,v 1.9 2005/04/03 21:05:39 fwarmerdam Exp $
+ * $Id: ogrfeaturequery.cpp 11207 2007-04-04 17:02:36Z warmerdam $
  * 
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Implementation of simple SQL WHERE style attributes queries
@@ -26,50 +26,23 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrfeaturequery.cpp,v $
- * Revision 1.9  2005/04/03 21:05:39  fwarmerdam
- * Fixed IN operator for Reals.
- *
- * Revision 1.8  2004/02/23 21:48:19  warmerda
- * Fixed bug with support for IS NULL and IS NOT NULL on list fields.
- * Added preliminary (untested) support for GetUsedFields().
- *
- * Revision 1.7  2003/03/04 05:46:31  warmerda
- * added EvaluateAgainstIndices for OGRFeatureQuery
- *
- * Revision 1.6  2002/04/29 19:31:55  warmerda
- * added support for FID field
- *
- * Revision 1.5  2002/04/19 20:46:06  warmerda
- * added [NOT] IN, [NOT] LIKE and IS [NOT] NULL support
- *
- * Revision 1.4  2001/10/25 16:41:01  danmo
- * Fixed OGRFeatureQueryEvaluator() crash with string fields with unset value
- *
- * Revision 1.3  2001/07/19 18:25:07  warmerda
- * expanded tabs
- *
- * Revision 1.2  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.1  2001/06/19 15:46:41  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include <assert.h>
 #include "ogr_feature.h"
 #include "ogr_p.h"
-#include "ogrsf_frmts.h" 
 #include "ogr_attrind.h"
 
-CPL_CVSID("$Id: ogrfeaturequery.cpp,v 1.9 2005/04/03 21:05:39 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogrfeaturequery.cpp 11207 2007-04-04 17:02:36Z warmerdam $");
 
-CPL_C_START
-#include "swq.h"
-CPL_C_END
+/************************************************************************/
+/*     Support for special attributes (feature query and selection)     */
+/************************************************************************/
+
+char* SpecialFieldNames[SPECIAL_FIELD_COUNT] 
+    = {"FID", "OGR_GEOMETRY", "OGR_STYLE", "OGR_GEOM_WKT"};
+swq_field_type SpecialFieldTypes[SPECIAL_FIELD_COUNT] 
+    = {SWQ_INTEGER, SWQ_STRING, SWQ_STRING, SWQ_STRING};
 
 /************************************************************************/
 /*                          OGRFeatureQuery()                           */
@@ -113,7 +86,7 @@ OGRErr OGRFeatureQuery::Compile( OGRFeatureDefn *poDefn,
     char        **papszFieldNames;
     swq_field_type *paeFieldTypes;
     int         iField;
-    int         nFieldCount = poDefn->GetFieldCount()+1;
+    int         nFieldCount = poDefn->GetFieldCount() + SPECIAL_FIELD_COUNT;
 
     papszFieldNames = (char **) 
         CPLMalloc(sizeof(char *) * nFieldCount );
@@ -146,8 +119,13 @@ OGRErr OGRFeatureQuery::Compile( OGRFeatureDefn *poDefn,
         }
     }
 
-    papszFieldNames[nFieldCount-1] = "FID";
-    paeFieldTypes[nFieldCount-1] = SWQ_INTEGER;
+    iField = 0;
+    while (iField < SPECIAL_FIELD_COUNT)
+    {
+        papszFieldNames[poDefn->GetFieldCount() + iField] = SpecialFieldNames[iField];
+        paeFieldTypes[poDefn->GetFieldCount() + iField] = SpecialFieldTypes[iField];
+        ++iField;
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Try to parse.                                                   */
@@ -181,13 +159,32 @@ OGRErr OGRFeatureQuery::Compile( OGRFeatureDefn *poDefn,
 static int OGRFeatureQueryEvaluator( swq_field_op *op, OGRFeature *poFeature )
 
 {
-    OGRField sFID;
+    OGRField sField;
     OGRField *psField;
 
-    if( op->field_index == poFeature->GetDefnRef()->GetFieldCount() )
+    int iSpecialField = op->field_index - poFeature->GetDefnRef()->GetFieldCount();
+    if( iSpecialField >= 0 )
     {
-        sFID.Integer = poFeature->GetFID();
-        psField = &sFID;
+        if ( iSpecialField < SPECIAL_FIELD_COUNT )
+        {
+            switch ( SpecialFieldTypes[iSpecialField] )
+            {
+              case SWQ_INTEGER:
+                sField.Integer = poFeature->GetFieldAsInteger(op->field_index);
+                break;
+                
+              case SWQ_STRING:
+                sField.String = (char*) 
+                    poFeature->GetFieldAsString( op->field_index );
+                break;
+            }      
+        }
+        else
+        {
+            CPLDebug( "OGRFeatureQuery", "Illegal special field index.");
+            return FALSE;
+        }
+        psField = &sField;
     }
     else
         psField = poFeature->GetRawFieldRef( op->field_index );
@@ -295,6 +292,47 @@ static int OGRFeatureQueryEvaluator( swq_field_op *op, OGRFeature *poFeature )
             else
             {
                 return !EQUAL(psField->String,op->string_value);
+            }
+
+          case SWQ_LT:
+            if (psField->Set.nMarker1 == OGRUnsetMarker
+                && psField->Set.nMarker2 == OGRUnsetMarker )
+            {
+                return (op->string_value[0] != '\0');
+            }
+            else
+            {
+                return strcmp(psField->String,op->string_value) < 0;
+            }
+          case SWQ_GT:
+            if (psField->Set.nMarker1 == OGRUnsetMarker
+                && psField->Set.nMarker2 == OGRUnsetMarker )
+            {
+                return (op->string_value[0] != '\0');
+            }
+            else
+            {
+                return strcmp(psField->String,op->string_value) > 0;
+            }
+          case SWQ_LE:
+            if (psField->Set.nMarker1 == OGRUnsetMarker
+                && psField->Set.nMarker2 == OGRUnsetMarker )
+            {
+                return (op->string_value[0] != '\0');
+            }
+            else
+            {
+                return strcmp(psField->String,op->string_value) <= 0;
+            }
+          case SWQ_GE:
+            if (psField->Set.nMarker1 == OGRUnsetMarker
+                && psField->Set.nMarker2 == OGRUnsetMarker )
+            {
+                return (op->string_value[0] != '\0');
+            }
+            else
+            {
+                return strcmp(psField->String,op->string_value) >= 0;
             }
 
           case SWQ_ISNULL:
@@ -460,8 +498,9 @@ char **OGRFeatureQuery::FieldCollector( void *pBareOp,
 /* -------------------------------------------------------------------- */
     const char *pszFieldName;
 
-    if( op->field_index == poTargetDefn->GetFieldCount() ) 
-        pszFieldName = "FID";
+    if( op->field_index >= poTargetDefn->GetFieldCount()
+        && op->field_index < poTargetDefn->GetFieldCount() + SPECIAL_FIELD_COUNT) 
+        pszFieldName = SpecialFieldNames[op->field_index];
     else if( op->field_index >= 0 
              && op->field_index < poTargetDefn->GetFieldCount() )
         pszFieldName = 

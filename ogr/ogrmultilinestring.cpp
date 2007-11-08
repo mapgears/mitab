@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogrmultilinestring.cpp,v 1.13 2004/02/21 15:36:14 warmerda Exp $
+ * $Id: ogrmultilinestring.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRMultiLineString class.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
@@ -25,56 +25,12 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrmultilinestring.cpp,v $
- * Revision 1.13  2004/02/21 15:36:14  warmerda
- * const correctness updates for geometry: bug 289
- *
- * Revision 1.12  2004/01/16 21:57:16  warmerda
- * fixed up EMPTY support
- *
- * Revision 1.11  2004/01/16 21:20:00  warmerda
- * Added EMPTY support
- *
- * Revision 1.10  2003/09/11 22:47:54  aamici
- * add class constructors and destructors where needed in order to
- * let the mingw/cygwin binutils produce sensible partially linked objet files
- * with 'ld -r'.
- *
- * Revision 1.9  2003/05/28 19:16:43  warmerda
- * fixed up argument names and stuff for docs
- *
- * Revision 1.8  2002/09/11 13:47:17  warmerda
- * preliminary set of fixes for 3D WKB enum
- *
- * Revision 1.7  2001/07/19 18:25:07  warmerda
- * expanded tabs
- *
- * Revision 1.6  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.5  2001/05/24 18:05:18  warmerda
- * substantial fixes to WKT support for MULTIPOINT/LINE/POLYGON
- *
- * Revision 1.4  1999/12/21 05:45:28  warmerda
- * Fixed to check for wkbLineString instead of wkbPoint.
- *
- * Revision 1.3  1999/11/18 19:02:19  warmerda
- * expanded tabs
- *
- * Revision 1.2  1999/06/25 20:44:43  warmerda
- * implemented assignSpatialReference, carry properly
- *
- * Revision 1.1  1999/05/31 20:42:06  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrmultilinestring.cpp,v 1.13 2004/02/21 15:36:14 warmerda Exp $");
+CPL_CVSID("$Id: ogrmultilinestring.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 /************************************************************************/
 /*                        OGRMultiLineString()                          */
@@ -181,6 +137,13 @@ OGRErr OGRMultiLineString::importFromWkt( char ** ppszInput )
 /*      list of linestrings.                                            */
 /* -------------------------------------------------------------------- */
     pszInput = OGRWktReadToken( pszInput, szToken );
+
+    if( EQUAL(szToken,"EMPTY") )
+    {
+        *ppszInput = (char *) pszInput;
+        return OGRERR_NONE;
+    }
+
     if( szToken[0] != '(' )
         return OGRERR_CORRUPT_DATA;
 
@@ -276,7 +239,7 @@ OGRErr OGRMultiLineString::exportToWkt( char ** ppszDstText ) const
 
     if( getNumGeometries() == 0 )
     {
-        *ppszDstText = CPLStrdup("MULTILINESTRING(EMPTY)");
+        *ppszDstText = CPLStrdup("MULTILINESTRING EMPTY");
         return OGRERR_NONE;
     }
 
@@ -307,18 +270,22 @@ OGRErr OGRMultiLineString::exportToWkt( char ** ppszDstText ) const
 /* -------------------------------------------------------------------- */
 /*      Build up the string, freeing temporary strings as we go.        */
 /* -------------------------------------------------------------------- */
-    strcpy( *ppszDstText, "MULTILINESTRING (" );
+    char *pszAppendPoint = *ppszDstText;
+
+    strcpy( pszAppendPoint, "MULTILINESTRING (" );
 
     for( iLine = 0; iLine < getNumGeometries(); iLine++ )
     {                                                           
         if( iLine > 0 )
-            strcat( *ppszDstText, "," );
+            strcat( pszAppendPoint, "," );
         
-        strcat( *ppszDstText, papszLines[iLine] + 11 );
+        strcat( pszAppendPoint, papszLines[iLine] + 11 );
+        pszAppendPoint += strlen(pszAppendPoint);
+
         VSIFree( papszLines[iLine] );
     }
 
-    strcat( *ppszDstText, ")" );
+    strcat( pszAppendPoint, ")" );
 
     CPLFree( papszLines );
 

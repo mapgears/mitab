@@ -1,12 +1,12 @@
 /******************************************************************************
- * $Id: ogr_srs_proj4.cpp,v 1.54 2005/04/06 00:02:05 fwarmerdam Exp $
+ * $Id: ogr_srs_proj4.cpp 12537 2007-10-26 03:16:26Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  OGRSpatialReference interface to PROJ.4.
  * Author:   Frank Warmerdam <warmerdam@pobox.com>
  *
  ******************************************************************************
- * Copyright (c) 1999,  Les Technologies SoftMap Inc.
+ * Copyright (c) 1999,  Les Technologies SoftMap Inc. 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -25,173 +25,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_srs_proj4.cpp,v $
- * Revision 1.54 (+MITAB bug 1155 patch)  2005/04/06 00:02:05  fwarmerdam
- * various osr and oct functions now stdcall
- *
- * Revision 1.53  2005/02/28 15:01:56  fwarmerdam
- * Applied patch to add +towgs84 parameter if one is well known for a given
- * EPSG GEOGCS, and no datum shifting info is available in the source defn.
- * See http://bugzilla.remotesensing.org/show_bug.cgi?id=784
- *
- * Revision 1.52  2005/02/09 20:25:39  fwarmerdam
- * Changed default height for GEOS projection.
- *
- * Revision 1.51  2005/01/05 21:02:33  fwarmerdam
- * added Goode Homolosine
- *
- * Revision 1.50  2004/11/11 18:28:45  fwarmerdam
- * added Bonne projection support
- *
- * Revision 1.49  2004/09/10 21:04:51  fwarmerdam
- * Various fixes for swiss oblique mercator (somerc) support.
- * http://bugzilla.remotesensing.org/show_bug.cgi?id=423
- *
- * Revision 1.48  2004/09/10 20:29:16  fwarmerdam
- * Re bug 423: fixed up SRS_PT_SWISS_OBLIQUE_CYLINDRICAL to use somerc.
- *
- * Revision 1.47  2004/05/12 14:27:47  warmerda
- * added translation for nzgd49 and potsdam using epsg codes
- *
- * Revision 1.46  2004/05/04 18:49:43  warmerda
- * Fixed handling of prime meridian.  In PROJ.4 strings the central meridian
- * or other longitude parameters are relative to the prime meridian.  Apply
- * appropriate transformations going and coming from WKT where that is not
- * the case.
- *
- * Revision 1.45  2004/02/05 17:07:59  dron
- * Support for HOM projection, specified by two points on centerline.
- *
- * Revision 1.44  2003/06/27 19:02:04  warmerda
- * added OSRProj4Tokenize(), fixes plus related tokenizing bug in bug 355
- *
- * Revision 1.43  2003/06/27 17:54:12  warmerda
- * allow k_0 in place of k parsing proj4, bug 355
- *
- * Revision 1.42  2003/06/21 23:25:03  warmerda
- * added +towgs84 support in importFromProj4()
- *
- * Revision 1.41  2003/05/28 18:17:38  warmerda
- * treat meter or m as meter
- *
- * Revision 1.40  2003/05/20 18:09:36  warmerda
- * fixed so that importFromProj4() will transform linear parameter units
- *
- * Revision 1.39  2003/02/13 19:27:28  warmerda
- * always append no_defs to avoid getting hosted by defaults file
- *
- * Revision 1.38  2002/12/15 23:42:59  warmerda
- * added initial support for normalizing proj params
- *
- * Revision 1.37  2002/12/14 19:50:21  warmerda
- * implement support for NZMG (New Zealand Map Grid)
- *
- * Revision 1.36  2002/12/10 04:05:04  warmerda
- * fixed some translation problems with prime meridians
- *
- * Revision 1.35  2002/12/09 23:03:45  warmerda
- * Fixed translation of paris prime meridian.
- *
- * Revision 1.34  2002/12/09 18:55:07  warmerda
- * moved DMS stuff to gdal/port
- *
- * Revision 1.33  2002/12/09 16:12:14  warmerda
- * added +pm= support
- *
- * Revision 1.32  2002/12/03 15:38:10  warmerda
- * dont write linear units to geograpic srs but avoid freaking out
- *
- * Revision 1.31  2002/12/01 20:19:21  warmerda
- * use %.16g to preserve precision as per bug 184
- *
- * Revision 1.30  2002/11/29 21:23:38  warmerda
- * implement LCC1SP PROJ.4 to WKT translation
- *
- * Revision 1.29  2002/11/29 20:56:37  warmerda
- * added LCC1SP conversion to PROJ.4, missing reverse
- *
- * Revision 1.28  2002/11/25 03:28:16  warmerda
- * added/improved documentation
- *
- * Revision 1.27  2002/07/09 14:49:07  warmerda
- * Improved translation from/to polar stereographic as per
- * http://bugzilla.remotesensing.org/show_bug.cgi?id=172
- *
- * Revision 1.26  2002/06/11 18:02:03  warmerda
- * add PROJ.4 normalization and EPSG support
- *
- * Revision 1.25  2002/04/18 14:22:45  warmerda
- * made OGRSpatialReference and co 'const correct'
- *
- * Revision 1.24  2002/03/08 20:17:52  warmerda
- * assume WGS84 if ellipse info missing
- *
- * Revision 1.23  2002/01/18 04:48:48  warmerda
- * clean tabs, and newlines from input to importProj4
- *
- * Revision 1.22  2001/12/12 20:18:06  warmerda
- * added support for units in proj.4 to WKT
- *
- * Revision 1.21  2001/11/07 22:08:51  warmerda
- * dont put + in to_meter value
- *
- * Revision 1.20  2001/11/02 22:21:15  warmerda
- * fixed memory leak
- *
- * Revision 1.19  2001/10/11 19:23:30  warmerda
- * fixed datum names
- *
- * Revision 1.18  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.17  2001/03/02 04:37:43  danmo
- * Return empty string for LOCAL_CS in exportToProj4().
- *
- * Revision 1.16  2001/01/22 14:00:28  warmerda
- * added untested support for Swiss Oblique Cylindrical
- *
- * Revision 1.15  2001/01/19 21:10:46  warmerda
- * replaced tabs
- *
- * Revision 1.14  2000/12/05 23:10:34  warmerda
- * Added cassini support
- *
- * Revision 1.13  2000/12/05 17:46:16  warmerda
- * Use +R_A for VanDerGrinten and miller
- *
- * Revision 1.12  2000/09/25 20:22:21  warmerda
- * ensure pszPROJ4Units is initialized
- *
- * Revision 1.11  2000/09/25 15:46:56  warmerda
- * added sphere
- *
- * Revision 1.10  2000/08/28 20:13:23  warmerda
- * added importFromProj4
- *
- * Revision 1.9  2000/07/11 01:02:06  warmerda
- * added ExportToProj4()
- *
- * Revision 1.8  2000/07/09 20:49:21  warmerda
- * added +datum support
- *
- * Revision 1.7  2000/03/06 02:23:54  warmerda
- * don't use +datum syntax
- *
- * Revision 1.6  1999/12/22 15:39:43  warmerda
- * fix to differentiate WGS variants
- *
- * Revision 1.5  1999/12/13 16:29:59  warmerda
- * Added improved units, and ellipse support.
- *
- * Revision 1.4  1999/12/08 16:34:05  warmerda
- * added five or six more projections
- *
- * Revision 1.1  1999/07/29 17:29:15  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_spatialref.h"
 #include "ogr_p.h"
@@ -199,7 +33,7 @@
 
 extern int EPSGGetWGS84Transform( int nGeogCS, double *padfTransform );
 
-CPL_CVSID("$Id: ogr_srs_proj4.cpp,v 1.54 2005/04/06 00:02:05 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogr_srs_proj4.cpp 12537 2007-10-26 03:16:26Z warmerdam $");
 
 /* -------------------------------------------------------------------- */
 /*      The following list comes from osrs/proj/src/pj_ellps.c          */
@@ -280,7 +114,16 @@ char **OSRProj4Tokenize( const char *pszFull )
             if( i == 0 || pszFullWrk[i-1] == '\0' )
             {
                 if( pszStart != NULL )
-                    papszTokens = CSLAddString( papszTokens, pszStart );
+                {
+                    if( strstr(pszStart,"=") != NULL )
+                        papszTokens = CSLAddString( papszTokens, pszStart );
+                    else
+                    {
+                        CPLString osAsBoolean = pszStart;
+                        osAsBoolean += "=yes";
+                        papszTokens = CSLAddString( papszTokens, osAsBoolean );
+                    }
+                }
                 pszStart = pszFullWrk + i + 1;
             }
             break;
@@ -454,7 +297,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
         }
         else if( EQUAL(pszPM,"bogota") )
         {
-            dfFromGreenwich = CPLDMSToDec( "74d04'51.3\"E" );
+            dfFromGreenwich = CPLDMSToDec( "74d04'51.3\"W" );
             nPMCode = 8904;
         }
         else if( EQUAL(pszPM,"madrid") )
@@ -530,7 +373,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"bonne") )
     {
         SetBonne( OSR_GDV( papszNV, "lat_1", 0.0 ), 
-                  OSR_GDV( papszNV, "lon_0", 0.0 ) + dfFromGreenwich, 
+                  OSR_GDV( papszNV, "lon_0", 0.0 ), 
                   OSR_GDV( papszNV, "x_0", 0.0 ), 
                   OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -538,7 +381,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"cass") )
     {
         SetCS( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-               OSR_GDV( papszNV, "lon_0", 0.0 ) + dfFromGreenwich, 
+               OSR_GDV( papszNV, "lon_0", 0.0 ), 
                OSR_GDV( papszNV, "x_0", 0.0 ), 
                OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -546,7 +389,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"nzmg") )
     {
         SetNZMG( OSR_GDV( papszNV, "lat_0", -41.0 ), 
-                 OSR_GDV( papszNV, "lon_0", 173.0 ) + dfFromGreenwich, 
+                 OSR_GDV( papszNV, "lon_0", 173.0 ), 
                  OSR_GDV( papszNV, "x_0", 2510000.0 ), 
                  OSR_GDV( papszNV, "y_0", 6023150.0 ) );
     }
@@ -554,7 +397,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"cea") )
     {
         SetCEA( OSR_GDV( papszNV, "lat_ts", 0.0 ), 
-                OSR_GDV( papszNV, "lon_0", 0.0 ) + dfFromGreenwich, 
+                OSR_GDV( papszNV, "lon_0", 0.0 ), 
                 OSR_GDV( papszNV, "x_0", 0.0 ), 
                 OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -562,7 +405,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"tmerc") )
     {
         SetTM( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-               OSR_GDV( papszNV, "lon_0", 0.0 ) + dfFromGreenwich, 
+               OSR_GDV( papszNV, "lon_0", 0.0 ), 
                OSR_GDV( papszNV, "k", 1.0 ), 
                OSR_GDV( papszNV, "x_0", 0.0 ), 
                OSR_GDV( papszNV, "y_0", 0.0 ) );
@@ -574,10 +417,20 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
                 (int) OSR_GDV( papszNV, "south", 1.0 ) );
     }
 
-    else if( EQUAL(pszProj,"merc") )
+    else if( EQUAL(pszProj,"merc") /* 2SP form */
+             && OSR_GDV(papszNV, "lat_ts", 1000.0) < 999.0 )
     {
-        SetMercator( OSR_GDV( papszNV, "lat_ts", 0.0 ), 
-                     OSR_GDV( papszNV, "lon_0", 0.0 ) + dfFromGreenwich, 
+        SetMercator2SP( OSR_GDV( papszNV, "lat_ts", 0.0 ), 
+                        0.0,
+                        OSR_GDV( papszNV, "lon_0", 0.0 ), 
+                        OSR_GDV( papszNV, "x_0", 0.0 ), 
+                        OSR_GDV( papszNV, "y_0", 0.0 ) );
+    }
+
+    else if( EQUAL(pszProj,"merc") ) /* 1SP form */
+    {
+        SetMercator( 0.0,
+                     OSR_GDV( papszNV, "lon_0", 0.0 ), 
                      OSR_GDV( papszNV, "k", 1.0 ), 
                      OSR_GDV( papszNV, "x_0", 0.0 ), 
                      OSR_GDV( papszNV, "y_0", 0.0 ) );
@@ -587,7 +440,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
              && ABS(OSR_GDV( papszNV, "lat_0", 0.0 ) - 90) < 0.001 )
     {
         SetPS( OSR_GDV( papszNV, "lat_ts", 90.0 ), 
-               OSR_GDV( papszNV, "lon_0", 0.0 ) + dfFromGreenwich, 
+               OSR_GDV( papszNV, "lon_0", 0.0 ), 
                OSR_GDV( papszNV, "k", 1.0 ), 
                OSR_GDV( papszNV, "x_0", 0.0 ), 
                OSR_GDV( papszNV, "y_0", 0.0 ) );
@@ -597,17 +450,17 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
              && ABS(OSR_GDV( papszNV, "lat_0", 0.0 ) + 90) < 0.001 )
     {
         SetPS( OSR_GDV( papszNV, "lat_ts", -90.0 ), 
-               OSR_GDV( papszNV, "lon_0", 0.0 ) + dfFromGreenwich, 
+               OSR_GDV( papszNV, "lon_0", 0.0 ), 
                OSR_GDV( papszNV, "k", 1.0 ), 
                OSR_GDV( papszNV, "x_0", 0.0 ), 
                OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
-    else if( EQUAL(pszProj,"stere") 
+    else if( EQUALN(pszProj,"stere",5) /* mostly sterea */
              && CSLFetchNameValue(papszNV,"k") != NULL )
     {
         SetOS( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-               OSR_GDV( papszNV, "lon_0", 0.0 ) + dfFromGreenwich, 
+               OSR_GDV( papszNV, "lon_0", 0.0 ), 
                OSR_GDV( papszNV, "k", 1.0 ), 
                OSR_GDV( papszNV, "x_0", 0.0 ), 
                OSR_GDV( papszNV, "y_0", 0.0 ) );
@@ -616,7 +469,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"stere") )
     {
         SetStereographic( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                          OSR_GDV( papszNV, "lon_0", 0.0 ) + dfFromGreenwich, 
+                          OSR_GDV( papszNV, "lon_0", 0.0 ), 
                           1.0, 
                           OSR_GDV( papszNV, "x_0", 0.0 ), 
                           OSR_GDV( papszNV, "y_0", 0.0 ) );
@@ -625,7 +478,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"eqc") )
     {
         SetEquirectangular( OSR_GDV( papszNV, "lat_ts", 0.0 ), 
-                            OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+                            OSR_GDV( papszNV, "lon_0", 0.0 ), 
                             OSR_GDV( papszNV, "x_0", 0.0 ), 
                             OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -633,7 +486,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"gnom") )
     {
         SetGnomonic( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                     OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+                     OSR_GDV( papszNV, "lon_0", 0.0 ), 
                      OSR_GDV( papszNV, "x_0", 0.0 ), 
                      OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -641,7 +494,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"ortho") )
     {
         SetOrthographic( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                         OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+                         OSR_GDV( papszNV, "lon_0", 0.0 ), 
                          OSR_GDV( papszNV, "x_0", 0.0 ), 
                          OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -649,7 +502,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"laea") )
     {
         SetLAEA( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                 OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+                 OSR_GDV( papszNV, "lon_0", 0.0 ), 
                  OSR_GDV( papszNV, "x_0", 0.0 ), 
                  OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -657,7 +510,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"aeqd") )
     {
         SetAE( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-               OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+               OSR_GDV( papszNV, "lon_0", 0.0 ), 
                OSR_GDV( papszNV, "x_0", 0.0 ), 
                OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -667,7 +520,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
         SetEC( OSR_GDV( papszNV, "lat_1", 0.0 ), 
                OSR_GDV( papszNV, "lat_2", 0.0 ), 
                OSR_GDV( papszNV, "lat_0", 0.0 ), 
-               OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+               OSR_GDV( papszNV, "lon_0", 0.0 ), 
                OSR_GDV( papszNV, "x_0", 0.0 ), 
                OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -675,28 +528,28 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"mill") )
     {
         SetMC( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-               OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+               OSR_GDV( papszNV, "lon_0", 0.0 ), 
                OSR_GDV( papszNV, "x_0", 0.0 ), 
                OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
     else if( EQUAL(pszProj,"moll") )
     {
-        SetMollweide( OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+        SetMollweide( OSR_GDV( papszNV, "lon_0", 0.0 ), 
                       OSR_GDV( papszNV, "x_0", 0.0 ), 
                       OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
     else if( EQUAL(pszProj,"eck4") )
     {
-        SetEckertIV( OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+        SetEckertIV( OSR_GDV( papszNV, "lon_0", 0.0 ), 
                      OSR_GDV( papszNV, "x_0", 0.0 ), 
                      OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
     else if( EQUAL(pszProj,"eck6") )
     {
-        SetEckertVI( OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+        SetEckertVI( OSR_GDV( papszNV, "lon_0", 0.0 ), 
                      OSR_GDV( papszNV, "x_0", 0.0 ), 
                      OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -704,7 +557,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"poly") )
     {
         SetPolyconic( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                      OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+                      OSR_GDV( papszNV, "lon_0", 0.0 ), 
                       OSR_GDV( papszNV, "x_0", 0.0 ), 
                       OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
@@ -714,49 +567,49 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
         SetACEA( OSR_GDV( papszNV, "lat_1", 0.0 ), 
                  OSR_GDV( papszNV, "lat_2", 0.0 ), 
                  OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                 OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+                 OSR_GDV( papszNV, "lon_0", 0.0 ), 
                  OSR_GDV( papszNV, "x_0", 0.0 ), 
                  OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
     else if( EQUAL(pszProj,"robin") )
     {
-        SetRobinson( OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+        SetRobinson( OSR_GDV( papszNV, "lon_0", 0.0 ), 
                      OSR_GDV( papszNV, "x_0", 0.0 ), 
                      OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
     else if( EQUAL(pszProj,"vandg") )
     {
-        SetVDG( OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+        SetVDG( OSR_GDV( papszNV, "lon_0", 0.0 ), 
                 OSR_GDV( papszNV, "x_0", 0.0 ), 
                 OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
     else if( EQUAL(pszProj,"sinu") )
     {
-        SetSinusoidal( OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+        SetSinusoidal( OSR_GDV( papszNV, "lon_0", 0.0 ), 
                        OSR_GDV( papszNV, "x_0", 0.0 ), 
                        OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
     else if( EQUAL(pszProj,"gall") )
     {
-        SetGS( OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+        SetGS( OSR_GDV( papszNV, "lon_0", 0.0 ), 
                OSR_GDV( papszNV, "x_0", 0.0 ), 
                OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
     else if( EQUAL(pszProj,"goode") )
     {
-        SetGH( OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+        SetGH( OSR_GDV( papszNV, "lon_0", 0.0 ), 
                OSR_GDV( papszNV, "x_0", 0.0 ), 
                OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
     else if( EQUAL(pszProj,"geos") )
     {
-        SetGEOS( OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+        SetGEOS( OSR_GDV( papszNV, "lon_0", 0.0 ), 
                  OSR_GDV( papszNV, "h", 35785831.0 ), 
                  OSR_GDV( papszNV, "x_0", 0.0 ), 
                  OSR_GDV( papszNV, "y_0", 0.0 ) );
@@ -769,7 +622,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
         {
             /* 1SP form */
             SetLCC1SP( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                       OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+                       OSR_GDV( papszNV, "lon_0", 0.0 ), 
                        OSR_GDV( papszNV, "k_0", 1.0 ), 
                        OSR_GDV( papszNV, "x_0", 0.0 ), 
                        OSR_GDV( papszNV, "y_0", 0.0 ) );
@@ -780,7 +633,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
             SetLCC( OSR_GDV( papszNV, "lat_1", 0.0 ), 
                     OSR_GDV( papszNV, "lat_2", 0.0 ), 
                     OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                    OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+                    OSR_GDV( papszNV, "lon_0", 0.0 ), 
                     OSR_GDV( papszNV, "x_0", 0.0 ), 
                     OSR_GDV( papszNV, "y_0", 0.0 ) );
         }
@@ -789,7 +642,7 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"omerc") )
     {
         SetHOM( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                OSR_GDV( papszNV, "lonc", 0.0 )+dfFromGreenwich, 
+                OSR_GDV( papszNV, "lonc", 0.0 ), 
                 OSR_GDV( papszNV, "alpha", 0.0 ), 
                 0.0, /* ??? */
                 OSR_GDV( papszNV, "k", 1.0 ), 
@@ -800,11 +653,32 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
     else if( EQUAL(pszProj,"somerc") )
     {
         SetHOM( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                OSR_GDV( papszNV, "lon_0", 0.0 )+dfFromGreenwich, 
+                OSR_GDV( papszNV, "lon_0", 0.0 ), 
                 90.0,  90.0, 
                 OSR_GDV( papszNV, "k", 1.0 ), 
                 OSR_GDV( papszNV, "x_0", 0.0 ), 
                 OSR_GDV( papszNV, "y_0", 0.0 ) );
+    }
+
+    else if( EQUAL(pszProj,"krovak") )
+    {
+        SetKrovak( OSR_GDV( papszNV, "lat_0", 0.0 ), 
+                   OSR_GDV( papszNV, "lon_0", 0.0 ), 
+                   OSR_GDV( papszNV, "alpha", 0.0 ), 
+                   0.0, // pseudo_standard_parallel_1
+                   OSR_GDV( papszNV, "k", 1.0 ), 
+                   OSR_GDV( papszNV, "x_0", 0.0 ), 
+                   OSR_GDV( papszNV, "y_0", 0.0 ) );
+    }
+
+    else if( EQUAL(pszProj,"tpeqd") )
+    {
+        SetTPED( OSR_GDV( papszNV, "lat_1", 0.0 ), 
+                 OSR_GDV( papszNV, "lon_1", 0.0 ), 
+                 OSR_GDV( papszNV, "lat_2", 0.0 ), 
+                 OSR_GDV( papszNV, "lon_2", 0.0 ), 
+                 OSR_GDV( papszNV, "x_0", 0.0 ), 
+                 OSR_GDV( papszNV, "y_0", 0.0 ) );
     }
 
     else
@@ -894,12 +768,21 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
         dfSemiMajor = OSR_GDV( papszNV, "a", 0.0 );
         if( dfSemiMajor == 0.0 )
         {
-            CPLDebug( "OGR_PROJ4", "Can't find ellipse definition, default to WGS84:\n%s", 
-                      pszProj4 );
-
-            dfSemiMajor = SRS_WGS84_SEMIMAJOR;
-            dfSemiMinor = -1.0;
-            dfInvFlattening = SRS_WGS84_INVFLATTENING;
+            dfSemiMajor = OSR_GDV( papszNV, "R", 0.0 );
+            if( dfSemiMajor != 0.0 )
+            {
+                dfSemiMinor = -1.0;
+                dfInvFlattening = 0.0;
+            }
+            else
+            {
+                CPLDebug( "OGR_PROJ4", "Can't find ellipse definition, default to WGS84:\n%s", 
+                          pszProj4 );
+                
+                dfSemiMajor = SRS_WGS84_SEMIMAJOR;
+                dfSemiMinor = -1.0;
+                dfInvFlattening = SRS_WGS84_INVFLATTENING;
+            }
         }
         else
         {
@@ -1010,6 +893,12 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
         }        
     }
 
+
+/* -------------------------------------------------------------------- */
+/*      do we want to insert a PROJ.4 EXTENSION item?                   */
+/* -------------------------------------------------------------------- */
+    if( strstr(pszProj4,"wktext") != NULL )
+        SetExtension( GetRoot()->GetValue(), "PROJ4", pszProj4 );
         
     CSLDestroy( papszNV );
     
@@ -1060,6 +949,26 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
 
     szProj4[0] = '\0';
 
+    if( GetRoot() == NULL )
+    {
+        *ppszProj4 = CPLStrdup("");
+        CPLError( CE_Failure, CPLE_NotSupported,
+                  "No translation an empty SRS to PROJ.4 format is known.", 
+                  pszProjection );
+        return OGRERR_UNSUPPORTED_SRS;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Do we have a PROJ.4 override definition?                        */
+/* -------------------------------------------------------------------- */
+    const char *pszPredefProj4 = GetExtension( GetRoot()->GetValue(), 
+                                               "PROJ4", NULL );
+    if( pszPredefProj4 != NULL )
+    {
+        *ppszProj4 = CPLStrdup( pszPredefProj4 );
+        return OGRERR_NONE;
+    }
+
 /* -------------------------------------------------------------------- */
 /*      Get the prime meridian info.                                    */
 /* -------------------------------------------------------------------- */
@@ -1076,22 +985,21 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
 /*      Handle the projection definition.                               */
 /* ==================================================================== */
 
-    if( IsLocal() )
-    {
-        /* LOCAL_CS (NonEarth): return an empty PROJ4 string */
-        *ppszProj4 = CPLStrdup("");
-        return OGRERR_NONE;
-    }
-    else if( pszProjection == NULL )
+    if( pszProjection == NULL && IsGeographic() )
     {
         sprintf( szProj4+strlen(szProj4), "+proj=longlat " );
+    }
+    else if( pszProjection == NULL && !IsGeographic() )
+    {
+        // LOCAL_CS, or incompletely initialized coordinate systems.
+        *ppszProj4 = CPLStrdup("");
+        return OGRERR_NONE;
     }
     else if( EQUAL(pszProjection,SRS_PT_CYLINDRICAL_EQUAL_AREA) )
     {
         sprintf( szProj4+strlen(szProj4),
            "+proj=cea +lon_0=%.16g +lat_ts=%.16g +x_0=%.16g +y_0=%.16g ",
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0) 
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
@@ -1101,8 +1009,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     {
         sprintf( szProj4+strlen(szProj4),
            "+proj=bonne +lon_0=%.16g +lat_1=%.16g +x_0=%.16g +y_0=%.16g ",
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0) 
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
@@ -1113,8 +1020,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
         sprintf( szProj4+strlen(szProj4),
            "+proj=cass +lat_0=%.16g +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1124,8 +1030,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
         sprintf( szProj4+strlen(szProj4),
                  "+proj=nzmg +lat_0=%.16g +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1153,8 +1058,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
             sprintf( szProj4+strlen(szProj4),
              "+proj=tmerc +lat_0=%.16g +lon_0=%.16g +k=%f +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_SCALE_FACTOR,1.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
@@ -1163,11 +1067,19 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     else if( EQUAL(pszProjection,SRS_PT_MERCATOR_1SP) )
     {
         sprintf( szProj4+strlen(szProj4),
-           "+proj=merc +lat_ts=%.16g +lon_0=%.16g +k=%f +x_0=%.16g +y_0=%.16g ",
-                 GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+           "+proj=merc +lon_0=%.16g +k=%f +x_0=%.16g +y_0=%.16g ",
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_SCALE_FACTOR,1.0),
+                 GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
+                 GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_MERCATOR_2SP) )
+    {
+        sprintf( szProj4+strlen(szProj4),
+           "+proj=merc +lon_0=%.16g +lat_ts=%.16g +x_0=%.16g +y_0=%.16g ",
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
+                 GetNormProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1175,10 +1087,10 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     else if( EQUAL(pszProjection,SRS_PT_OBLIQUE_STEREOGRAPHIC) )
     {
         sprintf( szProj4+strlen(szProj4),
-           "+proj=stere +lat_0=%.16g +lon_0=%.16g +k=%f +x_0=%.16g +y_0=%.16g ",
+         "+proj=sterea +lat_0=%.16g +lon_0=%.16g +k=%f +x_0=%.16g +y_0=%.16g ",
+//         "+proj=stere +lat_0=%.16g +lon_0=%.16g +k=%f +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_SCALE_FACTOR,1.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
@@ -1187,10 +1099,10 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     else if( EQUAL(pszProjection,SRS_PT_STEREOGRAPHIC) )
     {
         sprintf( szProj4+strlen(szProj4),
-           "+proj=stere +lat_0=%.16g +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
+           "+proj=stere +lat_0=%.16g +lon_0=%.16g +k=%f +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
+                 GetNormProjParm(SRS_PP_SCALE_FACTOR,1.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1202,8 +1114,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                      "+proj=stere +lat_0=90 +lat_ts=%.16g +lon_0=%.16g "
                      "+k=%.16g +x_0=%.16g +y_0=%.16g ",
                      GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,90.0),
-                     GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                     - dfFromGreenwich,
+                     GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                      GetNormProjParm(SRS_PP_SCALE_FACTOR,1.0),
                      GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                      GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
@@ -1212,8 +1123,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                      "+proj=stere +lat_0=-90 +lat_ts=%.16g +lon_0=%.16g "
                      "+k=%.16g +x_0=%.16g +y_0=%.16g ",
                      GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,-90.0),
-                     GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                     - dfFromGreenwich,
+                     GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                      GetNormProjParm(SRS_PP_SCALE_FACTOR,1.0),
                      GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                      GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
@@ -1224,8 +1134,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
         sprintf( szProj4+strlen(szProj4),
                  "+proj=eqc +lat_ts=%.16g +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1235,8 +1144,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
         sprintf( szProj4+strlen(szProj4),
                  "+proj=gnom +lat_0=%.16g +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1246,8 +1154,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
         sprintf( szProj4+strlen(szProj4),
                  "+proj=ortho +lat_0=%.16g +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1257,8 +1164,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
         sprintf( szProj4+strlen(szProj4),
                  "+proj=laea +lat_0=%.16g +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1268,8 +1174,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
         sprintf( szProj4+strlen(szProj4),
                  "+proj=aeqd +lat_0=%.16g +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1280,8 +1185,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                  "+proj=eqdc +lat_0=%.16g +lon_0=%.16g +lat_1=%.16g +lat_2=%.16g"
                  " +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_CENTER,0.0),
-                 GetNormProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0),
                  GetNormProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0),
                  GetNormProjParm(SRS_PP_STANDARD_PARALLEL_2,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
@@ -1293,8 +1197,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
         sprintf( szProj4+strlen(szProj4),
                 "+proj=mill +lat_0=%.16g +lon_0=%.16g +x_0=%.16g +y_0=%.16g +R_A ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1303,8 +1206,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     {
         sprintf( szProj4+strlen(szProj4),
                  "+proj=moll +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1322,8 +1224,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     {
         sprintf( szProj4+strlen(szProj4),
                  "+proj=eck6 +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1333,8 +1234,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
         sprintf( szProj4+strlen(szProj4),
                  "+proj=poly +lat_0=%.16g +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1347,8 +1247,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                  GetNormProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0),
                  GetNormProjParm(SRS_PP_STANDARD_PARALLEL_2,0.0),
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1357,8 +1256,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     {
         sprintf( szProj4+strlen(szProj4),
                  "+proj=robin +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1367,8 +1265,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     {
         sprintf( szProj4+strlen(szProj4),
                  "+proj=vandg +lon_0=%.16g +x_0=%.16g +y_0=%.16g +R_A ",
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1377,8 +1274,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     {
         sprintf( szProj4+strlen(szProj4),
                  "+proj=sinu +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
-                 GetNormProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1387,8 +1283,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     {
         sprintf( szProj4+strlen(szProj4),
                  "+proj=gall +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1397,8 +1292,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     {
         sprintf( szProj4+strlen(szProj4),
                  "+proj=goode +lon_0=%.16g +x_0=%.16g +y_0=%.16g ",
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1407,8 +1301,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
     {
         sprintf( szProj4+strlen(szProj4),
                  "+proj=geos +lon_0=%.16g +h=%.16g +x_0=%.16g +y_0=%.16g ",
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_SATELLITE_HEIGHT,35785831.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
@@ -1423,8 +1316,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                  GetNormProjParm(SRS_PP_STANDARD_PARALLEL_1,0.0),
                  GetNormProjParm(SRS_PP_STANDARD_PARALLEL_2,0.0),
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1436,8 +1328,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                  " +k_0=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_SCALE_FACTOR,1.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
@@ -1457,8 +1348,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                      "+proj=somerc +lat_0=%.16g +lon_0=%.16g"
                      " +x_0=%.16g +y_0=%.16g ",
                      GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                     GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                     - dfFromGreenwich,
+                     GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                      GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                      GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
         }
@@ -1468,8 +1358,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                      "+proj=omerc +lat_0=%.16g +lonc=%.16g +alpha=%.16g"
                      " +k=%.16g +x_0=%.16g +y_0=%.16g ",
                      GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                     GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                     - dfFromGreenwich,
+                     GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                      GetNormProjParm(SRS_PP_AZIMUTH,0.0),
                      GetNormProjParm(SRS_PP_SCALE_FACTOR,1.0),
                      GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
@@ -1486,11 +1375,9 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                  " +k=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
                  GetNormProjParm(SRS_PP_LATITUDE_OF_POINT_1,0.0),
-                 GetNormProjParm(SRS_PP_LONGITUDE_OF_POINT_1,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_LONGITUDE_OF_POINT_1,0.0),
                  GetNormProjParm(SRS_PP_LATITUDE_OF_POINT_2,0.0),
-                 GetNormProjParm(SRS_PP_LONGITUDE_OF_POINT_2,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_LONGITUDE_OF_POINT_2,0.0),
                  GetNormProjParm(SRS_PP_SCALE_FACTOR,1.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
@@ -1502,10 +1389,23 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                  "+proj=krovak +lat_0=%.16g +lon_0=%.16g +alpha=%.16g"
                  " +k=%.16g +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_CENTER,0.0),
-                 GetNormProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0),
                  GetNormProjParm(SRS_PP_AZIMUTH,0.0),
                  GetNormProjParm(SRS_PP_SCALE_FACTOR,1.0),
+                 GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
+                 GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_TWO_POINT_EQUIDISTANT) )
+    {
+        sprintf( szProj4+strlen(szProj4),
+                 "+proj=tpeqd +lat_1=%.16g +lon_1=%.16g "
+                 "+lat_2=%.16g +lon_2=%.16g "
+                 "+x_0=%.16g +y_0=%.16g ",
+                 GetNormProjParm(SRS_PP_LATITUDE_OF_1ST_POINT,0.0),
+                 GetNormProjParm(SRS_PP_LONGITUDE_OF_1ST_POINT,0.0),
+                 GetNormProjParm(SRS_PP_LATITUDE_OF_2ND_POINT,0.0),
+                 GetNormProjParm(SRS_PP_LONGITUDE_OF_2ND_POINT,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }
@@ -1517,8 +1417,7 @@ OGRErr OGRSpatialReference::exportToProj4( char ** ppszProj4 ) const
                  "+proj=somerc +lat_0=%.16g +lon_0=%.16g"
                  " +x_0=%.16g +y_0=%.16g ",
                  GetNormProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0),
-                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0)
-                 - dfFromGreenwich,
+                 GetNormProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0),
                  GetNormProjParm(SRS_PP_FALSE_EASTING,0.0),
                  GetNormProjParm(SRS_PP_FALSE_NORTHING,0.0) );
     }

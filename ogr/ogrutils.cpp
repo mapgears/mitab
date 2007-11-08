@@ -1,10 +1,10 @@
 /******************************************************************************
- * $Id: ogrutils.cpp,v 1.11 2003/01/06 17:57:18 warmerda Exp $
+ * $Id: ogrutils.cpp 11034 2007-03-21 04:38:04Z mloskot $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Utility functions for OGR classes, including some related to
  *           parsing well known text format vectors.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
@@ -26,49 +26,53 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrutils.cpp,v $
- * Revision 1.11  2003/01/06 17:57:18  warmerda
- * Added some extra validation in OGRMakeWktCoordinate()
- *
- * Revision 1.10  2002/12/09 18:55:07  warmerda
- * moved DMS stuff to gdal/port
- *
- * Revision 1.9  2002/12/09 16:10:39  warmerda
- * added DMS translation
- *
- * Revision 1.8  2002/08/07 02:46:10  warmerda
- * improved comments
- *
- * Revision 1.7  2001/11/01 17:01:28  warmerda
- * pass output buffer into OGRMakeWktCoordinate
- *
- * Revision 1.6  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.5  2001/05/29 02:24:00  warmerda
- * fixed negative support for Z coordinate
- *
- * Revision 1.4  2001/05/24 18:05:36  warmerda
- * fixed support for negative coordinte parsing
- *
- * Revision 1.3  1999/11/18 19:02:19  warmerda
- * expanded tabs
- *
- * Revision 1.2  1999/09/13 02:27:33  warmerda
- * incorporated limited 2.5d support
- *
- * Revision 1.1  1999/05/20 14:35:00  warmerda
- * New
- *
- */
+ ****************************************************************************/
+
+#include <ctype.h>
 
 #include "ogr_geometry.h"
 #include "ogr_p.h"
-#include <ctype.h>
 
-CPL_CVSID("$Id: ogrutils.cpp,v 1.11 2003/01/06 17:57:18 warmerda Exp $");
+#ifdef OGR_ENABLED
+# include "ogrsf_frmts.h"
+#endif /* OGR_ENABLED */
+
+CPL_CVSID("$Id: ogrutils.cpp 11034 2007-03-21 04:38:04Z mloskot $");
+
+/************************************************************************/
+/*                         OGRTrimExtraZeros()                          */
+/************************************************************************/
+
+static void OGRTrimExtraZeros( char *pszTarget )
+
+{
+    int i = 0;
+
+    while( pszTarget[i] != '\0' ) 
+        i++;
+
+/* -------------------------------------------------------------------- */
+/*      Trim trailing 000001's as they are likely roundoff error.       */
+/* -------------------------------------------------------------------- */
+    if( i > 10
+        && pszTarget[i-1] == '1' 
+        && pszTarget[i-2] == '0' 
+        && pszTarget[i-3] == '0' 
+        && pszTarget[i-4] == '0' 
+        && pszTarget[i-5] == '0' 
+        && pszTarget[i-6] == '0' )
+    {
+        pszTarget[--i] = '\0';
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Trim trailing zeros.                                            */
+/* -------------------------------------------------------------------- */
+    while( i > 2 && pszTarget[i-1] == '0' && pszTarget[i-2] != '.' )
+    {
+        pszTarget[--i] = '\0';
+    }
+}
 
 /************************************************************************/
 /*                        OGRMakeWktCoordinate()                        */
@@ -81,36 +85,56 @@ CPL_CVSID("$Id: ogrutils.cpp,v 1.11 2003/01/06 17:57:18 warmerda Exp $");
 /*      characters barring the X or Y value being extremely large.      */
 /************************************************************************/
 
-void OGRMakeWktCoordinate( char *pszTarget, double x, double y, double z )
+void OGRMakeWktCoordinate( char *pszTarget, double x, double y, double z, 
+                           int nDimension )
 
 {
-    if( z == 0 )
+    char  szX[40], szY[40], szZ[40];
+
+    szZ[0] = '\0';
+
+    if( x == (int) x && y == (int) y && z == (int) z )
     {
-        if( x == (int) x && y == (int) y )
-            sprintf( pszTarget, "%d %d", (int) x, (int) y );
-        else if( fabs(x) < 370 && fabs(y) < 370 )
-            sprintf( pszTarget, "%.8f %.8f", x, y );
-        else
-            sprintf( pszTarget, "%.3f %.3f", x, y );
+        sprintf( szX, "%d", (int) x );
+        sprintf( szY, " %d", (int) y );
     }
     else
     {
-        if( x == (int) x && y == (int) y && z == (int) z )
-            sprintf( pszTarget, "%d %d %d", (int) x, (int) y, (int) z );
-        else if( fabs(x) < 370 && fabs(y) < 370 )
-            sprintf( pszTarget, "%.8f %.8f %.3f", x, y, z );
-        else
-            sprintf( pszTarget, "%.3f %.3f %.3f", x, y, z );
+        sprintf( szX, "%.15f", x );
+        OGRTrimExtraZeros( szX );
+        sprintf( szY, " %.15f", y );
+        OGRTrimExtraZeros( szY );
     }
 
-#ifdef DEBUG
-    if( strlen(pszTarget) > 48 )
+    if( nDimension == 3 )
     {
-        CPLDebug( "OGR", 
-                  "Yow!  Got this big result in OGRMakeWktCoordinate()\n%s", 
-                  pszTarget );
+        if( z == (int) z )
+            sprintf( szZ, " %d", (int) z );
+        else
+        {
+            sprintf( szZ, " %.15f", z );
+            OGRTrimExtraZeros( szZ );
+        }
     }
+            
+    if( strlen(szX) + strlen(szY) + strlen(szZ) > 75 )
+    {
+        strcpy( szX, "0" );
+        strcpy( szY, "0" );
+        if( nDimension == 3 )
+            strcpy( szZ, "0" );
+
+#ifdef DEBUG
+        CPLDebug( "OGR", 
+                  "Yow!  Got this big result in OGRMakeWktCoordinate()\n"
+                  "%s %s %s", 
+                  szX, szY, szZ );
 #endif
+    }
+
+    strcpy( pszTarget, szX );
+    strcat( pszTarget, szY );
+    strcat( pszTarget, szZ );
 }
 
 /************************************************************************/
@@ -187,6 +211,7 @@ const char * OGRWktReadPoints( const char * pszInput,
                                int * pnPointsRead )
 
 {
+    const char *pszOrigInput = pszInput;
     *pnPointsRead = 0;
 
     if( pszInput == NULL )
@@ -229,8 +254,8 @@ const char * OGRWktReadPoints( const char * pszInput,
         pszInput = OGRWktReadToken( pszInput, szTokenX );
         pszInput = OGRWktReadToken( pszInput, szTokenY );
 
-        if( (!isdigit(szTokenX[0]) && szTokenX[0] != '-')
-            || (!isdigit(szTokenY[0]) && szTokenY[0] != '-') )
+        if( (!isdigit(szTokenX[0]) && szTokenX[0] != '-' && szTokenX[0] != '.' )
+            || (!isdigit(szTokenY[0]) && szTokenY[0] != '-' && szTokenY[0] != '.') )
             return NULL;
 
 /* -------------------------------------------------------------------- */
@@ -260,7 +285,7 @@ const char * OGRWktReadPoints( const char * pszInput,
 /* -------------------------------------------------------------------- */
         pszInput = OGRWktReadToken( pszInput, szDelim );
 
-        if( isdigit(szDelim[0]) || szDelim[0] == '-' )
+        if( isdigit(szDelim[0]) || szDelim[0] == '-' || szDelim[0] == '.' )
         {
             if( *ppadfZ == NULL )
             {
@@ -275,6 +300,15 @@ const char * OGRWktReadPoints( const char * pszInput,
         (*pnPointsRead)++;
 
 /* -------------------------------------------------------------------- */
+/*      Do we have a M coordinate?                                      */
+/*      If we do, just skip it.                                         */
+/* -------------------------------------------------------------------- */
+        if( isdigit(szDelim[0]) || szDelim[0] == '-' || szDelim[0] == '.' )
+        {
+            pszInput = OGRWktReadToken( pszInput, szDelim );
+        }
+        
+/* -------------------------------------------------------------------- */
 /*      Read next delimeter ... it should be a comma if there are       */
 /*      more points.                                                    */
 /* -------------------------------------------------------------------- */
@@ -282,8 +316,8 @@ const char * OGRWktReadPoints( const char * pszInput,
         {
             CPLDebug( "OGR",
                       "Corrupt input in OGRWktReadPoints()\n"
-                      "Got `%s' when expecting `,' or `)'.\n",
-                      szDelim );
+                      "Got `%s' when expecting `,' or `)', near `%s' in %s.\n",
+                      szDelim, pszInput, pszOrigInput );
             return NULL;
         }
         
@@ -338,4 +372,430 @@ void OGRFree( void * pMemory )
 
 {
     CPLFree( pMemory );
+}
+
+/**
+ * General utility option processing.
+ *
+ * This function is intended to provide a variety of generic commandline 
+ * options for all OGR commandline utilities.  It takes care of the following
+ * commandline options:
+ *  
+ *  --formats: report all format drivers configured.
+ *  --format [format]: report details of one format driver. 
+ *  --optfile filename: expand an option file into the argument list. 
+ *  --config key value: set system configuration option. 
+ *  --debug [on/off/value]: set debug level.
+ *  --help-general: report detailed help on general options. 
+ *
+ * The argument array is replaced "in place" and should be freed with 
+ * CSLDestroy() when no longer needed.  The typical usage looks something
+ * like the following.  Note that the formats should be registered so that
+ * the --formats and --format options will work properly.
+ *
+ *  int main( int argc, char ** argv )
+ *  { 
+ *    OGRAllRegister();
+ *
+ *    argc = OGRGeneralCmdLineProcessor( argc, &argv, 0 );
+ *    if( argc < 1 )
+ *        exit( -argc );
+ *
+ * @param nArgc number of values in the argument list.
+ * @param Pointer to the argument list array (will be updated in place). 
+ *
+ * @return updated nArgc argument count.  Return of 0 requests terminate 
+ * without error, return of -1 requests exit with error code.
+ */
+
+int OGRGeneralCmdLineProcessor( int nArgc, char ***ppapszArgv, int nOptions )
+
+{
+    char **papszReturn = NULL;
+    int  iArg;
+    char **papszArgv = *ppapszArgv;
+
+    (void) nOptions;
+    
+/* -------------------------------------------------------------------- */
+/*      Preserve the program name.                                      */
+/* -------------------------------------------------------------------- */
+    papszReturn = CSLAddString( papszReturn, papszArgv[0] );
+
+/* ==================================================================== */
+/*      Loop over all arguments.                                        */
+/* ==================================================================== */
+    for( iArg = 1; iArg < nArgc; iArg++ )
+    {
+
+/* -------------------------------------------------------------------- */
+/*      --config                                                        */
+/* -------------------------------------------------------------------- */
+        if( EQUAL(papszArgv[iArg],"--config") )
+        {
+            if( iArg + 2 >= nArgc )
+            {
+                CPLError( CE_Failure, CPLE_AppDefined, 
+                          "--config option given without a key and value argument." );
+                CSLDestroy( papszReturn );
+                return -1;
+            }
+
+            CPLSetConfigOption( papszArgv[iArg+1], papszArgv[iArg+2] );
+
+            iArg += 2;
+        }
+
+/* -------------------------------------------------------------------- */
+/*      --mempreload                                                    */
+/* -------------------------------------------------------------------- */
+        else if( EQUAL(papszArgv[iArg],"--mempreload") )
+        {
+            int i;
+
+            if( iArg + 1 >= nArgc )
+            {
+                CPLError( CE_Failure, CPLE_AppDefined, 
+                          "--mempreload option given without directory path.");
+                CSLDestroy( papszReturn );
+                return -1;
+            }
+            
+            char **papszFiles = CPLReadDir( papszArgv[iArg+1] );
+            if( CSLCount(papszFiles) == 0 )
+            {
+                CPLError( CE_Failure, CPLE_AppDefined, 
+                          "--mempreload given invalid or empty directory.");
+                CSLDestroy( papszReturn );
+                return -1;
+            }
+                
+            for( i = 0; papszFiles[i] != NULL; i++ )
+            {
+                CPLString osOldPath, osNewPath;
+                
+                if( EQUAL(papszFiles[i],".") || EQUAL(papszFiles[i],"..") )
+                    continue;
+
+                osOldPath = CPLFormFilename( papszArgv[iArg+1], 
+                                             papszFiles[i], NULL );
+                osNewPath.Printf( "/vsimem/%s", papszFiles[i] );
+
+                CPLDebug( "VSI", "Preloading %s to %s.", 
+                          osOldPath.c_str(), osNewPath.c_str() );
+
+                if( CPLCopyFile( osNewPath, osOldPath ) != 0 )
+                    return -1;
+            }
+            
+            CSLDestroy( papszFiles );
+            iArg += 1;
+        }
+
+/* -------------------------------------------------------------------- */
+/*      --debug                                                         */
+/* -------------------------------------------------------------------- */
+        else if( EQUAL(papszArgv[iArg],"--debug") )
+        {
+            if( iArg + 1 >= nArgc )
+            {
+                CPLError( CE_Failure, CPLE_AppDefined, 
+                          "--debug option given without debug level." );
+                CSLDestroy( papszReturn );
+                return -1;
+            }
+
+            CPLSetConfigOption( "CPL_DEBUG", papszArgv[iArg+1] );
+            iArg += 1;
+        }
+
+/* -------------------------------------------------------------------- */
+/*      --optfile                                                       */
+/*                                                                      */
+/*      Annoyingly the options inserted by --optfile will *not* be      */
+/*      processed properly if they are general options.                 */
+/* -------------------------------------------------------------------- */
+        else if( EQUAL(papszArgv[iArg],"--optfile") )
+        {
+            const char *pszLine;
+            FILE *fpOptFile;
+
+            if( iArg + 1 >= nArgc )
+            {
+                CPLError( CE_Failure, CPLE_AppDefined, 
+                          "--optfile option given without filename." );
+                CSLDestroy( papszReturn );
+                return -1;
+            }
+
+            fpOptFile = VSIFOpen( papszArgv[iArg+1], "rb" );
+
+            if( fpOptFile == NULL )
+            {
+                CPLError( CE_Failure, CPLE_AppDefined, 
+                          "Unable to open optfile '%s'.\n%s",
+                          papszArgv[iArg+1], VSIStrerror( errno ) );
+                CSLDestroy( papszReturn );
+                return -1;
+            }
+            
+            while( (pszLine = CPLReadLine( fpOptFile )) != NULL )
+            {
+                char **papszTokens;
+                int i;
+
+                if( pszLine[0] == '#' || strlen(pszLine) == 0 )
+                    continue;
+
+                papszTokens = CSLTokenizeString( pszLine );
+                for( i = 0; papszTokens != NULL && papszTokens[i] != NULL; i++)
+                    papszReturn = CSLAddString( papszReturn, papszTokens[i] );
+                CSLDestroy( papszTokens );
+            }
+
+            VSIFClose( fpOptFile );
+                
+            iArg += 1;
+        }
+
+/* -------------------------------------------------------------------- */
+/*      --formats                                                       */
+/* -------------------------------------------------------------------- */
+#ifdef OGR_ENABLED
+        else if( EQUAL(papszArgv[iArg], "--formats") )
+        {
+            int iDr;
+
+            printf( "Supported Formats:\n" );
+
+            OGRSFDriverRegistrar *poR = OGRSFDriverRegistrar::GetRegistrar();
+        
+            for( iDr = 0; iDr < poR->GetDriverCount(); iDr++ )
+            {
+                OGRSFDriver *poDriver = poR->GetDriver(iDr);
+
+                if( poDriver->TestCapability( ODrCCreateDataSource ) )
+                    printf( "  -> \"%s\" (read/write)\n", 
+                            poDriver->GetName() );
+                else
+                    printf( "  -> \"%s\" (readonly)\n", 
+                            poDriver->GetName() );
+            }
+
+            CSLDestroy( papszReturn );
+            return 0;
+        }
+#endif /* OGR_ENABLED */
+
+/* -------------------------------------------------------------------- */
+/*      --help-general                                                  */
+/* -------------------------------------------------------------------- */
+        else if( EQUAL(papszArgv[iArg],"--help-general") )
+        {
+            printf( "Generic GDAL utility command options:\n" );
+#ifdef OGR_ENABLED
+            printf( "  --formats: report all configured format drivers.\n" );
+#endif /* OGR_ENABLED */
+            printf( "  --optfile filename: expand an option file into the argument list.\n" );
+            printf( "  --config key value: set system configuration option.\n" );
+            printf( "  --debug [on/off/value]: set debug level.\n" );
+            printf( "  --help-general: report detailed help on general options.\n" );
+            CSLDestroy( papszReturn );
+            return 0;
+        }
+
+/* -------------------------------------------------------------------- */
+/*      carry through unrecognised options.                             */
+/* -------------------------------------------------------------------- */
+        else
+        {
+            papszReturn = CSLAddString( papszReturn, papszArgv[iArg] );
+        }
+    }
+
+    *ppapszArgv = papszReturn;
+
+    return CSLCount( *ppapszArgv );
+}
+
+/************************************************************************/
+/*                            OGRParseDate()                            */
+/*                                                                      */
+/*      Parse a variety of text date formats into an OGRField.          */
+/************************************************************************/
+
+/**
+ * Parse date string.
+ *
+ * This function attempts to parse a date string in a variety of formats
+ * into the OGRField.Date format suitable for use with OGR.  Generally 
+ * speaking this function is expecting values like:
+ * 
+ *   YYYY-MM-DD HH:MM:SS+nn
+ *
+ * The seconds may also have a decimal portion (which is ignored).  And
+ * just dates (YYYY-MM-DD) or just times (HH:MM:SS) are also supported. 
+ * The date may also be in YYYY/MM/DD format.  If the year is less than 100
+ * and greater than 30 a "1900" century value will be set.  If it is less than
+ * 30 and greater than -1 then a "2000" century value will be set.  In 
+ * the future this function may be generalized, and additional control 
+ * provided through nOptions, but an nOptions value of "0" should always do
+ * a reasonable default form of processing.
+ *
+ * The value of psField will be indeterminate if the function fails (returns
+ * FALSE).  
+ *
+ * @param pszInput the input date string.
+ * @param psField the OGRField that will be updated with the parsed result.
+ * @param nOptions parsing options, for now always 0. 
+ *
+ * @return TRUE if apparently successful or FALSE on failure.
+ */
+
+int OGRParseDate( const char *pszInput, OGRField *psField, int nOptions )
+
+{
+    int bGotSomething = FALSE;
+
+    psField->Date.Year = 0;
+    psField->Date.Month = 0;
+    psField->Date.Day = 0;
+    psField->Date.Hour = 0;
+    psField->Date.Minute = 0;
+    psField->Date.Second = 0;
+    psField->Date.TZFlag = 0;
+    
+/* -------------------------------------------------------------------- */
+/*      Do we have a date?                                              */
+/* -------------------------------------------------------------------- */
+    while( *pszInput == ' ' )
+        pszInput++;
+    
+    if( strstr(pszInput,"-") != NULL || strstr(pszInput,"/") != NULL )
+    {
+        psField->Date.Year = atoi(pszInput);
+        if( psField->Date.Year < 100 && psField->Date.Year >= 30 )
+            psField->Date.Year += 1900;
+        else if( psField->Date.Year < 30 && psField->Date.Year >= 0 )
+            psField->Date.Year += 2000;
+
+        while( *pszInput >= '0' && *pszInput <= '9' ) 
+            pszInput++;
+        if( *pszInput != '-' && *pszInput != '/' )
+            return FALSE;
+        else 
+            pszInput++;
+
+        psField->Date.Month = atoi(pszInput);
+        if( psField->Date.Month > 12 )
+            return FALSE;
+
+        while( *pszInput >= '0' && *pszInput <= '9' ) 
+            pszInput++;
+        if( *pszInput != '-' && *pszInput != '/' )
+            return FALSE;
+        else 
+            pszInput++;
+
+        psField->Date.Day = atoi(pszInput);
+        if( psField->Date.Day > 31 )
+            return FALSE;
+
+        while( *pszInput >= '0' && *pszInput <= '9' )
+            pszInput++;
+
+        bGotSomething = TRUE;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Do we have a time?                                              */
+/* -------------------------------------------------------------------- */
+    while( *pszInput == ' ' )
+        pszInput++;
+    
+    if( strstr(pszInput,":") != NULL )
+    {
+        psField->Date.Hour = atoi(pszInput);
+        if( psField->Date.Hour > 23 )
+            return FALSE;
+
+        while( *pszInput >= '0' && *pszInput <= '9' ) 
+            pszInput++;
+        if( *pszInput != ':' )
+            return FALSE;
+        else 
+            pszInput++;
+
+        psField->Date.Minute = atoi(pszInput);
+        if( psField->Date.Minute > 59 )
+            return FALSE;
+
+        while( *pszInput >= '0' && *pszInput <= '9' ) 
+            pszInput++;
+        if( *pszInput != ':' )
+            return FALSE;
+        else 
+            pszInput++;
+
+        psField->Date.Second = atoi(pszInput);
+        if( psField->Date.Second > 59 )
+            return FALSE;
+
+        while( *pszInput >= '0' && *pszInput <= '9' 
+               || *pszInput == '.' )
+            pszInput++;
+
+        bGotSomething = TRUE;
+    }
+
+    // No date or time!
+    if( !bGotSomething )
+        return FALSE;
+
+/* -------------------------------------------------------------------- */
+/*      Do we have a timezone?                                          */
+/* -------------------------------------------------------------------- */
+    while( *pszInput == ' ' )
+        pszInput++;
+    
+    if( *pszInput == '-' || *pszInput == '+' )
+    {
+        // +HH integral offset
+        if( strlen(pszInput) <= 3 )
+            psField->Date.TZFlag = 100 + atoi(pszInput) * 4;
+
+        else if( pszInput[3] == ':'  // +HH:MM offset
+                 && atoi(pszInput+4) % 15 == 0 )
+        {
+            psField->Date.TZFlag = 100 
+                + atoi(pszInput+1) * 4
+                + (atoi(pszInput+4) / 15);
+
+            if( pszInput[0] == '-' )
+                psField->Date.TZFlag = -1 * (psField->Date.TZFlag - 100) + 100;
+        }
+        else if( isdigit(pszInput[3]) && isdigit(pszInput[4])  // +HHMM offset
+                 && atoi(pszInput+3) % 15 == 0 )
+        {
+            psField->Date.TZFlag = 100 
+                + static_cast<GByte>(CPLScanLong(pszInput+1,2)) * 4
+                + (atoi(pszInput+3) / 15);
+
+            if( pszInput[0] == '-' )
+                psField->Date.TZFlag = -1 * (psField->Date.TZFlag - 100) + 100;
+        }
+        else if( isdigit(pszInput[3]) && pszInput[4] == '\0'  // +HMM offset
+                 && atoi(pszInput+2) % 15 == 0 )
+        {
+            psField->Date.TZFlag = 100 
+                + static_cast<GByte>(CPLScanLong(pszInput+1,1)) * 4
+                + (atoi(pszInput+2) / 15);
+
+            if( pszInput[0] == '-' )
+                psField->Date.TZFlag = -1 * (psField->Date.TZFlag - 100) + 100;
+        }
+        // otherwise ignore any timezone info.
+    }
+
+    return TRUE;
 }

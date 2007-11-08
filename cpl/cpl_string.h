@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_string.h,v 1.18 2005/04/04 15:23:31 fwarmerdam Exp $
+ * $Id: cpl_string.h 11196 2007-04-03 23:18:17Z mloskot $
  *
  * Name:     cpl_string.h
  * Project:  CPL - Common Portability Library
@@ -26,64 +26,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
  * DEALINGS IN THE SOFTWARE.
- **********************************************************************
- *
- * $Log: cpl_string.h,v $
- * Revision 1.18  2005/04/04 15:23:31  fwarmerdam
- * some functions now CPL_STDCALL
- *
- * Revision 1.17  2004/08/16 20:23:46  warmerda
- * added .csv escaping
- *
- * Revision 1.16  2004/07/12 21:50:38  warmerda
- * Added SQL escaping style
- *
- * Revision 1.15  2003/07/17 10:15:40  dron
- * CSLTestBoolean() added.
- *
- * Revision 1.14  2003/03/11 21:33:03  warmerda
- * added URL encode/decode support, untested
- *
- * Revision 1.13  2003/01/30 19:15:55  warmerda
- * added some docs
- *
- * Revision 1.12  2002/07/12 22:37:05  warmerda
- * added CSLFetchBoolean
- *
- * Revision 1.11  2002/05/28 18:53:43  warmerda
- * added XML escaping support
- *
- * Revision 1.10  2002/04/26 14:55:26  warmerda
- * Added CPLEscapeString() and CPLUnescapeString() (unescape untested)
- *
- * Revision 1.9  2002/03/05 14:26:57  warmerda
- * expanded tabs
- *
- * Revision 1.8  2002/01/16 03:59:28  warmerda
- * added CPLTokenizeString2
- *
- * Revision 1.7  2000/10/06 15:19:03  warmerda
- * added CPLSetNameValueSeparator
- *
- * Revision 1.6  2000/04/26 18:25:10  warmerda
- * implement CPL_DLL
- *
- * Revision 1.5  2000/03/30 05:38:48  warmerda
- * added CPLParseNameValue
- *
- * Revision 1.4  1999/06/26 14:05:19  warmerda
- * Added CSLFindString().
- *
- * Revision 1.3  1999/02/17 01:41:58  warmerda
- * Added CSLGetField
- *
- * Revision 1.2  1998/12/04 21:40:42  danmo
- * Added more Name=Value manipulation fuctions
- *
- * Revision 1.1  1998/12/03 18:26:02  warmerda
- * New
- *
- **********************************************************************/
+ ****************************************************************************/
 
 #ifndef _CPL_STRING_H_INCLUDED
 #define _CPL_STRING_H_INCLUDED
@@ -117,6 +60,7 @@ int CPL_DLL CSLCount(char **papszStrList);
 const char CPL_DLL *CSLGetField( char **, int );
 void CPL_DLL CPL_STDCALL CSLDestroy(char **papszStrList);
 char CPL_DLL **CSLDuplicate(char **papszStrList);
+char CPL_DLL **CSLMerge( char **papszOrig, char **papszOverride );
 
 char CPL_DLL **CSLTokenizeString(const char *pszString );
 char CPL_DLL **CSLTokenizeStringComplex(const char *pszString,
@@ -138,7 +82,7 @@ int CPL_DLL CSLSave(char **papszStrList, const char *pszFname);
 char CPL_DLL **CSLInsertStrings(char **papszStrList, int nInsertAtLineNo, 
                          char **papszNewLines);
 char CPL_DLL **CSLInsertString(char **papszStrList, int nInsertAtLineNo, 
-                        char *pszNewLine);
+                               const char *pszNewLine);
 char CPL_DLL **CSLRemoveStrings(char **papszStrList, int nFirstLineToDelete,
                          int nNumToRemove, char ***ppapszRetStrings);
 int CPL_DLL CSLFindString( char **, const char * );
@@ -146,7 +90,7 @@ int CPL_DLL CSLTestBoolean( const char *pszValue );
 int CPL_DLL CSLFetchBoolean( char **papszStrList, const char *pszKey, 
                              int bDefault );
 
-const char CPL_DLL *CPLSPrintf(char *fmt, ...);
+const char CPL_DLL *CPLSPrintf(const char *fmt, ...);
 char CPL_DLL **CSLAppendPrintf(char **papszStrList, char *fmt, ...);
 
 const char CPL_DLL *
@@ -175,6 +119,68 @@ char CPL_DLL *CPLEscapeString( const char *pszString, int nLength,
 char CPL_DLL *CPLUnescapeString( const char *pszString, int *pnLength,
                                  int nScheme );
 
+char CPL_DLL *CPLBinaryToHex( int nBytes, const GByte *pabyData );
+GByte CPL_DLL *CPLHexToBinary( const char *pszHex, int *pnBytes );
+
 CPL_C_END
+
+/************************************************************************/
+/*                              CPLString                               */
+/************************************************************************/
+
+#ifdef __cplusplus
+
+#include <string>
+
+/*
+ * Simple trick to avoid "using" declaration in header for new compilers
+ * but make it still working with old compilers which throw C2614 errors.
+ *
+ * Define MSVC_OLD_STUPID_BEHAVIOUR
+ * for old compilers: VC++ 5 and 6 as well as eVC++ 3 and 4.
+ */
+
+/*
+ * Detect old MSVC++ compiler <= 6.0
+ * 1200 - VC++ 6.0
+ * 1200-1202 - eVC++ 4.0
+ */
+#if (_MSC_VER <= 1202)
+#  define MSVC_OLD_STUPID_BEHAVIOUR
+#endif
+ 
+
+/* Avoid C2614 errors */
+#ifdef MSVC_OLD_STUPID_BEHAVIOUR
+    using std::string;
+# define std_string string
+#else
+# define std_string std::string
+#endif 
+
+/* Remove annoying warnings in Microsoft eVC++ and Microsoft Visual C++ */
+#if defined(WIN32CE)
+#  pragma warning(disable:4251 4275 4786)
+#endif
+
+
+
+
+class CPL_DLL CPLString : public std_string
+{
+public:
+    
+    CPLString(void) {}
+    CPLString( const std::string &oStr ) : std_string( oStr ) {}
+    CPLString( const char *pszStr ) : std_string( pszStr ) {}
+    
+    operator const char* (void) const { return c_str(); }
+
+    CPLString &Printf( const char *pszFormat, ... );
+    CPLString &vPrintf( const char *pszFormat, va_list args );
+    CPLString &Trim();
+};
+
+#endif /* def __cplusplus */
 
 #endif /* _CPL_STRING_H_INCLUDED */

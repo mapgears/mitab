@@ -1,12 +1,14 @@
 /******************************************************************************
- * $Id: ogr_geos.h,v 1.1 2004/07/10 04:52:58 warmerda Exp $
+ * $Id: ogr_geos.h 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Definitions related to support for use of GEOS in OGR.
+ *           This file is only intended to be pulled in by OGR implementation
+ *           code directly accessing GEOS.
  * Author:   Frank Warmerdam <warmerdam@pobox.com>
  *
  ******************************************************************************
- * Copyright (c) 2004, , Frank Warmerdam <warmerdam@pobox.com>
+ * Copyright (c) 2004, Frank Warmerdam <warmerdam@pobox.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -25,23 +27,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_geos.h,v $
- * Revision 1.1  2004/07/10 04:52:58  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
-#ifndef _OGR_GEOS_H_INCLUDED
-#define _OGR_GEOS_H_INCLUDED
+#ifndef OGR_GEOS_H_INCLUDED
+#define OGR_GEOS_H_INCLUDED
 
 #ifdef HAVE_GEOS 
-
-#  include "geos/geom.h"
-#  include "geos/io.h"
-#  include "geos/util.h"
-
+#  include <geos_c.h>
 #else
 
 namespace geos { 
@@ -50,4 +42,4 @@ namespace geos {
 
 #endif
 
-#endif /* ndef _OGR_GEOS_H_INCLUDED */
+#endif /* ndef OGR_GEOS_H_INCLUDED */

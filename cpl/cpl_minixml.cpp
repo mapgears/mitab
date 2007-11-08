@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_minixml.cpp,v 1.34 2005/03/09 17:07:25 fwarmerdam Exp $
+ * $Id: cpl_minixml.cpp 11363 2007-04-26 19:09:35Z warmerdam $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Implementation of MiniXML Parser and handling.
@@ -36,121 +36,15 @@
  *   to parse, and serialize arbitrary documents provided by a potentially 
  *   hostile source.
  *
- * $Log: cpl_minixml.cpp,v $
- * Revision 1.34  2005/03/09 17:07:25  fwarmerdam
- * added CPLSearchXMLNode
- *
- * Revision 1.33  2005/01/17 17:01:56  fwarmerdam
- * ensure that namespace stripping apply to attributes
- *
- * Revision 1.32  2004/10/21 18:59:00  fwarmerdam
- * Ensure that an empty path in CPLGetXMLValue() means the current node.
- *
- * Revision 1.31  2004/08/11 18:42:00  warmerda
- * fix quirks with CPLSetXMLValue()
- *
- * Revision 1.30  2004/03/31 17:11:41  warmerda
- * fixed return value of CPLCreateXMLElementAndValue()
- *
- * Revision 1.29  2004/01/29 17:01:51  warmerda
- * Added reference to spec.
- *
- * Revision 1.28  2004/01/29 15:29:28  warmerda
- * Added CPLCleanXMLElementName
- *
- * Revision 1.27  2003/12/04 15:46:51  warmerda
- * Added CPLAddXMLSibling()
- *
- * Revision 1.26  2003/12/04 15:19:43  warmerda
- * Added "=" support for "sidesearching" in a document.
- *
- * Revision 1.25  2003/11/07 19:40:19  warmerda
- * ensure CPLGetXMLValue() works for nodes with attributes
- *
- * Revision 1.24  2003/11/05 20:14:21  warmerda
- * added lots of documentation
- *
- * Revision 1.23  2003/05/21 03:32:43  warmerda
- * expand tabs
- *
- * Revision 1.22  2003/04/05 07:12:25  dron
- * Completed security audit.
- *
- * Revision 1.21  2003/03/28 17:38:39  warmerda
- * Added NULL check in CPLParseXMLString().
- *
- * Revision 1.20  2003/03/28 05:05:18  warmerda
- * Completed security audit. Several bugs related to possible buffer
- * overruns correct, notably with regard to CPLError() calls.
- *
- * Revision 1.19  2003/03/27 18:12:41  warmerda
- * Added NULL pszNameSpace support in namespace stripper (all namespaces).
- * Added XML file read/write functions.
- *
- * Revision 1.18  2003/03/24 16:47:30  warmerda
- * Added CPLStripXMLNamespace().
- * CPLAddXMLChild() will now ensure that attributes are inserted before
- * non-attributes nodes.
- *
- * Revision 1.17  2003/02/14 18:44:29  warmerda
- * proper tokens may include a dash
- *
- * Revision 1.16  2002/11/16 20:42:40  warmerda
- * improved inline comments
- *
- * Revision 1.15  2002/11/16 20:38:34  warmerda
- * added support for literals like DOCTYPE
- *
- * Revision 1.14  2002/07/16 15:06:26  warmerda
- * ensure that attributes are serialized properly regardless of their order
- *
- * Revision 1.13  2002/07/09 20:25:25  warmerda
- * expand tabs
- *
- * Revision 1.12  2002/05/28 18:54:05  warmerda
- * added escaping/unescaping support
- *
- * Revision 1.11  2002/05/24 04:09:10  warmerda
- * added clone and SetXMLValue functions
- *
- * Revision 1.10  2002/04/01 16:08:21  warmerda
- * allow periods in tokens
- *
- * Revision 1.9  2002/03/07 22:19:20  warmerda
- * don't do operations within CPLAssert(), in UnreadChar()
- *
- * Revision 1.8  2002/03/05 14:26:57  warmerda
- * expanded tabs
- *
- * Revision 1.7  2002/01/23 20:45:05  warmerda
- * handle <?...?> and comment elements
- *
- * Revision 1.6  2002/01/22 18:54:48  warmerda
- * ensure text is property initialized when serializing
- *
- * Revision 1.5  2002/01/16 03:58:51  warmerda
- * support single quotes as well as double quotes
- *
- * Revision 1.4  2001/12/06 18:13:49  warmerda
- * added CPLAddXMLChild and CPLCreateElmentAndValue
- *
- * Revision 1.3  2001/11/16 21:20:16  warmerda
- * fixed typo
- *
- * Revision 1.2  2001/11/16 20:29:58  warmerda
- * fixed lost char in normal CString tokens
- *
- * Revision 1.1  2001/11/16 15:39:48  warmerda
- * New
  */
 
-#include <ctype.h>
 #include "cpl_minixml.h"
 #include "cpl_error.h"
 #include "cpl_conv.h"
 #include "cpl_string.h"
+#include <ctype.h>
 
-CPL_CVSID("$Id: cpl_minixml.cpp,v 1.34 2005/03/09 17:07:25 fwarmerdam Exp $");
+CPL_CVSID("$Id: cpl_minixml.cpp 11363 2007-04-26 19:09:35Z warmerdam $");
 
 typedef enum {
     TNone,
@@ -163,18 +57,17 @@ typedef enum {
     TQuestionClose,
     TComment,
     TLiteral
-} TokenType;
+} XMLTokenType;
 
 typedef struct {
     const char *pszInput;
     int        nInputOffset;
     int        nInputLine;
-
     int        bInElement;
-    TokenType  eTokenType;
+    XMLTokenType  eTokenType;
     char       *pszToken;
-    int        nTokenMaxSize;
-    int        nTokenSize;
+    size_t     nTokenMaxSize;
+    size_t     nTokenSize;
 
     int        nStackMaxSize;
     int        nStackSize;
@@ -182,6 +75,7 @@ typedef struct {
 
     CPLXMLNode *psFirstNode;
 } ParseContext;
+
 
 /************************************************************************/
 /*                              ReadChar()                              */
@@ -252,7 +146,7 @@ static void AddToToken( ParseContext *psContext, char chNewChar )
 /*                             ReadToken()                              */
 /************************************************************************/
 
-static TokenType ReadToken( ParseContext *psContext )
+static XMLTokenType ReadToken( ParseContext *psContext )
 
 {
     char        chNext;
@@ -287,7 +181,7 @@ static TokenType ReadToken( ParseContext *psContext )
         ReadChar(psContext);
     }
 /* -------------------------------------------------------------------- */
-/*      Handle DOCTYPE or other literals.                               */
+/*      Handle DOCTYPE.                                                 */
 /* -------------------------------------------------------------------- */
     else if( chNext == '<' 
           && EQUALN(psContext->pszInput+psContext->nInputOffset,"!DOCTYPE",8) )
@@ -307,6 +201,31 @@ static TokenType ReadToken( ParseContext *psContext )
                 
                 break;
             }
+            
+            /* Skip the internal DTD subset as NOT SUPPORTED YET (Ticket #755).
+             * The markup declaration block within a DOCTYPE tag consists of:
+             * - a left square bracket [
+             * - a list of declarations
+             * - a right square bracket ]
+             * Example:
+             * <!DOCTYPE RootElement [ ...declarations... ]>
+             *
+             * We need to skip all 3 parts, until closing > 
+             */
+            if( chNext == '[' )
+            {
+                do
+                {
+                    chNext = ReadChar( psContext );
+                }
+                while( chNext != ']'
+                    && !EQUALN(psContext->pszInput+psContext->nInputOffset,"]>", 2) );
+
+                // Skip "]" character to point to the closing ">"
+                chNext = ReadChar( psContext );
+                chNext = ReadChar( psContext );
+            }
+
 
             if( chNext == '\"' )
                 bInQuotes = !bInQuotes;
@@ -319,6 +238,33 @@ static TokenType ReadToken( ParseContext *psContext )
 
             AddToToken( psContext, chNext );
         } while( TRUE );
+    }
+/* -------------------------------------------------------------------- */
+/*      Handle CDATA.                                                   */
+/* -------------------------------------------------------------------- */
+    else if( chNext == '<' 
+          && EQUALN(psContext->pszInput+psContext->nInputOffset,"![CDATA[",8) )
+    {
+        psContext->eTokenType = TString;
+
+        // Skip !CDATA[
+        ReadChar( psContext );
+        ReadChar( psContext );
+        ReadChar( psContext );
+        ReadChar( psContext );
+        ReadChar( psContext );
+        ReadChar( psContext );
+        ReadChar( psContext );
+        ReadChar( psContext );
+
+        while( !EQUALN(psContext->pszInput+psContext->nInputOffset,"]]>",3)
+               && (chNext = ReadChar(psContext)) != '\0' )
+            AddToToken( psContext, chNext );
+
+        // Skip "]]>" characters
+        ReadChar(psContext);
+        ReadChar(psContext);
+        ReadChar(psContext);
     }
 /* -------------------------------------------------------------------- */
 /*      Simple single tokens of interest.                               */
@@ -542,7 +488,7 @@ static void AttachNode( ParseContext *psContext, CPLXMLNode *psNode )
 /************************************************************************/
 
 /**
- * Parse an XML string into tree form.
+ * \brief Parse an XML string into tree form.
  *
  * The passed document is parsed into a CPLXMLNode tree representation. 
  * If the document is not well formed XML then NULL is returned, and errors
@@ -815,7 +761,7 @@ CPLXMLNode *CPLParseXMLString( const char *pszString )
 /*                            _GrowBuffer()                             */
 /************************************************************************/
 
-static void _GrowBuffer( unsigned int nNeeded, 
+static void _GrowBuffer( size_t nNeeded, 
                          char **ppszText, unsigned int *pnMaxLength )
 
 {
@@ -989,7 +935,7 @@ CPLSerializeXMLNode( CPLXMLNode *psNode, int nIndent,
 /************************************************************************/
 
 /**
- * Convert tree into string document.
+ * \brief Convert tree into string document.
  *
  * This function converts a CPLXMLNode tree representation of a document
  * into a flat string representation.  White space indentation is used
@@ -1023,7 +969,7 @@ char *CPLSerializeXMLTree( CPLXMLNode *psNode )
 /************************************************************************/
 
 /**
- * Create an document tree item.
+ * \brief Create an document tree item.
  *
  * Create a single CPLXMLNode object with the desired value and type, and
  * attach it as a child of the indicated parent.  
@@ -1074,7 +1020,7 @@ CPLXMLNode *CPLCreateXMLNode( CPLXMLNode *poParent, CPLXMLNodeType eType,
 /************************************************************************/
 
 /**
- * Destroy a tree. 
+ * \brief Destroy a tree. 
  *
  * This function frees resources associated with a CPLXMLNode and all its
  * children nodes.  
@@ -1103,7 +1049,7 @@ void CPLDestroyXMLNode( CPLXMLNode *psNode )
 /************************************************************************/
 
 /**
- * Search for a node in document.
+ * \brief Search for a node in document.
  *
  * Searches the children (and potentially siblings) of the documented
  * passed in for the named element or attribute.  To search following
@@ -1185,7 +1131,7 @@ CPLXMLNode *CPLSearchXMLNode( CPLXMLNode *psRoot, const char *pszElement )
 /************************************************************************/
 
 /**
- * Find node by path.
+ * \brief Find node by path.
  *
  * Searches the document or subdocument indicated by psRoot for an element 
  * (or attribute) with the given path.  The path should consist of a set of
@@ -1268,7 +1214,7 @@ CPLXMLNode *CPLGetXMLNode( CPLXMLNode *psRoot, const char *pszPath )
 /************************************************************************/
 
 /**
- * Fetch element/attribute value. 
+ * \brief Fetch element/attribute value. 
  *
  * Searches the document for the element/attribute value associated with
  * the path.  The corresponding node is internally found with CPLGetXMLNode()
@@ -1339,7 +1285,7 @@ const char *CPLGetXMLValue( CPLXMLNode *psRoot, const char *pszPath,
 /************************************************************************/
 
 /**
- * Add child node to parent. 
+ * \brief Add child node to parent. 
  *
  * The passed child is added to the list of children of the indicated
  * parent.  Normally the child is added at the end of the parents child
@@ -1359,9 +1305,6 @@ void CPLAddXMLChild( CPLXMLNode *psParent, CPLXMLNode *psChild )
 
 {
     CPLXMLNode *psSib;
-
-    CPLAssert( psChild->psNext == NULL );
-    psChild->psNext = NULL;
 
     if( psParent->psChild == NULL )
     {
@@ -1398,11 +1341,56 @@ void CPLAddXMLChild( CPLXMLNode *psParent, CPLXMLNode *psChild )
 }
 
 /************************************************************************/
+/*                           CPLAddXMLChild()                           */
+/************************************************************************/
+
+/**
+ * \brief Remove child node from parent. 
+ *
+ * The passed child is removed from the child list of the passed parent,
+ * but the child is not destroyed.  The child retains ownership of it's
+ * own children, but is cleanly removed from the child list of the parent.
+ *
+ * @param psParent the node to the child is attached to.
+ *
+ * @param psChild the child to remove.
+ *
+ * @return TRUE on success or FALSE if the child was not found.
+ */
+
+int CPLRemoveXMLChild( CPLXMLNode *psParent, CPLXMLNode *psChild )
+
+{
+    CPLXMLNode *psLast = NULL, *psThis;
+
+    if( psParent == NULL )
+        return FALSE;
+
+    for( psThis = psParent->psChild; 
+         psThis != NULL; 
+         psLast = psThis, psThis = psThis->psNext )
+    {
+        if( psThis == psChild )
+        {
+            if( psLast == NULL )
+                psParent->psChild = psThis->psNext;
+            else 
+                psLast->psNext = psThis->psNext;
+
+            psThis->psNext = NULL;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+/************************************************************************/
 /*                          CPLAddXMLSibling()                          */
 /************************************************************************/
 
 /**
- * Add new sibling.
+ * \brief Add new sibling.
  *
  * The passed psNewSibling is added to the end of siblings of the 
  * psOlderSibling node.  That is, it is added to the end of the psNext
@@ -1432,10 +1420,11 @@ void CPLAddXMLSibling( CPLXMLNode *psOlderSibling, CPLXMLNode *psNewSibling )
 /************************************************************************/
 
 /**
- * Create an element and text value.
+ * \brief Create an element and text value.
  *
  * This is function is a convenient short form for:
  *
+ * \code
  *     CPLXMLNode *psTextNode;
  *     CPLXMLNode *psElementNode;
  *
@@ -1443,6 +1432,7 @@ void CPLAddXMLSibling( CPLXMLNode *psOlderSibling, CPLXMLNode *psNewSibling )
  *     psTextNode = CPLCreateXMLNode( psElementNode, CXT_Text, pszValue );
  * 
  *     return psElementNode;
+ * \endcode
  *
  * It creates a CXT_Element node, with a CXT_Text child, and
  * attaches the element to the passed parent.
@@ -1475,7 +1465,7 @@ CPLXMLNode *CPLCreateXMLElementAndValue( CPLXMLNode *psParent,
 /************************************************************************/
 
 /**
- * Copy tree.
+ * \brief Copy tree.
  *
  * Creates a deep copy of a CPLXMLNode tree.  
  *
@@ -1515,7 +1505,7 @@ CPLXMLNode *CPLCloneXMLTree( CPLXMLNode *psTree )
 /************************************************************************/
 
 /**
- * Set element value by path. 
+ * \brief Set element value by path. 
  *
  * Find (or create) the target element or attribute specified in the
  * path, and assign it the indicated value. 
@@ -1614,7 +1604,7 @@ int CPLSetXMLValue( CPLXMLNode *psRoot,  const char *pszPath,
 /************************************************************************/
 
 /**
- * Strip indicated namespaces. 
+ * \brief Strip indicated namespaces. 
  *
  * The subdocument (psRoot) is recursively examined, and any elements
  * with the indicated namespace prefix will have the namespace prefix
@@ -1685,11 +1675,14 @@ void CPLStripXMLNamespace( CPLXMLNode *psRoot,
 /************************************************************************/
 
 /**
- * Parse XML file into tree.
+ * \brief Parse XML file into tree.
  *
  * The named file is opened, loaded into memory as a big string, and
  * parsed with CPLParseXMLString().  Errors in reading the file or parsing
  * the XML will be reported by CPLError(). 
+ *
+ * The "large file" API is used, so XML files can come from virtualized
+ * files. 
  *
  * @param pszFilename the file to open. 
  *
@@ -1699,15 +1692,15 @@ void CPLStripXMLNamespace( CPLXMLNode *psRoot,
 CPLXMLNode *CPLParseXMLFile( const char *pszFilename )
 
 {
-    FILE        *fp;
-    int nLen;
-    char *pszDoc;
-    CPLXMLNode *psTree;
+    FILE            *fp;
+    vsi_l_offset    nLen;
+    char            *pszDoc;
+    CPLXMLNode      *psTree;
 
 /* -------------------------------------------------------------------- */
 /*      Read the file.                                                  */
 /* -------------------------------------------------------------------- */
-    fp = VSIFOpen( pszFilename, "rb" );
+    fp = VSIFOpenL( pszFilename, "rb" );
     if( fp == NULL )
     {
         CPLError( CE_Failure, CPLE_OpenFailed, 
@@ -1715,28 +1708,28 @@ CPLXMLNode *CPLParseXMLFile( const char *pszFilename )
         return NULL;
     }
 
-    VSIFSeek( fp, 0, SEEK_END );
-    nLen = VSIFTell( fp );
-    VSIFSeek( fp, 0, SEEK_SET );
+    VSIFSeekL( fp, 0, SEEK_END );
+    nLen = VSIFTellL( fp );
+    VSIFSeekL( fp, 0, SEEK_SET );
     
-    pszDoc = (char *) VSIMalloc(nLen+1);
+    pszDoc = (char *) VSIMalloc((size_t)nLen + 1);
     if( pszDoc == NULL )
     {
         CPLError( CE_Failure, CPLE_OutOfMemory, 
                   "Out of memory allocating space for %d byte buffer in\n"
                   "CPLParseXMLFile(%.500s).", 
                   nLen+1, pszFilename );
-        VSIFClose( fp );
+        VSIFCloseL( fp );
         return NULL;
     }
-    if( (int) VSIFRead( pszDoc, 1, nLen, fp ) < nLen )
+    if( VSIFReadL( pszDoc, 1, (size_t)nLen, fp ) < nLen )
     {
         CPLError( CE_Failure, CPLE_FileIO, 
                   "VSIFRead() result short of expected %d bytes from %.500s.", 
                   nLen, pszFilename );
         pszDoc[0] = '\0';
     }
-    VSIFClose( fp );
+    VSIFCloseL( fp );
 
     pszDoc[nLen] = '\0';
 
@@ -1754,7 +1747,7 @@ CPLXMLNode *CPLParseXMLFile( const char *pszFilename )
 /************************************************************************/
 
 /**
- * Write document tree to a file. 
+ * \brief Write document tree to a file. 
  *
  * The passed document tree is converted into one big string (with 
  * CPLSerializeXMLTree()) and then written to the named file.  Errors writing
@@ -1763,14 +1756,15 @@ CPLXMLNode *CPLParseXMLFile( const char *pszFilename )
  *
  * @param psTree the document tree to write. 
  * @param pszFilename the name of the file to write to. 
+ * @return TRUE on success, FALSE otherwise.
  */
 
 int CPLSerializeXMLTreeToFile( CPLXMLNode *psTree, const char *pszFilename )
 
 {
-    char *pszDoc;
-    FILE *fp;
-    int  nLength;
+    char    *pszDoc;
+    FILE    *fp;
+    vsi_l_offset nLength;
 
 /* -------------------------------------------------------------------- */
 /*      Serialize document.                                             */
@@ -1784,7 +1778,7 @@ int CPLSerializeXMLTreeToFile( CPLXMLNode *psTree, const char *pszFilename )
 /* -------------------------------------------------------------------- */
 /*      Create file.                                                    */
 /* -------------------------------------------------------------------- */
-    fp = VSIFOpen( pszFilename, "wt" );
+    fp = VSIFOpenL( pszFilename, "wt" );
     if( fp == NULL )
     {
         CPLError( CE_Failure, CPLE_OpenFailed, 
@@ -1795,12 +1789,12 @@ int CPLSerializeXMLTreeToFile( CPLXMLNode *psTree, const char *pszFilename )
 /* -------------------------------------------------------------------- */
 /*      Write file.                                                     */
 /* -------------------------------------------------------------------- */
-    if( (int) VSIFWrite( pszDoc, 1, nLength, fp ) != nLength )
+    if( VSIFWriteL( pszDoc, 1, nLength, fp ) != nLength )
     {
         CPLError( CE_Failure, CPLE_FileIO, 
                   "Failed to write whole XML document (%.500s).",
                   pszFilename );
-        VSIFClose( fp );
+        VSIFCloseL( fp );
         CPLFree( pszDoc );
         return FALSE;
     }
@@ -1808,7 +1802,7 @@ int CPLSerializeXMLTreeToFile( CPLXMLNode *psTree, const char *pszFilename )
 /* -------------------------------------------------------------------- */
 /*      Cleanup                                                         */
 /* -------------------------------------------------------------------- */
-    VSIFClose( fp );
+    VSIFCloseL( fp );
     CPLFree( pszDoc );
 
     return TRUE;
@@ -1819,7 +1813,7 @@ int CPLSerializeXMLTreeToFile( CPLXMLNode *psTree, const char *pszFilename )
 /************************************************************************/
 
 /**
- * Make string into safe XML token.
+ * \brief Make string into safe XML token.
  *
  * Modififies a string in place to try and make it into a legal
  * XML token that can be used as an element name.   This is accomplished
@@ -1832,8 +1826,7 @@ int CPLSerializeXMLTreeToFile( CPLXMLNode *psTree, const char *pszFilename )
  * @param pszTarget the string to be adjusted.  It is altered in place. 
  */
 
-void       CPL_DLL CPLCleanXMLElementName( char *pszTarget )
-
+void CPLCleanXMLElementName( char *pszTarget )
 {
     if( pszTarget == NULL )
         return;

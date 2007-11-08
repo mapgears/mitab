@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrspatialreference.cpp,v 1.93 2005/04/06 00:02:05 fwarmerdam Exp $
+ * $Id: ogrspatialreference.cpp 11724 2007-07-05 15:53:06Z dron $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRSpatialReference class.
@@ -25,170 +25,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrspatialreference.cpp,v $
- * Revision 1.93  2005/04/06 00:02:05  fwarmerdam
- * various osr and oct functions now stdcall
- *
- * Revision 1.92  2005/03/03 04:55:42  fwarmerdam
- * make exportToWkt() const
- *
- * Revision 1.91  2005/02/11 14:21:28  fwarmerdam
- * added GEOS projection support
- *
- * Revision 1.90  2005/01/13 05:17:37  fwarmerdam
- * added SetLinearUnitsAndUpdateParameters
- *
- * Revision 1.89  2005/01/05 21:02:33  fwarmerdam
- * added Goode Homolosine
- *
- * Revision 1.88  2004/11/11 18:28:45  fwarmerdam
- * added Bonne projection support
- *
- * Revision 1.87  2004/09/23 16:20:13  fwarmerdam
- * added OSRCleanup
- *
- * Revision 1.86  2004/09/10 20:59:06  fwarmerdam
- * Added note on SetSOC() being deprecated.
- *
- * Revision 1.85  2004/05/06 19:26:04  dron
- * Added OSRSetProjection() function.
- *
- * Revision 1.84  2004/05/04 17:54:45  warmerda
- * internal longitude format is greenwich relative - no adjustments needed
- *
- * Revision 1.83  2004/03/04 18:04:45  warmerda
- * added importFromDict() support
- *
- * Revision 1.82  2004/02/05 17:07:59  dron
- * Support for HOM projection, specified by two points on centerline.
- *
- * Revision 1.81  2003/12/05 16:22:49  warmerda
- * optimized IsProjected
- *
- * Revision 1.80  2003/10/07 04:20:50  warmerda
- * added WMS AUTO: support
- *
- * Revision 1.79  2003/09/18 14:43:40  warmerda
- * Ensure that SetAuthority() clears old nodes.
- * Don't crash on NULL root in exportToPrettyWkt().
- *
- * Revision 1.78  2003/08/18 13:26:01  warmerda
- * added SetTMVariant() and related definitions
- *
- * Revision 1.77  2003/06/19 17:10:26  warmerda
- * a couple fixes in last commit
- *
- * Revision 1.76  2003/06/18 18:24:17  warmerda
- * added projection specific set methods to C API
- *
- * Revision 1.75  2003/05/30 18:34:41  warmerda
- * clear existing authority node in SetLinearUnits if one exists
- *
- * Revision 1.74  2003/05/28 19:16:43  warmerda
- * fixed up argument names and stuff for docs
- *
- * Revision 1.73  2003/04/01 14:34:45  warmerda
- * Clarify SetUTM() documentation.
- *
- * Revision 1.72  2003/03/28 17:42:05  warmerda
- * fixed reference/dereference problem
- *
- * Revision 1.71  2003/02/25 04:55:41  warmerda
- * Added SetGeogCSFrom() method. Modified SetWellKnownGeogCS() to use it.
- * Modfied SetGeogCS() to replace an existing GEOGCS node if there is one.
- *
- * Revision 1.70  2003/02/14 22:15:04  warmerda
- * expand tabs
- *
- * Revision 1.69  2003/02/08 00:37:15  warmerda
- * try to improve documentation
- *
- * Revision 1.68  2003/02/06 04:53:12  warmerda
- * added Fixup() method
- *
- * Revision 1.67  2003/01/31 02:27:08  warmerda
- * modified SetFromUserInput() to avoid large buffer on stack
- *
- * Revision 1.66  2003/01/08 18:14:28  warmerda
- * added FixupOrdering()
- *
- * Revision 1.65  2002/12/21 17:29:38  warmerda
- * fixed default degree/radian problem for GEOGCS
- *
- * Revision 1.64  2002/12/16 17:08:44  warmerda
- * added GetPrimeMeridian() method, and fiddled with OGRPrintDouble
- *
- * Revision 1.63  2002/12/16 14:41:19  warmerda
- * implement normalized Get/Set ProjParm
- *
- * Revision 1.62  2002/12/15 23:42:59  warmerda
- * added initial support for normalizing proj params
- *
- * Revision 1.61  2002/12/14 22:59:14  warmerda
- * added Krovak in ESRI compatible way
- *
- * Revision 1.60  2002/12/10 04:06:00  warmerda
- * updated well known GEOGCS descriptions
- *
- * Revision 1.59  2002/12/09 16:11:32  warmerda
- * fixed constness of get authority calls
- *
- * Revision 1.58  2002/12/01 21:16:10  warmerda
- * added Get/set angular units methods
- *
- * Revision 1.57  2002/12/01 20:22:39  warmerda
- * preserve a little more precision in projection parameters
- *
- * Revision 1.56  2002/11/30 16:44:08  warmerda
- * fixed some functions that claimed to use node paths, so they work
- *
- * Revision 1.55  2002/11/30 15:45:49  warmerda
- * be more careful about how AUTHORITY is fetched, to not get wrong one
- *
- * Revision 1.54  2002/11/25 16:12:54  warmerda
- * added GetAuthorityCode/Name
- *
- * Revision 1.53  2002/07/25 15:58:02  warmerda
- * Fixed docs for how to compute inverse flattening.
- *
- * Revision 1.52  2002/07/25 13:13:36  warmerda
- * fixed const correctness of some docs
- *
- * Revision 1.51  2002/04/25 20:56:28  warmerda
- * expanded tabs
- *
- * Revision 1.50  2002/04/18 14:22:45  warmerda
- * made OGRSpatialReference and co 'const correct'
- *
- * Revision 1.49  2002/03/12 18:06:09  warmerda
- * added ESRI:: style support to SetFromUserInput()
- *
- * Revision 1.48  2002/03/08 16:38:11  warmerda
- * ensure SetProjParm() will replace an existing node if available
- *
- * Revision 1.47  2002/03/05 14:25:14  warmerda
- * expand tabs
- *
- * Revision 1.46  2002/02/18 15:46:02  warmerda
- * Fixed serious problems in IsSame() method.  Still a work in progress.
- *
- * Revision 1.45  2002/01/24 16:22:18  warmerda
- * reworked StripCTParms and simplify support for prettywkt
- *
- * Revision 1.44  2002/01/18 15:30:41  warmerda
- * ensure all AXIS nodes wiped in StripCTParms
- *
- * Revision 1.43  2002/01/18 04:51:05  warmerda
- * added PROJ.4 support to SetFromUserInput()
- */
+ ****************************************************************************/
 
 #include "ogr_spatialref.h"
 #include "ogr_p.h"
 #include "cpl_csv.h"
 
-CPL_CVSID("$Id: ogrspatialreference.cpp,v 1.93 2005/04/06 00:02:05 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogrspatialreference.cpp 11724 2007-07-05 15:53:06Z dron $");
 
 // The current opinion is that WKT longitudes like central meridian
 // should be relative to greenwich, not the prime meridian in use. 
@@ -428,6 +271,33 @@ int OSRDereference( OGRSpatialReferenceH hSRS )
  */
 
 /************************************************************************/
+/*                              Release()                               */
+/************************************************************************/
+
+/**
+ * Decrements the reference count by one, and destroy if zero.
+ *
+ * The method does the same thing as the C function OSRRelease(). 
+ */
+
+void OGRSpatialReference::Release()
+
+{
+    if( this && Dereference() <= 0 ) 
+        delete this;
+}
+
+/************************************************************************/
+/*                             OSRRelease()                             */
+/************************************************************************/
+
+void OSRRelease( OGRSpatialReferenceH hSRS )
+
+{
+    ((OGRSpatialReference *) hSRS)->Release();
+}
+
+/************************************************************************/
 /*                              SetRoot()                               */
 /************************************************************************/
 
@@ -611,6 +481,7 @@ OGRErr OGRSpatialReference::exportToPrettyWkt( char ** ppszResult,
 
         poSimpleClone->GetRoot()->StripNodes( "AXIS" );
         poSimpleClone->GetRoot()->StripNodes( "AUTHORITY" );
+        poSimpleClone->GetRoot()->StripNodes( "EXTENSION" );
         eErr = poSimpleClone->GetRoot()->exportToPrettyWkt( ppszResult, 1 );
         delete poSimpleClone;
         return eErr;
@@ -1450,16 +1321,16 @@ OGRErr OGRSpatialReference::SetWellKnownGeogCS( const char * pszName )
 /* -------------------------------------------------------------------- */
     char         *pszWKT = NULL;
 
-    if( EQUAL(pszName, "WGS84") )
+    if( EQUAL(pszName, "WGS84") || EQUAL(pszName,"CRS84") )
         pszWKT = "GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9108\"]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",\"4326\"]]";
 
     else if( EQUAL(pszName, "WGS72") )
         pszWKT = "GEOGCS[\"WGS 72\",DATUM[\"WGS_1972\",SPHEROID[\"WGS 72\",6378135,298.26,AUTHORITY[\"EPSG\",\"7043\"]],TOWGS84[0,0,4.5,0,0,0.554,0.2263],AUTHORITY[\"EPSG\",\"6322\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9108\"]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",\"4322\"]]";
 
-    else if( EQUAL(pszName, "NAD27") )
+    else if( EQUAL(pszName, "NAD27") || EQUAL(pszName, "CRS27") )
         pszWKT = "GEOGCS[\"NAD27\",DATUM[\"North_American_Datum_1927\",SPHEROID[\"Clarke 1866\",6378206.4,294.978698213898,AUTHORITY[\"EPSG\",\"7008\"]],TOWGS84[-3,142,183,0,0,0,0],AUTHORITY[\"EPSG\",\"6267\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9108\"]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",\"4267\"]]";
         
-    else if( EQUAL(pszName, "NAD83") )
+    else if( EQUAL(pszName, "NAD83") || EQUAL(pszName,"CRS83") )
         pszWKT = "GEOGCS[\"NAD83\",DATUM[\"North_American_Datum_1983\",SPHEROID[\"GRS 1980\",6378137,298.257222101,AUTHORITY[\"EPSG\",\"7019\"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY[\"EPSG\",\"6269\"]],PRIMEM[\"Greenwich\",0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9108\"]],AXIS[\"Lat\",NORTH],AXIS[\"Long\",EAST],AUTHORITY[\"EPSG\",\"4269\"]]";
 
     else
@@ -1575,10 +1446,13 @@ OGRErr OSRCopyGeogCSFrom( OGRSpatialReferenceH hSRS,
  * <li> Well Known Text definition - passed on to importFromWkt().
  * <li> "EPSG:n" - number passed on to importFromEPSG(). 
  * <li> "AUTO:proj_id,unit_id,lon0,lat0" - WMS auto projections.
+ * <li> "urn:ogc:def:crs:EPSG::n" - ogc urns
  * <li> PROJ.4 definitions - passed on to importFromProj4().
  * <li> filename - file read for WKT, XML or PROJ.4 definition.
  * <li> well known name accepted by SetWellKnownGeogCS(), such as NAD27, NAD83,
  * WGS84 or WGS72. 
+ * <li> WKT (directly or in a file) in ESRI format should be prefixed with
+ * ESRI:: to trigger an automatic morphFromESRI().
  * </ol>
  *
  * It is expected that this method will be extended in the future to support
@@ -1628,6 +1502,10 @@ OGRErr OGRSpatialReference::SetFromUserInput( const char * pszDefinition )
     if( EQUALN(pszDefinition,"EPSG:",5) )
         return importFromEPSG( atoi(pszDefinition+5) );
 
+    if( EQUALN(pszDefinition,"urn:ogc:def:crs:",16) 
+        || EQUALN(pszDefinition,"urn:x-ogc:def:crs:",18) )
+        return importFromURN( pszDefinition );
+
     if( EQUALN(pszDefinition,"AUTO:",5) )
         return importFromWMSAUTO( pszDefinition );
 
@@ -1641,6 +1519,9 @@ OGRErr OGRSpatialReference::SetFromUserInput( const char * pszDefinition )
 
         err = importFromDict( pszFile, pszCode );
         CPLFree( pszFile );
+
+        if( err == OGRERR_NONE && bESRI )
+            err = morphFromESRI();
 
         return err;
     }
@@ -1719,7 +1600,127 @@ OGRErr CPL_STDCALL OSRSetFromUserInput( OGRSpatialReferenceH hSRS,
 }
 
 /************************************************************************/
+/*                           importFromURN()                            */
+/*                                                                      */
+/*      See OGC recommendation paper 06-023r1 or later for details.     */
+/************************************************************************/
+
+/**
+ * Initialize from OGC URN. 
+ *
+ * Initializes this spatial reference from a coordinate system defined
+ * by an OGC URN prefixed with "urn:ogc:def:crs:" per recommendation 
+ * paper 06-023r1.  Currently EPSG and OGC authority values are supported, 
+ * including OGC auto codes, but not including CRS1 or CRS88 (NAVD88). 
+ *
+ * This method is also support through SetFromUserInput() which can
+ * normally be used for URNs.
+ * 
+ * @param pszURN the urn string. 
+ *
+ * @return OGRERR_NONE on success or an error code.
+ */
+
+OGRErr OGRSpatialReference::importFromURN( const char *pszURN )
+
+{
+    const char *pszCur = pszURN + 16;
+
+    if( EQUALN(pszURN,"urn:ogc:def:crs:",16) )
+        pszCur = pszURN + 16;
+    else if( EQUALN(pszURN,"urn:x-ogc:def:crs:",18) )
+        pszCur = pszURN + 18;
+    else
+    {
+        CPLError( CE_Failure, CPLE_AppDefined, 
+                  "URN %s not a supported format.", pszURN );
+        return OGRERR_FAILURE;
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Find code (ignoring version) out of string like:                */
+/*                                                                      */
+/*      authority:version:code                                          */
+/* -------------------------------------------------------------------- */
+    const char *pszAuthority = pszCur;
+
+    // skip authority
+    while( *pszCur != ':' && *pszCur )
+        pszCur++;
+    if( *pszCur == ':' )
+        pszCur++;
+
+    // skip version
+    while( *pszCur != ':' && *pszCur )
+        pszCur++;
+    if( *pszCur == ':' )
+        pszCur++;
+
+    const char *pszCode = pszCur;
+
+/* -------------------------------------------------------------------- */
+/*      Is this an EPSG code?                                           */
+/* -------------------------------------------------------------------- */
+    if( EQUALN(pszAuthority,"EPSG:",5) )
+        return importFromEPSG( atoi(pszCode) );
+
+/* -------------------------------------------------------------------- */
+/*      Is this an OGC code?                                            */
+/* -------------------------------------------------------------------- */
+    if( !EQUALN(pszAuthority,"OGC:",4) )
+    {
+        CPLError( CE_Failure, CPLE_AppDefined, 
+                  "URN %s has unrecognised authority.", 
+                  pszURN );
+        return OGRERR_FAILURE;
+    }
+
+    if( EQUALN(pszCode,"CRS84",5) )
+        return SetWellKnownGeogCS( pszCode );
+    else if( EQUALN(pszCode,"CRS83",5) )
+        return SetWellKnownGeogCS( pszCode );
+    else if( EQUALN(pszCode,"CRS27",5) )
+        return SetWellKnownGeogCS( pszCode );
+
+/* -------------------------------------------------------------------- */
+/*      Handle auto codes.  We need to convert from format              */
+/*      AUTO42001:99:8888 to format AUTO:42001,99,8888.                 */
+/* -------------------------------------------------------------------- */
+    else if( EQUALN(pszCode,"AUTO",4) )
+    {
+        char szWMSAuto[100];
+        int i;
+
+        if( strlen(pszCode) > sizeof(szWMSAuto)-2 )
+            return OGRERR_FAILURE;
+
+        strcpy( szWMSAuto, "AUTO:" );
+        strcpy( szWMSAuto + 5, pszCode + 4 );
+        for( i = 5; szWMSAuto[i] != '\0'; i++ )
+        {
+            if( szWMSAuto[i] == ':' )
+                szWMSAuto[i] = ',';
+        }
+
+        return importFromWMSAUTO( szWMSAuto );
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Not a recognise OGC item.                                       */
+/* -------------------------------------------------------------------- */
+    CPLError( CE_Failure, CPLE_AppDefined, 
+              "URN %s value not supported.", 
+              pszURN );
+
+    return OGRERR_FAILURE;
+}
+
+/************************************************************************/
 /*                         importFromWMSAUTO()                          */
+/*                                                                      */
+/*      Note that the WMS 1.3 specification does not include the        */
+/*      units code, while apparently earlier specs do.  We try to       */
+/*      guess around this.                                              */
 /************************************************************************/
 
 OGRErr OGRSpatialReference::importFromWMSAUTO( const char * pszDefinition )
@@ -1727,7 +1728,7 @@ OGRErr OGRSpatialReference::importFromWMSAUTO( const char * pszDefinition )
 {
     char **papszTokens;
     int nProjId, nUnitsId;
-    double dfRefLong, dfRefLat;
+    double dfRefLong, dfRefLat = 0.0;
     
 /* -------------------------------------------------------------------- */
 /*      Tokenize                                                        */
@@ -1737,19 +1738,43 @@ OGRErr OGRSpatialReference::importFromWMSAUTO( const char * pszDefinition )
 
     papszTokens = CSLTokenizeStringComplex( pszDefinition, ",", FALSE, TRUE );
 
-    if( CSLCount(papszTokens) != 4 )
+    if( CSLCount(papszTokens) == 4 )
+    {
+        nProjId = atoi(papszTokens[0]);
+        nUnitsId = atoi(papszTokens[1]);
+        dfRefLong = atof(papszTokens[2]);
+        dfRefLat = atof(papszTokens[3]);
+    }
+    else if( CSLCount(papszTokens) == 3 && atoi(papszTokens[0]) == 42005 )
+    {
+        nProjId = atoi(papszTokens[0]);
+        nUnitsId = atoi(papszTokens[1]);
+        dfRefLong = atof(papszTokens[2]);
+        dfRefLat = 0.0;
+    }
+    else if( CSLCount(papszTokens) == 3 )
+    {
+        nProjId = atoi(papszTokens[0]);
+        nUnitsId = 9001;
+        dfRefLong = atof(papszTokens[1]);
+        dfRefLat = atof(papszTokens[2]);
+
+    }
+    else if( CSLCount(papszTokens) == 2 && atoi(papszTokens[0]) == 42005 ) 
+    {
+        nProjId = atoi(papszTokens[0]);
+        nUnitsId = 9001;
+        dfRefLong = atof(papszTokens[1]);
+    }
+    else
     {
         CSLDestroy( papszTokens );
         CPLError( CE_Failure, CPLE_AppDefined, 
                   "AUTO projection has wrong number of arguments, expected\n"
-                  "AUTO:proj_id,units_id,ref_long,ref_lat" );
+                  "AUTO:proj_id,units_id,ref_long,ref_lat or"
+                  "AUTO:proj_id,ref_long,ref_lat" );
         return OGRERR_FAILURE;
     }
-
-    nProjId = atoi(papszTokens[0]);
-    nUnitsId = atoi(papszTokens[1]);
-    dfRefLong = atof(papszTokens[2]);
-    dfRefLat = atof(papszTokens[3]);
 
     CSLDestroy( papszTokens );
 
@@ -2506,6 +2531,42 @@ OGRErr OGRSpatialReference::SetTMSO( double dfCenterLat, double dfCenterLong,
 }
 
 /************************************************************************/
+/*                              SetTPED()                               */
+/************************************************************************/
+
+OGRErr OGRSpatialReference::SetTPED( double dfLat1, double dfLong1, 
+                                     double dfLat2, double dfLong2,
+                                     double dfFalseEasting,
+                                     double dfFalseNorthing )
+
+{
+    SetProjection( SRS_PT_TWO_POINT_EQUIDISTANT );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_1ST_POINT, dfLat1 );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_1ST_POINT, dfLong1 );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_2ND_POINT, dfLat2 );
+    SetNormProjParm( SRS_PP_LONGITUDE_OF_2ND_POINT, dfLong2 );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+
+    return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                             OSRSetTPED()                             */
+/************************************************************************/
+
+OGRErr OSRSetTPED( OGRSpatialReferenceH hSRS,
+                   double dfLat1, double dfLong1,
+                   double dfLat2, double dfLong2,
+                   double dfFalseEasting, double dfFalseNorthing )
+
+{
+    return ((OGRSpatialReference *) hSRS)->SetTPED( 
+        dfLat1, dfLong1, dfLat2, dfLong2,
+        dfFalseEasting, dfFalseNorthing );
+}
+
+/************************************************************************/
 /*                             OSRSetTMSO()                             */
 /************************************************************************/
 
@@ -2649,13 +2710,12 @@ OGRErr OGRSpatialReference::SetBonne(
 /************************************************************************/
 
 OGRErr OSRSetBonne( OGRSpatialReferenceH hSRS, 
-                    double dfStandardParallel, double dfCentralMeridian,
-                    double dfFalseEasting,
-                    double dfFalseNorthing )
+                    double dfStdP1, double dfCentralMeridian,
+                    double dfFalseEasting, double dfFalseNorthing )
     
 {
-    return ((OGRSpatialReference *) hSRS)->SetAE( 
-        dfStandardParallel, dfCentralMeridian,
+    return ((OGRSpatialReference *) hSRS)->SetBonne( 
+        dfStdP1, dfCentralMeridian,
         dfFalseEasting, dfFalseNorthing );
 }
 
@@ -3369,6 +3429,43 @@ OGRErr OSRSetMercator( OGRSpatialReferenceH hSRS,
 }
 
 /************************************************************************/
+/*                           SetMercator2SP()                           */
+/************************************************************************/
+
+OGRErr OGRSpatialReference::SetMercator2SP( 
+    double dfStdP1, 
+    double dfCenterLat, double dfCenterLong,
+    double dfFalseEasting,
+    double dfFalseNorthing )
+
+{
+    SetProjection( SRS_PT_MERCATOR_2SP );
+    SetNormProjParm( SRS_PP_STANDARD_PARALLEL_1, dfStdP1 );
+    SetNormProjParm( SRS_PP_LATITUDE_OF_ORIGIN, dfCenterLat );
+    SetNormProjParm( SRS_PP_CENTRAL_MERIDIAN, dfCenterLong );
+    SetNormProjParm( SRS_PP_FALSE_EASTING, dfFalseEasting );
+    SetNormProjParm( SRS_PP_FALSE_NORTHING, dfFalseNorthing );
+
+    return OGRERR_NONE;
+}
+
+/************************************************************************/
+/*                         OSRSetMercator2SP()                          */
+/************************************************************************/
+
+OGRErr OSRSetMercator2SP( OGRSpatialReferenceH hSRS, 
+                          double dfStdP1,
+                          double dfCenterLat, double dfCenterLong,
+                          double dfFalseEasting, double dfFalseNorthing )
+    
+{
+    return ((OGRSpatialReference *) hSRS)->SetMercator2SP( 
+        dfStdP1, 
+        dfCenterLat, dfCenterLong, 
+        dfFalseEasting, dfFalseNorthing );
+}
+
+/************************************************************************/
 /*                            SetMollweide()                            */
 /************************************************************************/
 
@@ -3787,6 +3884,8 @@ OGRErr OGRSpatialReference::SetUTM( int nZone, int bNorth )
         SetNode( "PROJCS", szUTMName );
     }
 
+    SetLinearUnits( SRS_UL_METER, 1.0 );
+
     return OGRERR_NONE;
 }
 
@@ -3832,12 +3931,13 @@ int OGRSpatialReference::GetUTMZone( int * pbNorth ) const
     if( GetProjParm( SRS_PP_SCALE_FACTOR, 1.0 ) != 0.9996 )
         return 0;
           
-    if( GetNormProjParm( SRS_PP_FALSE_EASTING, 0.0 ) != 500000 )
+    if( fabs(GetNormProjParm( SRS_PP_FALSE_EASTING, 0.0 )-500000.0) > 0.001 )
         return 0;
 
     double      dfFalseNorthing = GetNormProjParm( SRS_PP_FALSE_NORTHING, 0.0);
 
-    if( dfFalseNorthing != 0.0 && dfFalseNorthing != 10000000 )
+    if( dfFalseNorthing != 0.0 
+        && fabs(dfFalseNorthing-10000000.0) > 0.001 )
         return 0;
 
     if( pbNorth != NULL )
@@ -3953,7 +4053,8 @@ OGRErr OSRSetAuthority( OGRSpatialReferenceH hSRS,
  * This method is the same as the C function OSRGetAuthorityCode().
  *
  * @param pszTargetKey the partial or complete path to the node to 
- * set an authority on.  ie. "PROJCS", "GEOGCS" or "GEOGCS|UNIT".
+ * get an authority from.  ie. "PROJCS", "GEOGCS", "GEOGCS|UNIT" or NULL to 
+ * search for an authority node on the root element.
  *
  * @return value code from authority node, or NULL on failure.  The value
  * returned is internal and should not be freed or modified.
@@ -3966,8 +4067,12 @@ OGRSpatialReference::GetAuthorityCode( const char *pszTargetKey ) const
 /* -------------------------------------------------------------------- */
 /*      Find the node below which the authority should be put.          */
 /* -------------------------------------------------------------------- */
-    OGR_SRSNode  *poNode = 
-        ((OGRSpatialReference *) this)->GetAttrNode( pszTargetKey );
+    const OGR_SRSNode  *poNode;
+
+    if( pszTargetKey == NULL )
+        poNode = poRoot;
+    else
+        poNode= ((OGRSpatialReference *) this)->GetAttrNode( pszTargetKey );
 
     if( poNode == NULL )
         return NULL;
@@ -4015,7 +4120,8 @@ const char *OSRGetAuthorityCode( OGRSpatialReferenceH hSRS,
  * This method is the same as the C function OSRGetAuthorityName().
  *
  * @param pszTargetKey the partial or complete path to the node to 
- * set an authority on.  ie. "PROJCS", "GEOGCS" or "GEOGCS|UNIT".
+ * get an authority from.  ie. "PROJCS", "GEOGCS", "GEOGCS|UNIT" or NULL to 
+ * search for an authority node on the root element.
  *
  * @return value code from authority node, or NULL on failure. The value
  * returned is internal and should not be freed or modified.
@@ -4028,8 +4134,12 @@ OGRSpatialReference::GetAuthorityName( const char *pszTargetKey ) const
 /* -------------------------------------------------------------------- */
 /*      Find the node below which the authority should be put.          */
 /* -------------------------------------------------------------------- */
-    OGR_SRSNode  *poNode = 
-        ((OGRSpatialReference *) this)->GetAttrNode( pszTargetKey );
+    const OGR_SRSNode  *poNode;
+
+    if( pszTargetKey == NULL )
+        poNode = poRoot;
+    else
+        poNode= ((OGRSpatialReference *) this)->GetAttrNode( pszTargetKey );
 
     if( poNode == NULL )
         return NULL;
@@ -4746,6 +4856,112 @@ OGRErr OSRFixup( OGRSpatialReferenceH hSRS )
     return ((OGRSpatialReference *) hSRS)->Fixup();
 }
 
+/************************************************************************/
+/*                            GetExtension()                            */
+/************************************************************************/
+
+/**
+ * Fetch extension value.
+ *
+ * Fetch the value of the named EXTENSION item for the identified
+ * target node.
+ *
+ * @param pszTargetKey the name or path to the parent node of the EXTENSION.
+ * @param pszName the name of the extension being fetched.
+ * @param pszDefault the value to return if the extension is not found.
+ *
+ * @return node value if successful or pszDefault on failure.
+ */
+
+const char *OGRSpatialReference::GetExtension( const char *pszTargetKey, 
+                                               const char *pszName, 
+                                               const char *pszDefault ) const
+
+{
+/* -------------------------------------------------------------------- */
+/*      Find the target node.                                           */
+/* -------------------------------------------------------------------- */
+    const OGR_SRSNode  *poNode;
+
+    if( pszTargetKey == NULL )
+        poNode = poRoot;
+    else
+        poNode= ((OGRSpatialReference *) this)->GetAttrNode( pszTargetKey );
+
+    if( poNode == NULL )
+        return NULL;
+
+/* -------------------------------------------------------------------- */
+/*      Fetch matching EXTENSION if there is one.                       */
+/* -------------------------------------------------------------------- */
+    for( int i = poNode->GetChildCount()-1; i >= 0; i-- )
+    {
+        const OGR_SRSNode *poChild = poNode->GetChild(i);
+
+        if( EQUAL(poChild->GetValue(),"EXTENSION") 
+            && poChild->GetChildCount() >= 2 )
+        {
+            if( EQUAL(poChild->GetChild(0)->GetValue(),pszName) )
+                return poChild->GetChild(1)->GetValue();
+        }
+    }
+
+    return pszDefault;
+}
+
+/************************************************************************/
+/*                            SetExtension()                            */
+/************************************************************************/
+
+OGRErr OGRSpatialReference::SetExtension( const char *pszTargetKey, 
+                                          const char *pszName, 
+                                          const char *pszValue )
+
+{
+/* -------------------------------------------------------------------- */
+/*      Find the target node.                                           */
+/* -------------------------------------------------------------------- */
+    OGR_SRSNode  *poNode;
+
+    if( pszTargetKey == NULL )
+        poNode = poRoot;
+    else
+        poNode= ((OGRSpatialReference *) this)->GetAttrNode( pszTargetKey );
+
+    if( poNode == NULL )
+        return OGRERR_FAILURE;
+
+/* -------------------------------------------------------------------- */
+/*      Fetch matching EXTENSION if there is one.                       */
+/* -------------------------------------------------------------------- */
+    for( int i = poNode->GetChildCount()-1; i >= 0; i-- )
+    {
+        OGR_SRSNode *poChild = poNode->GetChild(i);
+        
+        if( EQUAL(poChild->GetValue(),"EXTENSION") 
+            && poChild->GetChildCount() >= 2 )
+        {
+            if( EQUAL(poChild->GetChild(0)->GetValue(),pszName) )
+            {
+                poChild->GetChild(1)->SetValue( pszValue );
+                return OGRERR_NONE;
+            }
+        }
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Create a new EXTENSION node.                                    */
+/* -------------------------------------------------------------------- */
+    OGR_SRSNode *poAuthNode;
+
+    poAuthNode = new OGR_SRSNode( "EXTENSION" );
+    poAuthNode->AddChild( new OGR_SRSNode( pszName ) );
+    poAuthNode->AddChild( new OGR_SRSNode( pszValue ) );
+    
+    poNode->AddChild( poAuthNode );
+
+    return OGRERR_NONE;
+}
 
 /************************************************************************/
 /*                             OSRCleanup()                             */

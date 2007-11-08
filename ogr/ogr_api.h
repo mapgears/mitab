@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_api.h,v 1.25 2005/02/22 12:37:26 fwarmerdam Exp $
+ * $Id: ogr_api.h 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  C API for OGR Geometry, Feature, Layers, DataSource and drivers.
@@ -25,85 +25,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_api.h,v $
- * Revision 1.25  2005/02/22 12:37:26  fwarmerdam
- * rename Equal/Intersect to Equals/Intersects
- *
- * Revision 1.24  2005/02/02 19:59:47  fwarmerdam
- * added SetNextByIndex support
- *
- * Revision 1.23  2005/01/03 22:15:48  fwarmerdam
- * added SetSpatialFilterRect
- *
- * Revision 1.22  2004/11/22 22:24:56  fwarmerdam
- * Give explicit void for functions taking no arguments.
- *
- * Revision 1.21  2004/10/07 13:10:59  fwarmerdam
- * added OGR_G_Centroid
- *
- * Revision 1.20  2004/09/17 15:05:36  fwarmerdam
- * added get_Area() support
- *
- * Revision 1.19  2004/07/10 06:57:54  warmerda
- * Added C entry points and docs for GEOS geometry functions
- *
- * Revision 1.18  2004/07/10 04:52:44  warmerda
- * added OGR_G_CloseRings
- *
- * Revision 1.17  2003/10/09 15:27:41  warmerda
- * added OGRLayer::DeleteFeature() support
- *
- * Revision 1.16  2003/09/04 14:01:44  warmerda
- * added OGRGetGenerate_DB2_V72_BYTE_ORDER
- *
- * Revision 1.15  2003/08/27 15:40:37  warmerda
- * added support for generating DB2 V7.2 compatible WKB
- *
- * Revision 1.14  2003/04/22 19:33:26  warmerda
- * Added synctodisk
- *
- * Revision 1.13  2003/04/08 21:21:13  warmerda
- * added OGRGetDriverByName
- *
- * Revision 1.12  2003/04/08 19:30:56  warmerda
- * added CopyLayer and CopyDataSource entry points
- *
- * Revision 1.11  2003/03/19 20:28:20  warmerda
- * added shared access, and reference counting apis
- *
- * Revision 1.10  2003/03/12 20:52:07  warmerda
- * implemented support for gml:Box
- *
- * Revision 1.9  2003/03/06 20:29:27  warmerda
- * added GML import/export entry points
- *
- * Revision 1.8  2003/03/05 05:08:49  warmerda
- * added GetLayerByName
- *
- * Revision 1.7  2003/03/03 05:05:54  warmerda
- * added support for DeleteDataSource and DeleteLayer
- *
- * Revision 1.6  2003/01/07 16:44:27  warmerda
- * added removeGeometry
- *
- * Revision 1.5  2003/01/06 21:37:00  warmerda
- * added CPL_DLL attribute on OGRBuildPolygon...
- *
- * Revision 1.4  2003/01/02 21:45:23  warmerda
- * move OGRBuildPolygonsFromEdges into C API
- *
- * Revision 1.3  2002/10/24 16:46:08  warmerda
- * removed bogus OGR_G_GetWkbSize()
- *
- * Revision 1.2  2002/09/26 19:00:07  warmerda
- * ensure all entry points CPL_DLL'ed
- *
- * Revision 1.1  2002/09/26 18:11:51  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #ifndef _OGR_API_H_INCLUDED
 #define _OGR_API_H_INCLUDED
@@ -139,7 +61,7 @@ struct _CPLXMLNode;
 /* From base OGRGeometry class */
 
 OGRErr CPL_DLL OGR_G_CreateFromWkb( unsigned char *, OGRSpatialReferenceH, 
-                                    OGRGeometryH * );
+                                    OGRGeometryH *, int );
 OGRErr CPL_DLL OGR_G_CreateFromWkt( char **, OGRSpatialReferenceH, 
                                     OGRGeometryH * );
 void   CPL_DLL OGR_G_DestroyGeometry( OGRGeometryH );
@@ -147,6 +69,7 @@ OGRGeometryH CPL_DLL OGR_G_CreateGeometry( OGRwkbGeometryType );
 
 int    CPL_DLL OGR_G_GetDimension( OGRGeometryH );
 int    CPL_DLL OGR_G_GetCoordinateDimension( OGRGeometryH );
+void   CPL_DLL OGR_G_SetCoordinateDimension( OGRGeometryH, int );
 OGRGeometryH CPL_DLL OGR_G_Clone( OGRGeometryH );
 void   CPL_DLL OGR_G_GetEnvelope( OGRGeometryH, OGREnvelope * );
 OGRErr CPL_DLL OGR_G_ImportFromWkb( OGRGeometryH, unsigned char *, int );
@@ -211,7 +134,10 @@ void   CPL_DLL OGR_G_GetPoint( OGRGeometryH, int iPoint,
                                double *, double *, double * );
 void   CPL_DLL OGR_G_SetPoint( OGRGeometryH, int iPoint, 
                                double, double, double );
+void   CPL_DLL OGR_G_SetPoint_2D( OGRGeometryH, int iPoint, 
+                                  double, double );
 void   CPL_DLL OGR_G_AddPoint( OGRGeometryH, double, double, double );
+void   CPL_DLL OGR_G_AddPoint_2D( OGRGeometryH, double, double );
 
 /* Methods for getting/setting rings and members collections */
 
@@ -264,6 +190,7 @@ const char CPL_DLL *OGR_GetFieldTypeName( OGRFieldType );
 
 OGRFeatureDefnH CPL_DLL OGR_FD_Create( const char * );
 void   CPL_DLL OGR_FD_Destroy( OGRFeatureDefnH );
+void   CPL_DLL OGR_FD_Release( OGRFeatureDefnH );
 const char CPL_DLL *OGR_FD_GetName( OGRFeatureDefnH );
 int    CPL_DLL OGR_FD_GetFieldCount( OGRFeatureDefnH );
 OGRFieldDefnH CPL_DLL OGR_FD_GetFieldDefn( OGRFeatureDefnH, int );
@@ -301,6 +228,9 @@ const char CPL_DLL *OGR_F_GetFieldAsString( OGRFeatureH, int );
 const int CPL_DLL *OGR_F_GetFieldAsIntegerList( OGRFeatureH, int, int * );
 const double CPL_DLL *OGR_F_GetFieldAsDoubleList( OGRFeatureH, int, int * );
 char  CPL_DLL **OGR_F_GetFieldAsStringList( OGRFeatureH, int );
+GByte CPL_DLL *OGR_F_GetFieldAsBinary( OGRFeatureH, int, int * );
+int   CPL_DLL  OGR_F_GetFieldAsDateTime( OGRFeatureH, int, int *, int *, int *,
+                                         int *, int *, int *, int * );
 
 void   CPL_DLL OGR_F_SetFieldInteger( OGRFeatureH, int, int );
 void   CPL_DLL OGR_F_SetFieldDouble( OGRFeatureH, int, double );
@@ -309,6 +239,9 @@ void   CPL_DLL OGR_F_SetFieldIntegerList( OGRFeatureH, int, int, int * );
 void   CPL_DLL OGR_F_SetFieldDoubleList( OGRFeatureH, int, int, double * );
 void   CPL_DLL OGR_F_SetFieldStringList( OGRFeatureH, int, char ** );
 void   CPL_DLL OGR_F_SetFieldRaw( OGRFeatureH, int, OGRField * );
+void   CPL_DLL OGR_F_SetFieldBinary( OGRFeatureH, int, int, GByte * );
+void   CPL_DLL OGR_F_SetFieldDateTime( OGRFeatureH, int, 
+                                       int, int, int, int, int, int, int );
 
 long   CPL_DLL OGR_F_GetFID( OGRFeatureH );
 OGRErr CPL_DLL OGR_F_SetFID( OGRFeatureH, long );
@@ -317,6 +250,7 @@ OGRErr CPL_DLL OGR_F_SetFrom( OGRFeatureH, OGRFeatureH, int );
 
 const char CPL_DLL *OGR_F_GetStyleString( OGRFeatureH );
 void   CPL_DLL OGR_F_SetStyleString( OGRFeatureH, const char * );
+void   CPL_DLL OGR_F_SetStyleStringDirectly( OGRFeatureH, char * );
 
 /* -------------------------------------------------------------------- */
 /*      ogrsf_frmts.h                                                   */
@@ -354,7 +288,8 @@ int    CPL_DLL OGR_L_Dereference( OGRLayerH );
 int    CPL_DLL OGR_L_GetRefCount( OGRLayerH );
 OGRErr CPL_DLL OGR_L_SyncToDisk( OGRLayerH );
 GIntBig CPL_DLL OGR_L_GetFeaturesRead( OGRLayerH );
-
+const char CPL_DLL *OGR_L_GetFIDColumn( OGRLayerH );
+const char CPL_DLL *OGR_L_GetGeometryColumn( OGRLayerH );
 /* OGRDataSource */
 
 void   CPL_DLL OGR_DS_Destroy( OGRDataSourceH );
@@ -363,6 +298,7 @@ int    CPL_DLL OGR_DS_GetLayerCount( OGRDataSourceH );
 OGRLayerH CPL_DLL OGR_DS_GetLayer( OGRDataSourceH, int );
 OGRLayerH CPL_DLL OGR_DS_GetLayerByName( OGRDataSourceH, const char * );
 OGRErr    CPL_DLL OGR_DS_DeleteLayer( OGRDataSourceH, int );
+OGRSFDriverH CPL_DLL OGR_DS_GetDriver( OGRDataSourceH );
 OGRLayerH CPL_DLL OGR_DS_CreateLayer( OGRDataSourceH, const char *, 
                                       OGRSpatialReferenceH, OGRwkbGeometryType,
                                       char ** );
@@ -404,6 +340,7 @@ OGRDataSourceH CPL_DLL OGRGetOpenDS( int iDS );
 
 /* note: this is also declared in ogrsf_frmts.h */
 void CPL_DLL OGRRegisterAll(void);
+void CPL_DLL OGRCleanupAll(void);
 
 CPL_C_END
 

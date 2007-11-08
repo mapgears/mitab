@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_core.h,v 1.25 2005/02/02 19:59:47 fwarmerdam Exp $
+ * $Id: ogr_core.h 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Define some core portability services for cross-platform OGR code.
@@ -25,85 +25,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_core.h,v $
- * Revision 1.25  2005/02/02 19:59:47  fwarmerdam
- * added SetNextByIndex support
- *
- * Revision 1.24  2003/10/09 15:27:41  warmerda
- * added OGRLayer::DeleteFeature() support
- *
- * Revision 1.23  2003/09/11 19:59:41  warmerda
- * avoid casting issue with UNFIX macro
- *
- * Revision 1.22  2003/08/27 15:40:37  warmerda
- * added support for generating DB2 V7.2 compatible WKB
- *
- * Revision 1.21  2003/08/11 03:28:04  warmerda
- * Export OGREnvelope C++ class with CPL_DLL as per bug 378.
- *
- * Revision 1.20  2003/06/09 13:48:54  warmerda
- * added DB2 V7.2 byte order hack
- *
- * Revision 1.19  2003/05/08 13:27:22  warmerda
- * dont use C++ comments in this c includable file
- *
- * Revision 1.18  2003/04/29 19:03:58  warmerda
- * removed extra comma
- *
- * Revision 1.17  2003/03/03 05:05:54  warmerda
- * added support for DeleteDataSource and DeleteLayer
- *
- * Revision 1.16  2003/02/19 02:57:49  warmerda
- * added wkbLinearRing support
- *
- * Revision 1.15  2003/01/14 20:08:49  warmerda
- * fixed another bug in OGREnvelope.Merge
- *
- * Revision 1.14  2003/01/07 17:51:55  warmerda
- * fixed OGREnvelope.Merge()
- *
- * Revision 1.13  2003/01/06 17:56:03  warmerda
- * Added Merge and IsInit() method on OGREnvelope
- *
- * Revision 1.12  2002/11/08 18:25:45  warmerda
- * remove extranious comma in enum, confuses HPUX compiler
- *
- * Revision 1.11  2002/11/08 15:42:41  warmerda
- * ensure type correctness of wkbFlatten
- *
- * Revision 1.10  2002/10/24 20:53:02  warmerda
- * expand tabs
- *
- * Revision 1.9  2002/09/26 18:13:17  warmerda
- * moved some defs to ogr_core.h for sharing with ogr_api.h
- *
- * Revision 1.8  2000/07/11 20:15:12  warmerda
- * apply CPL_DLL to OGR functions
- *
- * Revision 1.7  2000/07/09 20:47:35  warmerda
- * added CPL_START/END
- *
- * Revision 1.6  1999/11/18 19:02:19  warmerda
- * expanded tabs
- *
- * Revision 1.5  1999/07/07 04:23:07  danmo
- * Fixed typo in  #define _OGR_..._H_INCLUDED  line
- *
- * Revision 1.4  1999/07/05 18:56:52  warmerda
- * now includes cpl_port.h
- *
- * Revision 1.3  1999/07/05 17:19:03  warmerda
- * added OGRERR_UNSUPPORTED_SRS
- *
- * Revision 1.2  1999/05/31 15:00:37  warmerda
- * added generic OGRERR_FAILURE error code.
- *
- * Revision 1.1  1999/05/20 14:35:00  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #ifndef _OGR_CORE_H_INCLUDED
 #define _OGR_CORE_H_INCLUDED
@@ -251,7 +173,10 @@ typedef enum
   /** Array of strings */                       OFTStringList = 5,
   /** Double byte string (unsupported) */       OFTWideString = 6,
   /** List of wide strings (unsupported) */     OFTWideStringList = 7,
-  /** Raw Binary data (unsupported) */          OFTBinary = 8
+  /** Raw Binary data */                        OFTBinary = 8,
+  /** Date */                                   OFTDate = 9,
+  /** Time */                                   OFTTime = 10,
+  /** Date and Time */                          OFTDateTime = 11
 } OGRFieldType;
 
 /**
@@ -305,10 +230,29 @@ typedef union {
     */
 
     struct {
+        int     nCount;
+        GByte   *paData;
+    } Binary;
+    
+    struct {
         int     nMarker1;
         int     nMarker2;
     } Set;
+
+    struct {
+        GInt16  Year;
+        GByte   Month;
+        GByte   Day;
+        GByte   Hour;
+        GByte   Minute;
+        GByte   Second;
+        GByte   TZFlag; /* 0=unknown, 1=localtime(ambiguous), 
+                           100=GMT, 104=GMT+1, 80=GMT-5, etc */
+    } Date;
 } OGRField;
+
+int CPL_DLL OGRParseDate( const char *pszInput, OGRField *psOutput, 
+                          int nOptions );
 
 /* -------------------------------------------------------------------- */
 /*      Constants from ogrsf_frmts.h for capabilities.                  */

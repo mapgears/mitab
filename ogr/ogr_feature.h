@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogr_feature.h,v 1.29 2004/02/23 21:47:23 warmerda Exp $
+ * $Id: ogr_feature.h 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Class for representing a whole feature, and layer schemas.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999,  Les Technologies SoftMap Inc.
@@ -25,106 +25,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_feature.h,v $
- * Revision 1.29  2004/02/23 21:47:23  warmerda
- * Added GetUsedFields() and GetSWGExpr() methods on OGRFeatureQuery class
- *
- * Revision 1.28  2003/05/28 19:16:42  warmerda
- * fixed up argument names and stuff for docs
- *
- * Revision 1.27  2003/04/08 20:57:28  warmerda
- * added RemapFields on OGRFeature
- *
- * Revision 1.26  2003/03/04 05:46:31  warmerda
- * added EvaluateAgainstIndices for OGRFeatureQuery
- *
- * Revision 1.25  2003/01/08 22:03:44  warmerda
- * added StealGeometry() method on OGRFeature
- *
- * Revision 1.24  2002/10/09 14:31:06  warmerda
- * dont permit negative widths to be assigned to field definition
- *
- * Revision 1.23  2002/09/26 18:13:17  warmerda
- * moved some defs to ogr_core.h for sharing with ogr_api.h
- *
- * Revision 1.22  2002/08/07 21:37:47  warmerda
- * added indirect OGRFeaturedefn constructor/destructor
- *
- * Revision 1.21  2001/11/01 16:54:16  warmerda
- * added DestroyFeature
- *
- * Revision 1.20  2001/07/19 18:25:07  warmerda
- * expanded tabs
- *
- * Revision 1.19  2001/06/19 15:48:36  warmerda
- * added feature attribute query support
- *
- * Revision 1.18  2001/06/01 14:33:00  warmerda
- * added CreateFeature factory method
- *
- * Revision 1.17  2001/02/06 17:10:28  warmerda
- * export entry points from DLL
- *
- * Revision 1.16  2001/01/19 21:10:47  warmerda
- * replaced tabs
- *
- * Revision 1.15  2000/12/07 03:40:13  danmo
- * Removed stray comma in OGRFieldType enum defn
- *
- * Revision 1.14  2000/10/03 19:19:56  danmo
- * Made m_pszStyleString protected (was private)
- *
- * Revision 1.13  2000/10/03 18:14:29  danmo
- * Made OGRFeature::Get/SetStyleString() virtual
- *
- * Revision 1.12  2000/08/18 21:26:53  svillene
- * Add representation
- *
- * Revision 1.11  1999/11/26 03:05:38  warmerda
- * added unset field support
- *
- * Revision 1.10  1999/11/18 19:02:20  warmerda
- * expanded tabs
- *
- * Revision 1.9  1999/11/04 21:05:49  warmerda
- * Added the Set() method on OGRFieldDefn to set all info in one call,
- * and the SetFrom() method on OGRFeature to copy the contents of one
- * feature to another, even if of a different OGRFeatureDefn.
- *
- * Revision 1.8  1999/10/01 14:47:05  warmerda
- * added full family of get/set field methods with field names
- *
- * Revision 1.7  1999/08/30 14:52:33  warmerda
- * added support for StringList fields
- *
- * Revision 1.6  1999/08/26 17:38:00  warmerda
- * added support for real and integer lists
- *
- * Revision 1.5  1999/07/27 00:47:37  warmerda
- * Added FID to OGRFeature class
- *
- * Revision 1.4  1999/07/07 04:23:07  danmo
- * Fixed typo in  #define _OGR_..._H_INCLUDED  line
- *
- * Revision 1.3  1999/07/05 17:18:39  warmerda
- * added docs
- *
- * Revision 1.2  1999/06/11 19:21:27  warmerda
- * Fleshed out operational definitions
- *
- * Revision 1.1  1999/05/31 17:14:53  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #ifndef _OGR_FEATURE_H_INCLUDED
 #define _OGR_FEATURE_H_INCLUDED
 
 #include "ogr_geometry.h"
-
-class OGRStyleTable;
+#include "ogr_featurestyle.h"
 
 /**
  * \file ogr_feature.h
@@ -234,6 +141,7 @@ class CPL_DLL OGRFeatureDefn
     int         Reference() { return ++nRefCount; }
     int         Dereference() { return --nRefCount; }
     int         GetReferenceCount() { return nRefCount; }
+    void        Release();
 
     static OGRFeatureDefn  *CreateFeatureDefn( const char *pszName = NULL );
     static void         DestroyFeatureDefn( OGRFeatureDefn * );
@@ -259,7 +167,7 @@ class CPL_DLL OGRFeature
   protected: 
     char *              m_pszStyleString;
     OGRStyleTable       *m_poStyleTable;
-    
+    char *              m_pszTmpFieldValue;
     
   public:
                         OGRFeature( OGRFeatureDefn * );
@@ -281,7 +189,7 @@ class CPL_DLL OGRFeature
     int                 GetFieldIndex( const char * pszName)
                                       { return poDefn->GetFieldIndex(pszName);}
 
-    int                 IsFieldSet( int iField )
+    int                 IsFieldSet( int iField ) const
                         { return
                               pauFields[iField].Set.nMarker1 != OGRUnsetMarker
                            || pauFields[iField].Set.nMarker2 != OGRUnsetMarker;
@@ -296,7 +204,12 @@ class CPL_DLL OGRFeature
     const char         *GetFieldAsString( int i );
     const int          *GetFieldAsIntegerList( int i, int *pnCount );
     const double       *GetFieldAsDoubleList( int i, int *pnCount );
-    char              **GetFieldAsStringList( int i );
+    char              **GetFieldAsStringList( int i ) const;
+    GByte              *GetFieldAsBinary( int i, int *pnCount );
+    int                 GetFieldAsDateTime( int i, 
+                                     int *pnYear, int *pnMonth, int *pnDay,
+                                     int *pnHour, int *pnMinute, int *pnSecond, 
+                                     int *pnTZFlag );
 
     int                 GetFieldAsInteger( const char *pszFName )
                       { return GetFieldAsInteger( GetFieldIndex(pszFName) ); }
@@ -322,6 +235,10 @@ class CPL_DLL OGRFeature
     void                SetField( int i, int nCount, double * padfValues );
     void                SetField( int i, char ** papszValues );
     void                SetField( int i, OGRField * puValue );
+    void                SetField( int i, int nCount, GByte * pabyBinary );
+    void                SetField( int i, int nYear, int nMonth, int nDay,
+                                  int nHour=0, int nMinute=0, int nSecond=0, 
+                                  int nTZFlag = 0 );
 
     void                SetField( const char *pszFName, int nValue )
                            { SetField( GetFieldIndex(pszFName), nValue ); }
@@ -339,6 +256,13 @@ class CPL_DLL OGRFeature
                            { SetField( GetFieldIndex(pszFName), papszValues); }
     void                SetField( const char *pszFName, OGRField * puValue )
                            { SetField( GetFieldIndex(pszFName), puValue ); }
+    void                SetField( const char *pszFName, 
+                                  int nYear, int nMonth, int nDay,
+                                  int nHour=0, int nMinute=0, int nSecond=0, 
+                                  int nTZFlag = 0 )
+                           { SetField( GetFieldIndex(pszFName), 
+                                       nYear, nMonth, nDay, 
+                                       nHour, nMinute, nSecond, nTZFlag ); }
 
     long                GetFID() { return nFID; }
     virtual OGRErr      SetFID( long nFID );
@@ -351,8 +275,13 @@ class CPL_DLL OGRFeature
                                      int *panRemapSource );
 
     virtual const char *GetStyleString();
-    virtual void        SetStyleString(const char *);
+    virtual void        SetStyleString( const char * );
+    virtual void        SetStyleStringDirectly( char * );
+    virtual OGRStyleTable *GetStyleTable() { return m_poStyleTable; }
     virtual void        SetStyleTable(OGRStyleTable *poStyleTable);
+    virtual void        SetStyleTableDirectly(OGRStyleTable *poStyleTable)
+                            { if ( m_poStyleTable ) delete m_poStyleTable;
+                              m_poStyleTable = poStyleTable; }
 
     static OGRFeature  *CreateFeature( OGRFeatureDefn * );
     static void         DestroyFeature( OGRFeature * );

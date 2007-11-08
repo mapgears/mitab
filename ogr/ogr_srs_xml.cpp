@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_srs_xml.cpp,v 1.7 2005/05/11 14:37:25 fwarmerdam Exp $
+ * $Id: ogr_srs_xml.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  OGRSpatialReference interface to OGC XML (014r4).
@@ -25,31 +25,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_srs_xml.cpp,v $
- * Revision 1.7  2005/05/11 14:37:25  fwarmerdam
- * add id on projectedcrs
- *
- * Revision 1.6  2005/01/17 17:04:24  fwarmerdam
- * major overhaul to more-or-less GML 3 CRS support
- *
- * Revision 1.5  2003/05/21 04:49:17  warmerda
- * avoid warnings
- *
- * Revision 1.4  2003/03/28 17:43:52  warmerda
- * rewrote to use new URN and projections proposal
- *
- * Revision 1.3  2003/03/21 22:14:43  warmerda
- * first pass re-implementation using GML 3 schemas
- *
- * Revision 1.2  2002/04/18 14:22:45  warmerda
- * made OGRSpatialReference and co 'const correct'
- *
- * Revision 1.1  2001/12/06 18:16:17  warmerda
- * new
- *
- */
+ ****************************************************************************/
 
 #include "ogr_spatialref.h"
 #include "ogr_p.h"
@@ -187,13 +163,10 @@ AddValueIDWithURN( CPLXMLNode *psTarget,
                    const char *pszVersion = "" )
     
 {
-    char szCode[128];
     CPLXMLNode *psElement;
 
-    sprintf( szCode, "%d", nCode );
-
-    psElement = CPLCreateXMLElementAndValue( psTarget, pszElement, szCode );
-    addURN( psElement, pszAuthority, pszObjectType, 0, pszVersion );
+    psElement = CPLCreateXMLNode( psTarget, CXT_Element, pszElement );
+    addURN( psElement, pszAuthority, pszObjectType, nCode, pszVersion );
 
     return psElement;
 }
@@ -672,6 +645,26 @@ static CPLXMLNode *exportProjCSToXML( const OGRSpatialReference *poSRS )
     }
 
 /* -------------------------------------------------------------------- */
+/*      Lambert Conformal Conic                                         */
+/* -------------------------------------------------------------------- */
+    else if( EQUAL(pszProjection, SRS_PT_LAMBERT_CONFORMAL_CONIC_1SP) )
+    {
+        AddValueIDWithURN( psConv, "gml:usesMethod", "EPSG", "method", 
+                           9801 );
+
+        addProjArg( poSRS, psConv, "Angular", 0.0,
+                    8801, SRS_PP_LATITUDE_OF_ORIGIN );
+        addProjArg( poSRS, psConv, "Angular", 0.0,
+                    8802, SRS_PP_CENTRAL_MERIDIAN );
+        addProjArg( poSRS, psConv, "Unitless", 1.0,
+                    8805, SRS_PP_SCALE_FACTOR );
+        addProjArg( poSRS, psConv, "Linear", 0.0,
+                    8806, SRS_PP_FALSE_EASTING );
+        addProjArg( poSRS, psConv, "Linear", 0.0,
+                    8807, SRS_PP_FALSE_NORTHING );
+    }
+
+/* -------------------------------------------------------------------- */
 /*      Define the cartesian coordinate system.                         */
 /* -------------------------------------------------------------------- */
     CPLXMLNode  *psCCS;
@@ -842,11 +835,101 @@ static void importXMLAuthority( CPLXMLNode *psSrcXML,
 }
 
 /************************************************************************/
+/*                           ParseOGCDefURN()                           */
+/*                                                                      */
+/*      Parse out fields from a URN of the form:                        */
+/*        urn:ogc:def:parameter:EPSG:6.3:9707                           */
+/************************************************************************/
+
+static int ParseOGCDefURN( const char *pszURN, 
+                           CPLString *poObjectType,
+                           CPLString *poAuthority,
+                           CPLString *poVersion, 
+                           CPLString *poValue )
+
+{
+    if( poObjectType != NULL )
+        *poObjectType = "";
+
+    if( poAuthority != NULL )
+        *poAuthority = "";
+
+    if( poVersion != NULL )
+        *poVersion = "";
+
+    if( poValue != NULL )
+        *poValue = "";
+
+    if( pszURN == NULL || !EQUALN(pszURN,"urn:ogc:def:",12) )
+        return FALSE;
+
+    char **papszTokens = CSLTokenizeStringComplex( pszURN + 12, ":", 
+                                                   FALSE, TRUE );
+
+    if( CSLCount(papszTokens) != 4 )
+    {
+        CSLDestroy( papszTokens );
+        return FALSE;
+    }
+
+    if( poObjectType != NULL )
+        *poObjectType = papszTokens[0];
+
+    if( poAuthority != NULL )
+        *poAuthority = papszTokens[1];
+
+    if( poVersion != NULL )
+        *poVersion = papszTokens[2];
+
+    if( poValue != NULL )
+        *poValue = papszTokens[3];
+
+    CSLDestroy( papszTokens );
+    return TRUE;
+}
+
+/************************************************************************/
+/*                       getEPSGObjectCodeValue()                       */
+/*                                                                      */
+/*      Fetch a code value from the indicated node.  Should work on     */
+/*      something of the form <elem xlink:href="urn:...:n" /> or        */
+/*      something of the form <elem xlink:href="urn:...:">n</a>.        */
+/************************************************************************/
+
+static int getEPSGObjectCodeValue( CPLXMLNode *psNode, 
+                                   const char *pszEPSGObjectType, /*"method" */
+                                   int nDefault )
+
+{
+    if( psNode == NULL )
+        return nDefault;
+    
+    CPLString osObjectType, osAuthority, osValue;
+    
+    if( !ParseOGCDefURN( CPLGetXMLValue( psNode, "href", NULL ),
+                         &osObjectType, &osAuthority, NULL, &osValue ) )
+        return nDefault;
+
+    if( !EQUAL(osAuthority,"EPSG") 
+        || !EQUAL(osObjectType, pszEPSGObjectType) )
+        return nDefault;
+
+    if( strlen(osValue) > 0 )
+        return atoi(osValue);
+
+    const char *pszValue = CPLGetXMLValue( psNode, "", NULL);
+    if( pszValue != NULL )
+        return atoi(pszValue);
+    else
+        return nDefault;
+}
+
+/************************************************************************/
 /*                         getProjectionParm()                          */
 /************************************************************************/
 
 static double getProjectionParm( CPLXMLNode *psRootNode, 
-                                  int nParameterCode, 
+                                 int nParameterCode, 
                                  const char * /*pszMeasureType */, 
                                  double dfDefault )
 
@@ -857,12 +940,16 @@ static double getProjectionParm( CPLXMLNode *psRootNode,
          psUsesParameter != NULL;
          psUsesParameter = psUsesParameter->psNext )
     {
-        if( psUsesParameter->eType != CXT_Element
-            || !EQUAL(psUsesParameter->pszValue,"usesParameterValue") )
+        if( psUsesParameter->eType != CXT_Element )
             continue;
 
-        if( atoi(CPLGetXMLValue( psUsesParameter, "valueOfParameter", "0" ))
-            == nParameterCode )
+        if( !EQUAL(psUsesParameter->pszValue,"usesParameterValue") 
+            && !EQUAL(psUsesParameter->pszValue,"usesValue") )
+            continue;
+
+        if( getEPSGObjectCodeValue( CPLGetXMLNode(psUsesParameter,
+                                                  "valueOfParameter"),
+                                    "parameter", 0 ) == nParameterCode )
         {
             const char *pszValue = CPLGetXMLValue( psUsesParameter, "value", 
                                                    NULL );
@@ -1097,13 +1184,10 @@ static OGRErr importProjCSFromXML( OGRSpatialReference *poSRS,
     }
 
 /* -------------------------------------------------------------------- */
-/*      Determine the conversion method in effect.  We really ought     */
-/*      to  check the xlink:href URN to see if this is an EPSG          */
-/*      method value, but it is unlikely that other code spaces will    */
-/*      conflict.                                                       */
+/*      Determine the conversion method in effect.                      */
 /* -------------------------------------------------------------------- */
-    int nMethod = atoi(
-        CPLGetXMLValue( psConv, "usesMethod", "0" ) );
+    int nMethod = getEPSGObjectCodeValue( CPLGetXMLNode( psConv, "usesMethod"),
+                                          "method", 0 );
     
 /* -------------------------------------------------------------------- */
 /*      Transverse Mercator.                                            */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrdatasource.cpp,v 1.22 2004/11/21 22:09:38 fwarmerdam Exp $
+ * $Id: ogrdatasource.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The generic portions of the OGRDataSource class.
@@ -25,77 +25,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrdatasource.cpp,v $
- * Revision 1.22  2004/11/21 22:09:38  fwarmerdam
- * added DestroyDataSource() static method, and Release() method
- *
- * Revision 1.21  2003/11/05 21:43:54  warmerda
- * Removed destructor debug message ... too much extra noise.
- *
- * Revision 1.20  2003/05/28 19:18:04  warmerda
- * fixup argument names for docs
- *
- * Revision 1.19  2003/05/21 04:54:29  warmerda
- * avoid warnings about unused formal parameters and possibly uninit variables
- *
- * Revision 1.18  2003/04/23 16:27:15  warmerda
- * (re) filled OGR_DS_GetName()
- *
- * Revision 1.17  2003/04/22 19:36:04  warmerda
- * Added SyncToDisk
- *
- * Revision 1.16  2003/04/08 19:31:58  warmerda
- * added CopyLayer and CopyDataSource entry points
- *
- * Revision 1.15  2003/03/20 20:21:40  warmerda
- * implement DROP INDEX command
- *
- * Revision 1.14  2003/03/20 19:11:55  warmerda
- * added debug messages
- *
- * Revision 1.13  2003/03/19 20:35:49  warmerda
- * Added support for reference counting.
- * Added support for joins from tables in other datasources.
- *
- * Revision 1.12  2003/03/19 05:12:34  warmerda
- * fixed memory leak
- *
- * Revision 1.11  2003/03/05 05:13:49  warmerda
- * added getlayerbyname, implement join support
- *
- * Revision 1.10  2003/03/04 05:47:49  warmerda
- * added CREATE INDEX support
- *
- * Revision 1.9  2003/03/03 05:06:27  warmerda
- * added support for DeleteDataSource and DeleteLayer
- *
- * Revision 1.8  2002/09/26 18:16:19  warmerda
- * added C entry points
- *
- * Revision 1.7  2002/05/01 18:26:27  warmerda
- * Fixed reporting of error on table.
- *
- * Revision 1.6  2002/04/29 19:35:50  warmerda
- * fixes for selecting FID
- *
- * Revision 1.5  2002/04/25 03:42:04  warmerda
- * fixed spatial filter support on SQL results
- *
- * Revision 1.4  2002/04/25 02:24:45  warmerda
- * added ExecuteSQL method
- *
- * Revision 1.3  2001/07/18 04:55:16  warmerda
- * added CPL_CSVID
- *
- * Revision 1.2  2000/08/21 16:37:43  warmerda
- * added constructor, and initialization of styletable
- *
- * Revision 1.1  1999/11/04 21:10:51  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogrsf_frmts.h"
 #include "ogr_api.h"
@@ -103,11 +33,7 @@
 #include "ogr_gensql.h"
 #include "ogr_attrind.h"
 
-CPL_C_START
-#include "swq.h"
-CPL_C_END
-
-CPL_CVSID("$Id: ogrdatasource.cpp,v 1.22 2004/11/21 22:09:38 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogrdatasource.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 /************************************************************************/
 /*                           ~OGRDataSource()                           */
@@ -118,6 +44,7 @@ OGRDataSource::OGRDataSource()
 {
     m_poStyleTable = NULL;
     m_nRefCount = 0;
+    m_poDriver = NULL;
 }
 
 /************************************************************************/
@@ -127,6 +54,11 @@ OGRDataSource::OGRDataSource()
 OGRDataSource::~OGRDataSource()
 
 {
+    if ( m_poStyleTable )
+    {
+        delete m_poStyleTable;
+        m_poStyleTable = NULL;
+    }
 }
 
 /************************************************************************/
@@ -411,6 +343,9 @@ OGRErr OGR_DS_DeleteLayer( OGRDataSourceH hDS, int iLayer )
 OGRLayer *OGRDataSource::GetLayerByName( const char *pszName )
 
 {
+    if ( ! pszName )
+        return NULL;
+
     int  i;
 
     /* first a case sensitive check */
@@ -707,7 +642,7 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
 /*      Validate that all the source tables are recognised, count       */
 /*      fields.                                                         */
 /* -------------------------------------------------------------------- */
-    int  nFieldCount = 0, iTable;
+    int  nFieldCount = 0, iTable, iField;
 
     for( iTable = 0; iTable < psSelectInfo->table_count; iTable++ )
     {
@@ -761,21 +696,20 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
     sFieldList.table_defs = psSelectInfo->table_defs;
 
     sFieldList.count = 0;
-    sFieldList.names = (char **) CPLMalloc( sizeof(char *) * (nFieldCount+1) );
+    sFieldList.names = (char **) CPLMalloc( sizeof(char *) * (nFieldCount+SPECIAL_FIELD_COUNT) );
     sFieldList.types = (swq_field_type *)  
-        CPLMalloc( sizeof(swq_field_type) * (nFieldCount+1) );
+        CPLMalloc( sizeof(swq_field_type) * (nFieldCount+SPECIAL_FIELD_COUNT) );
     sFieldList.table_ids = (int *) 
-        CPLMalloc( sizeof(int) * (nFieldCount+1) );
+        CPLMalloc( sizeof(int) * (nFieldCount+SPECIAL_FIELD_COUNT) );
     sFieldList.ids = (int *) 
-        CPLMalloc( sizeof(int) * (nFieldCount+1) );
+        CPLMalloc( sizeof(int) * (nFieldCount+SPECIAL_FIELD_COUNT) );
     
     for( iTable = 0; iTable < psSelectInfo->table_count; iTable++ )
     {
         swq_table_def *psTableDef = psSelectInfo->table_defs + iTable;
         OGRDataSource *poTableDS = this;
         OGRLayer *poSrcLayer;
-        int      iField;
-
+        
         if( psTableDef->data_source != NULL )
         {
             poTableDS = (OGRDataSource *) 
@@ -811,8 +745,7 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
     }
 
 /* -------------------------------------------------------------------- */
-/*      Expand '*' in 'SELECT *' now before we add the pseudo field     */
-/*      'FID'.                                                          */
+/*      Expand '*' in 'SELECT *' now before we add the pseudo fields    */
 /* -------------------------------------------------------------------- */
     pszError = 
         swq_select_expand_wildcard( psSelectInfo, &sFieldList );
@@ -824,13 +757,15 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
         return NULL;
     }
 
-    sFieldList.names[sFieldList.count] = "FID";
-    sFieldList.types[sFieldList.count] = SWQ_INTEGER;
-    sFieldList.table_ids[sFieldList.count] = 0;
-    sFieldList.ids[sFieldList.count] = nFIDIndex;
+    for (iField = 0; iField < SPECIAL_FIELD_COUNT; iField++)
+    {
+        sFieldList.names[sFieldList.count] = SpecialFieldNames[iField];
+        sFieldList.types[sFieldList.count] = SpecialFieldTypes[iField];
+        sFieldList.table_ids[sFieldList.count] = 0;
+        sFieldList.ids[sFieldList.count] = nFIDIndex + iField;
+        sFieldList.count++;
+    }
     
-    sFieldList.count++;
-
 /* -------------------------------------------------------------------- */
 /*      Finish the parse operation.                                     */
 /* -------------------------------------------------------------------- */
@@ -972,3 +907,24 @@ OGRErr OGR_DS_SyncToDisk( OGRDataSourceH hDS )
 {
     return ((OGRDataSource *) hDS)->SyncToDisk();
 }
+
+/************************************************************************/
+/*                             GetDriver()                              */
+/************************************************************************/
+
+OGRSFDriver *OGRDataSource::GetDriver() const
+
+{
+    return m_poDriver;
+}
+
+/************************************************************************/
+/*                          OGR_DS_GetDriver()                          */
+/************************************************************************/
+
+OGRSFDriverH OGR_DS_GetDriver( OGRDataSourceH hDS )
+
+{
+    return (OGRSFDriverH) ((OGRDataSource *) hDS)->GetDriver();
+}
+

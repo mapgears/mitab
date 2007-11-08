@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_minixml.h,v 1.12 2005/03/09 17:07:25 fwarmerdam Exp $
+ * $Id: cpl_minixml.h 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Declarations for MiniXML Handler.
@@ -25,47 +25,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
  * DEALINGS IN THE SOFTWARE.
- **********************************************************************
- *
- * $Log: cpl_minixml.h,v $
- * Revision 1.12  2005/03/09 17:07:25  fwarmerdam
- * added CPLSearchXMLNode
- *
- * Revision 1.11  2004/01/29 15:29:28  warmerda
- * Added CPLCleanXMLElementName
- *
- * Revision 1.10  2003/12/04 15:46:51  warmerda
- * Added CPLAddXMLSibling()
- *
- * Revision 1.9  2003/11/05 20:14:21  warmerda
- * added lots of documentation
- *
- * Revision 1.8  2003/03/27 18:12:41  warmerda
- * Added NULL pszNameSpace support in namespace stripper (all namespaces).
- * Added XML file read/write functions.
- *
- * Revision 1.7  2003/03/24 16:46:48  warmerda
- * added CPLStripXMLNamespace
- *
- * Revision 1.6  2002/11/16 20:38:34  warmerda
- * added support for literals like DOCTYPE
- *
- * Revision 1.5  2002/05/24 04:09:10  warmerda
- * added clone and SetXMLValue functions
- *
- * Revision 1.4  2002/03/05 14:26:57  warmerda
- * expanded tabs
- *
- * Revision 1.3  2002/01/23 20:45:06  warmerda
- * handle <?...?> and comment elements
- *
- * Revision 1.2  2001/12/06 18:13:49  warmerda
- * added CPLAddXMLChild and CPLCreateElmentAndValue
- *
- * Revision 1.1  2001/11/16 15:39:48  warmerda
- * New
- *
- **********************************************************************/
+ ****************************************************************************/
 
 #ifndef _CPL_MINIXML_H_INCLUDED
 #define _CPL_MINIXML_H_INCLUDED
@@ -105,7 +65,7 @@ typedef enum
 typedef struct _CPLXMLNode
 {
     /** 
-     * Node type
+     * \brief Node type
      *
      * One of CXT_Element, CXT_Text, CXT_Attribute, CXT_Comment, 
      * or CXT_Literal.
@@ -113,7 +73,7 @@ typedef struct _CPLXMLNode
     CPLXMLNodeType      eType;       
     
     /** 
-     * Node value
+     * \brief Node value
      *
      * For CXT_Element this is the name of the element, without the angle
      * brackets.  Note there is a single CXT_Element even when the document
@@ -136,7 +96,7 @@ typedef struct _CPLXMLNode
     char                *pszValue;   
 
     /** 
-     * Next sibling. 
+     * \brief Next sibling. 
      *
      * Pointer to next sibling, that is the next node appearing after this
      * one that has the same parent as this node.  NULL if this node is the
@@ -145,7 +105,7 @@ typedef struct _CPLXMLNode
     struct _CPLXMLNode  *psNext;     
 
     /** 
-     * Child node.
+     * \brief Child node.
      *
      * Pointer to first child node, if any.  Only CXT_Element and CXT_Attribute
      * nodes should have children.  For CXT_Attribute it should be a single
@@ -173,6 +133,8 @@ CPLXMLNode CPL_DLL *CPLCreateXMLNode( CPLXMLNode *poParent,
 char       CPL_DLL *CPLSerializeXMLTree( CPLXMLNode *psNode );
 void       CPL_DLL  CPLAddXMLChild( CPLXMLNode *psParent,
                                     CPLXMLNode *psChild );
+int        CPL_DLL  CPLRemoveXMLChild( CPLXMLNode *psParent,
+                                       CPLXMLNode *psChild );
 void       CPL_DLL  CPLAddXMLSibling( CPLXMLNode *psOlderSibling,
                                       CPLXMLNode *psNewSibling );
 CPLXMLNode CPL_DLL *CPLCreateXMLElementAndValue( CPLXMLNode *psParent,

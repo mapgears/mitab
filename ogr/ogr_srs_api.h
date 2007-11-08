@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogr_srs_api.h,v 1.52 2005/05/09 15:39:44 fwarmerdam Exp $
+ * $Id: ogr_srs_api.h 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  C API and constant declarations for OGR Spatial References.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 2000, Frank Warmerdam
@@ -25,167 +25,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_srs_api.h,v $
- * Revision 1.52  2005/05/09 15:39:44  fwarmerdam
- * Added TM_MI_21 as per email from Safe.
- *
- * Revision 1.51  2005/04/06 00:02:05  fwarmerdam
- * various osr and oct functions now stdcall
- *
- * Revision 1.50  2005/02/17 16:34:17  fwarmerdam
- * OSRCloneCS() should be OSRClone().
- *
- * Revision 1.49  2005/02/11 14:21:28  fwarmerdam
- * added GEOS projection support
- *
- * Revision 1.48  2005/01/05 21:02:33  fwarmerdam
- * added Goode Homolosine
- *
- * Revision 1.47  2004/11/11 18:28:45  fwarmerdam
- * added Bonne projection support
- *
- * Revision 1.46  2004/09/23 16:20:13  fwarmerdam
- * added OSRCleanup
- *
- * Revision 1.45  2004/05/12 19:25:54  dron
- * SRS_DN_WGS72 constant added.
- *
- * Revision 1.44  2004/05/10 17:05:14  warmerda
- * added AutoIdentifyEPSG()
- *
- * Revision 1.43  2004/05/06 19:26:04  dron
- * Added OSRSetProjection() function.
- *
- * Revision 1.42  2004/03/04 18:04:45  warmerda
- * added importFromDict() support
- *
- * Revision 1.41  2004/02/07 17:31:21  dron
- * Added OSRExportToUSGS() method.
- *
- * Revision 1.40  2004/02/05 17:07:59  dron
- * Support for HOM projection, specified by two points on centerline.
- *
- * Revision 1.39  2004/02/01 14:23:29  dron
- * Added OSRImportFromUSGS().
- *
- * Revision 1.38  2004/01/24 09:35:00  warmerda
- * added TransformEx support to capture per point reprojection failure
- *
- * Revision 1.37  2003/09/09 07:49:52  dron
- * Added OSRExportToPCI().
- *
- * Revision 1.36  2003/08/31 14:51:01  dron
- * Added OSRImportFromPCI().
- *
- * Revision 1.35  2003/08/18 13:26:01  warmerda
- * added SetTMVariant() and related definitions
- *
- * Revision 1.34  2003/06/21 23:24:36  warmerda
- * added Set/Get TOWGS84 calls
- *
- * Revision 1.33  2003/06/19 17:10:26  warmerda
- * a couple fixes in last commit
- *
- * Revision 1.32  2003/06/18 18:24:17  warmerda
- * added projection specific set methods to C API
- *
- * Revision 1.31  2003/06/10 09:31:12  dron
- * Added OSRSetAngularUnits() and OSRGetAngularUnits().
- *
- * Revision 1.30  2003/05/30 15:39:53  warmerda
- * Added override units capability for SetStatePlane()
- *
- * Revision 1.29  2003/03/21 22:15:11  warmerda
- * added C XML import/export entry points
- *
- * Revision 1.28  2003/03/12 14:29:34  warmerda
- * Rename OGRAxisOrientation and OGRDatumType values to avoid conflicts with
- * the real OGC definitions in applications such as Cadcorps.
- *
- * Revision 1.27  2003/02/25 04:53:38  warmerda
- * added OSRCopyGeogCSFrom
- *
- * Revision 1.26  2003/02/06 04:53:12  warmerda
- * added Fixup() method
- *
- * Revision 1.25  2003/01/08 18:14:28  warmerda
- * added FixupOrdering()
- *
- * Revision 1.24  2002/12/16 17:07:13  warmerda
- * added NormProjParm functions, and OSRGetPrimeMeridian
- *
- * Revision 1.23  2002/12/14 22:59:14  warmerda
- * added Krovak in ESRI compatible way
- *
- * Revision 1.22  2002/12/09 18:55:07  warmerda
- * moved DMS stuff to gdal/port
- *
- * Revision 1.21  2002/12/09 16:11:53  warmerda
- * added DMS translation
- *
- * Revision 1.20  2002/11/25 16:12:54  warmerda
- * added GetAuthorityCode/Name
- *
- * Revision 1.19  2002/09/26 18:13:25  warmerda
- * avoid double def
- *
- * Revision 1.18  2002/06/11 18:02:03  warmerda
- * add PROJ.4 normalization and EPSG support
- *
- * Revision 1.17  2001/10/11 19:27:12  warmerda
- * upgraded validation infrastructure
- *
- * Revision 1.16  2001/10/10 20:42:43  warmerda
- * added ESRI WKT morphing support
- *
- * Revision 1.15  2001/09/21 16:21:02  warmerda
- * added Clear(), and SetFromUserInput() methods
- *
- * Revision 1.14  2000/11/09 06:21:32  warmerda
- * added limited ESRI prj support
- *
- * Revision 1.13  2000/10/20 04:19:38  warmerda
- * added setstateplane
- *
- * Revision 1.12  2000/10/16 21:26:07  warmerda
- * added some level of LOCAL_CS support
- *
- * Revision 1.11  2000/09/01 20:58:01  warmerda
- * added CPL_DLL for entry points
- *
- * Revision 1.10  2000/08/30 20:06:14  warmerda
- * added projection method list functions
- *
- * Revision 1.9  2000/08/28 20:13:23  warmerda
- * added importFromProj4
- *
- * Revision 1.8  2000/07/11 01:02:06  warmerda
- * added ExportToProj4()
- *
- * Revision 1.7  2000/07/09 20:48:02  warmerda
- * added exportToPrettyWkt
- *
- * Revision 1.6  2000/05/30 22:45:44  warmerda
- * added OSRCloneGeogCS()
- *
- * Revision 1.5  2000/04/26 18:25:56  warmerda
- * added missing CPL_DLL attributes
- *
- * Revision 1.4  2000/03/22 01:09:43  warmerda
- * added SetProjCS and SetWellKnownTextCS
- *
- * Revision 1.3  2000/03/20 23:33:51  warmerda
- * updated docs a bit
- *
- * Revision 1.2  2000/03/20 22:39:31  warmerda
- * Added C API.
- *
- * Revision 1.1  2000/03/16 19:04:14  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #ifndef _OGR_SRS_API_H_INCLUDED
 #define _OGR_SRS_API_H_INCLUDED
@@ -306,6 +146,8 @@ typedef enum {
 
 #define SRS_PT_TUNISIA_MINING_GRID                                      \
                                 "Tunisia_Mining_Grid"
+#define SRS_PT_TWO_POINT_EQUIDISTANT                                    \
+                                "Two_Point_Equidistant"
 #define SRS_PT_VANDERGRINTEN    "VanDerGrinten"
 #define SRS_PT_KROVAK           "Krovak"
 
@@ -336,6 +178,10 @@ typedef enum {
 #define SRS_PP_SATELLITE_HEIGHT         "satellite_height"
 #define SRS_PP_FIPSZONE                 "fipszone"
 #define SRS_PP_ZONE                     "zone"
+#define SRS_PP_LATITUDE_OF_1ST_POINT    "Latitude_Of_1st_Point"
+#define SRS_PP_LONGITUDE_OF_1ST_POINT   "Longitude_Of_1st_Point"
+#define SRS_PP_LATITUDE_OF_2ND_POINT    "Latitude_Of_2nd_Point"
+#define SRS_PP_LONGITUDE_OF_2ND_POINT   "Longitude_Of_2nd_Point"
 
 #define SRS_UL_METER            "Meter"
 #define SRS_UL_FOOT             "Foot (International)" /* or just "FOOT"? */
@@ -347,7 +193,7 @@ typedef enum {
 #define SRS_UL_LINK             "Link"          /* Based on US Foot */
 #define SRS_UL_LINK_CONV                    "0.20116684023368047"
 #define SRS_UL_CHAIN            "Chain"         /* based on US Foot */
-#define SRS_UL_CHAIN_CONV                   "2.0116684023368047"
+#define SRS_UL_CHAIN_CONV                   "20.116684023368047"
 #define SRS_UL_ROD              "Rod"           /* based on US Foot */
 #define SRS_UL_ROD_CONV                     "5.02921005842012"
 
@@ -385,6 +231,7 @@ void CPL_DLL CPL_STDCALL OSRDestroySpatialReference( OGRSpatialReferenceH );
 
 int CPL_DLL OSRReference( OGRSpatialReferenceH );
 int CPL_DLL OSRDereference( OGRSpatialReferenceH );
+void CPL_DLL OSRRelease( OGRSpatialReferenceH );
 
 OGRErr CPL_DLL OSRValidate( OGRSpatialReferenceH );
 OGRErr CPL_DLL OSRFixupOrdering( OGRSpatialReferenceH );
@@ -402,6 +249,9 @@ OGRErr CPL_DLL OSRImportFromUSGS( OGRSpatialReferenceH,
 OGRErr CPL_DLL OSRImportFromXML( OGRSpatialReferenceH, const char * );
 OGRErr CPL_DLL OSRImportFromDict( OGRSpatialReferenceH, const char *, 
                                   const char * );
+OGRErr OSRImportFromPanorama( OGRSpatialReferenceH, long, long, long, long,
+                              double, double, double, double );
+
 OGRErr CPL_DLL CPL_STDCALL OSRExportToWkt( OGRSpatialReferenceH, char ** );
 OGRErr CPL_DLL CPL_STDCALL OSRExportToPrettyWkt( OGRSpatialReferenceH, char **, int);
 OGRErr CPL_DLL CPL_STDCALL OSRExportToProj4( OGRSpatialReferenceH, char **);
@@ -410,6 +260,8 @@ OGRErr CPL_DLL OSRExportToPCI( OGRSpatialReferenceH, char **, char **,
 OGRErr CPL_DLL OSRExportToUSGS( OGRSpatialReferenceH, long *, long *,
                                 double **, long * );
 OGRErr CPL_DLL OSRExportToXML( OGRSpatialReferenceH, char **, const char * );
+OGRErr OSRExportToPanorama( OGRSpatialReferenceH, long *, long *, long *,
+                            long *, double *, double *, double *, double * );
 
 OGRErr CPL_DLL OSRMorphToESRI( OGRSpatialReferenceH );
 OGRErr CPL_DLL OSRMorphFromESRI( OGRSpatialReferenceH );
@@ -540,8 +392,9 @@ OGRErr CPL_DLL OSRSetGH( OGRSpatialReferenceH hSRS, double dfCentralMeridian,
                          double dfFalseEasting, double dfFalseNorthing );
     
 /** GEOS - Geostationary Satellite View */
-OGRErr CPL_DLL OSRSetGEOS( OGRSpatialReferenceH hSRS, double dfSatelliteHeight,
-                         double dfFalseEasting, double dfFalseNorthing );
+OGRErr CPL_DLL OSRSetGEOS( OGRSpatialReferenceH hSRS, 
+                           double dfCentralMeridian, double dfSatelliteHeight,
+                           double dfFalseEasting, double dfFalseNorthing );
     
 /** Gnomonic */
 OGRErr CPL_DLL OSRSetGnomonic(OGRSpatialReferenceH hSRS,

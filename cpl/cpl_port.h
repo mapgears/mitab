@@ -1,26 +1,13 @@
 /******************************************************************************
- * $Id: cpl_port.h,v 1.42 2005/04/04 15:22:36 fwarmerdam Exp $
+ * $Id: cpl_port.h 11983 2007-08-28 17:35:15Z warmerdam $
  *
  * Project:  CPL - Common Portability Library
  * Author:   Frank Warmerdam, warmerdam@pobox.com
- * Purpose:  
- * Include file providing low level portability services for CPL.  This
- * should be the first include file for any CPL based code.  It provides the
- * following:
- *
- * o Includes some standard system include files, such as stdio, and stdlib.
- *
- * o Defines CPL_C_START, CPL_C_END macros.
- *
- * o Ensures that some other standard macros like NULL are defined.
- *
- * o Defines some portability stuff like CPL_MSB, or CPL_LSB.
- *
- * o Ensures that core types such as GBool, GInt32, GInt16, GUInt32, 
- *   GUInt16, and GByte are defined.
+ * Purpose:  Include file providing low level portability services for CPL.  
+ *           This should be the first include file for any CPL based code.  
  *
  ******************************************************************************
- * Copyright (c) 1998, Frank Warmerdam
+ * Copyright (c) 1998, 2005, Frank Warmerdam <warmerdam@pobox.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -39,88 +26,15 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: cpl_port.h,v $
- * Revision 1.42  2005/04/04 15:22:36  fwarmerdam
- * added CPL_STDCALL declaration
- *
- * Revision 1.41  2005/03/17 04:20:24  fwarmerdam
- * added FORCE_CDECL
- *
- * Revision 1.40  2005/03/11 14:59:07  fwarmerdam
- * Default to assuming nothing is infinite if isinf() macro not defined.
- * Per http://bugzilla.remotesensing.org/show_bug.cgi?id=795
- *
- * Revision 1.39  2005/03/01 21:22:07  fwarmerdam
- * added CPLIsFinite()
- *
- * Revision 1.38  2005/03/01 20:44:38  fwarmerdam
- * Check for _MSC_VER instead of WIN32.
- *
- * Revision 1.37  2005/03/01 19:57:55  fwarmerdam
- * Added CPLIsNan and CPLIsInf macros.
- *
- * Revision 1.36  2004/01/06 21:42:32  warmerda
- * "Fix" for bug 455 related to CPL_IS_LSB macro.
- *
- * Revision 1.35  2003/12/11 03:16:02  warmerda
- * Added CPL_IS_LSB macro with value 0 (MSB) or 1 (LSB).
- *
- * Revision 1.34  2003/09/08 11:11:05  dron
- * Include time.h and locale.h.
- *
- * Revision 1.33  2003/05/12 14:52:56  warmerda
- * Use _MSC_VER to test for Microsoft Visual C++ compiler.
- *
- * Revision 1.32  2002/10/24 20:24:40  warmerda
- * avoid using variable names likely to conflict in macros
- *
- * Revision 1.31  2002/07/15 13:31:46  warmerda
- * CPL_SWAPDOUBLE had alignment problem, use CPL_SWAP64PTR
- *
- * Revision 1.30  2002/04/18 18:55:06  dron
- * added <ctype.h> at the list of standard include files
- *
- * Revision 1.29  2002/01/17 01:40:27  warmerda
- * added _LARGEFILE64_SOURCE support
- *
- * Revision 1.28  2001/08/30 21:20:49  warmerda
- * expand tabs
- *
- * Revision 1.27  2001/07/18 04:00:49  warmerda
- * added CPL_CVSID
- *
- * Revision 1.26  2001/06/21 21:17:26  warmerda
- * added irix 64bit file api support
- *
- * Revision 1.25  2001/04/30 18:18:38  warmerda
- * added macos support, standard header
- *
- * Revision 1.24  2001/01/19 21:16:41  warmerda
- * expanded tabs
- *
- * Revision 1.23  2001/01/13 04:06:39  warmerda
- * added strings.h on AIX as per patch from Dale.
- *
- * Revision 1.22  2001/01/03 16:18:07  warmerda
- * added GUIntBig
- *
- * Revision 1.21  2000/10/20 04:20:33  warmerda
- * added SWAP16PTR macros
- *
- * Revision 1.20  2000/10/13 17:32:42  warmerda
- * check for unix instead of IGNORE_WIN32
- *
- * Revision 1.19  2000/09/25 19:58:43  warmerda
- * ensure win32 doesn't get defined in Cygnus builds
- *
- * Revision 1.18  2000/07/20 13:15:03  warmerda
- * don't redeclare CPL_DLL
- */
+ ****************************************************************************/
 
 #ifndef CPL_BASE_H_INCLUDED
 #define CPL_BASE_H_INCLUDED
+
+/* Remove annoying warnings Microsoft Visual C++ */
+#if defined(_MSC_VER)
+#  pragma warning(disable:4251 4275 4786)
+#endif
 
 /**
  * \file cpl_port.h
@@ -140,12 +54,19 @@
 /* ==================================================================== */
 /*      We will use WIN32 as a standard windows define.                 */
 /* ==================================================================== */
-#if defined(_WIN32) && !defined(WIN32)
+#if defined(_WIN32) && !defined(WIN32) && !defined(_WIN32_WCE)
 #  define WIN32
 #endif
 
-#if defined(_WINDOWS) && !defined(WIN32)
+#if defined(_WINDOWS) && !defined(WIN32) && !defined(_WIN32_WCE)
 #  define WIN32
+#endif
+
+/* ==================================================================== */
+/*      We will use WIN32CE as a standard Windows CE (Mobile) define.   */
+/* ==================================================================== */
+#if defined(_WIN32_WCE)
+#  define WIN32CE
 #endif
 
 /* -------------------------------------------------------------------- */
@@ -161,6 +82,7 @@
 #  endif
 #endif
 
+
 #include "cpl_config.h"
 
 /* ==================================================================== */
@@ -170,6 +92,7 @@
 
 #ifdef unix
 #  undef WIN32
+#  undef WIN32CE
 #endif
 
 #if defined(VSI_NEED_LARGEFILE64_SOURCE) && !defined(_LARGEFILE64_SOURCE)
@@ -186,11 +109,25 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
-#include <errno.h>
-#include <time.h>
+
+#if !defined(WIN32CE)
+#  include <time.h>
+#else
+#  include <wce_time.h>
+#  include <wce_errno.h>
+#endif
+
+
+#if defined(HAVE_ERRNO_H)
+#  include <errno.h>
+#endif 
 
 #ifdef HAVE_LOCALE_H
 #  include <locale.h>
+#endif
+
+#ifdef HAVE_DIRECT_H
+#  include <direct.h>
 #endif
 
 #ifdef _AIX
@@ -269,6 +206,13 @@ typedef unsigned long    GUIntBig;
 #endif
 #endif
 
+/* Should optional (normally private) interfaces be exported? */
+#ifdef CPL_OPTIONAL_APIS
+#  define CPL_ODLL CPL_DLL
+#else
+#  define CPL_ODLL
+#endif
+
 #ifndef CPL_STDCALL
 #if defined(_MSC_VER) && !defined(CPL_DISABLE_STDCALL)
 #  define CPL_STDCALL     __stdcall
@@ -304,8 +248,17 @@ typedef unsigned long    GUIntBig;
 #  define ABS(x)        ((x<0) ? (-1*(x)) : x)
 #endif
 
+/* -------------------------------------------------------------------- */
+/*      Macro to test equality of two floating point values.            */
+/*      We use fabs() function instead of ABS() macro to avoid side     */
+/*      effects.                                                        */
+/* -------------------------------------------------------------------- */
+#ifndef CPLIsEqual
+#  define CPLIsEqual(x,y) (fabs(fabs(x) - fabs(y)) < 0.0000000000001)
+#endif
+
 #ifndef EQUAL
-#ifdef WIN32
+#if defined(WIN32) || defined(WIN32CE)
 #  define EQUALN(a,b,n)           (strnicmp(a,b,n)==0)
 #  define EQUAL(a,b)              (stricmp(a,b)==0)
 #else
@@ -318,6 +271,10 @@ typedef unsigned long    GUIntBig;
 int strcasecmp(char * str1, char * str2);
 int strncasecmp(char * str1, char * str2, int len);
 char * strdup (char *instr);
+#endif
+
+#ifndef CPL_THREADLOCAL 
+#  define CPL_THREADLOCAL 
 #endif
 
 /* -------------------------------------------------------------------- */

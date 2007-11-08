@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogrmultipolygon.cpp,v 1.13 2004/09/17 15:05:36 fwarmerdam Exp $
+ * $Id: ogrmultipolygon.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRMultiPolygon class.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
@@ -25,56 +25,12 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrmultipolygon.cpp,v $
- * Revision 1.13  2004/09/17 15:05:36  fwarmerdam
- * added get_Area() support
- *
- * Revision 1.12  2004/02/21 15:36:14  warmerda
- * const correctness updates for geometry: bug 289
- *
- * Revision 1.11  2004/01/16 21:57:17  warmerda
- * fixed up EMPTY support
- *
- * Revision 1.10  2004/01/16 21:20:00  warmerda
- * Added EMPTY support
- *
- * Revision 1.9  2003/09/11 22:47:54  aamici
- * add class constructors and destructors where needed in order to
- * let the mingw/cygwin binutils produce sensible partially linked objet files
- * with 'ld -r'.
- *
- * Revision 1.8  2003/05/28 19:16:43  warmerda
- * fixed up argument names and stuff for docs
- *
- * Revision 1.7  2002/09/11 13:47:17  warmerda
- * preliminary set of fixes for 3D WKB enum
- *
- * Revision 1.6  2001/07/19 18:25:07  warmerda
- * expanded tabs
- *
- * Revision 1.5  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.4  2001/05/24 18:05:18  warmerda
- * substantial fixes to WKT support for MULTIPOINT/LINE/POLYGON
- *
- * Revision 1.3  1999/11/18 19:02:19  warmerda
- * expanded tabs
- *
- * Revision 1.2  1999/06/25 20:44:43  warmerda
- * implemented assignSpatialReference, carry properly
- *
- * Revision 1.1  1999/05/23 05:34:36  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrmultipolygon.cpp,v 1.13 2004/09/17 15:05:36 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogrmultipolygon.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 /************************************************************************/
 /*                          OGRMultiPolygon()                           */
@@ -173,6 +129,13 @@ OGRErr OGRMultiPolygon::importFromWkt( char ** ppszInput )
 /*      list of polygons.                                               */
 /* -------------------------------------------------------------------- */
     pszInput = OGRWktReadToken( pszInput, szToken );
+
+    if( EQUAL(szToken,"EMPTY") )
+    {
+        *ppszInput = (char *) pszInput;
+        return OGRERR_NONE;
+    }
+
     if( szToken[0] != '(' )
         return OGRERR_CORRUPT_DATA;
 
@@ -300,14 +263,8 @@ OGRErr OGRMultiPolygon::exportToWkt( char ** ppszDstText ) const
 
 {
     char        **papszLines;
-    int         iLine, nCumulativeLength = 0;
+    int         iLine, nCumulativeLength = 0, nValidPolys=0;
     OGRErr      eErr;
-
-    if( getNumGeometries() == 0 )
-    {
-        *ppszDstText = CPLStrdup("MULTIPOLYGON(EMPTY)");
-        return OGRERR_NONE;
-    }
 
 /* -------------------------------------------------------------------- */
 /*      Build a list of strings containing the stuff for each ring.     */
@@ -320,10 +277,28 @@ OGRErr OGRMultiPolygon::exportToWkt( char ** ppszDstText ) const
         if( eErr != OGRERR_NONE )
             return eErr;
 
-        CPLAssert( EQUALN(papszLines[iLine],"POLYGON (", 9) );
+        if( !EQUALN(papszLines[iLine],"POLYGON (", 9) )
+        {
+            CPLDebug( "OGR", "OGRMultiPolygon::exportToWkt() - skipping %s.",
+                      papszLines[iLine] );
+            CPLFree( papszLines[iLine] );
+            papszLines[iLine] = NULL;
+            continue;
+        }
+        
         nCumulativeLength += strlen(papszLines[iLine] + 8);
+        nValidPolys++;
     }
     
+/* -------------------------------------------------------------------- */
+/*      Return MULTIPOLYGON EMPTY if we get no valid polygons.          */
+/* -------------------------------------------------------------------- */
+    if( nValidPolys == 0 )
+    {
+        *ppszDstText = CPLStrdup("MULTIPOLYGON EMPTY");
+        return OGRERR_NONE;
+    }
+
 /* -------------------------------------------------------------------- */
 /*      Allocate exactly the right amount of space for the              */
 /*      aggregated string.                                              */
@@ -340,6 +315,9 @@ OGRErr OGRMultiPolygon::exportToWkt( char ** ppszDstText ) const
 
     for( iLine = 0; iLine < getNumGeometries(); iLine++ )
     {                                                           
+        if( papszLines[iLine] == NULL )
+            continue;
+
         if( iLine > 0 )
             strcat( *ppszDstText, "," );
         

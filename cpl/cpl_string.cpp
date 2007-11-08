@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_string.cpp,v 1.42 2005/04/04 15:23:31 fwarmerdam Exp $
+ * $Id: cpl_string.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Name:     cpl_string.cpp
  * Project:  CPL - Common Portability Library
@@ -43,144 +43,17 @@
  *   arbitrary length inputs since it has a fixed size output buffer on system 
  *   without vsnprintf(). 
  *
- * $Log: cpl_string.cpp,v $
- * Revision 1.42  2005/04/04 15:23:31  fwarmerdam
- * some functions now CPL_STDCALL
- *
- * Revision 1.41  2004/09/17 21:26:28  fwarmerdam
- * Yikes ... CPLEscapeString() was badly broken for BackslashEscapable.
- *
- * Revision 1.40  2004/08/16 20:23:46  warmerda
- * added .csv escaping
- *
- * Revision 1.39  2004/07/12 21:50:38  warmerda
- * Added SQL escaping style
- *
- * Revision 1.38  2004/04/23 22:23:32  warmerda
- * Fixed key memory leak in seldom used CSLSetNameValueSeperator().
- *
- * Revision 1.37  2003/12/02 15:56:47  warmerda
- * avoid use of CSLAddString() in tokenize, manage list ourselves
- *
- * Revision 1.36  2003/08/29 17:32:27  warmerda
- * Open file in binary mode for CSLLoad() since CPLReadline() works much
- * better then.
- *
- * Revision 1.35  2003/07/17 10:15:40  dron
- * CSLTestBoolean() added.
- *
- * Revision 1.34  2003/05/28 19:22:38  warmerda
- * fixed docs
- *
- * Revision 1.33  2003/05/21 04:20:30  warmerda
- * avoid warnings
- *
- * Revision 1.32  2003/04/04 14:57:38  dron
- * _vsnprintf() hack moved to the cpl_config.h.vc.
- *
- * Revision 1.31  2003/04/04 14:16:07  dron
- * Use _vsnprintf() in Windows environment.
- *
- * Revision 1.30  2003/03/28 05:29:53  warmerda
- * Fixed buffer overflow risk in escaping code (for XML method).  Avoid
- * use of CPLSPrintf() for name/value list assembly to avoid risk with long
- * key names or values.  Use vsnprintf() in CPLSPrintf() on platforms where it
- * is available.  Security audit complete.
- *
- * Revision 1.29  2003/03/27 21:32:08  warmerda
- * Fixed bug with escaped spaces.
- *
- * Revision 1.28  2003/03/11 21:33:02  warmerda
- * added URL encode/decode support, untested
- *
- * Revision 1.27  2003/01/30 19:15:55  warmerda
- * added some docs
- *
- * Revision 1.26  2003/01/14 14:31:16  warmerda
- * Added "OFF" as a negative response to CSLFetchBoolean().
- *
- * Revision 1.25  2002/10/07 19:35:38  dron
- * Fixed description for CSLFetchBoolean()
- *
- * Revision 1.24  2002/07/12 22:37:05  warmerda
- * added CSLFetchBoolean
- *
- * Revision 1.23  2002/07/09 20:25:25  warmerda
- * expand tabs
- *
- * Revision 1.22  2002/05/28 18:53:43  warmerda
- * added XML escaping support
- *
- * Revision 1.21  2002/04/26 14:55:26  warmerda
- * Added CPLEscapeString() and CPLUnescapeString() (unescape untested)
- *
- * Revision 1.20  2002/03/05 14:26:57  warmerda
- * expanded tabs
- *
- * Revision 1.19  2002/01/16 03:59:27  warmerda
- * added CPLTokenizeString2
- *
- * Revision 1.18  2001/12/11 22:40:26  warmerda
- * cleanup CPLReadLine buffer in CSLLoad()
- *
- * Revision 1.17  2001/11/07 14:31:16  warmerda
- * doc fix
- *
- * Revision 1.16  2001/07/18 04:00:49  warmerda
- * added CPL_CVSID
- *
- * Revision 1.15  2001/01/19 21:16:41  warmerda
- * expanded tabs
- *
- * Revision 1.14  2000/10/06 15:19:03  warmerda
- * added CPLSetNameValueSeparator
- *
- * Revision 1.13  2000/08/22 17:47:50  warmerda
- * Fixed declaration of gnCPLSPrintfBuffer.
- *
- * Revision 1.12  2000/08/18 21:20:54  svillene
- * *** empty log message ***
- *
- * Revision 1.11  2000/03/30 05:38:48  warmerda
- * added CPLParseNameValue
- *
- * Revision 1.10  1999/06/26 14:05:10  warmerda
- * Added CSLFindString().
- *
- * Revision 1.9  1999/04/28 02:33:02  danmo
- * CSLInsertStrings(): make sure papszStrList is NULL-terminated properly
- *
- * Revision 1.8  1999/03/12 21:19:49  danmo
- * Fixed TokenizeStringComplex() vs strings ending with empty token,
- * and fixed a problem with CSLAdd/SetNameValue() vs empty string list.
- *
- * Revision 1.7  1999/03/09 21:29:57  warmerda
- * Added backslash escaping within string constants for tokenize function.
- *
- * Revision 1.6  1999/02/25 04:40:46  danmo
- * Modif. CSLLoad() to use CPLReadLine() (better handling of newlines)
- *
- * Revision 1.5  1999/02/17 01:41:58  warmerda
- * Added CSLGetField
- *
- * Revision 1.4  1998/12/15 19:01:40  warmerda
- * *** empty log message ***
- *
- * Revision 1.3  1998/12/05 23:04:21  warmerda
- * Use EQUALN() instead of strincmp() which doesn't exist on Linux.
- *
- * Revision 1.2  1998/12/04 21:40:42  danmo
- * Added more Name=Value manipulation fuctions
- *
- * Revision 1.1  1998/12/03 18:26:02  warmerda
- * New
- *
  **********************************************************************/
 
 #include "cpl_string.h"
 #include "cpl_vsi.h"
 
-CPL_CVSID("$Id: cpl_string.cpp,v 1.42 2005/04/04 15:23:31 fwarmerdam Exp $");
+#if defined(WIN32CE)
+#  include <wce_errno.h>
+#  include <wce_string.h>
+#endif
+
+CPL_CVSID("$Id: cpl_string.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 /*=====================================================================
                     StringList manipulation functions.
@@ -319,6 +192,46 @@ char    **CSLDuplicate(char **papszStrList)
     return papszNewList;
 }
 
+/************************************************************************/
+/*                               CSLMerge                               */
+/************************************************************************/
+
+/**
+ * \brief Merge two lists.
+ *
+ * The two lists are merged, ensuring that if any keys appear in both
+ * that the value from the second (papszOverride) list take precidence.
+ *
+ * @param papszOrig the original list, being modified.
+ * @param papszOverride the list of items being merged in.  This list
+ * is unaltered and remains owned by the caller.
+ *
+ * @return updated list.
+ */
+
+char **CSLMerge( char **papszOrig, char **papszOverride )
+
+{
+    int i;
+
+    if( papszOrig == NULL && papszOverride != NULL )
+        return CSLDuplicate( papszOverride );
+    
+    if( papszOverride == NULL )
+        return papszOrig;
+
+    for( i = 0; papszOverride[i] != NULL; i++ )
+    {
+        char *pszKey = NULL;
+        const char *pszValue = CPLParseNameValue( papszOverride[i], &pszKey );
+
+        papszOrig = CSLSetNameValue( papszOrig, pszKey, pszValue );
+        CPLFree( pszKey );
+    }
+
+    return papszOrig;
+}
+
 /**********************************************************************
  *                       CSLLoad()
  *
@@ -332,21 +245,21 @@ char **CSLLoad(const char *pszFname)
     const char  *pszLine;
     char        **papszStrList=NULL;
 
-    fp = VSIFOpen(pszFname, "rb");
+    fp = VSIFOpenL(pszFname, "rb");
 
     if (fp)
     {
-        while(!VSIFEof(fp))
+        while(!VSIFEofL(fp))
         {
-            if ( (pszLine = CPLReadLine(fp)) != NULL )
+            if ( (pszLine = CPLReadLineL(fp)) != NULL )
             {
                 papszStrList = CSLAddString(papszStrList, pszLine);
             }
         }
 
-        VSIFClose(fp);
+        VSIFCloseL(fp);
 
-        CPLReadLine( NULL );
+        CPLReadLineL( NULL );
     }
     else
     {
@@ -509,13 +422,13 @@ char **CSLInsertStrings(char **papszStrList, int nInsertAtLineNo,
  * Returns the modified StringList.
  **********************************************************************/
 char **CSLInsertString(char **papszStrList, int nInsertAtLineNo, 
-                           char *pszNewLine)
+                       const char *pszNewLine)
 {
     char *apszList[2];
 
     /* Create a temporary StringList and call CSLInsertStrings()
      */
-    apszList[0] = pszNewLine;
+    apszList[0] = (char *) pszNewLine;
     apszList[1] = NULL;
 
     return CSLInsertStrings(papszStrList, nInsertAtLineNo, apszList);
@@ -770,13 +683,9 @@ char ** CSLTokenizeString2( const char * pszString,
         pszToken[nTokenLen] = '\0';
 
         /*
-         * If the last token is an empty token, then we have to catch
-         * it now, otherwise we won't reenter the loop and it will be lost. 
+         * Add the token.
          */
-
-        if( (pszToken[0] != '\0' || bAllowEmptyTokens)
-            || (*pszString == '\0' && bAllowEmptyTokens
-                && strchr(pszDelimiters, *(pszString-1)) ) )
+        if( pszToken[0] != '\0' || bAllowEmptyTokens )
         {
             if( nRetLen >= nRetMax - 1 )
             {
@@ -788,6 +697,24 @@ char ** CSLTokenizeString2( const char * pszString,
             papszRetList[nRetLen++] = CPLStrdup( pszToken );
             papszRetList[nRetLen] = NULL;
         }
+    }
+
+    /*
+     * If the last token was empty, then we need to capture
+     * it now, as the loop would skip it.
+     */
+    if( *pszString == '\0' && bAllowEmptyTokens && nRetLen > 0 
+        && strchr(pszDelimiters,*(pszString-1)) != NULL )
+    {
+        if( nRetLen >= nRetMax - 1 )
+        {
+            nRetMax = nRetMax * 2 + 10;
+            papszRetList = (char **) 
+                CPLRealloc(papszRetList, sizeof(char*) * nRetMax );
+        }
+
+        papszRetList[nRetLen++] = CPLStrdup("");
+        papszRetList[nRetLen] = NULL;
     }
 
     if( papszRetList == NULL )
@@ -812,10 +739,10 @@ char ** CSLTokenizeString2( const char * pszString,
  */
 #define CPLSPrintf_BUF_SIZE 8000
 #define CPLSPrintf_BUF_Count 10
-static char gszCPLSPrintfBuffer[CPLSPrintf_BUF_Count][CPLSPrintf_BUF_SIZE];
-static int gnCPLSPrintfBuffer = 0;
+static CPL_THREADLOCAL char gszCPLSPrintfBuffer[CPLSPrintf_BUF_Count][CPLSPrintf_BUF_SIZE];
+static CPL_THREADLOCAL int gnCPLSPrintfBuffer = 0;
 
-const char *CPLSPrintf(char *fmt, ...)
+const char *CPLSPrintf(const char *fmt, ...)
 {
     va_list args;
 
@@ -940,7 +867,7 @@ int CSLFetchBoolean( char **papszStrList, const char *pszKey, int bDefault )
  **********************************************************************/
 const char *CSLFetchNameValue(char **papszStrList, const char *pszName)
 {
-    int nLen;
+    size_t nLen;
 
     if (papszStrList == NULL || pszName == NULL)
         return NULL;
@@ -1034,7 +961,7 @@ const char *CPLParseNameValue(const char *pszNameValue, char **ppszKey )
  **********************************************************************/
 char **CSLFetchNameValueMultiple(char **papszStrList, const char *pszName)
 {
-    int nLen;
+    size_t nLen;
     char **papszValues = NULL;
 
     if (papszStrList == NULL || pszName == NULL)
@@ -1104,7 +1031,8 @@ char **CSLAddNameValue(char **papszStrList,
  * @param pszName the name to be assigned a value.  This should be a well
  * formed token (no spaces or very special characters). 
  * @param pszValue the value to assign to the name.  This should not contain
- * any newlines (CR or LF) but is otherwise pretty much unconstrained.
+ * any newlines (CR or LF) but is otherwise pretty much unconstrained.  If
+ * NULL any corresponding value will be removed.
  *
  * @return modified stringlist.
  */
@@ -1113,9 +1041,9 @@ char **CSLSetNameValue(char **papszList,
                        const char *pszName, const char *pszValue)
 {
     char **papszPtr;
-    int nLen;
+    size_t nLen;
 
-    if (pszName == NULL || pszValue==NULL)
+    if (pszName == NULL )
         return papszList;
 
     nLen = strlen(pszName);
@@ -1133,12 +1061,35 @@ char **CSLSetNameValue(char **papszList,
             cSep = (*papszPtr)[nLen];
 
             CPLFree(*papszPtr);
-            *papszPtr = (char *) CPLMalloc(strlen(pszName)+strlen(pszValue)+2);
-            sprintf( *papszPtr, "%s%c%s", pszName, cSep, pszValue );
+
+            /* 
+             * If the value is NULL, remove this entry completely/
+             */
+            if( pszValue == NULL )
+            {
+                while( papszPtr[1] != NULL )
+                {
+                    *papszPtr = papszPtr[1];
+                    papszPtr++;
+                }
+                *papszPtr = NULL;
+            }
+
+            /*
+             * Otherwise replace with new value.
+             */
+            else
+            {
+                *papszPtr = (char *) CPLMalloc(strlen(pszName)+strlen(pszValue)+2);
+                sprintf( *papszPtr, "%s%c%s", pszName, cSep, pszValue );
+            }
             return papszList;
         }
         papszPtr++;
     }
+
+    if( pszValue == NULL )
+        return papszList;
 
     /* The name does not exist yet... create a new entry
      */
@@ -1181,6 +1132,8 @@ void CSLSetNameValueSeparator( char ** papszList, const char *pszSeparator )
         char        *pszNewLine;
 
         pszValue = CPLParseNameValue( papszList[iLine], &pszKey );
+        if( pszValue == NULL || pszKey == NULL )
+            continue;
         
         pszNewLine = (char *) CPLMalloc( strlen(pszValue) + strlen(pszKey)
                                          + strlen(pszSeparator) + 1 );
@@ -1554,4 +1507,94 @@ char *CPLUnescapeString( const char *pszInput, int *pnLength, int nScheme )
         *pnLength = iOut;
 
     return pszOutput;
+}
+
+/************************************************************************/
+/*                           CPLBinaryToHex()                           */
+/************************************************************************/
+
+/**
+ * Binary to hexadecimal translation.
+ *
+ * @param nBytes number of bytes of binary data in pabyData.
+ * @param pabyData array of data bytes to translate. 
+ * 
+ * @return hexadecimal translation, zero terminated.  Free with CPLFree().
+ */
+
+char *CPLBinaryToHex( int nBytes, const GByte *pabyData )
+
+{
+    char *pszHex = (char *) CPLMalloc(nBytes * 2 + 1 );
+    int i;
+    static const char achHex[] = "0123456789ABCDEF";
+
+    pszHex[nBytes*2] = '\0';
+
+    for( i = 0; i < nBytes; i++ )
+    {
+        int nLow = pabyData[i] & 0x0f;
+        int nHigh = (pabyData[i] & 0xf0) >> 4;
+
+        pszHex[i*2] = achHex[nHigh];
+        pszHex[i*2+1] = achHex[nLow];
+    }
+
+    return pszHex;
+}
+
+
+/************************************************************************/
+/*                           CPLHexToBinary()                           */
+/************************************************************************/
+
+/**
+ * Hexadecimal to binary translation
+ *
+ * @param 
+
+*/
+
+GByte *CPLHexToBinary( const char *pszHex, int *pnBytes )
+
+{
+    int     iSrc = 0, iDst = 0;
+    size_t  nHexLen = strlen(pszHex);
+
+    GByte *pabyWKB;
+
+    pabyWKB = (GByte *) CPLMalloc(nHexLen / 2 + 2);
+
+    while( pszHex[iSrc] != '\0' )
+    {
+        if( pszHex[iSrc] >= '0' && pszHex[iSrc] <= '9' )
+            pabyWKB[iDst] = pszHex[iSrc] - '0';
+        else if( pszHex[iSrc] >= 'A' && pszHex[iSrc] <= 'F' )
+            pabyWKB[iDst] = pszHex[iSrc] - 'A' + 10;
+        else if( pszHex[iSrc] >= 'a' && pszHex[iSrc] <= 'f' )
+            pabyWKB[iDst] = pszHex[iSrc] - 'a' + 10;
+        else 
+            break;
+
+        pabyWKB[iDst] *= 16;
+
+        iSrc++;
+
+        if( pszHex[iSrc] >= '0' && pszHex[iSrc] <= '9' )
+            pabyWKB[iDst] += pszHex[iSrc] - '0';
+        else if( pszHex[iSrc] >= 'A' && pszHex[iSrc] <= 'F' )
+            pabyWKB[iDst] += pszHex[iSrc] - 'A' + 10;
+        else if( pszHex[iSrc] >= 'a' && pszHex[iSrc] <= 'f' )
+            pabyWKB[iDst] += pszHex[iSrc] - 'a' + 10;
+        else
+            break;
+
+        iSrc++;
+        iDst++;
+    }
+    
+    pabyWKB[iDst] = 0;
+    *pnBytes = iDst;
+
+    return pabyWKB;
 }

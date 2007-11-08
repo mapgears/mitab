@@ -16,82 +16,7 @@
  * without specific, written prior permission.  3i makes no
  * representations about the suitability of this software for any purpose.
  * It is provided "as is" without express or implied warranty.
- ******************************************************************************
- *
- * $Log: swq.c,v $
- * Revision 1.24  2005/03/17 04:59:20  fwarmerdam
- * added local FORCE_CDECL definition
- *
- * Revision 1.23  2005/03/17 04:21:25  fwarmerdam
- * use FORCE_CDECL for args to qsort()
- *
- * Revision 1.22  2003/05/21 04:49:17  warmerda
- * avoid warnings
- *
- * Revision 1.21  2003/03/26 16:08:20  warmerda
- * fixed table_def parsing when table name is quoted (literal)
- *
- * Revision 1.20  2003/03/21 03:39:10  warmerda
- * allow more than one LEFT JOIN per SELECT
- *
- * Revision 1.19  2003/03/19 20:26:33  warmerda
- * fixed memory leak for join info
- *
- * Revision 1.18  2003/03/19 05:12:08  warmerda
- * support table.* wildcard expansion
- *
- * Revision 1.17  2003/03/05 05:08:29  warmerda
- * added preliminary support for joins
- *
- * Revision 1.16  2003/01/10 15:35:24  warmerda
- * fixed and tested support for single quoted strings
- *
- * Revision 1.15  2002/08/08 13:41:36  warmerda
- * added support for single quoted string constants
- *
- * Revision 1.14  2002/04/30 18:19:01  warmerda
- * eat newlines as whitespace
- *
- * Revision 1.13  2002/04/29 19:32:34  warmerda
- * added swq_select_parse, fix problem with where parsing and sorting code
- *
- * Revision 1.12  2002/04/25 20:57:35  warmerda
- * expand tabs
- *
- * Revision 1.11  2002/04/25 20:45:57  warmerda
- * fixed some bugs with WHERE processing
- *
- * Revision 1.10  2002/04/25 19:33:23  warmerda
- * avoid warning
- *
- * Revision 1.9  2002/04/25 19:32:06  warmerda
- * added swq_select_reform_command
- *
- * Revision 1.8  2002/04/25 16:06:57  warmerda
- * added more general distinct support
- *
- * Revision 1.7  2002/04/25 02:23:43  warmerda
- * fixed support for ORDER BY <field> ASC
- *
- * Revision 1.6  2002/04/23 20:05:23  warmerda
- * added SELECT statement parsing
- *
- * Revision 1.5  2002/04/19 20:46:06  warmerda
- * added [NOT] IN, [NOT] LIKE and IS [NOT] NULL support
- *
- * Revision 1.4  2002/03/01 04:13:40  warmerda
- * Made swq_error static.
- *
- * Revision 1.3  2001/11/07 12:45:42  danmo
- * Use #ifdef _WIN32 instead of WIN32 for strcasecmp check
- *
- * Revision 1.2  2001/06/26 00:59:39  warmerda
- * fixed strcasecmp on WIN32
- *
- * Revision 1.1  2001/06/19 15:46:30  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,9 +44,12 @@
 #  define FALSE 0
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_WIN32_WCE)
 #  define strcasecmp stricmp
+#elif defined(_WIN32_WCE)
+#  define strcasecmp _stricmp
 #endif
+
 
 static char     swq_error[1024];
 
@@ -161,11 +89,11 @@ void *swq_realloc( void *old_mem, int old_size, int new_size )
 
     if( old_mem != NULL )
     {
-        memcpy( new_mem, old_mem, old_size );
+        memcpy( new_mem, old_mem, old_size < new_size ? old_size : new_size);
         SWQ_FREE( old_mem );
     }
-
-    memset( ((char *) new_mem) + old_size, 0, new_size - old_size );
+    if (old_size <= new_size )
+        memset( ((char *) new_mem) + old_size, 0, new_size - old_size );
 
     return new_mem;
 }
@@ -385,7 +313,8 @@ static swq_op swq_identify_op( char **tokens, int *tokens_consumed )
     if( strcasecmp(token,"NOT") == 0 )
     {
         if( tokens[*tokens_consumed+1] != NULL
-            && strcasecmp(tokens[*tokens_consumed+1],"LIKE") == 0 )
+            && (strcasecmp(tokens[*tokens_consumed+1],"LIKE") == 0 
+                || strcasecmp(tokens[*tokens_consumed+1],"ILIKE") == 0) )
         {
             *tokens_consumed += 1;
             return SWQ_NOTLIKE;
@@ -422,6 +351,9 @@ static swq_op swq_identify_op( char **tokens, int *tokens_consumed )
         return SWQ_GT;
 
     if( strcasecmp(token,"LIKE") == 0 )
+        return SWQ_LIKE;
+
+    if( strcasecmp(token,"ILIKE") == 0 )
         return SWQ_LIKE;
 
     if( strcasecmp(token,"IN") == 0 )
@@ -725,6 +657,8 @@ swq_subexpr_compile( char **tokens, swq_field_list *field_list,
 
     if( op->field_index != -1 && op->field_type == SWQ_STRING
         && (op->operation != SWQ_EQ && op->operation != SWQ_NE
+            && op->operation != SWQ_GT && op->operation != SWQ_LT
+            && op->operation != SWQ_GE && op->operation != SWQ_LE
             && op->operation != SWQ_LIKE && op->operation != SWQ_NOTLIKE
             && op->operation != SWQ_IN && op->operation != SWQ_NOTIN
             && op->operation != SWQ_ISNULL && op->operation != SWQ_ISNOTNULL ))

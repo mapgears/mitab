@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrgeometryfactory.cpp,v 1.25 2005/04/18 15:42:17 fwarmerdam Exp $
+ * $Id: ogrgeometryfactory.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Factory for converting geometry to and from well known binary
@@ -26,87 +26,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrgeometryfactory.cpp,v $
- * Revision 1.25  2005/04/18 15:42:17  fwarmerdam
- * fix geos exception catching
- *
- * Revision 1.24  2005/02/22 17:17:30  hobu
- * typo in the haveGEOS() method
- *
- * Revision 1.23  2005/02/22 12:48:09  fwarmerdam
- * added OGRGeometryFactory::haveGEOS()
- *
- * Revision 1.22  2004/08/20 21:21:28  warmerda
- * added support for managing a persistent geos::GeometryFactory
- *
- * Revision 1.21  2004/07/10 04:54:01  warmerda
- * added GEOS methods
- *
- * Revision 1.20  2003/06/09 13:48:54  warmerda
- * added DB2 V7.2 byte order hack
- *
- * Revision 1.19  2003/06/04 13:50:54  warmerda
- * applied patch for IBM DB2 V7.2 WKB bug (with byte order flag)
- *
- * Revision 1.18  2003/04/28 15:39:33  warmerda
- * ryan added forceToMultiPolyline and forceToMultiPoint
- *
- * Revision 1.17  2003/03/31 15:55:42  danmo
- * Added C API function docs
- *
- * Revision 1.16  2003/03/06 20:29:27  warmerda
- * added GML import/export entry points
- *
- * Revision 1.15  2003/02/19 02:57:49  warmerda
- * added wkbLinearRing support
- *
- * Revision 1.14  2003/01/14 22:14:04  warmerda
- * added logic to force Geometry collection to multipolygon
- *
- * Revision 1.13  2003/01/08 22:04:11  warmerda
- * added forceToPolygon and forceToMultiPolygon methods
- *
- * Revision 1.12  2002/09/26 18:12:38  warmerda
- * added C support
- *
- * Revision 1.11  2002/09/11 13:47:17  warmerda
- * preliminary set of fixes for 3D WKB enum
- *
- * Revision 1.10  2001/11/01 16:56:08  warmerda
- * added createGeometry and destroyGeometry methods
- *
- * Revision 1.9  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.8  2001/06/01 14:34:02  warmerda
- * added debugging of corrupt geometry
- *
- * Revision 1.7  1999/11/18 19:02:19  warmerda
- * expanded tabs
- *
- * Revision 1.6  1999/05/31 20:41:27  warmerda
- * Cleaned up functions substantially, by moving shared code to end of case
- * statements.  createFromWkt() now updates pointer to text to indicate how
- * much text was consumed.  Added multipoint, and multilinestring support.
- *
- * Revision 1.5  1999/05/31 11:05:08  warmerda
- * added some documentation
- *
- * Revision 1.4  1999/05/23 05:34:40  warmerda
- * added support for clone(), multipolygons and geometry collections
- *
- * Revision 1.3  1999/05/20 14:35:44  warmerda
- * added support for well known text format
- *
- * Revision 1.2  1999/03/30 21:21:43  warmerda
- * added linearring/polygon support
- *
- * Revision 1.1  1999/03/29 21:21:10  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_geometry.h"
 #include "ogr_api.h"
@@ -114,7 +34,7 @@
 #include <assert.h>
 #include "ogr_geos.h"
 
-CPL_CVSID("$Id: ogrgeometryfactory.cpp,v 1.25 2005/04/18 15:42:17 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogrgeometryfactory.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 /************************************************************************/
 /*                           createFromWkb()                            */
@@ -142,7 +62,7 @@ CPL_CVSID("$Id: ogrgeometryfactory.cpp,v 1.25 2005/04/18 15:42:17 fwarmerdam Exp
  * @param ppoReturn the newly created geometry object will be assigned to the
  *                  indicated pointer on return.  This will be NULL in case
  *                  of failure.
- * @param nBytes the number of bytes available in pabyData, or zero if it isn't
+ * @param nBytes the number of bytes available in pabyData, or -1 if it isn't
  *               known.
  *
  * @return OGRERR_NONE if all goes well, otherwise any of
@@ -177,7 +97,7 @@ OGRErr OGRGeometryFactory::createFromWkb(unsigned char *pabyData,
     {
         CPLDebug( "OGR", 
                   "OGRGeometryFactory::createFromWkb() - got corrupt data.\n"
-                  "%X%X%X%X%X%X%X%X\n", 
+                  "%02X%02X%02X%02X%02X%02X%02X%02X\n", 
                   pabyData[0],
                   pabyData[1],
                   pabyData[2],
@@ -252,7 +172,9 @@ OGRErr OGRGeometryFactory::createFromWkb(unsigned char *pabyData,
  *             created geometry object.  This may be NULL.
  * @param phGeometry the newly created geometry object will 
  * be assigned to the indicated handle on return.  This will be NULL in case
- *                  of failure.
+ * of failure.
+ * @param nBytes the number of bytes of data available in pabyData, or -1
+ * if it is not known, but assumed to be sufficient.
  *
  * @return OGRERR_NONE if all goes well, otherwise any of
  * OGRERR_NOT_ENOUGH_DATA, OGRERR_UNSUPPORTED_GEOMETRY_TYPE, or
@@ -261,12 +183,14 @@ OGRErr OGRGeometryFactory::createFromWkb(unsigned char *pabyData,
 
 OGRErr CPL_DLL OGR_G_CreateFromWkb( unsigned char *pabyData, 
                                     OGRSpatialReferenceH hSRS,
-                                    OGRGeometryH *phGeometry )
+                                    OGRGeometryH *phGeometry, 
+                                    int nBytes )
 
 {
     return OGRGeometryFactory::createFromWkb( pabyData, 
                                               (OGRSpatialReference *) hSRS,
-                                              (OGRGeometry **) phGeometry );
+                                              (OGRGeometry **) phGeometry,
+                                              nBytes );
 }
 
 /************************************************************************/
@@ -287,6 +211,20 @@ OGRErr CPL_DLL OGR_G_CreateFromWkb( unsigned char *pabyData,
  * @param ppoReturn the newly created geometry object will be assigned to the
  *                  indicated pointer on return.  This will be NULL if the
  *                  method fails. 
+ *
+ *  <b>Example:</b>
+ *
+ *  <pre>
+ *    const char* wkt= "POINT(0 0)";
+ *  
+ *    // cast because OGR_G_CreateFromWkt will move the pointer 
+ *    char* pszWkt = (char*) wkt.c_str(); 
+ *    OGRSpatialReferenceH ref = OSRNewSpatialReference(NULL);
+ *    OGRGeometryH new_geom;
+ *    OGRErr err = OGR_G_CreateFromWkt(&pszWkt, ref, &new_geom);
+ *  </pre>
+ *
+ *
  *
  * @return OGRERR_NONE if all goes well, otherwise any of
  * OGRERR_NOT_ENOUGH_DATA, OGRERR_UNSUPPORTED_GEOMETRY_TYPE, or
@@ -643,7 +581,7 @@ OGRGeometry *OGRGeometryFactory::forceToMultiPolygon( OGRGeometry *poGeom )
         return poGeom;
 
     OGRMultiPolygon *poMP = new OGRMultiPolygon();
-    poMP->addGeometry( poGeom );
+    poMP->addGeometryDirectly( poGeom );
 
     return poMP;
 }
@@ -705,7 +643,7 @@ OGRGeometry *OGRGeometryFactory::forceToMultiPoint( OGRGeometry *poGeom )
         return poGeom;
 
     OGRMultiPoint *poMP = new OGRMultiPoint();
-    poMP->addGeometry( poGeom );
+    poMP->addGeometryDirectly( poGeom );
 
     return poMP;
 }
@@ -732,7 +670,7 @@ OGRGeometry *OGRGeometryFactory::forceToMultiLineString( OGRGeometry *poGeom )
 
 /* -------------------------------------------------------------------- */
 /*      Check for the case of a geometrycollection that can be          */
-/*      promoted to MultiPoint.                                         */
+/*      promoted to MultiLineString.                                    */
 /* -------------------------------------------------------------------- */
     if( wkbFlatten(poGeom->getGeometryType()) == wkbGeometryCollection )
     {
@@ -767,7 +705,7 @@ OGRGeometry *OGRGeometryFactory::forceToMultiLineString( OGRGeometry *poGeom )
         return poGeom;
 
     OGRMultiLineString *poMP = new OGRMultiLineString();
-    poMP->addGeometry( poGeom );
+    poMP->addGeometryDirectly( poGeom );
 
     return poMP;
 }
@@ -806,7 +744,7 @@ OGRGeometry *OGRGeometryFactory::createFromGML( const char *pszData )
 /************************************************************************/
 
 OGRGeometry *
-OGRGeometryFactory::createFromGEOS( const geos::Geometry *geosGeom )
+OGRGeometryFactory::createFromGEOS( GEOSGeom geosGeom )
 
 {
 #ifndef HAVE_GEOS 
@@ -817,30 +755,29 @@ OGRGeometryFactory::createFromGEOS( const geos::Geometry *geosGeom )
 
 #else
 
-    geos::WKTWriter oWKTWriter;
-    string oWKT;
+    size_t nSize = 0;
+    unsigned char *pabyBuf = NULL;
+    OGRGeometry *poGeometry = NULL;
 
-    try 
+    pabyBuf = GEOSGeomToWKB_buf( geosGeom, &nSize );
+    if( pabyBuf == NULL || nSize == 0 )
     {
-        oWKT = oWKTWriter.write( geosGeom );
-    }
-    catch( geos::GEOSException *e )
-    {
-        CPLError( CE_Failure, CPLE_AppDefined,
-                  "GEOSException: %s", 
-                  e->toString().c_str() );
-
-        delete e;
         return NULL;
     }
 
-    OGRGeometry *poGeom = NULL;
-    char *pszWKT = (char *) oWKT.c_str();
+    if( OGRGeometryFactory::createFromWkb( (unsigned char *) pabyBuf, 
+                                           NULL, &poGeometry, (int) nSize )
+        != OGRERR_NONE )
+    {
+        poGeometry = NULL;
+    }
 
-    if( createFromWkt( &pszWKT, NULL, &poGeom ) != OGRERR_NONE )
-        return NULL;
-    else
-        return poGeom;
+    if( pabyBuf != NULL )
+    {
+        free( pabyBuf );
+    }
+
+    return poGeometry;
 
 #endif /* HAVE_GEOS */
 }
@@ -849,22 +786,12 @@ OGRGeometryFactory::createFromGEOS( const geos::Geometry *geosGeom )
 /*                       getGEOSGeometryFactory()                       */
 /************************************************************************/
 
-geos::GeometryFactory *OGRGeometryFactory::getGEOSGeometryFactory() 
+void *OGRGeometryFactory::getGEOSGeometryFactory() 
 
 {
-#ifndef HAVE_GEOS 
-    CPLError( CE_Failure, CPLE_NotSupported, 
-              "GEOS support not enabled." );
+    // XXX - mloskot - What to do with this call
+    // after GEOS C++ API has been stripped?
     return NULL;
-#else
-
-    static geos::GeometryFactory *poSavedFactory = NULL;
-
-    if( poSavedFactory == NULL )
-        poSavedFactory = new geos::GeometryFactory();
-
-    return poSavedFactory;
-#endif /* HAVE_GEOS */
 }
 
 /************************************************************************/

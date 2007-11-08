@@ -1,10 +1,10 @@
 /******************************************************************************
- * $Id: cpl_csv.h,v 1.2 2003/06/27 16:14:22 warmerda Exp $
+ * $Id: cpl_csv.h 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  Common Portability Library
  * Purpose:  Functions for reading and scaning CSV (comma separated,
  *           variable length text files holding tables) files.  
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
@@ -26,16 +26,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: cpl_csv.h,v $
- * Revision 1.2  2003/06/27 16:14:22  warmerda
- * export CSV functions with CPL_DLL
- *
- * Revision 1.1  2000/04/05 21:55:59  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #ifndef CPL_CSV_H_INCLUDED
 #define CPL_CSV_H_INCLUDED
@@ -65,7 +56,7 @@ int CPL_DLL CSVGetFileFieldId( const char *, const char * );
 
 void CPL_DLL CSVDeaccess( const char * );
 
-const char  *CSVGetField( const char *, const char *, const char *,
+const char CPL_DLL *CSVGetField( const char *, const char *, const char *,
                                  CSVCompareCriteria, const char * );
 
 void CPL_DLL SetCSVFilenameHook( const char *(*)(const char *) );

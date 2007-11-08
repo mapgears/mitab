@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogr_p.h,v 1.7 2001/11/01 17:01:28 warmerda Exp $
+ * $Id: ogr_p.h 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Some private helper functions and stuff for OGR implementation.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
@@ -25,31 +25,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_p.h,v $
- * Revision 1.7  2001/11/01 17:01:28  warmerda
- * pass output buffer into OGRMakeWktCoordinate
- *
- * Revision 1.6  1999/11/18 19:02:20  warmerda
- * expanded tabs
- *
- * Revision 1.5  1999/09/13 02:27:33  warmerda
- * incorporated limited 2.5d support
- *
- * Revision 1.4  1999/07/29 17:30:38  warmerda
- * avoid geometry dependent stuff if ogr_geometry.h not included
- *
- * Revision 1.3  1999/07/07 04:23:07  danmo
- * Fixed typo in  #define _OGR_..._H_INCLUDED  line
- *
- * Revision 1.2  1999/05/20 14:36:04  warmerda
- * added well known text parsing prototypes
- *
- * Revision 1.1  1999/03/29 21:21:10  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #ifndef _OGR_P_H_INCLUDED
 #define _OGR_P_H_INCLUDED
@@ -78,11 +54,32 @@
 const char CPL_DLL * OGRWktReadToken( const char * pszInput, char * pszToken );
 
 const char CPL_DLL * OGRWktReadPoints( const char * pszInput,
-                               OGRRawPoint **ppaoPoints, double **ppadfZ,
-                               int * pnMaxPoints,
-                               int * pnReadPoints );
+                                       OGRRawPoint **ppaoPoints, 
+                                       double **ppadfZ,
+                                       int * pnMaxPoints,
+                                       int * pnReadPoints );
 
-void CPL_DLL OGRMakeWktCoordinate( char *, double, double, double );
+void CPL_DLL OGRMakeWktCoordinate( char *, double, double, double, int );
 #endif
+
+
+/* General utility option processing. */
+int CPL_DLL OGRGeneralCmdLineProcessor( int nArgc, char ***ppapszArgv, int nOptions );
+
+/************************************************************************/
+/*     Support for special attributes (feature query and selection)     */
+/************************************************************************/
+CPL_C_START
+#include "swq.h"
+CPL_C_END
+
+#define SPF_FID 0
+#define SPF_OGR_GEOMETRY 1
+#define SPF_OGR_STYLE 2
+#define SPF_OGR_GEOM_WKT 3
+#define SPECIAL_FIELD_COUNT 4
+
+extern char* SpecialFieldNames[SPECIAL_FIELD_COUNT];
+extern swq_field_type SpecialFieldTypes[SPECIAL_FIELD_COUNT];
 
 #endif /* ndef _OGR_P_H_INCLUDED */

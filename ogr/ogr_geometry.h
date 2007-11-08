@@ -1,10 +1,10 @@
 /******************************************************************************
- * $Id: ogr_geometry.h,v 1.53 2005/03/25 06:31:12 fwarmerdam Exp $
+ * $Id: ogr_geometry.h 12517 2007-10-23 15:07:35Z mloskot $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Classes for manipulating simple features that is not specific
  *           to a particular interface technology.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
@@ -26,173 +26,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_geometry.h,v $
- * Revision 1.53  2005/03/25 06:31:12  fwarmerdam
- * added addSubLineString
- *
- * Revision 1.52  2005/02/22 12:48:09  fwarmerdam
- * added OGRGeometryFactory::haveGEOS()
- *
- * Revision 1.51  2005/02/22 12:37:26  fwarmerdam
- * rename Equal/Intersect to Equals/Intersects
- *
- * Revision 1.50  2004/09/17 15:05:36  fwarmerdam
- * added get_Area() support
- *
- * Revision 1.49  2004/08/20 21:21:28  warmerda
- * added support for managing a persistent geos::GeometryFactory
- *
- * Revision 1.48  2004/07/10 04:54:23  warmerda
- * added GEOS methods, and closeRings
- *
- * Revision 1.47  2004/02/21 15:36:14  warmerda
- * const correctness updates for geometry: bug 289
- *
- * Revision 1.46  2003/09/11 22:47:54  aamici
- * add class constructors and destructors where needed in order to
- * let the mingw/cygwin binutils produce sensible partially linked objet files
- * with 'ld -r'.
- *
- * Revision 1.45  2003/08/27 15:40:37  warmerda
- * added support for generating DB2 V7.2 compatible WKB
- *
- * Revision 1.44  2003/05/28 19:16:42  warmerda
- * fixed up argument names and stuff for docs
- *
- * Revision 1.43  2003/04/28 15:39:33  warmerda
- * ryan added forceToMultiPolyline and forceToMultiPoint
- *
- * Revision 1.42  2003/03/06 20:29:27  warmerda
- * added GML import/export entry points
- *
- * Revision 1.41  2003/01/14 22:13:35  warmerda
- * added isClockwise() method on OGRLinearRing
- *
- * Revision 1.40  2003/01/08 22:04:11  warmerda
- * added forceToPolygon and forceToMultiPolygon methods
- *
- * Revision 1.39  2003/01/07 16:44:27  warmerda
- * added removeGeometry
- *
- * Revision 1.38  2003/01/02 21:45:23  warmerda
- * move OGRBuildPolygonsFromEdges into C API
- *
- * Revision 1.37  2002/10/25 15:20:50  warmerda
- * fixed MULTIPOINT WKT format
- *
- * Revision 1.36  2002/10/24 20:53:02  warmerda
- * expand tabs
- *
- * Revision 1.35  2002/09/26 18:13:17  warmerda
- * moved some defs to ogr_core.h for sharing with ogr_api.h
- *
- * Revision 1.34  2002/09/11 13:47:17  warmerda
- * preliminary set of fixes for 3D WKB enum
- *
- * Revision 1.33  2002/08/12 15:02:18  warmerda
- * added OGRRawPoint and OGREnvelope initializes
- *
- * Revision 1.32  2002/05/02 19:45:36  warmerda
- * added flattenTo2D() method
- *
- * Revision 1.31  2002/02/22 22:23:38  warmerda
- * added tolerances when assembling polygons
- *
- * Revision 1.30  2002/02/18 21:12:23  warmerda
- * added OGRBuildPolygonFromEdges
- *
- * Revision 1.29  2001/11/01 16:56:08  warmerda
- * added createGeometry and destroyGeometry methods
- *
- * Revision 1.28  2001/09/21 16:24:20  warmerda
- * added transform() and transformTo() methods
- *
- * Revision 1.27  2001/09/04 14:48:34  warmerda
- * added some more 2.5D geometry types
- *
- * Revision 1.26  2001/05/24 18:05:18  warmerda
- * substantial fixes to WKT support for MULTIPOINT/LINE/POLYGON
- *
- * Revision 1.25  2001/02/06 17:10:28  warmerda
- * export entry points from DLL
- *
- * Revision 1.24  2001/01/19 21:10:47  warmerda
- * replaced tabs
- *
- * Revision 1.23  2000/10/17 17:55:26  warmerda
- * added comments for byte orders
- *
- * Revision 1.22  2000/04/26 18:25:55  warmerda
- * added missing CPL_DLL attributes
- *
- * Revision 1.21  2000/03/14 21:38:17  warmerda
- * added method to translate geometrytype to name
- *
- * Revision 1.20  1999/11/18 19:02:20  warmerda
- * expanded tabs
- *
- * Revision 1.19  1999/11/04 16:26:12  warmerda
- * Added the addGeometryDirectly() method for containers.
- *
- * Revision 1.18  1999/09/22 13:19:09  warmerda
- * Added the addRingDirectly() method on OGRPolygon.
- *
- * Revision 1.17  1999/09/13 14:34:07  warmerda
- * updated to use wkbZ of 0x8000 instead of 0x80000000
- *
- * Revision 1.16  1999/09/13 02:27:32  warmerda
- * incorporated limited 2.5d support
- *
- * Revision 1.15  1999/08/29 17:14:29  warmerda
- * Added wkbNone.
- *
- * Revision 1.14  1999/07/27 00:48:11  warmerda
- * Added Equal() support
- *
- * Revision 1.13  1999/07/08 20:26:03  warmerda
- * No longer override getGeometryType() on OGRLinearRing.
- *
- * Revision 1.12  1999/07/07 04:23:07  danmo
- * Fixed typo in  #define _OGR_..._H_INCLUDED  line
- *
- * Revision 1.11  1999/07/06 21:36:46  warmerda
- * tenatively added getEnvelope() and Intersect()
- *
- * Revision 1.10  1999/06/25 20:44:42  warmerda
- * implemented assignSpatialReference, carry properly
- *
- * Revision 1.9  1999/05/31 20:44:11  warmerda
- * ogr_geometry.h
- *
- * Revision 1.8  1999/05/31 15:01:59  warmerda
- * OGRCurve now an abstract base class with essentially no implementation.
- * Everything moved down to OGRLineString where it belongs.  Also documented
- * classes.
- *
- * Revision 1.7  1999/05/31 11:05:08  warmerda
- * added some documentation
- *
- * Revision 1.6  1999/05/23 05:34:40  warmerda
- * added support for clone(), multipolygons and geometry collections
- *
- * Revision 1.5  1999/05/20 14:35:44  warmerda
- * added support for well known text format
- *
- * Revision 1.4  1999/05/17 14:39:13  warmerda
- * Added ICurve, and some other IGeometry and related methods.
- *
- * Revision 1.3  1999/05/14 13:30:59  warmerda
- * added IsEmpty() and IsSimple()
- *
- * Revision 1.2  1999/03/30 21:21:43  warmerda
- * added linearring/polygon support
- *
- * Revision 1.1  1999/03/29 21:21:10  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #ifndef _OGR_GEOMETRY_H_INCLUDED
 #define _OGR_GEOMETRY_H_INCLUDED
@@ -220,10 +54,7 @@ class OGRRawPoint
     double      y;
 };
 
-namespace geos { 
-    class Geometry;
-    class GeometryFactory;
-};
+typedef struct GEOSGeom_t *GEOSGeom;
 
 /************************************************************************/
 /*                             OGRGeometry                              */
@@ -242,6 +73,9 @@ class CPL_DLL OGRGeometry
 {
   private:
     OGRSpatialReference * poSRS;                // may be NULL
+
+  protected:
+    int                   nCoordDimension;
     
   public:
                 OGRGeometry();
@@ -249,7 +83,7 @@ class CPL_DLL OGRGeometry
                         
     // standard IGeometry
     virtual int getDimension() const = 0;
-    virtual int getCoordinateDimension() const = 0;
+    virtual int getCoordinateDimension() const;
     virtual OGRBoolean  IsEmpty() const { return 0; } 
     virtual OGRBoolean  IsSimple() const { return 1; }
     virtual void        empty() = 0;
@@ -266,11 +100,13 @@ class CPL_DLL OGRGeometry
     // non-standard
     virtual OGRwkbGeometryType getGeometryType() const = 0;
     virtual const char *getGeometryName() const = 0;
-    virtual void   dumpReadable( FILE *, const char * = NULL );
+    virtual void   dumpReadable( FILE *, const char * = NULL ) const;
     virtual void   flattenTo2D() = 0;
     virtual char * exportToGML() const;
-    virtual geos::Geometry *exportToGEOS() const;
+    virtual GEOSGeom exportToGEOS() const;
     virtual void closeRings();
+
+    virtual void setCoordinateDimension( int nDimension ); 
 
     void    assignSpatialReference( OGRSpatialReference * poSR );
     OGRSpatialReference *getSpatialReference( void ) const { return poSRS; }
@@ -324,7 +160,8 @@ class CPL_DLL OGRPoint : public OGRGeometry
 
   public:
                 OGRPoint();
-                OGRPoint( double x, double y, double z = 0.0 );
+                OGRPoint( double x, double y );
+                OGRPoint( double x, double y, double z );
     virtual     ~OGRPoint();
 
     // IWks Interface
@@ -336,7 +173,6 @@ class CPL_DLL OGRPoint : public OGRGeometry
     
     // IGeometry
     virtual int getDimension() const;
-    virtual int getCoordinateDimension() const;
     virtual OGRGeometry *clone() const;
     virtual void empty();
     virtual void getEnvelope( OGREnvelope * psEnvelope ) const;
@@ -347,9 +183,10 @@ class CPL_DLL OGRPoint : public OGRGeometry
     double      getZ() const { return z; }
 
     // Non standard
+    virtual void setCoordinateDimension( int nDimension ); 
     void        setX( double xIn ) { x = xIn; }
     void        setY( double yIn ) { y = yIn; }
-    void        setZ( double zIn ) { z = zIn; }
+    void        setZ( double zIn ) { z = zIn; nCoordDimension=3; }
 
     // ISpatialRelation
     virtual OGRBoolean  Equals( OGRGeometry * ) const;
@@ -415,7 +252,6 @@ class CPL_DLL OGRLineString : public OGRCurve
 
     // IGeometry interface
     virtual int getDimension() const;
-    virtual int getCoordinateDimension() const;
     virtual OGRGeometry *clone() const;
     virtual void empty();
     virtual void getEnvelope( OGREnvelope * psEnvelope ) const;
@@ -437,14 +273,19 @@ class CPL_DLL OGRLineString : public OGRCurve
     virtual OGRBoolean  Equals( OGRGeometry * ) const;
     
     // non standard.
+    virtual void setCoordinateDimension( int nDimension ); 
     void        setNumPoints( int );
     void        setPoint( int, OGRPoint * );
-    void        setPoint( int, double, double, double = 0.0 );
+    void        setPoint( int, double, double );
+    void        setPoint( int, double, double, double );
     void        setPoints( int, OGRRawPoint *, double * = NULL );
     void        setPoints( int, double * padfX, double * padfY,
                            double *padfZ = NULL );
     void        addPoint( OGRPoint * );
-    void        addPoint( double, double, double = 0.0 );
+    void        addPoint( double, double );
+    void        addPoint( double, double, double );
+
+    void        getPoints( OGRRawPoint *, double * = NULL ) const;
 
     void        addSubLineString( const OGRLineString *, 
                                   int nStartVertex = 0, int nEndVertex = -1 );
@@ -492,8 +333,10 @@ class CPL_DLL OGRLinearRing : public OGRLineString
     virtual const char *getGeometryName() const;
     virtual OGRGeometry *clone() const;
     virtual int isClockwise() const;
+    virtual void reverseWindingOrder();
     virtual void closeRings();
     virtual double get_Area() const;
+    OGRBoolean isPointInRing(const OGRPoint* pt) const;
     
     // IWks Interface - Note this isnt really a first class object
     // for the purposes of WKB form.  These methods always fail since this
@@ -563,13 +406,14 @@ class CPL_DLL OGRPolygon : public OGRSurface
 
     // IGeometry
     virtual int getDimension() const;
-    virtual int getCoordinateDimension() const;
     virtual void getEnvelope( OGREnvelope * psEnvelope ) const;
 
     // ISpatialRelation
     virtual OGRBoolean  Equals( OGRGeometry * ) const;
     
     // Non standard
+    virtual void setCoordinateDimension( int nDimension ); 
+
     void        addRing( OGRLinearRing * );
     void        addRingDirectly( OGRLinearRing * );
 
@@ -578,6 +422,8 @@ class CPL_DLL OGRPolygon : public OGRSurface
     int         getNumInteriorRings() const;
     OGRLinearRing *getInteriorRing( int );
     const OGRLinearRing *getInteriorRing( int ) const;
+
+    OGRBoolean IsPointOnSurface( const OGRPoint * ) const;
 
     virtual void closeRings();
 };
@@ -621,7 +467,6 @@ class CPL_DLL OGRGeometryCollection : public OGRGeometry
 
     // IGeometry methods
     virtual int getDimension() const;
-    virtual int getCoordinateDimension() const;
     virtual void getEnvelope( OGREnvelope * psEnvelope ) const;
 
     // IGeometryCollection
@@ -633,6 +478,7 @@ class CPL_DLL OGRGeometryCollection : public OGRGeometry
     virtual OGRBoolean  Equals( OGRGeometry * ) const;
     
     // Non standard
+    virtual void setCoordinateDimension( int nDimension ); 
     virtual OGRErr addGeometry( const OGRGeometry * );
     virtual OGRErr addGeometryDirectly( OGRGeometry * );
     virtual OGRErr removeGeometry( int iIndex, int bDelete = TRUE );
@@ -735,7 +581,7 @@ class CPL_DLL OGRGeometryFactory
     static OGRErr createFromWkt( char **, OGRSpatialReference *,
                                  OGRGeometry ** );
     static OGRGeometry *createFromGML( const char * );
-    static OGRGeometry *createFromGEOS( const geos::Geometry * );
+    static OGRGeometry *createFromGEOS( GEOSGeom );
 
     static void   destroyGeometry( OGRGeometry * );
     static OGRGeometry *createGeometry( OGRwkbGeometryType );
@@ -745,7 +591,7 @@ class CPL_DLL OGRGeometryFactory
     static OGRGeometry * forceToMultiPoint( OGRGeometry * );
     static OGRGeometry * forceToMultiLineString( OGRGeometry * );
 
-    static geos::GeometryFactory *getGEOSGeometryFactory();
+    static void *getGEOSGeometryFactory();
 
     static int haveGEOS();
 

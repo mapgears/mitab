@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogr_srs_esri.cpp,v 1.39 2005/05/04 14:29:20 fwarmerdam Exp $
+ * $Id: ogr_srs_esri.cpp 11828 2007-08-01 23:15:47Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  OGRSpatialReference translation to/from ESRI .prj definitions.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 2000, Frank Warmerdam
@@ -25,144 +25,18 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_srs_esri.cpp,v $
- * Revision 1.39  2005/05/04 14:29:20  fwarmerdam
- * convert Standard_Parallel_1 in ESRI Mercator to Latitude_Of_Origin.
- *
- * Revision 1.38  2005/02/18 21:52:44  fwarmerdam
- * Fixed support for .prj files with blank lines between the parameters.
- *
- * Revision 1.37  2005/01/13 16:32:27  fwarmerdam
- * added support for fipszone for stateplane
- *
- * Revision 1.36  2005/01/13 15:18:05  fwarmerdam
- * use SetLinearUnitsAndUpdateParameters()
- *
- * Revision 1.35  2004/09/23 16:20:40  fwarmerdam
- * added clode to cleanup datum mapping table: bug 613
- *
- * Revision 1.34  2004/09/10 21:03:55  fwarmerdam
- * Lots of changes to map Hotine_Oblique_Mercator_Azimuth_Center in ESRI format
- * to Hotine_Oblique_Mercator with a rectified_grid_angle of 90 (and back).
- * This is a special case for the swiss oblique mercator.
- * See http://bugzilla.remotesensing.org/show_bug.cgi?id=423
- *
- * Revision 1.33  2004/07/29 19:12:05  warmerda
- * support multiline ESRI .prj files in WKT format
- *
- * Revision 1.32  2004/05/04 13:11:49  warmerda
- * Added support for KRASOVSKY spheroid
- *
- * Revision 1.31  2004/04/24 15:45:04  warmerda
- * Added GRS80 spheroid support.
- *
- * Revision 1.30  2004/04/19 19:32:25  warmerda
- * added INTERNATIONAL1909
- *
- * Revision 1.29  2004/02/25 21:14:35  warmerda
- * added morph of spheroid names to ESRI
- *
- * Revision 1.28  2003/11/03 21:37:34  warmerda
- * fixed southern hemisphere UTM support
- *
- * Revision 1.27  2003/08/14 14:36:24  warmerda
- * some ESRI .prj files use Central_Parallel instead of latitude_of_origin
- *
- * Revision 1.26  2003/08/03 01:30:34  warmerda
- * Added mapping for EUR datum as per:
- * http://bugzilla.remotesensing.org/show_bug.cgi?id=371
- *
- * Revision 1.25  2003/06/23 14:49:17  warmerda
- * added InitDatumMappingTable, and use of gdal_datum.csv file
- *
- * Revision 1.24  2003/06/17 14:39:00  warmerda
- * Translate Equirectangular to/from Equidistant_Cylindrical
- *
- * Revision 1.23  2003/05/21 02:59:41  warmerda
- * morphToEsri() now sets specific units constants for Foot_US and Degree.
- * morphToEsri() converts albers parameters to match expected ESRI values.
- *
- * Revision 1.22  2003/05/08 21:52:55  warmerda
- * fixed C morphToESRI func, added ESRI unit remapping
- *
- * Revision 1.21  2003/02/25 04:53:16  warmerda
- * Added support for the LAMBERT projection.  Added support for defining a
- * GEOGCS from the SPHEROID if there is no known DATUM.   Fixed bug with
- * GREATBRITIAN_GRID.
- *
- * Revision 1.20  2003/02/14 22:15:04  warmerda
- * expand tabs
- *
- * Revision 1.19  2003/01/24 20:15:34  warmerda
- * added polar stereographic support
- *
- * Revision 1.18  2002/12/16 17:07:42  warmerda
- * dont alter projection parameter units ... ESRI was right!
- *
- * Revision 1.17  2002/12/01 21:16:21  warmerda
- * added logic to correct angular projection parameter units when needed
- *
- * Revision 1.16  2002/11/29 22:10:15  warmerda
- * added logic to map ESRI LCC to LCC1SP or LCC2SP in WKT and vice versa
- *
- * Revision 1.15  2002/11/25 03:28:16  warmerda
- * added/improved documentation
- *
- * Revision 1.14  2002/11/12 19:42:08  warmerda
- * added state plane and BNG support
- *
- * Revision 1.13  2002/04/25 20:56:28  warmerda
- * expanded tabs
- *
- * Revision 1.12  2002/03/12 18:11:38  warmerda
- * ESRI WKT false easting/northing not necessariliy in meters
- *
- * Revision 1.11  2002/03/05 14:25:14  warmerda
- * expand tabs
- *
- * Revision 1.10  2001/11/09 21:06:40  warmerda
- * stripctparms may not results in null root
- *
- * Revision 1.9  2001/10/11 19:27:54  warmerda
- * worked on esri morphing
- *
- * Revision 1.8  2001/10/10 20:42:43  warmerda
- * added ESRI WKT morphing support
- *
- * Revision 1.7  2001/07/19 18:25:07  warmerda
- * expanded tabs
- *
- * Revision 1.6  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.5  2001/03/16 22:15:48  warmerda
- * added support for reading WKT in importFromEPSG
- *
- * Revision 1.4  2001/01/26 14:56:11  warmerda
- * added Transverse Mercator .prj support
- *
- * Revision 1.3  2001/01/19 21:10:46  warmerda
- * replaced tabs
- *
- * Revision 1.2  2000/11/17 17:25:37  warmerda
- * added improved utm support
- *
- * Revision 1.1  2000/11/09 06:22:15  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_spatialref.h"
 #include "ogr_p.h"
 #include "cpl_csv.h"
 
-CPL_CVSID("$Id: ogr_srs_esri.cpp,v 1.39 2005/05/04 14:29:20 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogr_srs_esri.cpp 11828 2007-08-01 23:15:47Z warmerdam $");
 
 static char *apszProjMapping[] = {
     "Albers", SRS_PT_ALBERS_CONIC_EQUAL_AREA,
     "Cassini", SRS_PT_CASSINI_SOLDNER,
+    "Plate_Carree", SRS_PT_EQUIRECTANGULAR,
     "Hotine_Oblique_Mercator_Azimuth_Natural_Origin", 
                                         SRS_PT_HOTINE_OBLIQUE_MERCATOR,
     "Hotine_Oblique_Mercator_Azimuth_Center", 
@@ -182,7 +56,16 @@ static char *apszAlbersMapping[] = {
     "Central_Parallel", SRS_PP_LATITUDE_OF_CENTER,
     NULL, NULL };
 
+static char *apszECMapping[] = {
+    SRS_PP_CENTRAL_MERIDIAN, SRS_PP_LONGITUDE_OF_CENTER, 
+    SRS_PP_LATITUDE_OF_ORIGIN, SRS_PP_LATITUDE_OF_CENTER, 
+    NULL, NULL };
+
 static char *apszMercatorMapping[] = {
+    SRS_PP_STANDARD_PARALLEL_1, SRS_PP_LATITUDE_OF_ORIGIN,
+    NULL, NULL };
+
+static char *apszPolarStereographicMapping[] = {
     SRS_PP_STANDARD_PARALLEL_1, SRS_PP_LATITUDE_OF_ORIGIN,
     NULL, NULL };
 
@@ -355,6 +238,23 @@ static int anUsgsEsriZones[] =
 void OGREPSGDatumNameMassage( char ** ppszDatum );
 
 /************************************************************************/
+/*                           RemapSpheroidName()                        */
+/*                                                                      */
+/*      Convert Spheroid name to ESRI style name                        */
+/************************************************************************/
+
+static const char* RemapSpheroidName(const char* pszName)
+{
+  if (strcmp(pszName, "WGS 84") == 0)
+    return "WGS 1984";
+
+  if (strcmp(pszName, "WGS 72") == 0)
+    return "WGS 1972";
+
+  return pszName;
+}
+
+/************************************************************************/
 /*                           ESRIToUSGSZone()                           */
 /*                                                                      */
 /*      Convert ESRI style state plane zones to USGS style state        */
@@ -475,7 +375,7 @@ static void InitDatumMappingTable()
     if( nDatumCodeField == -1 || nEPSGNameField == -1 || nESRINameField == -1 )
     {
         CPLError( CE_Failure, CPLE_AppDefined, 
-                  "Failed to find required field in datum.csv in InitDatumMappingTable(), using default table setup." );
+                  "Failed to find required field in gdal_datum.csv in InitDatumMappingTable(), using default table setup." );
         
         papszDatumMapping = apszDefaultDatumMapping;
         return;
@@ -831,8 +731,8 @@ OGRErr OGRSpatialReference::importFromESRI( char **papszPrj )
 
     else if( EQUAL(pszProj,"TRANSVERSE") )
     {
-        SetTM( OSR_GDV( papszPrj, "PARAM_2", 0.0 ), 
-               OSR_GDV( papszPrj, "PARAM_3", 0.0 ), 
+        SetTM( OSR_GDV( papszPrj, "PARAM_3", 0.0 ), 
+               OSR_GDV( papszPrj, "PARAM_2", 0.0 ), 
                OSR_GDV( papszPrj, "PARAM_1", 0.0 ), 
                OSR_GDV( papszPrj, "PARAM_4", 0.0 ), 
                OSR_GDV( papszPrj, "PARAM_5", 0.0 ) );
@@ -867,9 +767,14 @@ OGRErr OGRSpatialReference::importFromESRI( char **papszPrj )
         {
             SetWellKnownGeogCS( pszDatum );
         }
-        else if( EQUAL( pszDatum, "EUR" ) )
+        else if( EQUAL( pszDatum, "EUR" )
+                 || EQUAL( pszDatum, "ED50" ) )
         {
             SetWellKnownGeogCS( "EPSG:4230" );
+        }
+        else if( EQUAL( pszDatum, "GDA94" ) )
+        {
+            SetWellKnownGeogCS( "EPSG:4283" );
         }
         else
         {
@@ -923,14 +828,30 @@ OGRErr OGRSpatialReference::importFromESRI( char **papszPrj )
     if( IsLocal() || IsProjected() )
     {
         const char *pszValue;
+        double dfOldUnits = GetLinearUnits();
 
         pszValue = OSR_GDS( papszPrj, "Units", NULL );
         if( pszValue == NULL )
             SetLinearUnitsAndUpdateParameters( SRS_UL_METER, 1.0 );
         else if( EQUAL(pszValue,"FEET") )
-            SetLinearUnitsAndUpdateParameters( SRS_UL_FOOT, atof(SRS_UL_FOOT_CONV) );
+            SetLinearUnitsAndUpdateParameters( SRS_UL_US_FOOT, atof(SRS_UL_US_FOOT_CONV) );
+        else if( atof(pszValue) != 0.0 )
+            SetLinearUnitsAndUpdateParameters( "user-defined", 
+                                               1.0 / atof(pszValue) );
         else
             SetLinearUnitsAndUpdateParameters( pszValue, 1.0 );
+
+        // If we have reset the linear units we should clear any authority
+        // nodes on the PROJCS.  This especially applies to state plane
+        // per bug 1697
+        double dfNewUnits = GetLinearUnits();
+        if( dfOldUnits != 0.0 
+            && (dfNewUnits / dfOldUnits < 0.9999999
+                || dfNewUnits / dfOldUnits > 1.0000001) )
+        {
+            if( GetRoot()->FindChild( "AUTHORITY" ) != -1 )
+                GetRoot()->DestroyChild(GetRoot()->FindChild( "AUTHORITY" ));
+        }
     }
     
     return OGRERR_NONE;
@@ -960,6 +881,13 @@ OGRErr OGRSpatialReference::morphToESRI()
     OGRErr      eErr;
 
 /* -------------------------------------------------------------------- */
+/*      Fixup ordering, missing linear units, etc.                      */
+/* -------------------------------------------------------------------- */
+    eErr = Fixup();
+    if( eErr != OGRERR_NONE )
+        return eErr;
+
+/* -------------------------------------------------------------------- */
 /*      Strip all CT parameters (AXIS, AUTHORITY, TOWGS84, etc).        */
 /* -------------------------------------------------------------------- */
     eErr = StripCTParms();
@@ -984,6 +912,29 @@ OGRErr OGRSpatialReference::morphToESRI()
                  "Hotine_Oblique_Mercator_Azimuth_Center" );
 
         /* ideally we should strip out of the rectified_grid_angle */
+        pszProjection = GetAttrValue("PROJECTION");
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Polar_Stereographic maps to ESRI codes                          */
+/*      Stereographic_South_Pole or Stereographic_North_Pole based      */
+/*      on latitude.                                                    */
+/* -------------------------------------------------------------------- */
+    if( pszProjection != NULL
+        && EQUAL(pszProjection,SRS_PT_POLAR_STEREOGRAPHIC) )
+    {
+        if( GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN, 0.0 ) < 0.0 )
+        {
+            SetNode( "PROJCS|PROJECTION", 
+                     "Stereographic_South_Pole" );
+            pszProjection = GetAttrValue("PROJECTION");
+        }
+        else
+        {
+            SetNode( "PROJCS|PROJECTION", 
+                     "Stereographic_North_Pole" );
+            pszProjection = GetAttrValue("PROJECTION");
+        }
     }
 
 /* -------------------------------------------------------------------- */
@@ -991,6 +942,7 @@ OGRErr OGRSpatialReference::morphToESRI()
 /* -------------------------------------------------------------------- */
     GetRoot()->applyRemapper( "PROJECTION", 
                               apszProjMapping+1, apszProjMapping, 2 );
+    pszProjection = GetAttrValue("PROJECTION");
 
 /* -------------------------------------------------------------------- */
 /*      Translate DATUM keywords that are misnamed.                     */
@@ -999,6 +951,103 @@ OGRErr OGRSpatialReference::morphToESRI()
 
     GetRoot()->applyRemapper( "DATUM", 
                               papszDatumMapping+2, papszDatumMapping+1, 3 );
+
+/* -------------------------------------------------------------------- */
+/*      Very specific handling for some well known geographic           */
+/*      coordinate systems.                                             */
+/* -------------------------------------------------------------------- */
+    OGR_SRSNode *poGeogCS = GetAttrNode( "GEOGCS" );
+    if( poGeogCS != NULL )
+    {
+        const char *pszGeogCSName = poGeogCS->GetChild(0)->GetValue();
+        const char *pszAuthName = GetAuthorityName("GEOGCS");
+        const char *pszUTMPrefix = NULL;
+        int nGCSCode = -1;
+        
+        if( pszAuthName != NULL && EQUAL(pszAuthName,"EPSG") )
+            nGCSCode = atoi(GetAuthorityCode("GEOGCS"));
+
+        if( nGCSCode == 4326 
+            || EQUAL(pszGeogCSName,"WGS84") 
+            || EQUAL(pszGeogCSName,"WGS 84") )
+        {
+            poGeogCS->GetChild(0)->SetValue( "GCS_WGS_1984" );
+            pszUTMPrefix = "WGS_1984";
+        }
+        else if( nGCSCode == 4267
+                 || EQUAL(pszGeogCSName,"NAD27") 
+                 || EQUAL(pszGeogCSName,"NAD 27") )
+        {
+            poGeogCS->GetChild(0)->SetValue( "GCS_North_American_1927" );
+            pszUTMPrefix = "NAD_1927";
+        }
+        else if( nGCSCode == 4269
+                 || EQUAL(pszGeogCSName,"NAD83") 
+                 || EQUAL(pszGeogCSName,"NAD 83") )
+        {
+            poGeogCS->GetChild(0)->SetValue( "GCS_North_American_1983" );
+            pszUTMPrefix = "NAD_1983";
+        }
+
+/* -------------------------------------------------------------------- */
+/*      Force Unnamed to Unknown for most common locations.             */
+/* -------------------------------------------------------------------- */
+    static char *apszUnknownMapping[] = { 
+        "Unknown", "Unnamed",
+        NULL, NULL 
+    };
+
+    GetRoot()->applyRemapper( "PROJCS", 
+                              apszUnknownMapping+1, apszUnknownMapping+0, 2 );
+    GetRoot()->applyRemapper( "GEOGCS", 
+                              apszUnknownMapping+1, apszUnknownMapping+0, 2 );
+    GetRoot()->applyRemapper( "DATUM", 
+                              apszUnknownMapping+1, apszUnknownMapping+0, 2 );
+    GetRoot()->applyRemapper( "SPHEROID", 
+                              apszUnknownMapping+1, apszUnknownMapping+0, 2 );
+    GetRoot()->applyRemapper( "PRIMEM", 
+                              apszUnknownMapping+1, apszUnknownMapping+0, 2 );
+    
+/* -------------------------------------------------------------------- */
+/*      If the PROJCS name is unset, use the PROJECTION name in         */
+/*      place of unknown, or unnamed.  At the request of Peng Gao.      */
+/* -------------------------------------------------------------------- */
+    OGR_SRSNode *poNode;
+
+    poNode = GetAttrNode( "PROJCS" );
+    if( poNode != NULL )
+        poNode = poNode->GetChild( 0 );
+
+    if( poNode != NULL 
+        && ( EQUAL(poNode->GetValue(),"unnamed")
+             || EQUAL(poNode->GetValue(),"unknown")
+             || EQUAL(poNode->GetValue(),"") ) )
+    {
+        if( GetAttrValue( "PROJECTION", 0 ) != NULL )
+            poNode->SetValue( GetAttrValue( "PROJECTION", 0 ) );
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Prepare very specific PROJCS names for UTM coordinate           */
+/*      systems.                                                        */
+/* -------------------------------------------------------------------- */
+        int bNorth, nZone;
+
+        nZone = GetUTMZone( &bNorth );
+        if( nZone > 0 && pszUTMPrefix != NULL )
+        {
+            char szUTMName[128];
+
+            if( bNorth )
+                sprintf( szUTMName, "%s_UTM_Zone_%dN", pszUTMPrefix, nZone );
+            else
+                sprintf( szUTMName, "%s_UTM_Zone_%dS", pszUTMPrefix, nZone );
+            
+            OGR_SRSNode *poProjCS = GetAttrNode( "PROJCS" );
+            if( poProjCS != NULL )
+                poProjCS->GetChild(0)->SetValue( szUTMName );
+        }
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Translate UNIT keywords that are misnamed, or even the wrong    */
@@ -1041,9 +1090,22 @@ OGRErr OGRSpatialReference::morphToESRI()
         GetRoot()->applyRemapper( 
             "PARAMETER", apszAlbersMapping + 1, apszAlbersMapping + 0, 2 );
 
+    if( pszProjection != NULL 
+        && EQUAL(pszProjection,SRS_PT_EQUIDISTANT_CONIC) )
+        GetRoot()->applyRemapper( 
+            "PARAMETER", apszECMapping + 1, apszECMapping + 0, 2 );
+
     if( pszProjection != NULL && EQUAL(pszProjection,"Mercator") )
         GetRoot()->applyRemapper( 
-            "PARAMETER", apszAlbersMapping + 1, apszAlbersMapping + 0, 2 );
+            "PARAMETER", apszMercatorMapping + 1, apszMercatorMapping + 0, 2 );
+
+    if( pszProjection != NULL 
+        && EQUALN(pszProjection,"Stereographic_",14)
+        && EQUALN(pszProjection+strlen(pszProjection)-5,"_Pole",5) )
+        GetRoot()->applyRemapper( 
+            "PARAMETER", 
+            apszPolarStereographicMapping + 1, 
+            apszPolarStereographicMapping + 0, 2 );
 
 /* -------------------------------------------------------------------- */
 /*      Convert SPHEROID name to use underscores instead of spaces.     */
@@ -1056,7 +1118,7 @@ OGRErr OGRSpatialReference::morphToESRI()
 
     if( poSpheroid != NULL )
     {
-        char *pszNewValue = CPLStrdup(poSpheroid->GetValue());
+        char *pszNewValue = CPLStrdup(RemapSpheroidName(poSpheroid->GetValue()));
 
         MorphNameToESRI( &pszNewValue );
 
@@ -1159,13 +1221,18 @@ OGRErr OGRSpatialReference::morphFromESRI()
 /*      Split Lambert_Conformal_Conic into 1SP or 2SP form.             */
 /*                                                                      */
 /*      See bugzilla.remotesensing.org/show_bug.cgi?id=187              */
+/*                                                                      */
+/*      We decide based on whether it has 2SPs.  We used to assume      */
+/*      1SP if it had a scale factor but that turned out to be a        */
+/*      poor test.                                                      */
 /* -------------------------------------------------------------------- */
     const char *pszProjection = GetAttrValue("PROJECTION");
     
     if( pszProjection != NULL
         && EQUAL(pszProjection,"Lambert_Conformal_Conic") )
     {
-        if( GetProjParm( "Scale_Factor", 2.0 ) == 2.0 )
+        if( GetProjParm( SRS_PP_STANDARD_PARALLEL_1, 1000.0 ) != 1000.0 
+            && GetProjParm( SRS_PP_STANDARD_PARALLEL_2, 1000.0 ) != 1000.0 )
             SetNode( "PROJCS|PROJECTION", 
                      SRS_PT_LAMBERT_CONFORMAL_CONIC_2SP );
         else
@@ -1187,15 +1254,39 @@ OGRErr OGRSpatialReference::morphFromESRI()
     }
 
 /* -------------------------------------------------------------------- */
-/*      Remap albers and Mercator parameters.                           */
+/*      Remap Albers, Mercator and Polar Stereographic parameters.      */
 /* -------------------------------------------------------------------- */
     if( pszProjection != NULL && EQUAL(pszProjection,"Albers") )
         GetRoot()->applyRemapper( 
             "PARAMETER", apszAlbersMapping + 0, apszAlbersMapping + 1, 2 );
 
+    if( pszProjection != NULL 
+        && EQUAL(pszProjection,SRS_PT_EQUIDISTANT_CONIC) )
+        GetRoot()->applyRemapper( 
+            "PARAMETER", apszECMapping + 0, apszECMapping + 1, 2 );
+
     if( pszProjection != NULL && EQUAL(pszProjection,"Mercator") )
         GetRoot()->applyRemapper( 
             "PARAMETER", apszMercatorMapping + 0, apszMercatorMapping + 1, 2 );
+
+    if( pszProjection != NULL 
+        && EQUALN(pszProjection,"Stereographic_",14) 
+        && EQUALN(pszProjection+strlen(pszProjection)-5,"_Pole",5) )
+        GetRoot()->applyRemapper( 
+            "PARAMETER", 
+            apszPolarStereographicMapping + 0, 
+            apszPolarStereographicMapping + 1, 2 );
+
+/* -------------------------------------------------------------------- */
+/*      Remap south and north polar stereographic to one value.         */
+/* -------------------------------------------------------------------- */
+    if( pszProjection != NULL
+        && EQUALN(pszProjection,"Stereographic_",14)
+        && EQUALN(pszProjection+strlen(pszProjection)-5,"_Pole",5) )
+    {
+        SetNode( "PROJCS|PROJECTION", SRS_PT_POLAR_STEREOGRAPHIC );
+        pszProjection = GetAttrValue("PROJECTION");
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Translate PROJECTION keywords that are misnamed.                */

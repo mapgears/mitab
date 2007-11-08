@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrlayer.cpp,v 1.24 2005/02/22 12:47:47 fwarmerdam Exp $
+ * $Id: ogrlayer.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The generic portions of the OGRSFLayer class.
@@ -25,90 +25,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrlayer.cpp,v $
- * Revision 1.24  2005/02/22 12:47:47  fwarmerdam
- * use haveGEOS() test, instead of HAVE_GEOS
- *
- * Revision 1.23  2005/02/22 12:42:18  fwarmerdam
- * Added OGRLayer SetSpatialFilter(), and GetSpatialFilter() methods as well
- * as code to help implement fast bounding box spatial tests.
- *
- * Revision 1.22  2005/02/02 20:00:29  fwarmerdam
- * added SetNextByIndex support
- *
- * Revision 1.21  2005/01/03 22:17:00  fwarmerdam
- * added OGRLayer::SetSpatialFilterRect()
- *
- * Revision 1.20  2004/08/17 15:41:31  warmerda
- * dont compute extents for wkbNone layers
- *
- * Revision 1.19  2003/10/09 15:30:07  warmerda
- * added OGRLayer::DeleteFeature() support
- *
- * Revision 1.18  2003/05/28 19:18:04  warmerda
- * fixup argument names for docs
- *
- * Revision 1.17  2003/05/21 04:54:29  warmerda
- * avoid warnings about unused formal parameters and possibly uninit variables
- *
- * Revision 1.16  2003/04/22 19:36:04  warmerda
- * Added SyncToDisk
- *
- * Revision 1.15  2003/03/19 20:35:05  warmerda
- * added reference counting support
- *
- * Revision 1.14  2003/03/04 17:45:16  warmerda
- * Ensure m_poAttrIndex is initialized.
- *
- * Revision 1.13  2003/03/04 05:48:05  warmerda
- * added index initialize support
- *
- * Revision 1.12  2002/09/26 18:16:19  warmerda
- * added C entry points
- *
- * Revision 1.11  2002/03/27 21:25:25  warmerda
- * added working default implementation of GetFeature()
- *
- * Revision 1.10  2001/11/15 21:19:21  warmerda
- * added transaction semantics
- *
- * Revision 1.9  2001/10/02 14:16:21  warmerda
- * fix handling of case where a query is being cleared
- *
- * Revision 1.8  2001/07/19 18:26:42  warmerda
- * expand tabs
- *
- * Revision 1.7  2001/07/18 04:55:16  warmerda
- * added CPL_CSVID
- *
- * Revision 1.6  2001/06/19 15:53:49  warmerda
- * Added attribute query support
- *
- * Revision 1.5  2001/03/15 04:01:43  danmo
- * Added OGRLayer::GetExtent()
- *
- * Revision 1.4  1999/11/04 21:10:30  warmerda
- * Added CreateField() method.
- *
- * Revision 1.3  1999/07/27 00:51:39  warmerda
- * added GetInfo(), fixed args for other methods
- *
- * Revision 1.2  1999/07/26 13:59:06  warmerda
- * added feature writing api
- *
- * Revision 1.1  1999/07/08 20:05:13  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogrsf_frmts.h"
 #include "ogr_api.h"
 #include "ogr_p.h"
 #include "ogr_attrind.h"
 
-CPL_CVSID("$Id: ogrlayer.cpp,v 1.24 2005/02/22 12:47:47 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogrlayer.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 /************************************************************************/
 /*                              OGRLayer()                              */
@@ -135,6 +59,12 @@ OGRLayer::OGRLayer()
 OGRLayer::~OGRLayer()
 
 {
+    if ( m_poStyleTable )
+    {
+        delete m_poStyleTable;
+        m_poStyleTable = NULL;
+    }
+
     if( m_poAttrIndex != NULL )
     {
         delete m_poAttrIndex;
@@ -917,4 +847,43 @@ GIntBig OGR_L_GetFeaturesRead( OGRLayerH hLayer )
     return ((OGRLayer *) hLayer)->GetFeaturesRead();
 }
 
+/************************************************************************/
+/*                             GetFIDColumn                             */
+/************************************************************************/
+
+const char *OGRLayer::GetFIDColumn()
+
+{
+    return "";
+}
+
+/************************************************************************/
+/*                         OGR_L_GetFIDColumn()                         */
+/************************************************************************/
+
+const char *OGR_L_GetFIDColumn( OGRLayerH hLayer )
+
+{
+    return ((OGRLayer *) hLayer)->GetFIDColumn();
+}
+
+/************************************************************************/
+/*                         GetGeometryColumn()                          */
+/************************************************************************/
+
+const char *OGRLayer::GetGeometryColumn()
+
+{
+    return "";
+}
+
+/************************************************************************/
+/*                      OGR_L_GetGeometryColumn()                       */
+/************************************************************************/
+
+const char *OGR_L_GetGeometryColumn( OGRLayerH hLayer )
+
+{
+    return ((OGRLayer *) hLayer)->GetGeometryColumn();
+}
 

@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogrlinearring.cpp,v 1.18 2004/09/17 15:05:36 fwarmerdam Exp $
+ * $Id: ogrlinearring.cpp 12517 2007-10-23 15:07:35Z mloskot $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRLinearRing geometry class.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
@@ -25,71 +25,12 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrlinearring.cpp,v $
- * Revision 1.18  2004/09/17 15:05:36  fwarmerdam
- * added get_Area() support
- *
- * Revision 1.17  2004/07/10 04:51:42  warmerda
- * added closeRings
- *
- * Revision 1.16  2004/02/21 15:36:14  warmerda
- * const correctness updates for geometry: bug 289
- *
- * Revision 1.15  2003/09/11 22:47:54  aamici
- * add class constructors and destructors where needed in order to
- * let the mingw/cygwin binutils produce sensible partially linked objet files
- * with 'ld -r'.
- *
- * Revision 1.14  2003/07/08 13:59:35  warmerda
- * added poSrcRing check in copy constructor, bug 361
- *
- * Revision 1.13  2003/05/28 19:16:42  warmerda
- * fixed up argument names and stuff for docs
- *
- * Revision 1.12  2003/01/14 22:13:35  warmerda
- * added isClockwise() method on OGRLinearRing
- *
- * Revision 1.11  2002/10/24 20:38:45  warmerda
- * fixed bug byte swapping point count in exporttowkb
- *
- * Revision 1.10  2002/05/02 19:44:53  warmerda
- * fixed 3D binary support for polygon/linearring
- *
- * Revision 1.9  2002/04/17 21:46:22  warmerda
- * Ensure padfZ copied in copy constructor.
- *
- * Revision 1.8  2002/02/22 22:24:31  warmerda
- * fixed 3d support in clone
- *
- * Revision 1.7  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.6  1999/11/18 19:02:19  warmerda
- * expanded tabs
- *
- * Revision 1.5  1999/07/08 20:25:39  warmerda
- * Remove getGeometryType() method ... now returns wkbLineString.
- *
- * Revision 1.4  1999/06/25 20:44:43  warmerda
- * implemented assignSpatialReference, carry properly
- *
- * Revision 1.3  1999/05/23 05:34:40  warmerda
- * added support for clone(), multipolygons and geometry collections
- *
- * Revision 1.2  1999/05/20 14:35:44  warmerda
- * added support for well known text format
- *
- * Revision 1.1  1999/03/30 21:21:05  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrlinearring.cpp,v 1.18 2004/09/17 15:05:36 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogrlinearring.cpp 12517 2007-10-23 15:07:35Z mloskot $");
 
 /************************************************************************/
 /*                           OGRLinearRing()                            */
@@ -211,6 +152,21 @@ OGRErr OGRLinearRing::_importFromWkb( OGRwkbByteOrder eByteOrder, int b3D,
     if( OGR_SWAP( eByteOrder ) )
         nNewNumPoints = CPL_SWAP32(nNewNumPoints);
 
+    /* Check if the wkb stream buffer is big enough to store
+     * fetched number of points.
+     * 16 or 24 - size of point structure
+     */
+    int nPointSize = (b3D ? 24 : 16);
+    int nBufferMinSize = nPointSize * nNewNumPoints;
+   
+    if( nBufferMinSize > nBytesAvailable && nBytesAvailable > 0 )
+    {
+        CPLError( CE_Failure, CPLE_AppDefined,
+                  "Length of input WKB is too small" );
+        return OGRERR_NOT_ENOUGH_DATA;
+    }
+
+    /* (Re)Allocation of paoPoints buffer. */
     setNumPoints( nNewNumPoints );
 
     if( b3D )
@@ -221,14 +177,39 @@ OGRErr OGRLinearRing::_importFromWkb( OGRwkbByteOrder eByteOrder, int b3D,
 /* -------------------------------------------------------------------- */
 /*      Get the vertices                                                */
 /* -------------------------------------------------------------------- */
-    int i;
+    int i = 0;
+    int nBytesToCopy = 0;
 
     if( !b3D )
-        memcpy( paoPoints, pabyData + 4, 16 * nPointCount );
+    {
+        nBytesToCopy = 16 * nPointCount;
+        
+        if( nBytesToCopy > nBytesAvailable && nBytesAvailable > 0 )
+        {
+            CPLError( CE_Failure, CPLE_AppDefined,
+                      "WKB buffer with OGRLinearRing points is too small! \
+                      \n\tWKB stream may be corrupted or it is EWKB stream which is not supported");
+            return OGRERR_NOT_ENOUGH_DATA;
+        }
+
+        memcpy( paoPoints, pabyData + 4, nBytesToCopy );
+    }
     else
     {
         for( int i = 0; i < nPointCount; i++ )
         {
+            nBytesToCopy = 24;
+
+            if( nBytesToCopy > nBytesAvailable && nBytesAvailable > 0 )
+            {
+                CPLError( CE_Failure, CPLE_AppDefined,
+                          "WKB buffer with OGRLinearRing points is too small! \
+                          \n\tWKB stream may be corrupted or it is EWKB stream which is not supported");
+                return OGRERR_NOT_ENOUGH_DATA;
+            }
+            if ( nBytesAvailable > 0 )
+                nBytesAvailable -= nBytesToCopy;
+
             memcpy( &(paoPoints[i].x), pabyData + 4 + 24 * i, 8 );
             memcpy( &(paoPoints[i].y), pabyData + 4 + 24 * i + 8, 8 );
             memcpy( padfZ + i, pabyData + 4 + 24 * i + 16, 8 );
@@ -376,6 +357,25 @@ int OGRLinearRing::isClockwise() const
     return dfSum < 0.0;
 }
 
+/************************************************************************/ 
+/*                             reverseWindingOrder()                    */ 
+/************************************************************************/ 
+
+void OGRLinearRing::reverseWindingOrder() 
+
+{ 
+    int pos = 0; 
+    OGRPoint tempPoint; 
+
+    for( int i = 0; i < nPointCount / 2; i++ ) 
+    { 
+        getPoint( i, &tempPoint ); 
+        pos = nPointCount - i - 1; 
+        setPoint( i, getX(pos), getY(pos), getZ(pos) ); 
+        setPoint( pos, tempPoint.getX(), tempPoint.getY(), tempPoint.getZ() ); 
+    } 
+} 
+
 /************************************************************************/
 /*                             closeRing()                              */
 /************************************************************************/
@@ -390,7 +390,14 @@ void OGRLinearRing::closeRings()
         || getY(0) != getY(nPointCount-1)
         || getZ(0) != getZ(nPointCount-1) )
     {
-        addPoint( getX(0), getY(0), getZ(0) );
+        /* Avoid implicit change of coordinate dimensionality
+         * if z=0.0 and dim=2
+         */
+        if( getCoordinateDimension() == 2 )
+            addPoint( getX(0), getY(0) );
+        else
+            addPoint( getX(0), getY(0), getZ(0) );
+            
     }
 }
 
@@ -425,4 +432,69 @@ double OGRLinearRing::get_Area() const
                          - paoPoints[0].x * paoPoints[nPointCount-1].y );
 
     return fabs(dfAreaSum);
+}
+
+/************************************************************************/
+/*                              isPointInRing()                         */
+/************************************************************************/
+
+OGRBoolean OGRLinearRing::isPointInRing(const OGRPoint* poPoint) const
+{
+    if ( NULL == poPoint )
+    {
+        CPLDebug( "OGR", "OGRLinearRing::isPointInRing(const  OGRPoint* poPoint) - passed point is NULL!" );
+        return 0;
+    }
+
+    CPLDebug( "OGR", "OGRLinearRing::isPointInRing(): passed point: (%.8f,%.8f)",
+              poPoint->getX(), poPoint->getY() );
+
+    const int iNumPoints = getNumPoints();
+
+    // Simple validation
+    if ( iNumPoints < 4 )
+        return 0;
+
+    const double dfTestX = poPoint->getX();
+    const double dfTestY = poPoint->getY();
+
+    // Fast test if point is inside extent of the ring
+    OGREnvelope extent;
+    getEnvelope(&extent);
+    if ( !( dfTestX >= extent.MinX && dfTestX <= extent.MaxX
+         && dfTestY >= extent.MinY && dfTestY <= extent.MaxY ) )
+    {
+        CPLDebug( "OGR", "OGRLinearRing::isPointInRing(): passed point is out of extent of ring" );
+        return 0;
+    }
+
+	// For every point p in ring,
+    // test if ray starting from given point crosses segment (p - 1, p)
+    int iNumCrossings = 0;
+
+    for ( int iPoint = 1; iPoint < iNumPoints; iPoint++ ) 
+    {
+        const int iPointPrev = iPoint - 1;
+
+        const double x1 = getX(iPoint) - dfTestX;
+        const double y1 = getY(iPoint) - dfTestY;
+
+        const double x2 = getX(iPointPrev) - dfTestX;
+        const double y2 = getY(iPointPrev) - dfTestY;
+
+        if( ( ( y1 > 0 ) && ( y2 <= 0 ) ) || ( ( y2 > 0 ) && ( y1 <= 0 ) ) ) 
+        {
+            // Check if ray intersects with segment of the ring
+            const double dfIntersection = ( x1 * y2 - x2 * y1 ) / (y2 - y1);
+            if ( 0.0 < dfIntersection )
+            {
+                // Count intersections
+                iNumCrossings++;
+            }
+        }
+    }
+
+    // If iNumCrossings number is even, given point is outside the ring,
+    // when the crossings number is odd, the point is inside the ring.
+    return ( ( iNumCrossings % 2 ) == 1 ? 1 : 0 );
 }

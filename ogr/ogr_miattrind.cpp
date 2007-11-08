@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_miattrind.cpp,v 1.4 2003/12/02 19:59:39 warmerda Exp $
+ * $Id: ogr_miattrind.cpp 12519 2007-10-23 15:28:53Z mloskot $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Implements interface to MapInfo .ID files used as attribute
@@ -26,29 +26,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_miattrind.cpp,v $
- * Revision 1.4  2003/12/02 19:59:39  warmerda
- * Support adding only specific fields to the index when re-indexing all
- * features.
- *
- * Revision 1.3  2003/05/21 04:54:29  warmerda
- * avoid warnings about unused formal parameters and possibly uninit variables
- *
- * Revision 1.2  2003/03/20 20:21:40  warmerda
- * implement DROP INDEX command
- *
- * Revision 1.1  2003/03/04 05:47:03  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_attrind.h"
 #include "mitab/mitab_priv.h"
 #include "cpl_minixml.h"
 
-CPL_CVSID("$Id: ogr_miattrind.cpp,v 1.4 2003/12/02 19:59:39 warmerda Exp $");
+CPL_CVSID("$Id: ogr_miattrind.cpp 12519 2007-10-23 15:28:53Z mloskot $");
 
 /************************************************************************/
 /*                            OGRMIAttrIndex                            */
@@ -240,7 +224,12 @@ OGRErr OGRMILayerAttrIndex::LoadConfigFromXML()
 /*      Open the index file.                                            */
 /* -------------------------------------------------------------------- */
     poINDFile = new TABINDFile();
-    if( poINDFile->Open( pszMetadataFilename, "r+" ) != 0 )
+
+    /* NOTE: Replaced r+ with r according to explanation in Ticket #1620.
+     * This change has to be observed if it doesn't cause any
+     * problems in future. (mloskot)
+     */
+    if( poINDFile->Open( pszMetadataFilename, "r" ) != 0 )
     {
         CPLDestroyXMLNode( psRoot );
         CPLError( CE_Failure, CPLE_OpenFailed,

@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: cpl_csv.cpp,v 1.12 2004/11/22 16:01:05 fwarmerdam Exp $
+ * $Id: cpl_csv.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  CSV (comma separated value) file access.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
@@ -25,57 +25,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: cpl_csv.cpp,v $
- * Revision 1.12  2004/11/22 16:01:05  fwarmerdam
- * added GDAL_PREFIX
- *
- * Revision 1.11  2004/08/17 14:58:01  warmerda
- * preserve newlines in CSVReadParseLine()
- *
- * Revision 1.10  2004/04/27 14:28:49  warmerda
- * Avoid Solaris C++ problems with SetCSVFilenameHook().
- *
- * Revision 1.9  2003/07/18 12:45:18  warmerda
- * added GDALDefaultCSVFilename
- *
- * Revision 1.8  2003/05/21 03:04:14  warmerda
- * fixed bFinderInitialized
- *
- * Revision 1.7  2003/05/20 19:13:31  warmerda
- * reorganize default file search rules, use GDAL_DATA and CPLGetConfigOptions
- *
- * Revision 1.6  2002/11/30 16:56:31  warmerda
- * fixed up to support quoted newlines properly
- *
- * Revision 1.5  2002/11/27 19:09:40  warmerda
- * implement in-memory caching of whole CSV file
- *
- * Revision 1.4  2002/09/04 06:16:32  warmerda
- * added CPLReadLine(NULL) to cleanup
- *
- * Revision 1.3  2001/07/18 04:00:49  warmerda
- * added CPL_CVSID
- *
- * Revision 1.2  2001/01/19 21:16:41  warmerda
- * expanded tabs
- *
- * Revision 1.1  2000/10/06 15:20:45  warmerda
- * New
- *
- * Revision 1.2  2000/08/29 21:08:08  warmerda
- * fallback to use CPLFindFile()
- *
- * Revision 1.1  2000/04/05 21:55:59  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "cpl_csv.h"
 #include "cpl_conv.h"
+#include "cpl_multiproc.h"
 
-CPL_CVSID("$Id: cpl_csv.cpp,v 1.12 2004/11/22 16:01:05 fwarmerdam Exp $");
+CPL_CVSID("$Id: cpl_csv.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 CPL_C_START
 const char * GDALDefaultCSVFilename( const char *pszBasename );
@@ -107,7 +63,8 @@ typedef struct ctb {
     char        *pszRawData;
 } CSVTable;
 
-static CSVTable *psCSVTableList = NULL;
+/* It would likely be better to share this list between threads, but
+   that will require some rework. */
 
 /************************************************************************/
 /*                             CSVAccess()                              */
@@ -127,9 +84,24 @@ static CSVTable *CSVAccess( const char * pszFilename )
     FILE        *fp;
 
 /* -------------------------------------------------------------------- */
+/*      Fetch the table, and allocate the thread-local pointer to it    */
+/*      if there isn't already one.                                     */
+/* -------------------------------------------------------------------- */
+    CSVTable **ppsCSVTableList;
+
+    ppsCSVTableList = (CSVTable **) CPLGetTLS( CTLS_CSVTABLEPTR );
+    if( ppsCSVTableList == NULL )
+    {
+        ppsCSVTableList = (CSVTable **) CPLCalloc(1,sizeof(CSVTable*));
+        CPLSetTLS( CTLS_CSVTABLEPTR, ppsCSVTableList, TRUE );
+    }
+
+/* -------------------------------------------------------------------- */
 /*      Is the table already in the list.                               */
 /* -------------------------------------------------------------------- */
-    for( psTable = psCSVTableList; psTable != NULL; psTable = psTable->psNext )
+    for( psTable = *ppsCSVTableList; 
+         psTable != NULL; 
+         psTable = psTable->psNext )
     {
         if( EQUAL(psTable->pszFilename,pszFilename) )
         {
@@ -157,9 +129,9 @@ static CSVTable *CSVAccess( const char * pszFilename )
 
     psTable->fp = fp;
     psTable->pszFilename = CPLStrdup( pszFilename );
-    psTable->psNext = psCSVTableList;
+    psTable->psNext = *ppsCSVTableList;
     
-    psCSVTableList = psTable;
+    *ppsCSVTableList = psTable;
 
 /* -------------------------------------------------------------------- */
 /*      Read the table header record containing the field names.        */
@@ -179,12 +151,22 @@ void CSVDeaccess( const char * pszFilename )
     CSVTable    *psLast, *psTable;
     
 /* -------------------------------------------------------------------- */
+/*      Fetch the table, and allocate the thread-local pointer to it    */
+/*      if there isn't already one.                                     */
+/* -------------------------------------------------------------------- */
+    CSVTable **ppsCSVTableList;
+
+    ppsCSVTableList = (CSVTable **) CPLGetTLS( CTLS_CSVTABLEPTR );
+    if( ppsCSVTableList == NULL )
+        return;
+    
+/* -------------------------------------------------------------------- */
 /*      A NULL means deaccess all tables.                               */
 /* -------------------------------------------------------------------- */
     if( pszFilename == NULL )
     {
-        while( psCSVTableList != NULL )
-            CSVDeaccess( psCSVTableList->pszFilename );
+        while( *ppsCSVTableList != NULL )
+            CSVDeaccess( (*ppsCSVTableList)->pszFilename );
         
         return;
     }
@@ -193,7 +175,7 @@ void CSVDeaccess( const char * pszFilename )
 /*      Find this table.                                                */
 /* -------------------------------------------------------------------- */
     psLast = NULL;
-    for( psTable = psCSVTableList;
+    for( psTable = *ppsCSVTableList;
          psTable != NULL && !EQUAL(psTable->pszFilename,pszFilename);
          psTable = psTable->psNext )
     {
@@ -212,7 +194,7 @@ void CSVDeaccess( const char * pszFilename )
     if( psLast != NULL )
         psLast->psNext = psTable->psNext;
     else
-        psCSVTableList = psTable->psNext;
+        *ppsCSVTableList = psTable->psNext;
 
 /* -------------------------------------------------------------------- */
 /*      Free the table.                                                 */
@@ -903,19 +885,19 @@ const char *CSVGetField( const char * pszFilename,
 const char * GDALDefaultCSVFilename( const char *pszBasename )
 
 {
-    static char         szPath[512];
+    static CPL_THREADLOCAL char         szPath[512];
     FILE    *fp = NULL;
     const char *pszResult;
-    static int bFinderInitialized = FALSE;
+    static CPL_THREADLOCAL int bCSVFinderInitialized = FALSE;
 
     pszResult = CPLFindFile( "epsg_csv", pszBasename );
 
     if( pszResult != NULL )
         return pszResult;
 
-    if( !bFinderInitialized )
+    if( !bCSVFinderInitialized )
     {
-        bFinderInitialized = TRUE;
+        bCSVFinderInitialized = TRUE;
 
         if( CPLGetConfigOption("GEOTIFF_CSV",NULL) != NULL )
             CPLPushFinderLocation( CPLGetConfigOption("GEOTIFF_CSV",NULL));
@@ -936,7 +918,11 @@ const char * GDALDefaultCSVFilename( const char *pszBasename )
     else
     {
 #ifdef GDAL_PREFIX
+  #ifdef MACOSX_FRAMEWORK
+        sprintf( szPath, GDAL_PREFIX "/Resources/epsg_csv/%s", pszBasename );
+  #else
         sprintf( szPath, GDAL_PREFIX "/share/epsg_csv/%s", pszBasename );
+  #endif
 #else
         sprintf( szPath, "/usr/local/share/epsg_csv/%s", pszBasename );
 #endif

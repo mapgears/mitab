@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogrsurface.cpp,v 1.2 2005/04/06 20:43:00 fwarmerdam Exp $
+ * $Id: ogrsurface.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRSurface class.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
@@ -25,16 +25,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrsurface.cpp,v $
- * Revision 1.2  2005/04/06 20:43:00  fwarmerdam
- * fixed a variety of method signatures for documentation
- *
- * Revision 1.1  1999/05/31 14:59:26  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_geometry.h"
 #include "ogr_p.h"

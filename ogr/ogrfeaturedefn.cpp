@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogrfeaturedefn.cpp,v 1.12 2003/09/18 21:31:34 warmerda Exp $
+ * $Id: ogrfeaturedefn.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRFeatureDefn class implementation.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999,  Les Technologies SoftMap Inc.
@@ -25,51 +25,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrfeaturedefn.cpp,v $
- * Revision 1.12  2003/09/18 21:31:34  warmerda
- * Fixed docs for GetGeomType().
- *
- * Revision 1.11  2003/05/28 19:16:42  warmerda
- * fixed up argument names and stuff for docs
- *
- * Revision 1.10  2003/04/08 20:57:06  warmerda
- * added Clone
- *
- * Revision 1.9  2003/04/03 23:39:11  danmo
- * Small updates to C API docs (Normand S.)
- *
- * Revision 1.8  2003/03/31 15:55:42  danmo
- * Added C API function docs
- *
- * Revision 1.7  2002/09/26 18:12:38  warmerda
- * added C support
- *
- * Revision 1.6  2002/08/07 21:37:47  warmerda
- * added indirect OGRFeaturedefn constructor/destructor
- *
- * Revision 1.5  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.4  1999/10/01 14:46:38  warmerda
- * don't blow assertion trying to get non-existant fields
- *
- * Revision 1.3  1999/08/28 03:12:06  warmerda
- * Improve debug message for left over reference count message.
- *
- * Revision 1.2  1999/07/05 17:19:52  warmerda
- * added docs
- *
- * Revision 1.1  1999/06/11 19:21:02  warmerda
- * New
- */
+ ****************************************************************************/
 
 #include "ogr_feature.h"
 #include "ogr_api.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrfeaturedefn.cpp,v 1.12 2003/09/18 21:31:34 warmerda Exp $");
+CPL_CVSID("$Id: ogrfeaturedefn.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 /************************************************************************/
 /*                           OGRFeatureDefn()                           */
@@ -105,10 +67,9 @@ OGRFeatureDefn::OGRFeatureDefn( const char * pszName )
  * Create a new feature definition object to held the field definitions.
  *
  * The OGRFeatureDefn maintains a reference count, but this starts at
- * zero.  It is mainly intended to represent a count of OGRFeature's
- * based on this definition.
+ * zero, and should normally be incremented by the owner.
  *
- * This function is the same as the CPP method 
+ * This function is the same as the C++ method 
  * OGRFeatureDefn::OGRFeatureDefn().
  *
  * @param pszName the name to be assigned to this layer/class.  It does not
@@ -154,7 +115,7 @@ OGRFeatureDefn::~OGRFeatureDefn()
  * Destroy a feature definition object and release all memory 
  * associated with it. 
  *
- * This function is the same as the CPP method 
+ * This function is the same as the C++ method 
  * OGRFeatureDefn::~OGRFeatureDefn().
  *
  * @param hDefn handle to the feature definition to be destroyed.
@@ -164,6 +125,41 @@ void OGR_FD_Destroy( OGRFeatureDefnH hDefn )
 
 {
     delete (OGRFeatureDefn *) hDefn;
+}
+
+/************************************************************************/
+/*                              Release()                               */
+/************************************************************************/
+
+/**
+ * \fn void OGRFeatureDefn::Release();
+ *
+ * Drop a reference to this object, and destroy if no longer referenced.
+ */
+
+void OGRFeatureDefn::Release()
+
+{
+    if( this && Dereference() == 0 )
+        delete this;
+}
+
+/************************************************************************/
+/*                           OGR_FD_Release()                           */
+/************************************************************************/
+
+/**
+ * Drop a reference, and destroy if unreferenced.
+ *
+ * This function is the same as the C++ method OGRFeatureDefn::Release().
+ *
+ * @param hDefn handle to the feature definition to be released.
+ */
+
+void OGR_FD_Release( OGRFeatureDefnH hDefn )
+
+{
+    ((OGRFeatureDefn *) hDefn)->Release();
 }
 
 /************************************************************************/
@@ -216,7 +212,7 @@ OGRFeatureDefn *OGRFeatureDefn::Clone()
 /**
  * Get name of the OGRFeatureDefn passed as an argument.
  *
- * This function is the same as the CPP method OGRFeatureDefn::GetName().
+ * This function is the same as the C++ method OGRFeatureDefn::GetName().
  *
  * @param hDefn handle to the feature definition to get the name from.
  * @return the name.  This name is internal and should not be modified, or
@@ -249,7 +245,7 @@ const char *OGR_FD_GetName( OGRFeatureDefnH hDefn )
 /**
  * Fetch number of fields on the passed feature definition.
  *
- * This function is the same as the CPP OGRFeatureDefn::GetFieldCount().
+ * This function is the same as the C++ OGRFeatureDefn::GetFieldCount().
  *
  * @param hDefn handle to the feature definition to get the fields count from.
  * @return count of fields.
@@ -294,7 +290,7 @@ OGRFieldDefn *OGRFeatureDefn::GetFieldDefn( int iField )
 /**
  * Fetch field definition of the passed feature definition.
  *
- * This function is the same as the CPP method 
+ * This function is the same as the C++ method 
  * OGRFeatureDefn::GetFieldDefn().
  *
  * @param hDefn handle to the feature definition to get the field definition
@@ -348,7 +344,7 @@ void OGRFeatureDefn::AddFieldDefn( OGRFieldDefn * poNewDefn )
  * objects in existance based on this OGRFeatureDefn.  The OGRFieldDefn
  * passed in is copied, and remains the responsibility of the caller.
  *
- * This function is the same as the CPP method OGRFeatureDefn::AddFieldDefn.
+ * This function is the same as the C++ method OGRFeatureDefn::AddFieldDefn.
  *
  * @param hDefn handle to the feature definition to add the field definition
  * to.
@@ -388,7 +384,7 @@ void OGR_FD_AddFieldDefn( OGRFeatureDefnH hDefn, OGRFieldDefnH hNewField )
 /**
  * Fetch the geometry base type of the passed feature definition.
  *
- * This function is the same as the CPP method OGRFeatureDefn::GetGeomType().
+ * This function is the same as the C++ method OGRFeatureDefn::GetGeomType().
  *
  * @param hDefn handle to the feature definition to get the geometry type from.
  * @return the base type for all geometry related to this definition.
@@ -436,7 +432,7 @@ void OGRFeatureDefn::SetGeomType( OGRwkbGeometryType eNewType )
  * any geometry type.  The geometry type should generally not be changed
  * after any OGRFeatures have been created against this definition. 
  *
- * This function is the same as the CPP method OGRFeatureDefn::SetGeomType().
+ * This function is the same as the C++ method OGRFeatureDefn::SetGeomType().
  *
  * @param hDefn handle to the layer or feature definition to set the geometry
  * type to.
@@ -476,7 +472,7 @@ void OGR_FD_SetGeomType( OGRFeatureDefnH hDefn, OGRwkbGeometryType eType )
  * The reference count is used keep track of the number of OGRFeature
  * objects referencing this definition. 
  *
- * This function is the same as the CPP method OGRFeatureDefn::Reference().
+ * This function is the same as the C++ method OGRFeatureDefn::Reference().
  *
  * @param hDefn handle to the feature definition on witch OGRFeature are
  * based on.
@@ -510,7 +506,7 @@ int OGR_FD_Reference( OGRFeatureDefnH hDefn )
 /**
  * Decrements the reference count by one.
  *
- * This function is the same as the CPP method OGRFeatureDefn::Dereference().
+ * This function is the same as the C++ method OGRFeatureDefn::Dereference().
  *
  * @param hDefn handle to the feature definition on witch OGRFeature are
  * based on. 
@@ -544,7 +540,7 @@ int OGR_FD_Dereference( OGRFeatureDefnH hDefn )
 /**
  * Fetch current reference count.
  *
- * This function is the same as the CPP method 
+ * This function is the same as the C++ method 
  * OGRFeatureDefn::GetReferenceCount().
  *
  * @param hDefn hanlde to the feature definition on witch OGRFeature are
@@ -597,7 +593,7 @@ int OGRFeatureDefn::GetFieldIndex( const char * pszFieldName )
  * The field index of the first field matching the passed field name (case
  * insensitively) is returned.
  *
- * This function is the same as the CPP method OGRFeatureDefn::GetFieldIndex.
+ * This function is the same as the C++ method OGRFeatureDefn::GetFieldIndex.
  *
  * @param hDefn handle to the feature definition to get field index from. 
  * @param pszFieldName the field name to search for.

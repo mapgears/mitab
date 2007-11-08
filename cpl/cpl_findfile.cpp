@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: cpl_findfile.cpp,v 1.8 2005/01/15 07:46:20 fwarmerdam Exp $
+ * $Id: cpl_findfile.cpp 11189 2007-04-03 17:50:32Z warmerdam $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Generic data file location finder, with application hooking.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 2000, Frank Warmerdam
@@ -25,44 +25,17 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: cpl_findfile.cpp,v $
- * Revision 1.8  2005/01/15 07:46:20  fwarmerdam
- * make cplpopfinderlocation safer for final cleanup
- *
- * Revision 1.7  2004/11/22 16:01:05  fwarmerdam
- * added GDAL_PREFIX
- *
- * Revision 1.6  2003/10/24 16:41:16  warmerda
- * Added /usr/local/share/gdal (not /usr/local/share) to default locations.
- *
- * Revision 1.5  2003/10/24 16:30:10  warmerda
- * fixed serious bug in default finder ... only last location used
- *
- * Revision 1.4  2002/12/03 04:42:02  warmerda
- * improved finder cleanup support
- *
- * Revision 1.3  2001/07/18 04:00:49  warmerda
- * added CPL_CVSID
- *
- * Revision 1.2  2001/01/19 21:16:41  warmerda
- * expanded tabs
- *
- * Revision 1.1  2000/08/29 21:06:25  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "cpl_conv.h"
 #include "cpl_string.h"
 
-CPL_CVSID("$Id: cpl_findfile.cpp,v 1.8 2005/01/15 07:46:20 fwarmerdam Exp $");
+CPL_CVSID("$Id: cpl_findfile.cpp 11189 2007-04-03 17:50:32Z warmerdam $");
 
-static int bFinderInitialized = FALSE;
-static int nFileFinders = 0;
-static CPLFileFinder *papfnFinders = NULL;
-static char **papszFinderLocations = NULL;
+static CPL_THREADLOCAL int bFinderInitialized = FALSE;
+static CPL_THREADLOCAL int nFileFinders = 0;
+static CPL_THREADLOCAL CPLFileFinder *papfnFinders = NULL;
+static CPL_THREADLOCAL char **papszFinderLocations = NULL;
 
 /************************************************************************/
 /*                           CPLFinderInit()                            */
@@ -75,12 +48,25 @@ static void CPLFinderInit()
     {
         bFinderInitialized = TRUE;
         CPLPushFileFinder( CPLDefaultFindFile );
-#ifdef GDAL_PREFIX
-        CPLPushFinderLocation( GDAL_PREFIX "/share/gdal" );
-#else
-        CPLPushFinderLocation( "/usr/local/share/gdal" );
-#endif
+
         CPLPushFinderLocation( "." );
+
+        if( CPLGetConfigOption( "GDAL_DATA", NULL ) != NULL )
+        {
+            CPLPushFinderLocation( CPLGetConfigOption( "GDAL_DATA", NULL ) );
+        }
+        else
+        {
+#ifdef GDAL_PREFIX
+  #ifdef MACOSX_FRAMEWORK
+            CPLPushFinderLocation( GDAL_PREFIX "/Resources/gdal" );
+  #else
+            CPLPushFinderLocation( GDAL_PREFIX "/share/gdal" );
+  #endif
+#else
+            CPLPushFinderLocation( "/usr/local/share/gdal" );
+#endif
+        }
     }
 }
 
@@ -91,11 +77,14 @@ static void CPLFinderInit()
 void CPLFinderClean()
 
 {
-    while( papszFinderLocations != NULL )
-        CPLPopFinderLocation();
-    while( CPLPopFileFinder() != NULL ) {}
+    if( bFinderInitialized )
+    {
+        while( papszFinderLocations != NULL )
+            CPLPopFinderLocation();
+        while( CPLPopFileFinder() != NULL ) {}
 
-    bFinderInitialized = FALSE;
+        bFinderInitialized = FALSE;
+    }
 }
 
 /************************************************************************/
@@ -171,7 +160,7 @@ CPLFileFinder CPLPopFileFinder()
 {
     CPLFileFinder pfnReturn;
 
-    CPLFinderInit();
+//    CPLFinderInit();
 
     if( nFileFinders == 0 )
         return NULL;

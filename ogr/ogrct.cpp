@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrct.cpp,v 1.27 2005/04/06 00:02:05 fwarmerdam Exp $
+ * $Id: ogrct.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRSCoordinateTransformation class.
@@ -25,102 +25,20 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrct.cpp,v $
- * Revision 1.27  2005/04/06 00:02:05  fwarmerdam
- * various osr and oct functions now stdcall
- *
- * Revision 1.26  2004/12/16 16:58:29  fwarmerdam
- * Use libproj.dylib on Apple
- *
- * Revision 1.25  2004/09/23 15:05:27  fwarmerdam
- * cast pj_get_errno_ref in hopes of fixing Bug 614
- *
- * Revision 1.24  2004/09/21 00:15:29  fwarmerdam
- * Fixed PJ_VERSION checking syntax (secondary issue in bug 614).
- *
- * Revision 1.23  2004/01/24 09:35:00  warmerda
- * added TransformEx support to capture per point reprojection failure
- *
- * Revision 1.22  2003/11/10 17:08:31  warmerda
- * dont delete OGRSpatialReferences if they are still referenced
- *
- * Revision 1.21  2003/06/27 19:02:50  warmerda
- * changed to use pj_init_plus instead of CSLTokenizeString
- *
- * Revision 1.20  2003/01/21 22:04:34  warmerda
- * don't report errors for pj_get_def or pj_dalloc missing
- *
- * Revision 1.19  2002/12/09 17:24:33  warmerda
- * fixed PROJ_STATIC settings for pj_strerrno
- *
- * Revision 1.18  2002/12/09 16:49:55  warmerda
- * implemented support for alternate GEOGCS units
- *
- * Revision 1.17  2002/11/27 14:48:22  warmerda
- * added PROJSO environment variable
- *
- * Revision 1.16  2002/11/19 20:47:04  warmerda
- * fixed to call pj_free, not pj_dalloc for projPJ
- *
- * Revision 1.15  2002/06/11 18:02:03  warmerda
- * add PROJ.4 normalization and EPSG support
- *
- * Revision 1.14  2002/03/05 14:25:14  warmerda
- * expand tabs
- *
- * Revision 1.13  2002/01/18 04:49:17  warmerda
- * report CPL errors if transform() fails
- *
- * Revision 1.12  2001/12/11 17:37:24  warmerda
- * improved PROJ.4 error reporting.
- *
- * Revision 1.11  2001/11/18 00:57:53  warmerda
- * change printf to CPLDebug
- *
- * Revision 1.10  2001/11/07 22:14:17  warmerda
- * add a way of statically linking in PROJ.4
- *
- * Revision 1.9  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.8  2001/05/24 21:02:42  warmerda
- * moved OGRCoordinateTransform destructor defn
- *
- * Revision 1.7  2001/01/19 21:10:47  warmerda
- * replaced tabs
- *
- * Revision 1.6  2000/07/12 18:19:09  warmerda
- * Removed debug statements.
- *
- * Revision 1.5  2000/07/09 20:48:28  warmerda
- * rewrote to use PROJ.4 datum shifting
- *
- * Revision 1.4  2000/03/24 14:49:31  warmerda
- * fetch TOWGS84 coefficients
- *
- * Revision 1.3  2000/03/20 23:08:18  warmerda
- * Added docs.
- *
- * Revision 1.2  2000/03/20 22:40:23  warmerda
- * Added C API.
- *
- * Revision 1.1  2000/03/20 15:00:11  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_spatialref.h"
+#include "cpl_port.h"
 #include "cpl_error.h"
 #include "cpl_conv.h"
 #include "cpl_string.h"
+#include "cpl_multiproc.h"
 
 #ifdef PROJ_STATIC
 #include "proj_api.h"
 #endif
 
-CPL_CVSID("$Id: ogrct.cpp,v 1.27 2005/04/06 00:02:05 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogrct.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 /* ==================================================================== */
 /*      PROJ.4 interface stuff.                                         */
@@ -135,6 +53,8 @@ typedef struct { double u, v; } projUV;
 
 #endif
 
+static void *hPROJMutex = NULL;
+
 static projPJ       (*pfn_pj_init_plus)(const char *) = NULL;
 static projPJ       (*pfn_pj_init)(int, char**) = NULL;
 static projUV       (*pfn_pj_fwd)(projUV, projPJ) = NULL;
@@ -147,8 +67,10 @@ static char        *(*pfn_pj_strerrno)(int) = NULL;
 static char        *(*pfn_pj_get_def)(projPJ,int) = NULL;
 static void         (*pfn_pj_dalloc)(void *) = NULL;
 
-#ifdef WIN32
+#if defined(WIN32) || defined(WIN32CE)
 #  define LIBNAME      "proj.dll"
+#elif defined(__CYGWIN__)
+#  define LIBNAME      "libproj.dll"
 #elif defined(__APPLE__)
 #  define LIBNAME      "libproj.dylib"
 #else
@@ -166,6 +88,8 @@ class OGRProj4CT : public OGRCoordinateTransformation
     int         bSourceLatLong;
     double      dfSourceToRadians;
     double      dfSourceFromRadians;
+    int         bSourceWrap;
+    double      dfSourceWrapLong;
     
 
     OGRSpatialReference *poSRSTarget;
@@ -173,6 +97,8 @@ class OGRProj4CT : public OGRCoordinateTransformation
     int         bTargetLatLong;
     double      dfTargetToRadians;
     double      dfTargetFromRadians;
+    int         bTargetWrap;
+    double      dfTargetWrapLong;
 
     int         nErrorCount;
 
@@ -200,6 +126,7 @@ public:
 static int LoadProjLibrary()
 
 {
+    CPLMutexHolderD( &hPROJMutex );
     static int  bTriedToLoad = FALSE;
     const char *pszLibName = LIBNAME;
     
@@ -208,8 +135,10 @@ static int LoadProjLibrary()
 
     bTriedToLoad = TRUE;
 
-    if( getenv("PROJSO") != NULL )
-        pszLibName = getenv("PROJSO");
+#if !defined(WIN32CE)
+    if( CPLGetConfigOption("PROJSO",NULL) != NULL )
+        pszLibName = CPLGetConfigOption("PROJSO",NULL);
+#endif
 
 #ifdef PROJ_STATIC
     pfn_pj_init = pj_init;
@@ -286,6 +215,7 @@ char *OCTProj4Normalize( const char *pszProj4Src )
 {
     char        *pszNewProj4Def, *pszCopy;
     projPJ      psPJSource = NULL;
+    CPLMutexHolderD( &hPROJMutex );
 
     if( !LoadProjLibrary() || pfn_pj_dalloc == NULL || pfn_pj_get_def == NULL )
         return CPLStrdup( pszProj4Src );
@@ -327,6 +257,9 @@ OCTDestroyCoordinateTransformation( OGRCoordinateTransformationH hCT )
  * Create transformation object.
  *
  * This is the same as the C function OCTNewCoordinateTransformation().
+ *
+ * Input spatial reference system objects are assigned 
+ * by copy (calling clone() method) and no ownership transfer occurs.
  *
  * The delete operator, or OCTDestroyCoordinateTransformation() should
  * be used to destroy transformation objects. 
@@ -391,7 +324,7 @@ OGRProj4CT::OGRProj4CT()
     poSRSTarget = NULL;
     psPJSource = NULL;
     psPJTarget = NULL;
-
+    
     nErrorCount = 0;
 }
 
@@ -414,6 +347,8 @@ OGRProj4CT::~OGRProj4CT()
             delete poSRSTarget;
     }
 
+    CPLMutexHolderD( &hPROJMutex );
+
     if( psPJSource != NULL )
         pfn_pj_free( psPJSource );
 
@@ -429,8 +364,10 @@ int OGRProj4CT::Initialize( OGRSpatialReference * poSourceIn,
                             OGRSpatialReference * poTargetIn )
 
 {
-	if( poSourceIn == NULL || poTargetIn == NULL )
-		return FALSE;
+    CPLMutexHolderD( &hPROJMutex );
+
+    if( poSourceIn == NULL || poTargetIn == NULL )
+        return FALSE;
 
     poSRSSource = poSourceIn->Clone();
     poSRSTarget = poTargetIn->Clone();
@@ -444,6 +381,8 @@ int OGRProj4CT::Initialize( OGRSpatialReference * poSourceIn,
 /* -------------------------------------------------------------------- */
     dfSourceToRadians = DEG_TO_RAD;
     dfSourceFromRadians = RAD_TO_DEG;
+    bSourceWrap = FALSE;
+    dfSourceWrapLong = 0.0;
 
     if( bSourceLatLong )
     {
@@ -460,6 +399,8 @@ int OGRProj4CT::Initialize( OGRSpatialReference * poSourceIn,
 
     dfTargetToRadians = DEG_TO_RAD;
     dfTargetFromRadians = RAD_TO_DEG;
+    bTargetWrap = FALSE;
+    dfTargetWrapLong = 0.0;
 
     if( bTargetLatLong )
     {
@@ -474,6 +415,34 @@ int OGRProj4CT::Initialize( OGRSpatialReference * poSourceIn,
         }
     }
 
+/* -------------------------------------------------------------------- */
+/*      Preliminary logic to setup wrapping.                            */
+/* -------------------------------------------------------------------- */
+    const char *pszCENTER_LONG;
+
+    if( CPLGetConfigOption( "CENTER_LONG", NULL ) != NULL )
+    {
+        bSourceWrap = bTargetWrap = TRUE;
+        dfSourceWrapLong = dfTargetWrapLong = 
+            atof(CPLGetConfigOption( "CENTER_LONG", "" ));
+        CPLDebug( "OGRCT", "Wrap at %g.", dfSourceWrapLong );
+    }
+
+    pszCENTER_LONG = poSRSSource->GetExtension( "GEOGCS", "CENTER_LONG" );
+    if( pszCENTER_LONG != NULL )
+    {
+        dfSourceWrapLong = atof(pszCENTER_LONG);
+        bSourceWrap = TRUE;
+        CPLDebug( "OGRCT", "Wrap source at %g.", dfSourceWrapLong );
+    }
+
+    pszCENTER_LONG = poSRSTarget->GetExtension( "GEOGCS", "CENTER_LONG" );
+    if( pszCENTER_LONG != NULL )
+    {
+        dfTargetWrapLong = atof(pszCENTER_LONG);
+        bTargetWrap = TRUE;
+        CPLDebug( "OGRCT", "Wrap target at %g.", dfTargetWrapLong );
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Establish PROJ.4 handle for source if projection.               */
@@ -482,6 +451,14 @@ int OGRProj4CT::Initialize( OGRSpatialReference * poSourceIn,
 
     if( poSRSSource->exportToProj4( &pszProj4Defn ) != OGRERR_NONE )
         return FALSE;
+
+    if( strlen(pszProj4Defn) == 0 )
+    {
+        CPLError( CE_Failure, CPLE_AppDefined, 
+                  "No PROJ.4 translation for source SRS, coordinate\n"
+                  "transformation initialization has failed." );
+        return FALSE;
+    }
 
     psPJSource = pfn_pj_init_plus( pszProj4Defn );
     
@@ -514,6 +491,14 @@ int OGRProj4CT::Initialize( OGRSpatialReference * poSourceIn,
 /* -------------------------------------------------------------------- */
     if( poSRSTarget->exportToProj4( &pszProj4Defn ) != OGRERR_NONE )
         return FALSE;
+
+    if( strlen(pszProj4Defn) == 0 )
+    {
+        CPLError( CE_Failure, CPLE_AppDefined, 
+                  "No PROJ.4 translation for destination SRS, coordinate\n"
+                  "transformation initialization has failed." );
+        return FALSE;
+    }
 
     psPJTarget = pfn_pj_init_plus( pszProj4Defn );
     
@@ -605,16 +590,34 @@ int OGRProj4CT::TransformEx( int nCount, double *x, double *y, double *z,
 /* -------------------------------------------------------------------- */
     if( bSourceLatLong )
     {
+        if( bSourceWrap )
+        {
+            for( i = 0; i < nCount; i++ )
+            {
+                if( x[i] != HUGE_VAL && y[i] != HUGE_VAL )
+                {
+                    if( x[i] < dfSourceWrapLong - 180.0 )
+                        x[i] += 360.0;
+                    else if( x[i] > dfSourceWrapLong + 180 )
+                        x[i] -= 360.0;
+                }
+            }
+        }
+
         for( i = 0; i < nCount; i++ )
         {
-            x[i] *= dfSourceToRadians;
-            y[i] *= dfSourceToRadians;
+            if( x[i] != HUGE_VAL )
+            {
+                x[i] *= dfSourceToRadians;
+                y[i] *= dfSourceToRadians;
+            }
         }
     }
 
 /* -------------------------------------------------------------------- */
 /*      Do the transformation using PROJ.4.                             */
 /* -------------------------------------------------------------------- */
+    CPLMutexHolderD( &hPROJMutex );
     err = pfn_pj_transform( psPJSource, psPJTarget, nCount, 1, x, y, z );
 
 /* -------------------------------------------------------------------- */
@@ -662,6 +665,20 @@ int OGRProj4CT::TransformEx( int nCount, double *x, double *y, double *z,
             {
                 x[i] *= dfTargetFromRadians;
                 y[i] *= dfTargetFromRadians;
+            }
+        }
+
+        if( bTargetWrap )
+        {
+            for( i = 0; i < nCount; i++ )
+            {
+                if( x[i] != HUGE_VAL && y[i] != HUGE_VAL )
+                {
+                    if( x[i] < dfTargetWrapLong - 180.0 )
+                        x[i] += 360.0;
+                    else if( x[i] > dfTargetWrapLong + 180 )
+                        x[i] -= 360.0;
+                }
             }
         }
     }

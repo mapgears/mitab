@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr2gmlgeometry.cpp,v 1.7 2003/09/22 05:34:46 warmerda Exp $
+ * $Id: ogr2gmlgeometry.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  GML Translator
  * Purpose:  Code to translate OGRGeometry to GML string representation.
@@ -37,50 +37,12 @@
  *   come from a potentially hostile source, but through a trusted OGR importer
  *   without compromising the system.
  *
- * $Log: ogr2gmlgeometry.cpp,v $
- * Revision 1.7  2003/09/22 05:34:46  warmerda
- * implemented support for various kinds of geometry collections
- *
- * Revision 1.6  2003/04/17 08:22:06  dron
- * Completed secutity audit, fix in MakeGMLCoordinate().
- *
- * Revision 1.5  2003/03/28 06:00:14  warmerda
- * Completed security audit.  Fixed issue with very large coordinate values
- * potentially causing a buffer overrun.
- *
- * Revision 1.4  2003/03/18 17:13:03  warmerda
- * Improve precision (and use %g) for latlong coordinates.
- *
- * Revision 1.3  2003/03/12 20:52:07  warmerda
- * implemented support for gml:Box
- *
- * Revision 1.2  2003/03/07 21:30:15  warmerda
- * expand tabs
- *
- * Revision 1.1  2003/03/06 20:28:38  warmerda
- * Migrated to here (gdal/ogr) from gdal/ogr/ogrsf_frmts/gml.
- * Changed to implement the C API entry points (OGR_G_*).
- * Added API to take/return CPLXMLNode's directly.
- *
- * Revision 1.5  2002/03/11 22:34:08  warmerda
- * Avoid multiple defining iMember.
- *
- * Revision 1.4  2002/03/11 17:29:04  warmerda
- * added multipolygon support
- *
- * Revision 1.3  2002/03/07 22:38:04  warmerda
- * use ogr_gml_geom.h
- *
- * Revision 1.2  2002/01/25 21:00:31  warmerda
- * fix some small bugs found by MS VC++
- *
- * Revision 1.1  2002/01/25 20:37:02  warmerda
- * New
  */
 
 #include "cpl_minixml.h"
 #include "ogr_geometry.h"
 #include "ogr_api.h"
+#include "ogr_p.h"
 #include "cpl_error.h"
 #include "cpl_conv.h"
 
@@ -92,6 +54,15 @@ static void MakeGMLCoordinate( char *pszTarget,
                                double x, double y, double z, int b3D )
 
 {
+    OGRMakeWktCoordinate( pszTarget, x, y, z, b3D ? 3 : 2 );
+    while( *pszTarget != '\0' )
+    {
+        if( *pszTarget == ' ' )
+            *pszTarget = ',';
+        pszTarget++;
+    }
+
+#ifdef notdef
     if( !b3D )
     {
         if( x == (int) x && y == (int) y )
@@ -115,6 +86,7 @@ static void MakeGMLCoordinate( char *pszTarget,
         else
             sprintf( pszTarget, "%.3f,%.3f,%.3f", x, y, z );
     }
+#endif
 }
 
 /************************************************************************/
@@ -197,6 +169,63 @@ static int OGR2GMLGeometryAppend( OGRGeometry *poGeometry,
                                   int *pnMaxLength )
 
 {
+
+/* -------------------------------------------------------------------- */
+/*      Check for Spatial Reference System attached to given geometry   */
+/* -------------------------------------------------------------------- */
+
+    // Buffer for srsName attribute (srsName="...")
+    char szSrsName[30] = { 0 }; 
+    int nSrsNameLength = 0;
+    OGRBoolean bAddSrsName = FALSE; 
+
+    // Flag used to filter Geometry Collection members that do not
+    // need their own srsName attribute.
+    static OGRBoolean bIsSubGeometry = FALSE;
+
+    const OGRSpatialReference* poSRS = NULL;
+    poSRS = poGeometry->getSpatialReference();
+
+    if( NULL != poSRS && !bIsSubGeometry )
+    {
+        const char* pszAuthName = NULL;
+        const char* pszAuthCode = NULL;
+        const char* pszTarget = NULL;
+
+        if (poSRS->IsProjected())
+            pszTarget = "PROJCS";
+        else
+            pszTarget = "GEOGCS";
+
+        pszAuthName = poSRS->GetAuthorityName( pszTarget );
+        if( NULL != pszAuthName )
+        {
+            CPLDebug( "OGR", "Authority Name: %s", pszAuthName );
+
+            if( EQUAL( pszAuthName, "EPSG" ) )
+            {
+                pszAuthCode = poSRS->GetAuthorityCode( pszTarget );
+                if( NULL != pszAuthCode )
+                {
+                    sprintf( szSrsName, " srsName=\"%s:%s\"",
+                            pszAuthName, pszAuthCode );
+
+                    /* Yes, attach srsName attribute per geometry. */
+                    bAddSrsName = TRUE; 
+                    bIsSubGeometry = FALSE;
+
+                    CPLDebug( "OGR", "  %s", szSrsName );
+                }
+            }
+        }
+    }
+
+    /* Include srsName attribute in new buffer allocation. */
+    if( bAddSrsName )
+    {
+        nSrsNameLength = strlen(szSrsName);
+    }
+
 /* -------------------------------------------------------------------- */
 /*      2D Point                                                        */
 /* -------------------------------------------------------------------- */
@@ -207,13 +236,13 @@ static int OGR2GMLGeometryAppend( OGRGeometry *poGeometry,
 
         MakeGMLCoordinate( szCoordinate, 
                            poPoint->getX(), poPoint->getY(), 0.0, FALSE );
-                           
-        _GrowBuffer( *pnLength + strlen(szCoordinate) + 60, 
+
+        _GrowBuffer( *pnLength + strlen(szCoordinate) + 60 + nSrsNameLength, 
                      ppszText, pnMaxLength );
 
         sprintf( *ppszText + *pnLength, 
-                "<gml:Point><gml:coordinates>%s</gml:coordinates></gml:Point>",
-                 szCoordinate );
+                "<gml:Point%s><gml:coordinates>%s</gml:coordinates></gml:Point>",
+                 szSrsName, szCoordinate );
 
         *pnLength += strlen( *ppszText + *pnLength );
     }
@@ -229,12 +258,12 @@ static int OGR2GMLGeometryAppend( OGRGeometry *poGeometry,
                            poPoint->getX(), poPoint->getY(), poPoint->getZ(), 
                            TRUE );
                            
-        _GrowBuffer( *pnLength + strlen(szCoordinate) + 70, 
+        _GrowBuffer( *pnLength + strlen(szCoordinate) + 70 + nSrsNameLength, 
                      ppszText, pnMaxLength );
 
         sprintf( *ppszText + *pnLength, 
-                "<gml:Point><gml:coordinates>%s</gml:coordinates></gml:Point>",
-                 szCoordinate );
+                "<gml:Point%s><gml:coordinates>%s</gml:coordinates></gml:Point>",
+                 szSrsName, szCoordinate );
 
         *pnLength += strlen( *ppszText + *pnLength );
     }
@@ -247,12 +276,28 @@ static int OGR2GMLGeometryAppend( OGRGeometry *poGeometry,
     {
         int bRing = EQUAL(poGeometry->getGeometryName(),"LINEARRING");
 
+        // Buffer for tag name + srsName attribute if set
+        const size_t nLineTagLength = 16;
+        char* pszLineTagName = NULL;
+        pszLineTagName = (char *) CPLMalloc( nLineTagLength + nSrsNameLength + 1 );
+
         if( bRing )
+        {
+            sprintf( pszLineTagName, "<gml:LinearRing%s>", szSrsName );
+
             AppendString( ppszText, pnLength, pnMaxLength,
-                          "<gml:LinearRing>" );
+                          pszLineTagName );
+        }
         else
+        {
+            sprintf( pszLineTagName, "<gml:LineString%s>", szSrsName );
+
             AppendString( ppszText, pnLength, pnMaxLength,
-                          "<gml:LineString>" );
+                          pszLineTagName );
+        }
+
+        // FREE TAG BUFFER
+        CPLFree( pszLineTagName );
 
         AppendCoordinateList( (OGRLineString *) poGeometry, 
                               ppszText, pnLength, pnMaxLength );
@@ -273,8 +318,22 @@ static int OGR2GMLGeometryAppend( OGRGeometry *poGeometry,
     {
         OGRPolygon      *poPolygon = (OGRPolygon *) poGeometry;
 
+        // Buffer for polygon tag name + srsName attribute if set
+        const size_t nPolyTagLength = 13;
+        char* pszPolyTagName = NULL;
+        pszPolyTagName = (char *) CPLMalloc( nPolyTagLength + nSrsNameLength + 1 );
+
+        // Compose Polygon tag with or without srsName attribute
+        sprintf( pszPolyTagName, "<gml:Polygon%s>", szSrsName );
+
         AppendString( ppszText, pnLength, pnMaxLength,
-                      "<gml:Polygon>" );
+                      pszPolyTagName );
+
+        // FREE TAG BUFFER
+        CPLFree( pszPolyTagName );
+
+        // Don't add srsName to polygon rings
+        bIsSubGeometry = TRUE;
 
         if( poPolygon->getExteriorRing() != NULL )
         {
@@ -283,7 +342,9 @@ static int OGR2GMLGeometryAppend( OGRGeometry *poGeometry,
 
             if( !OGR2GMLGeometryAppend( poPolygon->getExteriorRing(), 
                                         ppszText, pnLength, pnMaxLength ) )
+            {
                 return FALSE;
+            }
             
             AppendString( ppszText, pnLength, pnMaxLength,
                           "</gml:outerBoundaryIs>" );
@@ -306,6 +367,8 @@ static int OGR2GMLGeometryAppend( OGRGeometry *poGeometry,
 
         AppendString( ppszText, pnLength, pnMaxLength,
                       "</gml:Polygon>" );
+
+        bIsSubGeometry = FALSE;
     }
 
 /* -------------------------------------------------------------------- */
@@ -318,31 +381,50 @@ static int OGR2GMLGeometryAppend( OGRGeometry *poGeometry,
     {
         OGRGeometryCollection *poGC = (OGRGeometryCollection *) poGeometry;
         int             iMember;
-        const char *pszElem, *pszMemberElem;
+        const char *pszElemClose = NULL;
+        const char *pszMemberElem = NULL;
+
+        // Buffer for opening tag + srsName attribute
+        char* pszElemOpen = NULL;
 
         if( wkbFlatten(poGeometry->getGeometryType()) == wkbMultiPolygon )
         {
-            pszElem = "MultiPolygon>";
+            pszElemOpen = (char *) CPLMalloc( 13 + nSrsNameLength + 1 );
+            sprintf( pszElemOpen, "MultiPolygon%s>", szSrsName );
+
+            pszElemClose = "MultiPolygon>";
             pszMemberElem = "polygonMember>";
         }
         else if( wkbFlatten(poGeometry->getGeometryType()) == wkbMultiLineString )
         {
-            pszElem = "MultiLineString>";
+            pszElemOpen = (char *) CPLMalloc( 16 + nSrsNameLength + 1 );
+            sprintf( pszElemOpen, "MultiLineString%s>", szSrsName );
+
+            pszElemClose = "MultiLineString>";
             pszMemberElem = "lineStringMember>";
         }
         else if( wkbFlatten(poGeometry->getGeometryType()) == wkbMultiPoint )
         {
-            pszElem = "MultiPoint>";
+            pszElemOpen = (char *) CPLMalloc( 11 + nSrsNameLength + 1 );
+            sprintf( pszElemOpen, "MultiPoint%s>", szSrsName );
+
+            pszElemClose = "MultiPoint>";
             pszMemberElem = "pointMember>";
         }
         else
         {
-            pszElem = "GeometryCollection>";
+            pszElemOpen = (char *) CPLMalloc( 19 + nSrsNameLength + 1 );
+            sprintf( pszElemOpen, "GeometryCollection%s>", szSrsName );
+
+            pszElemClose = "GeometryCollection>";
             pszMemberElem = "geometryMember>";
         }
 
         AppendString( ppszText, pnLength, pnMaxLength, "<gml:" );
-        AppendString( ppszText, pnLength, pnMaxLength, pszElem );
+        AppendString( ppszText, pnLength, pnMaxLength, pszElemOpen );
+
+        // Don't add srsName to geometry collection members
+        bIsSubGeometry = TRUE;
 
         for( iMember = 0; iMember < poGC->getNumGeometries(); iMember++)
         {
@@ -353,18 +435,26 @@ static int OGR2GMLGeometryAppend( OGRGeometry *poGeometry,
             
             if( !OGR2GMLGeometryAppend( poMember, 
                                         ppszText, pnLength, pnMaxLength ) )
+            {
                 return FALSE;
+            }
             
             AppendString( ppszText, pnLength, pnMaxLength, "</gml:" );
             AppendString( ppszText, pnLength, pnMaxLength, pszMemberElem );
         }
 
-        AppendString( ppszText, pnLength, pnMaxLength, "</gml:" );
-        AppendString( ppszText, pnLength, pnMaxLength, pszElem );
-    }
+        bIsSubGeometry = FALSE;
 
+        AppendString( ppszText, pnLength, pnMaxLength, "</gml:" );
+        AppendString( ppszText, pnLength, pnMaxLength, pszElemClose );
+
+        // FREE TAG BUFFER
+        CPLFree( pszElemOpen );
+    }
     else
+    {
         return FALSE;
+    }
 
     return TRUE;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_srs_dict.cpp,v 1.1 2004/03/04 18:04:03 warmerda Exp $
+ * $Id: ogr_srs_dict.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Implement importFromDict() method to read a WKT SRS from a 
@@ -26,18 +26,12 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_srs_dict.cpp,v $
- * Revision 1.1  2004/03/04 18:04:03  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_spatialref.h"
 #include "cpl_conv.h"
 
-CPL_CVSID("$Id: ogr_srs_dict.cpp,v 1.1 2004/03/04 18:04:03 warmerda Exp $");
+CPL_CVSID("$Id: ogr_srs_dict.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 
 /************************************************************************/

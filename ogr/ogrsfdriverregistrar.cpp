@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrsfdriverregistrar.cpp,v 1.17 2005/01/19 20:28:18 fwarmerdam Exp $
+ * $Id: ogrsfdriverregistrar.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRSFDriverRegistrar class implementation.
@@ -25,67 +25,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrsfdriverregistrar.cpp,v $
- * Revision 1.17  2005/01/19 20:28:18  fwarmerdam
- * added untested autoloaddrivers.
- *
- * Revision 1.16  2004/10/17 04:04:05  fwarmerdam
- * fixed bug with cleanup order in ReleaseDataSource, issue with vrt
- *
- * Revision 1.15  2003/10/10 19:12:06  warmerda
- * Ensure registrar is created before trying to use it.
- *
- * Revision 1.14  2003/05/28 19:18:04  warmerda
- * fixup argument names for docs
- *
- * Revision 1.13  2003/05/20 19:07:03  warmerda
- * added GDAL_DATA support, use CPLGetConfigOption
- *
- * Revision 1.12  2003/04/08 21:23:33  warmerda
- * added OGRGetDriverByName
- *
- * Revision 1.11  2003/03/20 19:12:15  warmerda
- * added debug messages
- *
- * Revision 1.10  2003/03/19 20:37:09  warmerda
- * added OpenShared() mechanism
- *
- * Revision 1.9  2003/03/14 02:28:07  danmo
- * Prevent crash if poRegistrar==NULL in OGRGetDriverCount() and OGROpen()
- *
- * Revision 1.8  2002/09/26 18:16:19  warmerda
- * added C entry points
- *
- * Revision 1.7  2002/05/14 21:38:00  warmerda
- * make INST_DATA overidable with binary patch
- *
- * Revision 1.6  2001/07/18 04:55:16  warmerda
- * added CPL_CSVID
- *
- * Revision 1.5  2001/01/22 22:36:05  warmerda
- * expanded tabs
- *
- * Revision 1.4  2000/12/05 23:07:43  warmerda
- * Check for CE_Failure, not just an error being set.
- *
- * Revision 1.3  2000/08/30 09:13:34  warmerda
- * Set INST_DATA as FinderLocation
- *
- * Revision 1.2  1999/07/27 00:51:08  warmerda
- * added arg to get driver out of Open()
- *
- * Revision 1.1  1999/07/05 18:58:32  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogrsf_frmts.h"
 #include "ogr_api.h"
 #include "ogr_p.h"
+#include "cpl_multiproc.h"
 
-CPL_CVSID("$Id: ogrsfdriverregistrar.cpp,v 1.17 2005/01/19 20:28:18 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogrsfdriverregistrar.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 static OGRSFDriverRegistrar *poRegistrar = NULL;
 
@@ -154,6 +101,23 @@ OGRSFDriverRegistrar::~OGRSFDriverRegistrar()
 }
 
 /************************************************************************/
+/*                           OGRCleanupAll()                            */
+/************************************************************************/
+
+void OGRCleanupAll()
+
+{
+    if( poRegistrar != NULL )
+        delete poRegistrar;
+    OSRCleanup();
+    CPLFinderClean();
+    VSICleanupFileManager();
+    CPLFreeConfig();
+    CPLCleanupTLS();
+}
+
+
+/************************************************************************/
 /*                            GetRegistrar()                            */
 /************************************************************************/
 
@@ -193,9 +157,11 @@ OGRDataSource *OGRSFDriverRegistrar::Open( const char * pszName,
                 *ppoDriver = poRegistrar->papoDrivers[iDriver];
 
             poDS->Reference();
+            if( poDS->GetDriver() == NULL )
+                poDS->m_poDriver = poRegistrar->papoDrivers[iDriver];
 
-            CPLDebug( "OGR", "OGROpen(%s) succeeded (%p).", 
-                      pszName, poDS );
+            CPLDebug( "OGR", "OGROpen(%s/%p) succeeded as %s.", 
+                      pszName, poDS, poDS->GetDriver()->GetName() );
             
             return poDS;
         }
@@ -620,20 +586,34 @@ void OGRSFDriverRegistrar::AutoLoadDrivers()
     else
     {
 #ifdef GDAL_PREFIX
-        papszSearchPath = CSLAddString( papszSearchPath, 
+        papszSearchPath = CSLAddString( papszSearchPath,
+    #ifdef MACOSX_FRAMEWORK
+                                        GDAL_PREFIX "/PlugIns");
+    #else
                                         GDAL_PREFIX "/lib/gdalplugins" );
+    #endif
 #else
-        papszSearchPath = CSLAddString( papszSearchPath, 
-                                        "/usr/local/lib/gdalplugins" );
-#endif
+        char szExecPath[1024];
 
-#ifdef notdef
-        if( strlen(GetHome()) > 0 )
+        if( CPLGetExecPath( szExecPath, sizeof(szExecPath) ) )
+        {
+            char szPluginDir[sizeof(szExecPath)+50];
+            strcpy( szPluginDir, CPLGetDirname( szExecPath ) );
+            strcat( szPluginDir, "\\gdalplugins\\" );
+            papszSearchPath = CSLAddString( papszSearchPath, szPluginDir );
+        }
+        else
         {
             papszSearchPath = CSLAddString( papszSearchPath, 
-                                  CPLFormFilename( GetHome(), "lib", NULL ) );
+                                            "/usr/local/lib/gdalplugins" );
         }
+#endif 
+
+#ifdef MACOSX_FRAMEWORK
+        papszSearchPath = CSLAddString( papszSearchPath, 
+                                        "/Library/Application Support/GDAL/PlugIns" );
 #endif
+
     }
 
 /* -------------------------------------------------------------------- */
@@ -650,7 +630,7 @@ void OGRSFDriverRegistrar::AutoLoadDrivers()
             const char *pszExtension = CPLGetExtension( papszFiles[iFile] );
             void   *pRegister;
 
-            if( !EQUALN(papszFiles[iFile],"ogr_",5) )
+            if( !EQUALN(papszFiles[iFile],"ogr_",4) )
                 continue;
 
             if( !EQUAL(pszExtension,"dll") 
@@ -660,7 +640,7 @@ void OGRSFDriverRegistrar::AutoLoadDrivers()
 
             pszFuncName = (char *) CPLCalloc(strlen(papszFiles[iFile])+20,1);
             sprintf( pszFuncName, "RegisterOGR%s", 
-                     CPLGetBasename(papszFiles[iFile]) + 5 );
+                     CPLGetBasename(papszFiles[iFile]) + 4 );
             
             pszFilename = 
                 CPLFormFilename( papszSearchPath[iDir], 

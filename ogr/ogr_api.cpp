@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_api.cpp,v 1.7 2004/09/17 15:05:36 fwarmerdam Exp $
+ * $Id: ogr_api.cpp 12043 2007-09-03 17:58:51Z mloskot $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  C API Functions that don't correspond one-to-one with C++ 
@@ -26,31 +26,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_api.cpp,v $
- * Revision 1.7  2004/09/17 15:05:36  fwarmerdam
- * added get_Area() support
- *
- * Revision 1.6  2003/05/28 19:16:42  warmerda
- * fixed up argument names and stuff for docs
- *
- * Revision 1.5  2003/04/14 17:33:35  warmerda
- * Fixed GetPoint's y value for points as per bug 319.
- *
- * Revision 1.4  2003/03/31 15:55:42  danmo
- * Added C API function docs
- *
- * Revision 1.3  2003/01/07 16:44:27  warmerda
- * added removeGeometry
- *
- * Revision 1.2  2002/10/19 16:22:32  warmerda
- * fixed bug with OGR_G_GetGeometryRef() for interior rings of polygons
- *
- * Revision 1.1  2002/09/26 18:11:51  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_geometry.h"
 #include "ogr_api.h"
@@ -276,6 +252,50 @@ void OGR_G_SetPoint( OGRGeometryH hGeom, int i,
 }
 
 /************************************************************************/
+/*                         OGR_G_SetPoint_2D()                          */
+/************************************************************************/
+/**
+ * Set the location of a vertex in a point or linestring geometry.
+ *
+ * If iPoint is larger than the number of existing
+ * points in the linestring, the point count will be increased to
+ * accomodate the request.
+ *
+ * @param hGeom handle to the geometry to add a vertex to.
+ * @param i the index of the vertex to assign (zero based) or
+ *  zero for a point.
+ * @param dfX input X coordinate to assign.
+ * @param dfY input Y coordinate to assign.
+ */
+
+void OGR_G_SetPoint_2D( OGRGeometryH hGeom, int i, 
+                        double dfX, double dfY )
+    
+{
+    switch( wkbFlatten(((OGRGeometry *) hGeom)->getGeometryType()) )
+    {
+      case wkbPoint:
+      {
+          CPLAssert( i == 0 );
+          if( i == 0 )
+          {
+              ((OGRPoint *) hGeom)->setX( dfX );
+              ((OGRPoint *) hGeom)->setY( dfY );
+          }
+      }
+      break;
+
+      case wkbLineString:
+        ((OGRLineString *) hGeom)->setPoint( i, dfX, dfY );
+        break;
+
+      default:
+        CPLAssert( FALSE );
+        break;
+    }
+}
+
+/************************************************************************/
 /*                           OGR_G_AddPoint()                           */
 /************************************************************************/
 /**
@@ -306,6 +326,43 @@ void OGR_G_AddPoint( OGRGeometryH hGeom,
 
       case wkbLineString:
         ((OGRLineString *) hGeom)->addPoint( dfX, dfY, dfZ );
+        break;
+
+      default:
+        CPLAssert( FALSE );
+        break;
+    }
+}
+
+/************************************************************************/
+/*                           OGR_G_AddPoint()                           */
+/************************************************************************/
+/**
+ * Add a point to a geometry (line string or point).
+ *
+ * The vertex count of the line string is increased by one, and assigned from
+ * the passed location value.
+ *
+ * @param hGeom handle to the geometry to add a point to.
+ * @param dfX x coordinate of point to add.
+ * @param dfY y coordinate of point to add.
+ */
+
+void OGR_G_AddPoint_2D( OGRGeometryH hGeom, 
+                        double dfX, double dfY )
+
+{
+    switch( wkbFlatten(((OGRGeometry *) hGeom)->getGeometryType()) )
+    {
+      case wkbPoint:
+      {
+          ((OGRPoint *) hGeom)->setX( dfX );
+          ((OGRPoint *) hGeom)->setY( dfY );
+      }
+      break;
+
+      case wkbLineString:
+        ((OGRLineString *) hGeom)->addPoint( dfX, dfY );
         break;
 
       default:
@@ -429,7 +486,7 @@ OGRErr OGR_G_AddGeometry( OGRGeometryH hGeom, OGRGeometryH hNewSubGeom )
           OGRLinearRing *poRing = (OGRLinearRing *) hNewSubGeom;
 
           if( poRing->WkbSize() != 0 
-              || poRing->getGeometryType() != wkbLineString )
+              || wkbFlatten(poRing->getGeometryType()) != wkbLineString )
               return OGRERR_UNSUPPORTED_GEOMETRY_TYPE;
           else
           {
@@ -484,7 +541,7 @@ OGRErr OGR_G_AddGeometryDirectly( OGRGeometryH hGeom,
           OGRLinearRing *poRing = (OGRLinearRing *) hNewSubGeom;
 
           if( poRing->WkbSize() != 0 
-              || poRing->getGeometryType() != wkbLineString )
+              || wkbFlatten(poRing->getGeometryType()) != wkbLineString )
               return OGRERR_UNSUPPORTED_GEOMETRY_TYPE;
           else
           {
@@ -577,22 +634,36 @@ OGRErr OGR_G_RemoveGeometry( OGRGeometryH hGeom, int iGeom, int bDelete )
 double OGR_G_GetArea( OGRGeometryH hGeom )
 
 {
+    double fArea = 0.0;
+
     switch( wkbFlatten(((OGRGeometry *) hGeom)->getGeometryType()) )
     {
       case wkbPolygon:
-        return ((OGRPolygon *) hGeom)->get_Area();
+        fArea = ((OGRPolygon *) hGeom)->get_Area();
         break;
 
       case wkbMultiPolygon:
-        return ((OGRMultiPolygon *) hGeom)->get_Area();
+        fArea = ((OGRMultiPolygon *) hGeom)->get_Area();
         break;
 
       case wkbLinearRing:
-        return ((OGRLinearRing *) hGeom)->get_Area();
+      case wkbLineString:
+        /* This test below is required to filter out wkbLineString geometries
+         * not being of type of wkbLinearRing.
+         */
+        if( EQUAL( ((OGRGeometry*) hGeom)->getGeometryName(), "LINEARRING" ) )
+        {
+            fArea = ((OGRLinearRing *) hGeom)->get_Area();
+        }
         break;
-        
+
       default:
-        return 0.0;
+        CPLError( CE_Warning, CPLE_AppDefined,
+                  "OGR_G_GetArea() called against non-surface geometry type." );
+
+        fArea = 0.0;
     }
+
+    return fArea;
 }
 

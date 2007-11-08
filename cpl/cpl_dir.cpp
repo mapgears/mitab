@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_dir.cpp,v 1.5 2002/03/28 14:52:32 warmerda Exp $
+ * $Id: cpl_dir.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Name:     cpl_dir.cpp
  * Project:  CPL - Common Portability Library
@@ -26,38 +26,26 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
  * DEALINGS IN THE SOFTWARE.
- **********************************************************************
- *
- * $Log: cpl_dir.cpp,v $
- * Revision 1.5  2002/03/28 14:52:32  warmerda
- * moved docs to non-WIN32 section
- *
- * Revision 1.4  2001/07/18 04:00:49  warmerda
- * added CPL_CVSID
- *
- * Revision 1.3  2000/09/25 19:59:03  warmerda
- * look for WIN32 not _WIN32
- *
- * Revision 1.2  1999/05/20 02:54:38  warmerda
- * Added API documentation
- *
- * Revision 1.1  1999/02/25 04:52:00  danmo
- * *** empty log message ***
- *
- **********************************************************************/
+ ****************************************************************************/
 
 #include "cpl_conv.h"
 #include "cpl_string.h"
 
-CPL_CVSID("$Id: cpl_dir.cpp,v 1.5 2002/03/28 14:52:32 warmerda Exp $");
+CPL_CVSID("$Id: cpl_dir.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
-#ifdef WIN32
+#if defined(WIN32) || defined(WIN32CE)
 
 /*=====================================================================
                    WIN32 / MSVC++ implementation
  *====================================================================*/
 
-#include <io.h>
+#ifndef WIN32CE
+#  include <io.h>
+#else
+#  include <wce_io.h>
+#endif
+ 
+
 
 /**********************************************************************
  *                          CPLReadDir()

@@ -1,4 +1,11 @@
 /******************************************************************************
+ * $Id: cpl_vsisimple.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ *
+ * Project:  Common Portability Library
+ * Purpose:  Simple implementation of POSIX VSI functions.
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
+ *
+ ******************************************************************************
  * Copyright (c) 1998, Frank Warmerdam
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -18,87 +25,38 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * cpl_vsisimple.cpp
- *
- * This is a simple implementation (direct to Posix) of the Virtual System
- * Interface (VSI).  See cpl_vsi.h.
- *
- * TODO:
- *  - add some assertions to ensure that arguments are widely legal.  For
- *    instance validation of access strings to fopen().
- * 
- * $Log: cpl_vsisimple.cpp,v $
- * Revision 1.17  2003/09/10 19:44:36  warmerda
- * added VSIStrerrno()
- *
- * Revision 1.16  2003/09/08 08:11:40  dron
- * Added VSIGMTime() and VSILocalTime().
- *
- * Revision 1.15  2003/05/27 20:46:18  warmerda
- * added VSI IO debugging stuff
- *
- * Revision 1.14  2003/05/21 04:20:30  warmerda
- * avoid warnings
- *
- * Revision 1.13  2002/06/17 14:00:16  warmerda
- * segregate VSIStatL() and VSIStatBufL.
- *
- * Revision 1.12  2002/06/15 03:10:22  aubin
- * remove debug test for 64bit compile
- *
- * Revision 1.11  2002/06/15 00:07:23  aubin
- * mods to enable 64bit file i/o
- *
- * Revision 1.10  2001/07/18 04:00:49  warmerda
- * added CPL_CVSID
- *
- * Revision 1.9  2001/04/30 18:19:06  warmerda
- * avoid stat on macos_pre10
- *
- * Revision 1.8  2001/01/19 21:16:41  warmerda
- * expanded tabs
- *
- * Revision 1.7  2001/01/03 05:33:17  warmerda
- * added VSIFlush
- *
- * Revision 1.6  2000/12/14 18:29:48  warmerda
- * added VSIMkdir
- *
- * Revision 1.5  2000/01/26 19:06:29  warmerda
- * fix up mkdir/unlink for windows
- *
- * Revision 1.4  2000/01/25 03:11:03  warmerda
- * added unlink and mkdir
- *
- * Revision 1.3  1998/12/14 04:50:33  warmerda
- * Avoid C++ comments so it will be C compilable as well.
- *
- * Revision 1.2  1998/12/04 21:42:57  danmo
- * Added #ifndef WIN32 arounf #include <unistd.h>
- *
- * Revision 1.1  1998/12/03 18:26:03  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
+#include "cpl_config.h"
+#include "cpl_port.h"
 #include "cpl_vsi.h"
 #include "cpl_error.h"
 
-CPL_CVSID("$Id: cpl_vsisimple.cpp,v 1.17 2003/09/10 19:44:36 warmerda Exp $");
+CPL_CVSID("$Id: cpl_vsisimple.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 /* for stat() */
 
-#ifndef WIN32
+/* Unix or Windows NT/2000/XP */
+#if !defined(WIN32) && !defined(WIN32CE)
 #  include <unistd.h>
-#else
+#elif !defined(WIN32CE) /* not Win32 platform */
 #  include <io.h>
 #  include <fcntl.h>
 #  include <direct.h>
 #endif
-#include <sys/stat.h>
-#include <time.h>
+
+/* Windows CE or other platforms */
+#if defined(WIN32CE)
+#  include <wce_io.h>
+#  include <wce_stat.h>
+#  include <wce_stdio.h>
+#  include <wce_string.h>
+#  include <wce_time.h>
+# define time wceex_time
+#else
+#  include <sys/stat.h>
+#  include <time.h>
+#endif
 
 /************************************************************************/
 /*                              VSIFOpen()                              */
@@ -199,7 +157,7 @@ size_t VSIFRead( void * pBuffer, size_t nSize, size_t nCount, FILE * fp )
 /*                             VSIFWrite()                              */
 /************************************************************************/
 
-size_t VSIFWrite( void * pBuffer, size_t nSize, size_t nCount, FILE * fp )
+size_t VSIFWrite( const void *pBuffer, size_t nSize, size_t nCount, FILE * fp )
 
 {
     size_t nResult = fwrite( pBuffer, nSize, nCount, fp );
@@ -365,43 +323,6 @@ int VSIStat( const char * pszFilename, VSIStatBuf * pStatBuf )
 #else
     return( stat( pszFilename, pStatBuf ) );
 #endif
-}
-
-/************************************************************************/
-/*                              VSIMkdir()                              */
-/************************************************************************/
-
-int VSIMkdir( const char *pszPathname, long mode )
-
-{
-#ifdef WIN32
-    (void) mode;
-    return mkdir( pszPathname );
-#elif defined(macos_pre10)
-    return -1;
-#else
-    return mkdir( pszPathname, mode );
-#endif
-}
-
-/************************************************************************/
-/*                             VSIUnlink()                              */
-/*************************a***********************************************/
-
-int VSIUnlink( const char * pszFilename )
-
-{
-    return unlink( pszFilename );
-}
-
-/************************************************************************/
-/*                              VSIRmdir()                              */
-/************************************************************************/
-
-int VSIRmdir( const char * pszFilename )
-
-{
-    return rmdir( pszFilename );
 }
 
 /************************************************************************/

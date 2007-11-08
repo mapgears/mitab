@@ -1,9 +1,9 @@
 /******************************************************************************
- * $Id: ogrgeometry.cpp,v 1.30 2005/04/18 15:42:17 fwarmerdam Exp $
+ * $Id: ogrgeometry.cpp 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Implements a few base methods on OGRGeometry.
- * Author:   Frank Warmerdam, warmerda@home.com
+ * Author:   Frank Warmerdam, warmerdam@pobox.com
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
@@ -25,104 +25,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogrgeometry.cpp,v $
- * Revision 1.30  2005/04/18 15:42:17  fwarmerdam
- * fix geos exception catching
- *
- * Revision 1.29  2005/04/06 20:43:00  fwarmerdam
- * fixed a variety of method signatures for documentation
- *
- * Revision 1.28  2005/02/22 12:39:32  fwarmerdam
- * Rename Equal to Equals, and Intersect to Intersects.
- * Intersects() now always uses GEOS if available.  Also, Intersects()
- * returns TRUE if the other geometry is NULL.
- *
- * Revision 1.27  2004/09/16 18:29:21  fwarmerdam
- * Disable GEOS Insersect().  Is is very expensive for the common case of a
- * bounding rectangle intersection.  We need something better eventually.
- *
- * Revision 1.26  2004/08/20 21:21:28  warmerda
- * added support for managing a persistent geos::GeometryFactory
- *
- * Revision 1.25  2004/07/10 06:57:53  warmerda
- * Added C entry points and docs for GEOS geometry functions
- *
- * Revision 1.24  2004/07/10 04:52:24  warmerda
- * Added lots of GEOS methods.
- * Added closeRings().
- *
- * Revision 1.23  2004/02/21 15:36:14  warmerda
- * const correctness updates for geometry: bug 289
- *
- * Revision 1.22  2004/01/06 19:07:45  warmerda
- * Added braces within case with variable declarations.
- *
- * Revision 1.21  2003/09/04 14:01:44  warmerda
- * added OGRGetGenerate_DB2_V72_BYTE_ORDER
- *
- * Revision 1.20  2003/08/27 15:40:37  warmerda
- * added support for generating DB2 V7.2 compatible WKB
- *
- * Revision 1.19  2003/06/10 14:51:07  warmerda
- * Allow Intersects() test against NULL geometry
- *
- * Revision 1.18  2003/04/03 23:39:11  danmo
- * Small updates to C API docs (Normand S.)
- *
- * Revision 1.17  2003/03/31 15:55:42  danmo
- * Added C API function docs
- *
- * Revision 1.16  2003/03/06 20:59:41  warmerda
- * Added exportToGML() implementation.
- *
- * Revision 1.15  2003/02/08 00:37:15  warmerda
- * try to improve documentation
- *
- * Revision 1.14  2002/10/24 16:46:33  warmerda
- * added docs and C implementation for Equal and FlattenTo2D
- *
- * Revision 1.13  2002/09/26 18:12:38  warmerda
- * added C support
- *
- * Revision 1.12  2002/05/03 14:16:23  warmerda
- * improve 3D geometry names
- *
- * Revision 1.11  2001/11/01 17:20:33  warmerda
- * added DISABLE_OGRGEOM_TRANSFORM macro
- *
- * Revision 1.10  2001/09/21 16:24:20  warmerda
- * added transform() and transformTo() methods
- *
- * Revision 1.9  2001/07/18 05:03:05  warmerda
- * added CPL_CVSID
- *
- * Revision 1.8  2001/02/06 14:14:09  warmerda
- * fixed up documentation
- *
- * Revision 1.7  2000/03/14 21:38:17  warmerda
- * added method to translate geometrytype to name
- *
- * Revision 1.6  1999/11/18 19:02:19  warmerda
- * expanded tabs
- *
- * Revision 1.5  1999/07/06 21:36:47  warmerda
- * tenatively added getEnvelope() and Intersect()
- *
- * Revision 1.4  1999/06/25 20:44:43  warmerda
- * implemented assignSpatialReference, carry properly
- *
- * Revision 1.3  1999/05/31 20:42:28  warmerda
- * added empty method
- *
- * Revision 1.2  1999/05/31 11:05:08  warmerda
- * added some documentation
- *
- * Revision 1.1  1999/05/20 14:35:00  warmerda
- * New
- *
- */
+ ****************************************************************************/
 
 #include "ogr_geometry.h"
 #include "ogr_api.h"
@@ -130,15 +33,29 @@
 #include "ogr_geos.h"
 #include <assert.h>
 
-#ifdef HAVE_GEOS 
-#  include "geos/opDistance.h"
-#  include "geos/opBuffer.h"
-#  include "geos/geosAlgorithm.h"
-#endif
-
-CPL_CVSID("$Id: ogrgeometry.cpp,v 1.30 2005/04/18 15:42:17 fwarmerdam Exp $");
+CPL_CVSID("$Id: ogrgeometry.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
 
 int OGRGeometry::bGenerate_DB2_V72_BYTE_ORDER = FALSE;
+
+#ifdef HAVE_GEOS
+static void _GEOSErrorHandler(const char *fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+    CPLErrorV( CE_Failure, CPLE_AppDefined, fmt, args );
+    va_end(args);
+}
+
+static void _GEOSWarningHandler(const char *fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+    CPLErrorV( CE_Warning, CPLE_AppDefined, fmt, args );
+    va_end(args);
+}
+#endif
 
 /************************************************************************/
 /*                            OGRGeometry()                             */
@@ -148,6 +65,7 @@ OGRGeometry::OGRGeometry()
 
 {
     poSRS = NULL;
+    nCoordDimension = 2;
 }
 
 /************************************************************************/
@@ -158,10 +76,7 @@ OGRGeometry::~OGRGeometry()
 
 {
     if( poSRS != NULL )
-    {
-        if (poSRS->Dereference() <= 0)
-            delete poSRS;
-    }
+        poSRS->Release();
 }
 
 
@@ -178,7 +93,7 @@ OGRGeometry::~OGRGeometry()
  * @param pszPrefix the prefix to put on each line of output.
  */
 
-void OGRGeometry::dumpReadable( FILE * fp, const char * pszPrefix )
+void OGRGeometry::dumpReadable( FILE * fp, const char * pszPrefix ) const
 
 {
     char        *pszWkt = NULL;
@@ -239,8 +154,7 @@ void OGRGeometry::assignSpatialReference( OGRSpatialReference * poSR )
 
 {
     if( poSRS != NULL )
-        if (poSRS->Dereference() <= 0)
-            delete poSRS;
+        poSRS->Release();
 
     poSRS = poSR;
     if( poSRS != NULL )
@@ -315,27 +229,30 @@ OGRBoolean OGRGeometry::Intersects( OGRGeometry *poOtherGeom ) const
         return FALSE;
 
 #ifndef HAVE_GEOS
+
     // Without GEOS we assume that envelope overlap is equivelent to
     // actual intersection.
     return TRUE;
+
 #else
+
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
     
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
-
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
-
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
         OGRBoolean bResult;
         
-        if( poThisGeosGeom->intersects( poOtherGeosGeom ) )
+        if( GEOSIntersects( hThisGeosGeom, hOtherGeosGeom ) != 0 )
             bResult = TRUE;
         else
             bResult = FALSE;
         
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
 
         return bResult;
     }
@@ -343,7 +260,6 @@ OGRBoolean OGRGeometry::Intersects( OGRGeometry *poOtherGeom ) const
     {
         return TRUE;
     }
-
 #endif /* HAVE_GEOS */
 }
 
@@ -572,9 +488,10 @@ int OGR_G_GetDimension( OGRGeometryH hGeom )
     return ((OGRGeometry *) hGeom)->getDimension();
 }
 
+/************************************************************************/
+/*                       getCoordinateDimension()                       */
+/************************************************************************/
 /**
- * \fn int OGRGeometry::getCoordinateDimension() const;
- *
  * Get the dimension of the coordinates in this object.
  *
  * This method corresponds to the SFCOM IGeometry::GetDimension() method.
@@ -584,6 +501,12 @@ int OGR_G_GetDimension( OGRGeometryH hGeom )
  * @return in practice this always returns 2 indicating that coordinates are
  * specified within a two dimensional space.
  */
+
+int OGRGeometry::getCoordinateDimension() const
+
+{
+    return nCoordDimension;
+}
 
 /************************************************************************/
 /*                    OGR_G_GetCoordinateDimension()                    */
@@ -607,6 +530,37 @@ int OGR_G_GetCoordinateDimension( OGRGeometryH hGeom )
 
 {
     return ((OGRGeometry *) hGeom)->getCoordinateDimension();
+}
+
+/************************************************************************/
+/*                       setCoordinateDimension()                       */
+/************************************************************************/
+
+/**
+ * Set the coordinate dimension. 
+ *
+ * This method sets the explicit coordinate dimension.  Setting the coordinate
+ * dimension of a geometry to 2 should zero out any existing Z values.  Setting
+ * the dimension of a geometry collection will not necessarily affect the
+ * children geometries. 
+ *
+ * @param nNewDimension New coordinate dimension value, either 2 or 3.
+ */
+
+void OGRGeometry::setCoordinateDimension( int nNewDimension )
+
+{
+    nCoordDimension = nNewDimension;
+}
+
+/************************************************************************/
+/*                    OGR_G_SetCoordinateDimension()                    */
+/************************************************************************/
+
+void OGR_G_SetCoordinateDimension( OGRGeometryH hGeom, int nNewDimension)
+
+{
+    ((OGRGeometry *) hGeom)->setCoordinateDimension( nNewDimension );
 }
 
 
@@ -1277,7 +1231,7 @@ int OGRGetGenerate_DB2_V72_BYTE_ORDER()
 /*                            exportToGEOS()                            */
 /************************************************************************/
 
-geos::Geometry *OGRGeometry::exportToGEOS() const
+GEOSGeom OGRGeometry::exportToGEOS() const
 
 {
 #ifndef HAVE_GEOS
@@ -1288,31 +1242,26 @@ geos::Geometry *OGRGeometry::exportToGEOS() const
 
 #else
 
-    char *pszWKT = NULL;
-    geos::WKTReader   geosWktReader( 
-        OGRGeometryFactory::getGEOSGeometryFactory() );
+    static int bGEOSInitialized = FALSE;
 
-    if( exportToWkt( &pszWKT ) != OGRERR_NONE )
-        return NULL;
-
-    string oWKT = pszWKT;
-    CPLFree( pszWKT );
-
-    try 
-    { 
-        geos::Geometry *geosGeometry = NULL;
-        geosGeometry = geosWktReader.read( oWKT );
-        return geosGeometry;
-    }
-    catch( geos::GEOSException *e )
+    if( !bGEOSInitialized )
     {
-        CPLError( CE_Failure, CPLE_AppDefined,
-                  "GEOSException: %s", 
-                  e->toString().c_str() );
-
-        delete e;
-        return NULL;
+        bGEOSInitialized = TRUE;
+        initGEOS( _GEOSWarningHandler, _GEOSErrorHandler );
     }
+
+    GEOSGeom hGeom = NULL;
+    size_t nDataSize;
+    unsigned char *pabyData = NULL;
+
+    nDataSize = WkbSize();
+    pabyData = (unsigned char *) CPLMalloc(nDataSize);
+    if( exportToWkb( wkbNDR, pabyData ) == OGRERR_NONE )
+        hGeom = GEOSGeomFromWKB_buf( pabyData, nDataSize );
+
+    CPLFree( pabyData );
+
+    return hGeom;
 
 #endif /* HAVE_GEOS */
 }
@@ -1342,6 +1291,12 @@ geos::Geometry *OGRGeometry::exportToGEOS() const
 double OGRGeometry::Distance( const OGRGeometry *poOtherGeom ) const
 
 {
+    if( NULL == poOtherGeom )
+    {
+        CPLDebug( "OGR", "OGRGeometry::Distance called with NULL geometry pointer" );
+        return -1.0;
+    }
+
 #ifndef HAVE_GEOS
 
     CPLError( CE_Failure, CPLE_NotSupported, 
@@ -1349,27 +1304,32 @@ double OGRGeometry::Distance( const OGRGeometry *poOtherGeom ) const
     return -1.0;
 
 #else
-    geos::Geometry *poThis, *poOther;
 
-    poThis = exportToGEOS();
-    poOther = poOtherGeom->exportToGEOS();
+    // GEOSGeom is a pointer
+    GEOSGeom hThis = NULL;
+    GEOSGeom hOther = NULL;
 
-    if( poThis != NULL && poOther != NULL )
+    hOther = poOtherGeom->exportToGEOS();
+    hThis = exportToGEOS();
+   
+    int bIsErr = 0;
+    double dfDistance = 0.0;
+
+    if( hThis != NULL && hOther != NULL )
     {
-        geos::DistanceOp oDistOp( poThis, poOther );
-        double dfDistance;
+        bIsErr = GEOSDistance( hThis, hOther, &dfDistance );
+    }
 
-        dfDistance = oDistOp.distance();
-        
-        delete poThis;
-        delete poOther;
+    GEOSGeom_destroy( hThis );
+    GEOSGeom_destroy( hOther );
 
+    if ( bIsErr > 0 ) 
+    {
         return dfDistance;
     }
-    else
-    {
-        return -1.0;
-    }
+
+    /* Calculations error */
+    return -1.0;
 
 #endif /* HAVE_GEOS */
 }
@@ -1414,25 +1374,22 @@ OGRGeometry *OGRGeometry::ConvexHull() const
     return NULL;
 
 #else
-    geos::Geometry *poGeosGeom;
+
+    GEOSGeom hGeosGeom = NULL;
+    GEOSGeom hGeosHull = NULL;
     OGRGeometry *poHullOGRGeom = NULL;
 
-    poGeosGeom = exportToGEOS();
-
-    if( poGeosGeom != NULL )
+    hGeosGeom = exportToGEOS();
+    if( hGeosGeom != NULL )
     {
-        geos::ConvexHull oCHull( poGeosGeom );
-        geos::Geometry *poHullGeosGeom;
+        hGeosHull = GEOSConvexHull( hGeosGeom );
+        GEOSGeom_destroy( hGeosGeom );
 
-        poHullGeosGeom = oCHull.getConvexHull();
-
-        if( poHullGeosGeom != NULL )
+        if( hGeosHull != NULL )
         {
-            poHullOGRGeom = OGRGeometryFactory::createFromGEOS(poHullGeosGeom);
-            delete poHullGeosGeom;
+            poHullOGRGeom = OGRGeometryFactory::createFromGEOS(hGeosHull);
+            GEOSGeom_destroy( hGeosHull);
         }
-
-        delete poGeosGeom;
     }
 
     return poHullOGRGeom;
@@ -1480,27 +1437,25 @@ OGRGeometry *OGRGeometry::getBoundary() const
     return NULL;
 
 #else
-    geos::Geometry *poSrcGeosGeom;
-    OGRGeometry *poResultOGRGeom = NULL;
+    
+    GEOSGeom hGeosGeom = NULL;
+    GEOSGeom hGeosProduct = NULL;
+    OGRGeometry *poOGRProduct = NULL;
 
-    poSrcGeosGeom = exportToGEOS();
-
-    if( poSrcGeosGeom != NULL )
+    hGeosGeom = exportToGEOS();
+    if( hGeosGeom != NULL )
     {
-        geos::Geometry *poResultGeosGeom = 
-            poSrcGeosGeom->getBoundary();
+        hGeosProduct = GEOSBoundary( hGeosGeom );
+        GEOSGeom_destroy( hGeosGeom );
 
-        if( poResultGeosGeom != NULL )
+        if( hGeosProduct != NULL )
         {
-            poResultOGRGeom = 
-                OGRGeometryFactory::createFromGEOS(poResultGeosGeom);
-            delete poResultGeosGeom;
+            poOGRProduct = OGRGeometryFactory::createFromGEOS(hGeosProduct);
+            GEOSGeom_destroy( hGeosProduct );
         }
-
-        delete poSrcGeosGeom;
     }
 
-    return poResultOGRGeom;
+    return poOGRProduct;
 
 #endif /* HAVE_GEOS */
 }
@@ -1559,29 +1514,25 @@ OGRGeometry *OGRGeometry::Buffer( double dfDist, int nQuadSegs ) const
     return NULL;
 
 #else
-    geos::Geometry *poGeosGeom;
-    OGRGeometry *poBufferOGRGeom = NULL;
 
-    poGeosGeom = exportToGEOS();
+    GEOSGeom hGeosGeom = NULL;
+    GEOSGeom hGeosProduct = NULL;
+    OGRGeometry *poOGRProduct = NULL;
 
-    if( poGeosGeom != NULL )
+    hGeosGeom = exportToGEOS();
+    if( hGeosGeom != NULL )
     {
-        geos::BufferOp oBuffer( poGeosGeom );
-        geos::Geometry *poBufferGeosGeom;
+        hGeosProduct = GEOSBuffer( hGeosGeom, dfDist, nQuadSegs );
+        GEOSGeom_destroy( hGeosGeom );
 
-        poBufferGeosGeom = oBuffer.getResultGeometry( dfDist, nQuadSegs );
-
-        if( poBufferGeosGeom != NULL )
+        if( hGeosProduct != NULL )
         {
-            poBufferOGRGeom = 
-                OGRGeometryFactory::createFromGEOS(poBufferGeosGeom);
-            delete poBufferGeosGeom;
+            poOGRProduct = OGRGeometryFactory::createFromGEOS(hGeosProduct);
+            GEOSGeom_destroy( hGeosProduct );
         }
-
-        delete poGeosGeom;
     }
 
-    return poBufferOGRGeom;
+    return poOGRProduct;
 
 #endif /* HAVE_GEOS */
 }
@@ -1630,29 +1581,28 @@ OGRGeometry *OGRGeometry::Intersection( const OGRGeometry *poOtherGeom ) const
     return NULL;
 
 #else
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
 
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+    GEOSGeom hGeosProduct = NULL;
+    OGRGeometry *poOGRProduct = NULL;
 
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
-        geos::Geometry *poResultGeosGeom = 
-            poThisGeosGeom->intersection( poOtherGeosGeom );
-        
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        hGeosProduct = GEOSIntersection( hThisGeosGeom, hOtherGeosGeom );
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
 
-        OGRGeometry *poResultOGRGeom = 
-            OGRGeometryFactory::createFromGEOS( poResultGeosGeom );
-        delete poResultGeosGeom;
+        if( hGeosProduct != NULL )
+        {
+            poOGRProduct = OGRGeometryFactory::createFromGEOS(hGeosProduct);
+            GEOSGeom_destroy( hGeosProduct );
+        }
+    }
 
-        return poResultOGRGeom;
-    }
-    else
-    {
-        return NULL;
-    }
+    return poOGRProduct;
 
 #endif /* HAVE_GEOS */
 }
@@ -1700,29 +1650,28 @@ OGRGeometry *OGRGeometry::Union( const OGRGeometry *poOtherGeom ) const
     return NULL;
 
 #else
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
 
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+    GEOSGeom hGeosProduct = NULL;
+    OGRGeometry *poOGRProduct = NULL;
 
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
-        geos::Geometry *poResultGeosGeom = 
-            poThisGeosGeom->Union( poOtherGeosGeom );
-        
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        hGeosProduct = GEOSUnion( hThisGeosGeom, hOtherGeosGeom );
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
 
-        OGRGeometry *poResultOGRGeom = 
-            OGRGeometryFactory::createFromGEOS( poResultGeosGeom );
-        delete poResultGeosGeom;
+        if( hGeosProduct != NULL )
+        {
+            poOGRProduct = OGRGeometryFactory::createFromGEOS(hGeosProduct);
+            GEOSGeom_destroy( hGeosProduct );
+        }
+    }
 
-        return poResultOGRGeom;
-    }
-    else
-    {
-        return NULL;
-    }
+    return poOGRProduct;
 
 #endif /* HAVE_GEOS */
 }
@@ -1771,29 +1720,28 @@ OGRGeometry *OGRGeometry::Difference( const OGRGeometry *poOtherGeom ) const
     return NULL;
 
 #else
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
+    
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+    GEOSGeom hGeosProduct = NULL;
+    OGRGeometry *poOGRProduct = NULL;
 
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
-
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
-        geos::Geometry *poResultGeosGeom = 
-            poThisGeosGeom->difference( poOtherGeosGeom );
-        
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        hGeosProduct = GEOSDifference( hThisGeosGeom, hOtherGeosGeom );
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
 
-        OGRGeometry *poResultOGRGeom = 
-            OGRGeometryFactory::createFromGEOS( poResultGeosGeom );
-        delete poResultGeosGeom;
+        if( hGeosProduct != NULL )
+        {
+            poOGRProduct = OGRGeometryFactory::createFromGEOS(hGeosProduct);
+            GEOSGeom_destroy( hGeosProduct );
+        }
+    }
 
-        return poResultOGRGeom;
-    }
-    else
-    {
-        return NULL;
-    }
+    return poOGRProduct;
 
 #endif /* HAVE_GEOS */
 }
@@ -1843,29 +1791,28 @@ OGRGeometry::SymmetricDifference( const OGRGeometry *poOtherGeom ) const
     return NULL;
 
 #else
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
 
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+    GEOSGeom hGeosProduct = NULL;
+    OGRGeometry *poOGRProduct = NULL;
 
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
-        geos::Geometry *poResultGeosGeom = 
-            poThisGeosGeom->symDifference( poOtherGeosGeom );
-        
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        hGeosProduct = GEOSSymDifference( hThisGeosGeom, hOtherGeosGeom );
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
 
-        OGRGeometry *poResultOGRGeom = 
-            OGRGeometryFactory::createFromGEOS( poResultGeosGeom );
-        delete poResultGeosGeom;
+        if( hGeosProduct != NULL )
+        {
+            poOGRProduct = OGRGeometryFactory::createFromGEOS(hGeosProduct);
+            GEOSGeom_destroy( hGeosProduct );
+        }
+    }
 
-        return poResultOGRGeom;
-    }
-    else
-    {
-        return NULL;
-    }
+    return poOGRProduct;
 
 #endif /* HAVE_GEOS */
 }
@@ -1913,29 +1860,21 @@ OGRGeometry::Disjoint( const OGRGeometry *poOtherGeom ) const
     return FALSE;
 
 #else
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
 
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+    OGRBoolean bResult = FALSE;
 
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
-        OGRBoolean bResult;
-        
-        if( poThisGeosGeom->disjoint( poOtherGeosGeom ) )
-            bResult = TRUE;
-        else
-            bResult = FALSE;
-        
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        bResult = GEOSDisjoint( hThisGeosGeom, hOtherGeosGeom );
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
+    }
 
-        return bResult;
-    }
-    else
-    {
-        return FALSE;
-    }
+    return bResult;
 
 #endif /* HAVE_GEOS */
 }
@@ -1982,29 +1921,22 @@ OGRGeometry::Touches( const OGRGeometry *poOtherGeom ) const
     return FALSE;
 
 #else
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
 
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+    OGRBoolean bResult = FALSE;
 
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
-        OGRBoolean bResult;
-        
-        if( poThisGeosGeom->touches( poOtherGeosGeom ) )
-            bResult = TRUE;
-        else
-            bResult = FALSE;
-        
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        bResult = GEOSTouches( hThisGeosGeom, hOtherGeosGeom );
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
+    }
 
-        return bResult;
-    }
-    else
-    {
-        return FALSE;
-    }
+    return bResult;
 
 #endif /* HAVE_GEOS */
 }
@@ -2051,29 +1983,22 @@ OGRGeometry::Crosses( const OGRGeometry *poOtherGeom ) const
     return FALSE;
 
 #else
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
 
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+    OGRBoolean bResult = FALSE;
 
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
+
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
-        OGRBoolean bResult;
-        
-        if( poThisGeosGeom->crosses( poOtherGeosGeom ) )
-            bResult = TRUE;
-        else
-            bResult = FALSE;
-        
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        bResult = GEOSCrosses( hThisGeosGeom, hOtherGeosGeom );
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
+    }
 
-        return bResult;
-    }
-    else
-    {
-        return FALSE;
-    }
+    return bResult;
 
 #endif /* HAVE_GEOS */
 }
@@ -2120,29 +2045,21 @@ OGRGeometry::Within( const OGRGeometry *poOtherGeom ) const
     return FALSE;
 
 #else
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
 
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+    OGRBoolean bResult = FALSE;
 
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
-        OGRBoolean bResult;
-        
-        if( poThisGeosGeom->within( poOtherGeosGeom ) )
-            bResult = TRUE;
-        else
-            bResult = FALSE;
-        
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        bResult = GEOSWithin( hThisGeosGeom, hOtherGeosGeom );
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
+    }
 
-        return bResult;
-    }
-    else
-    {
-        return FALSE;
-    }
+    return bResult;
 
 #endif /* HAVE_GEOS */
 }
@@ -2189,29 +2106,21 @@ OGRGeometry::Contains( const OGRGeometry *poOtherGeom ) const
     return FALSE;
 
 #else
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
 
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+    OGRBoolean bResult = FALSE;
 
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
-        OGRBoolean bResult;
-        
-        if( poThisGeosGeom->contains( poOtherGeosGeom ) )
-            bResult = TRUE;
-        else
-            bResult = FALSE;
-        
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        bResult = GEOSContains( hThisGeosGeom, hOtherGeosGeom );
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
+    }
 
-        return bResult;
-    }
-    else
-    {
-        return FALSE;
-    }
+    return bResult;
 
 #endif /* HAVE_GEOS */
 }
@@ -2259,29 +2168,21 @@ OGRGeometry::Overlaps( const OGRGeometry *poOtherGeom ) const
     return FALSE;
 
 #else
-    geos::Geometry *poThisGeosGeom, *poOtherGeosGeom;
 
-    poThisGeosGeom = exportToGEOS();
-    poOtherGeosGeom = poOtherGeom->exportToGEOS();
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+    OGRBoolean bResult = FALSE;
 
-    if( poThisGeosGeom != NULL && poOtherGeosGeom != NULL )
+    hThisGeosGeom = exportToGEOS();
+    hOtherGeosGeom = poOtherGeom->exportToGEOS();
+    if( hThisGeosGeom != NULL && hOtherGeosGeom != NULL )
     {
-        OGRBoolean bResult;
-        
-        if( poThisGeosGeom->overlaps( poOtherGeosGeom ) )
-            bResult = TRUE;
-        else
-            bResult = FALSE;
-        
-        delete poThisGeosGeom;
-        delete poOtherGeosGeom;
+        bResult = GEOSOverlaps( hThisGeosGeom, hOtherGeosGeom );
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
+    }
 
-        return bResult;
-    }
-    else
-    {
-        return FALSE;
-    }
+    return bResult;
 
 #endif /* HAVE_GEOS */
 }
@@ -2322,3 +2223,4 @@ void OGR_G_CloseRings( OGRGeometryH hGeom )
 {
     ((OGRGeometry *) hGeom)->closeRings();
 }
+

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_spatialref.h,v 1.66 2005/03/03 04:55:42 fwarmerdam Exp $
+ * $Id: ogr_spatialref.h 10646 2007-01-18 02:38:10Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Classes for manipulating spatial reference systems in a
@@ -26,72 +26,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- ******************************************************************************
- *
- * $Log: ogr_spatialref.h,v $
- * Revision 1.66  2005/03/03 04:55:42  fwarmerdam
- * make exportToWkt() const
- *
- * Revision 1.65  2005/02/11 14:21:28  fwarmerdam
- * added GEOS projection support
- *
- * Revision 1.64  2005/01/13 05:17:37  fwarmerdam
- * added SetLinearUnitsAndUpdateParameters
- *
- * Revision 1.63  2005/01/05 21:02:33  fwarmerdam
- * added Goode Homolosine
- *
- * Revision 1.62  2004/11/11 18:28:45  fwarmerdam
- * added Bonne projection support
- *
- * Revision 1.61  2004/05/10 17:05:14  warmerda
- * added AutoIdentifyEPSG()
- *
- * Revision 1.60  2004/03/04 18:04:45  warmerda
- * added importFromDict() support
- *
- * Revision 1.59  2004/02/07 17:31:21  dron
- * Added OSRExportToUSGS() method.
- *
- * Revision 1.58  2004/02/05 17:07:59  dron
- * Support for HOM projection, specified by two points on centerline.
- *
- * Revision 1.57  2004/02/01 14:24:09  dron
- * Added OGRSpatialReference::importFromUSGS().
- *
- * Revision 1.56  2004/01/24 09:34:59  warmerda
- * added TransformEx support to capture per point reprojection failure
- *
- * Revision 1.55  2003/10/07 04:20:50  warmerda
- * added WMS AUTO: support
- *
- * Revision 1.54  2003/09/09 07:49:19  dron
- * Added exportToPCI() method.
- *
- * Revision 1.53  2003/08/31 14:51:30  dron
- * Added importFromPCI() method.
- *
- * Revision 1.52  2003/08/18 13:26:01  warmerda
- * added SetTMVariant() and related definitions
- *
- * Revision 1.51  2003/05/30 15:39:53  warmerda
- * Added override units capability for SetStatePlane()
- *
- * Revision 1.50  2003/05/28 19:16:42  warmerda
- * fixed up argument names and stuff for docs
- *
- * Revision 1.49  2003/03/12 14:25:01  warmerda
- * added NeedsQuoting() method
- *
- * Revision 1.48  2003/02/25 04:53:51  warmerda
- * added CopyGeogCSFrom() method
- *
- * Revision 1.47  2003/02/06 04:53:12  warmerda
- * added Fixup() method
- *
- * Revision 1.46  2003/01/08 18:14:28  warmerda
- * added FixupOrdering()
- */
+ ****************************************************************************/
 
 #ifndef _OGR_SPATIALREF_H_INCLUDED
 #define _OGR_SPATIALREF_H_INCLUDED
@@ -125,10 +60,10 @@ class CPL_DLL OGR_SRSNode
 {
     char        *pszValue;
 
-    int         nChildren;
     OGR_SRSNode **papoChildNodes;
-
     OGR_SRSNode *poParent;
+
+    int         nChildren;
 
     void        ClearChildren();
     int         NeedsQuoting() const;
@@ -191,31 +126,18 @@ class CPL_DLL OGR_SRSNode
 
 class CPL_DLL OGRSpatialReference
 {
-    int         nRefCount;
-
-    OGR_SRSNode *poRoot;
-
-    int         bNormInfoSet;
     double      dfFromGreenwich;
     double      dfToMeter;
     double      dfToDegrees;
 
+    OGR_SRSNode *poRoot;
+
+    int         nRefCount;
+    int         bNormInfoSet;
+
     OGRErr      ValidateProjection();
     int         IsAliasFor( const char *, const char * );
     void        GetNormInfo() const;
-
-#ifdef MITAB_AFFINE_PARAMS  // See MITAB bug 1155
-  // Affine params added by Encom 2003:
-  public:
-    int    nAffineFlag;
-    int    nAffineUnit;
-    double dAffineParamA;
-    double dAffineParamB;
-    double dAffineParamC;
-    double dAffineParamD;
-    double dAffineParamE;
-    double dAffineParamF;
-#endif
 
   public:
                 OGRSpatialReference(const OGRSpatialReference&);
@@ -228,6 +150,7 @@ class CPL_DLL OGRSpatialReference
     int         Reference();
     int         Dereference();
     int         GetReferenceCount() const { return nRefCount; }
+    void        Release();
 
     OGRSpatialReference *Clone() const;
     OGRSpatialReference *CloneGeogCS() const;
@@ -237,19 +160,23 @@ class CPL_DLL OGRSpatialReference
     OGRErr      exportToProj4( char ** ) const;
     OGRErr      exportToPCI( char **, char **, double ** ) const;
     OGRErr      exportToUSGS( long *, long *, double **, long * ) const;
+    OGRErr      exportToPanorama( long *, long *, double **, long * ) const;
     OGRErr      exportToXML( char **, const char * = NULL ) const;
+    OGRErr      exportToPanorama( long *, long *, long *, long *, double *,
+                                  double *, double *, double * ) const;
     OGRErr      importFromWkt( char ** );
     OGRErr      importFromProj4( const char * );
     OGRErr      importFromEPSG( int );
     OGRErr      importFromESRI( char ** );
-    OGRErr      importFromPCI( const char *pszProj,
-                               const char *pszUnits = NULL,
-                               double *padfPrjParams = NULL );
-    OGRErr      importFromUSGS( long iProjsys, long iZone,
-                                double *padfPrjParams, long iDatum );
+    OGRErr      importFromPCI( const char *, const char * = NULL,
+                               double * = NULL );
+    OGRErr      importFromUSGS( long, long, double *, long );
+    OGRErr      importFromPanorama( long, long, long, long,
+                                    double, double, double, double );
     OGRErr      importFromWMSAUTO( const char *pszAutoDef );
     OGRErr      importFromXML( const char * );
     OGRErr      importFromDict( const char *pszDict, const char *pszCode );
+    OGRErr      importFromURN( const char * );
 
     OGRErr      morphToESRI();
     OGRErr      morphFromESRI();
@@ -321,6 +248,13 @@ class CPL_DLL OGRSpatialReference
 
     const char *GetAuthorityCode( const char * pszTargetKey ) const;
     const char *GetAuthorityName( const char * pszTargetKey ) const;
+
+    const char *GetExtension( const char *pszTargetKey, 
+                              const char *pszName,
+                              const char *pszDefault = NULL ) const;
+    OGRErr      SetExtension( const char *pszTargetKey, 
+                              const char *pszName, 
+                              const char *pszValue );
                            
     OGRErr      SetProjParm( const char *, double );
     double      GetProjParm( const char *, double =0.0, OGRErr* = NULL ) const;
@@ -431,6 +365,10 @@ class CPL_DLL OGRSpatialReference
                              double dfScale, 
                              double dfFalseEasting, double dfFalseNorthing );
 
+    OGRErr      SetMercator2SP( double dfStdP1,
+                                double dfCenterLat, double dfCenterLong,
+                                double dfFalseEasting, double dfFalseNorthing );
+
     /** Mollweide */
     OGRErr      SetMollweide( double dfCentralMeridian,
                               double dfFalseEasting, double dfFalseNorthing );
@@ -469,7 +407,7 @@ class CPL_DLL OGRSpatialReference
     OGRErr      SetStereographic( double dfCenterLat, double dfCenterLong,
                                   double dfScale,
                                  double dfFalseEasting,double dfFalseNorthing);
-    
+
     /** Swiss Oblique Cylindrical */
     OGRErr      SetSOC( double dfLatitudeOfOrigin, double dfCentralMeridian,
                         double dfFalseEasting, double dfFalseNorthing );
@@ -494,6 +432,11 @@ class CPL_DLL OGRSpatialReference
                          double dfScale,
                          double dfFalseEasting, double dfFalseNorthing );
 
+    /** Two Point Equidistant */
+    OGRErr      SetTPED( double dfLat1, double dfLong1, 
+                         double dfLat2, double dfLong2, 
+                         double dfFalseEasting, double dfFalseNorthing );
+    
     /** VanDerGrinten */
     OGRErr      SetVDG( double dfCenterLong,
                         double dfFalseEasting, double dfFalseNorthing );

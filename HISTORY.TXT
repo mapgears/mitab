@@ -17,6 +17,8 @@ CHANGES - Current Version:
 
 - Fixed leak of SRS in OGRGeometry (bug 1816)
 
+- Fix asDatumInfoList[] and asSpheroidInfoList[] defns/refs (bug 1826)
+
 
 Version 1.6.3 (2007-10-12)
 --------------------------
@@ -845,5 +847,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.198 2007-11-08 18:57:56 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.199 2007-11-21 21:15:45 dmorissette Exp $
 ------------

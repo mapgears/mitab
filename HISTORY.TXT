@@ -19,6 +19,9 @@ CHANGES - Current Version:
 
 - Fix asDatumInfoList[] and asSpheroidInfoList[] defns/refs (bug 1826)
 
+- Added reporting access mode to error message in TABINDFile::Open()
+  (GDAL changeset r12460, ticket 1620)
+
 
 Version 1.6.3 (2007-10-12)
 --------------------------
@@ -847,5 +850,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.199 2007-11-21 21:15:45 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.200 2007-12-11 03:43:02 dmorissette Exp $
 ------------

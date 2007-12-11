@@ -13,6 +13,10 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+
+Version 1.6.4 (2007-12-10)
+--------------------------
+
 - Upgrade of OGR and CPL libs to the version from GDAL/OGR 1.4.3
 
 - Fixed leak of SRS in OGRGeometry (bug 1816)
@@ -852,5 +856,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.201 2007-12-11 04:21:54 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.202 2007-12-11 04:26:28 dmorissette Exp $
 ------------

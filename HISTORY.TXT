@@ -13,6 +13,12 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Added support for v9.x Time and DateTime fields (based on patch from
+  AJD, bug 1754)
+
+- Added bounds for Peruvian coordinate systems PSAD56 in mitab_bounds.cpp
+  (came with patch from AJD sent for bug 1754)
+
 
 Version 1.6.4 (2007-12-10)
 --------------------------
@@ -856,5 +862,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.202 2007-12-11 04:26:28 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.203 2008-01-29 21:05:59 dmorissette Exp $
 ------------

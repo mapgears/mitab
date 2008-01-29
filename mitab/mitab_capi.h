@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.31 2007-03-30 18:03:51 dmorissette Exp $
+ * $Id: mitab_capi.h,v 1.32 2008-01-29 20:46:32 dmorissette Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.31  2007-03-30 18:03:51  dmorissette
+ * Revision 1.32  2008-01-29 20:46:32  dmorissette
+ * Added support for v9 Time and DateTime fields (byg 1754)
+ *
+ * Revision 1.31  2007/03/30 18:03:51  dmorissette
  * Added mitab_c_set_quick_spatial_index_mode() to C API (bug 1669)
  *
  * Revision 1.30  2006/12/01 20:26:27  dmorissette
@@ -185,6 +188,8 @@ typedef void * mitab_projinfo;
 #define TABFT_Float     5
 #define TABFT_Date      6
 #define TABFT_Logical   7
+#define TABFT_Time      8
+#define TABFT_DateTime  9
 
 /* text justification */
 #define TABTJ_Left      0

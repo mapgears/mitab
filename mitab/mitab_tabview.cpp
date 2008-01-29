@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabview.cpp,v 1.17 2007-06-21 14:00:23 dmorissette Exp $
+ * $Id: mitab_tabview.cpp,v 1.18 2008-01-29 20:46:32 dmorissette Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabview.cpp,v $
- * Revision 1.17  2007-06-21 14:00:23  dmorissette
+ * Revision 1.18  2008-01-29 20:46:32  dmorissette
+ * Added support for v9 Time and DateTime fields (byg 1754)
+ *
+ * Revision 1.17  2007/06/21 14:00:23  dmorissette
  * Added missing cast in isspace() calls to avoid failed assertion on Windows
  * (MITAB bug 1737, GDAL ticket 1678))
  *
@@ -1692,9 +1695,17 @@ GByte *TABRelation::BuildFieldKey(TABFeature *poFeature, int nFieldNo,
                              poFeature->GetFieldAsDouble(nFieldNo));
         break;
 
+      // __TODO__ DateTime fields are 8 bytes long, not supported yet by
+      // the indexing code (see bug #1844).
+      case TABFDateTime:
+        CPLError(CE_Failure, CPLE_NotSupported,
+                 "TABRelation on field of type DateTime not supported yet.");
+        break;
+
       case TABFInteger:
       case TABFSmallInt:
       case TABFDate:
+      case TABFTime:
       case TABFLogical:
       default:
         pKey = m_poRelINDFileRef->BuildKey(nIndexNo,

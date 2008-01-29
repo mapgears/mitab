@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.48 2007-10-09 17:43:16 fwarmerdam Exp $
+ * $Id: mitab_priv.h,v 1.49 2008-01-29 20:46:32 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.48  2007-10-09 17:43:16  fwarmerdam
+ * Revision 1.49  2008-01-29 20:46:32  dmorissette
+ * Added support for v9 Time and DateTime fields (byg 1754)
+ *
+ * Revision 1.48  2007/10/09 17:43:16  fwarmerdam
  * Remove static variables that interfere with reentrancy. (GDAL #1883)
  *
  * Revision 1.47  2007/06/12 12:50:39  dmorissette
@@ -251,7 +254,9 @@ typedef enum
     TABFDecimal,
     TABFFloat,
     TABFDate,
-    TABFLogical
+    TABFLogical,
+    TABFTime,
+    TABFDateTime
 } TABFieldType;
 
 #define TABFIELDTYPE_2_STRING(type)     \
@@ -262,6 +267,8 @@ typedef enum
     type == TABFFloat ? "Float" :       \
     type == TABFDate ? "Date" :         \
     type == TABFLogical ? "Logical" :   \
+    type == TABFTime ? "Time" :         \
+    type == TABFDateTime ? "DateTime" : \
     "Unknown field type"   )
 
 /*---------------------------------------------------------------------
@@ -1611,6 +1618,8 @@ class TABDATFile
     double      ReadDecimalField(int nWidth);
     const char  *ReadLogicalField(int nWidth);
     const char  *ReadDateField(int nWidth);
+    const char  *ReadTimeField(int nWidth);
+    const char  *ReadDateTimeField(int nWidth);
 
     int         WriteCharField(const char *pszValue, int nWidth,
                                TABINDFile *poINDFile, int nIndexNo);
@@ -1625,6 +1634,10 @@ class TABDATFile
     int         WriteLogicalField(const char *pszValue,
                                   TABINDFile *poINDFile, int nIndexNo);
     int         WriteDateField(const char *pszValue,
+                               TABINDFile *poINDFile, int nIndexNo);
+    int         WriteTimeField(const char *pszValue,
+                               TABINDFile *poINDFile, int nIndexNo);
+    int         WriteDateTimeField(const char *pszValue,
                                TABINDFile *poINDFile, int nIndexNo);
 
 #ifdef DEBUG

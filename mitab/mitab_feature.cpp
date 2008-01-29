@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.77 2007-12-11 04:21:54 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.78 2008-01-29 20:46:32 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.77  2007-12-11 04:21:54  dmorissette
+ * Revision 1.78  2008-01-29 20:46:32  dmorissette
+ * Added support for v9 Time and DateTime fields (byg 1754)
+ *
+ * Revision 1.77  2007/12/11 04:21:54  dmorissette
  * Fixed leaks in ITABFeature???::Set???FromStyleString() (GDAL ticket 1696)
  *
  * Revision 1.76  2007/09/18 17:43:56  dmorissette
@@ -413,6 +416,16 @@ int TABFeature::ReadRecordFromDATFile(TABDATFile *poDATFile)
                                                  GetFieldWidth(iField));
             SetField(iField, pszValue);
             break;
+          case TABFTime:
+            pszValue = poDATFile->ReadTimeField(poDATFile->
+                                                GetFieldWidth(iField));
+            SetField(iField, pszValue);
+            break;
+          case TABFDateTime:
+            pszValue = poDATFile->ReadDateTimeField(poDATFile->
+                                                    GetFieldWidth(iField));
+            SetField(iField, pszValue);
+            break;
           default:
             // Other type???  Impossible!
             CPLError(CE_Failure, CPLE_AssertionFailed,
@@ -487,6 +500,14 @@ int TABFeature::WriteRecordToDATFile(TABDATFile *poDATFile,
             break;
           case TABFDate:
             nStatus = poDATFile->WriteDateField(GetFieldAsString(iField),
+                                                poINDFile, panIndexNo[iField]);
+            break;
+          case TABFTime:
+            nStatus = poDATFile->WriteTimeField(GetFieldAsString(iField),
+                                                poINDFile, panIndexNo[iField]);
+            break;
+          case TABFDateTime:
+            nStatus = poDATFile->WriteDateTimeField(GetFieldAsString(iField),
                                                 poINDFile, panIndexNo[iField]);
             break;
           default:
@@ -2661,6 +2682,7 @@ void TABPolyline::TwoPointLineAsPolyline(GBool bTwoPointLineAsPolyline)
 {
     m_bWriteTwoPointLineAsPolyline = bTwoPointLineAsPolyline;
 }
+
 
 /*=====================================================================
  *                      class TABRegion

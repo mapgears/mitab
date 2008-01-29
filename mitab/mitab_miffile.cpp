@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.43 2007-09-14 15:35:21 dmorissette Exp $
+ * $Id: mitab_miffile.cpp,v 1.44 2008-01-29 20:46:32 dmorissette Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.43  2007-09-14 15:35:21  dmorissette
+ * Revision 1.44  2008-01-29 20:46:32  dmorissette
+ * Added support for v9 Time and DateTime fields (byg 1754)
+ *
+ * Revision 1.43  2007/09/14 15:35:21  dmorissette
  * Fixed problem with MIF parser being confused by special attribute
  * names (bug 1795)
  *
@@ -689,9 +692,24 @@ int  MIFFile::AddFields(const char *pszLine)
     else if (numTok >= 2 && EQUAL(papszToken[1], "date"))
     {
         /*-------------------------------------------------
-         * DATE type (returned as a string: "DD/MM/YYYY")
+         * DATE type (returned as a string: "DD/MM/YYYY" or "YYYYMMDD")
          *------------------------------------------------*/
         nStatus = AddFieldNative(papszToken[0], TABFDate);
+    }
+    else if (numTok >= 2 && EQUAL(papszToken[1], "time"))
+    {
+        /*-------------------------------------------------
+         *  TIME type (v900, returned as a string: "HH:MM:SS" or "HHMMSSmmm")
+         *------------------------------------------------*/
+        nStatus = AddFieldNative(papszToken[0], TABFTime);
+    }
+    else if (numTok >= 2 && EQUAL(papszToken[1], "datetime"))
+    {
+        /*-------------------------------------------------
+         * DATETIME type (v900, returned as a string: "DD/MM/YYYY HH:MM:SS",
+         * "YYYY/MM/DD HH:MM:SS" or "YYYYMMDDHHMMSSmmm")
+         *------------------------------------------------*/
+        nStatus = AddFieldNative(papszToken[0], TABFDateTime);
     }
     else if (numTok >= 2 && EQUAL(papszToken[1], "logical"))
     {
@@ -1009,6 +1027,14 @@ int MIFFile::WriteMIFHeader()
             break;
           case TABFDate:
             m_poMIFFile->WriteLine("  %s Date\n",
+                                   poFieldDefn->GetNameRef());
+            break;
+          case TABFTime:
+            m_poMIFFile->WriteLine("  %s Time\n",
+                                   poFieldDefn->GetNameRef());
+            break;
+          case TABFDateTime:
+            m_poMIFFile->WriteLine("  %s DateTime\n",
                                    poFieldDefn->GetNameRef());
             break;
           case TABFChar:
@@ -1690,10 +1716,25 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         break;
       case TABFDate:
         /*-------------------------------------------------
-         * DATE type (returned as a string: "DD/MM/YYYY")
+         * DATE type (returned as a string: "DD/MM/YYYY" or "YYYYMMDD")
          *------------------------------------------------*/
         poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(10);
+        break;
+      case TABFTime:
+        /*-------------------------------------------------
+         * TIME type (v900, returned as a string: "HH:MM:SS" or "HHMMSSmmm")
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
+        poFieldDefn->SetWidth(9);
+        break;
+      case TABFDateTime:
+        /*-------------------------------------------------
+         * DATETIME type (v900, returned as a string: "DD/MM/YYYY HH:MM:SS",
+         * "YYYY/MM/DD HH:MM:SS" or "YYYYMMDDHHMMSSmmm")
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
+        poFieldDefn->SetWidth(19);
         break;
       case TABFLogical:
         /*-------------------------------------------------

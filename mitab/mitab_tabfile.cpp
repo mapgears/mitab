@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.65 2007-09-12 20:22:31 dmorissette Exp $
+ * $Id: mitab_tabfile.cpp,v 1.66 2008-01-29 20:46:32 dmorissette Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.65  2007-09-12 20:22:31  dmorissette
+ * Revision 1.66  2008-01-29 20:46:32  dmorissette
+ * Added support for v9 Time and DateTime fields (byg 1754)
+ *
+ * Revision 1.65  2007/09/12 20:22:31  dmorissette
  * Added TABFeature::CreateFromMapInfoType()
  *
  * Revision 1.64  2007/06/21 14:00:23  dmorissette
@@ -867,6 +870,32 @@ int TABFile::ParseTABFileFields()
                     poFieldDefn = new OGRFieldDefn(papszTok[0], OFTString);
                     poFieldDefn->SetWidth(10);
                 }
+                else if (numTok >= 2 && EQUAL(papszTok[1], "time"))
+                {
+                    /*-------------------------------------------------
+                     * TIME type (returned as a string: "HH:MM:SS")
+                     *------------------------------------------------*/
+                    nStatus = m_poDATFile->ValidateFieldInfoFromTAB(iField, 
+                                                               papszTok[0],
+                                                               TABFTime,
+                                                               0,
+                                                               0);
+                    poFieldDefn = new OGRFieldDefn(papszTok[0], OFTString);
+                    poFieldDefn->SetWidth(8);
+                }
+                else if (numTok >= 2 && EQUAL(papszTok[1], "datetime"))
+                {
+                    /*-------------------------------------------------
+                     * DATETIME type (returned as a string: "DD/MM/YYYY HH:MM:SS")
+                     *------------------------------------------------*/
+                    nStatus = m_poDATFile->ValidateFieldInfoFromTAB(iField, 
+                                                               papszTok[0],
+                                                               TABFDateTime,
+                                                               0,
+                                                               0);
+                    poFieldDefn = new OGRFieldDefn(papszTok[0], OFTString);
+                    poFieldDefn->SetWidth(19);
+                }
                 else if (numTok >= 2 && EQUAL(papszTok[1], "logical"))
                 {
                     /*-------------------------------------------------
@@ -1005,6 +1034,12 @@ int TABFile::WriteTABFile()
                     break;
                   case TABFDate:
                     pszFieldType = "Date";
+                    break;
+                  case TABFTime:
+                    pszFieldType = "Time";
+                    break;
+                  case TABFDateTime:
+                    pszFieldType = "DateTime";
                     break;
                   default:
                     // Unsupported field type!!!  This should never happen.
@@ -1748,6 +1783,20 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(10);
         break;
+      case TABFTime:
+        /*-------------------------------------------------
+         * TIME type (returned as a string: "HH:MM:SS")
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
+        poFieldDefn->SetWidth(8);
+        break;
+      case TABFDateTime:
+        /*-------------------------------------------------
+         * DATETIME type (returned as a string: "DD/MM/YYYY HH:MM:SS")
+         *------------------------------------------------*/
+        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
+        poFieldDefn->SetWidth(19);
+        break;
       case TABFLogical:
         /*-------------------------------------------------
          * LOGICAL type (value "T" or "F")
@@ -2013,6 +2062,7 @@ int TABFile::SetBounds(double dXMin, double dYMin,
 
     return 0;
 }
+
 
 /**********************************************************************
  *                   TABFile::GetBounds()

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.104 2007-12-11 04:26:29 dmorissette Exp $
+ * $Id: mitab.h,v 1.105 2008-01-29 21:56:39 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.104  2007-12-11 04:26:29  dmorissette
+ * Revision 1.105  2008-01-29 21:56:39  dmorissette
+ * Update dataset version properly for Date/Time/DateTime field types (#1754)
+ *
+ * Revision 1.104  2007/12/11 04:26:29  dmorissette
  * Update for 1.6.4 release
  *
  * Revision 1.103  2007/10/12 15:47:48  dmorissette
@@ -667,7 +670,7 @@ class MIFFile: public IMapInfoFile
   private:
     char        *m_pszFname;
     TABAccess    m_eAccessMode;
-    char        *m_pszVersion;
+    int          m_nVersion;   /* Dataset version: 300, 450, 600, 900, etc. */
     char        *m_pszDelimiter;
     char        *m_pszUnique;
     char        *m_pszIndex;

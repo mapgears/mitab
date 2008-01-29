@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.66 2008-01-29 20:46:32 dmorissette Exp $
+ * $Id: mitab_tabfile.cpp,v 1.67 2008-01-29 21:56:39 dmorissette Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.66  2008-01-29 20:46:32  dmorissette
+ * Revision 1.67  2008-01-29 21:56:39  dmorissette
+ * Update dataset version properly for Date/Time/DateTime field types (#1754)
+ *
+ * Revision 1.66  2008/01/29 20:46:32  dmorissette
  * Added support for v9 Time and DateTime fields (byg 1754)
  *
  * Revision 1.65  2007/09/12 20:22:31  dmorissette
@@ -1778,24 +1781,27 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         break;
       case TABFDate:
         /*-------------------------------------------------
-         * DATE type (returned as a string: "DD/MM/YYYY")
+         * DATE type (V450, returned as a string: "DD/MM/YYYY")
          *------------------------------------------------*/
         poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(10);
+        m_nVersion = MAX(m_nVersion, 450);
         break;
       case TABFTime:
         /*-------------------------------------------------
-         * TIME type (returned as a string: "HH:MM:SS")
+         * TIME type (V900, returned as a string: "HH:MM:SS")
          *------------------------------------------------*/
         poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(8);
+        m_nVersion = MAX(m_nVersion, 900);
         break;
       case TABFDateTime:
         /*-------------------------------------------------
-         * DATETIME type (returned as a string: "DD/MM/YYYY HH:MM:SS")
+         * DATETIME type (V900, returned as a string: "DD/MM/YYYY HH:MM:SS")
          *------------------------------------------------*/
         poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(19);
+        m_nVersion = MAX(m_nVersion, 900);
         break;
       case TABFLogical:
         /*-------------------------------------------------

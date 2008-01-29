@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.44 2008-01-29 20:46:32 dmorissette Exp $
+ * $Id: mitab_miffile.cpp,v 1.45 2008-01-29 21:56:39 dmorissette Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.44  2008-01-29 20:46:32  dmorissette
+ * Revision 1.45  2008-01-29 21:56:39  dmorissette
+ * Update dataset version properly for Date/Time/DateTime field types (#1754)
+ *
+ * Revision 1.44  2008/01/29 20:46:32  dmorissette
  * Added support for v9 Time and DateTime fields (byg 1754)
  *
  * Revision 1.43  2007/09/14 15:35:21  dmorissette
@@ -163,7 +166,7 @@
 MIFFile::MIFFile()
 {
     m_pszFname = NULL;
-    m_pszVersion = NULL;
+    m_nVersion = 300;
 
     // Tab is default delimiter in MIF spec if not explicitly specified.  Use
     // that by default for read mode. In write mode, we will use "," as 
@@ -370,7 +373,7 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
      *----------------------------------------------------------------*/
     if (m_eAccessMode == TABWrite)
     {
-        m_pszVersion = CPLStrdup("300");
+        m_nVersion = 300;
         m_pszCharset = CPLStrdup("Neutral");
     }
 
@@ -481,7 +484,7 @@ int MIFFile::ParseMIFHeader()
             papszToken = CSLTokenizeStringComplex(pszLine," ()\t",TRUE,FALSE); 
             bColumns = FALSE; bCoordSys = FALSE;
             if (CSLCount(papszToken)  == 2)
-              m_pszVersion = CPLStrdup(papszToken[1]);
+              m_nVersion = atoi(papszToken[1]);
 
             CSLDestroy(papszToken);
         
@@ -940,7 +943,7 @@ int MIFFile::WriteMIFHeader()
      * Start writing header.
      *----------------------------------------------------------------*/
     m_bHeaderWrote = TRUE;
-    m_poMIFFile->WriteLine("Version %s\n", m_pszVersion);
+    m_poMIFFile->WriteLine("Version %d\n", m_nVersion);
     m_poMIFFile->WriteLine("Charset \"%s\"\n", m_pszCharset);
 
     // Delimiter is not required if you use \t as delimiter
@@ -1110,8 +1113,8 @@ int MIFFile::Close()
     CPLFree(m_pszFname);
     m_pszFname = NULL;
 
-    CPLFree(m_pszVersion);
-    m_pszVersion = NULL;
+    m_nVersion = 0;
+
     CPLFree(m_pszCharset);
     m_pszCharset = NULL;
 
@@ -1716,10 +1719,11 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         break;
       case TABFDate:
         /*-------------------------------------------------
-         * DATE type (returned as a string: "DD/MM/YYYY" or "YYYYMMDD")
+         * DATE type (V450, returned as a string: "DD/MM/YYYY" or "YYYYMMDD")
          *------------------------------------------------*/
         poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(10);
+        m_nVersion = MAX(m_nVersion, 450);
         break;
       case TABFTime:
         /*-------------------------------------------------
@@ -1727,6 +1731,7 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
          *------------------------------------------------*/
         poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(9);
+        m_nVersion = MAX(m_nVersion, 900);
         break;
       case TABFDateTime:
         /*-------------------------------------------------
@@ -1736,6 +1741,7 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
         poFieldDefn->SetWidth(19);
         break;
+        m_nVersion = MAX(m_nVersion, 900);
       case TABFLogical:
         /*-------------------------------------------------
          * LOGICAL type (value "T" or "F")

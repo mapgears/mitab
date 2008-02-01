@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.49 2008-01-29 20:46:32 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.50 2008-02-01 19:36:31 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.49  2008-01-29 20:46:32  dmorissette
+ * Revision 1.50  2008-02-01 19:36:31  dmorissette
+ * Initial support for V800 REGION and MULTIPLINE (bug 1496)
+ *
+ * Revision 1.49  2008/01/29 20:46:32  dmorissette
  * Added support for v9 Time and DateTime fields (byg 1754)
  *
  * Revision 1.48  2007/10/09 17:43:16  fwarmerdam
@@ -201,9 +204,12 @@ typedef enum
 
 /*---------------------------------------------------------------------
  * Limits related to .TAB version number.  If we pass any of those limits
- * then we have to switch dataset version up from 300 to 450
+ * then we have to use larger object types
  *--------------------------------------------------------------------*/
-#define TAB_300_MAX_VERTICES    32767
+#define TAB_REGION_PLINE_300_MAX_VERTICES    32767
+
+#define TAB_REGION_PLINE_450_MAX_SEGMENTS       32767
+#define TAB_REGION_PLINE_450_MAX_VERTICES       1048572
 
 /*---------------------------------------------------------------------
  * struct TABMAPIndexEntry - Entries found in type 1 blocks of .MAP files
@@ -292,7 +298,7 @@ typedef struct TABDATFieldDef_t
 typedef struct TABMAPCoordSecHdr_t
 {
     GInt32      numVertices;
-    GInt16      numHoles;
+    GInt32      numHoles;
     GInt32      nXMin;
     GInt32      nYMin;
     GInt32      nXMax;
@@ -574,7 +580,7 @@ class TABMAPObjLine: public TABMAPObjHdr
 class TABMAPObjPLine: public TABMAPObjHdrWithCoord
 {
   public:
-    GInt16      m_numLineSections;  /* MULTIPLINE/REGION only. Not in PLINE */
+    GInt32      m_numLineSections;  /* MULTIPLINE/REGION only. Not in PLINE */
     GInt32      m_nLabelX;      /* Centroid/label location */
     GInt32      m_nLabelY;
     GInt32      m_nComprOrgX;   /* Present only in compressed coord. case */
@@ -1153,10 +1159,10 @@ class TABMAPCoordBlock: public TABRawBinBlock
     void        SetComprCoordOrigin(GInt32 nX, GInt32 nY);
     int         ReadIntCoord(GBool bCompressed, GInt32 &nX, GInt32 &nY);
     int         ReadIntCoords(GBool bCompressed, int numCoords, GInt32 *panXY);
-    int         ReadCoordSecHdrs(GBool bCompressed, GBool bV450Hdr,
+    int         ReadCoordSecHdrs(GBool bCompressed, int nVersion,
                                  int numSections, TABMAPCoordSecHdr *pasHdrs,
                                  GInt32    &numVerticesTotal);
-    int         WriteCoordSecHdrs(GBool bV450Hdr, int numSections,
+    int         WriteCoordSecHdrs(int nVersion, int numSections,
                                   TABMAPCoordSecHdr *pasHdrs,
                                   GBool bCompressed);
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.105 2008-01-29 21:56:39 dmorissette Exp $
+ * $Id: mitab.h,v 1.106 2008-02-01 19:36:31 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.105  2008-01-29 21:56:39  dmorissette
+ * Revision 1.106  2008-02-01 19:36:31  dmorissette
+ * Initial support for V800 REGION and MULTIPLINE (bug 1496)
+ *
+ * Revision 1.105  2008/01/29 21:56:39  dmorissette
  * Update dataset version properly for Date/Time/DateTime field types (#1754)
  *
  * Revision 1.104  2007/12/11 04:26:29  dmorissette
@@ -846,6 +849,17 @@ class MIFFile: public IMapInfoFile
 #define TAB_GEOM_MULTIPOINT     0x35
 #define TAB_GEOM_COLLECTION_C   0x37
 #define TAB_GEOM_COLLECTION     0x38
+/* Version 800 object types: */
+#define TAB_GEOM_UNKNOWN1_C     0x3a    // ???
+#define TAB_GEOM_UNKNOWN1       0x3b    // ???
+#define TAB_GEOM_V800_REGION_C  0x3d
+#define TAB_GEOM_V800_REGION    0x3e
+#define TAB_GEOM_V800_MULTIPLINE_C 0x40
+#define TAB_GEOM_V800_MULTIPLINE   0x41
+#define TAB_GEOM_V800_MULTIPOINT_C 0x43
+#define TAB_GEOM_V800_MULTIPOINT   0x44
+#define TAB_GEOM_UNKNOWN2_C     0x46    // ???
+#define TAB_GEOM_UNKNOWN2       0x47    // ???
 
 
 /*---------------------------------------------------------------------

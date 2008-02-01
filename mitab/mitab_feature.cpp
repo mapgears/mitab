@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.78 2008-01-29 20:46:32 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.79 2008-02-01 19:36:31 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.78  2008-01-29 20:46:32  dmorissette
+ * Revision 1.79  2008-02-01 19:36:31  dmorissette
+ * Initial support for V800 REGION and MULTIPLINE (bug 1496)
+ *
+ * Revision 1.78  2008/01/29 20:46:32  dmorissette
  * Added support for v9 Time and DateTime fields (byg 1754)
  *
  * Revision 1.77  2007/12/11 04:21:54  dmorissette
@@ -169,6 +172,8 @@ TABFeature *TABFeature::CreateFromMapInfoType(int nMapInfoType,
       case TAB_GEOM_MULTIPLINE:
       case TAB_GEOM_V450_MULTIPLINE_C:
       case TAB_GEOM_V450_MULTIPLINE:
+      case TAB_GEOM_V800_MULTIPLINE_C:
+      case TAB_GEOM_V800_MULTIPLINE:
        poFeature = new TABPolyline(poDefn);
         break;
       case TAB_GEOM_ARC_C:
@@ -180,6 +185,8 @@ TABFeature *TABFeature::CreateFromMapInfoType(int nMapInfoType,
       case TAB_GEOM_REGION:
       case TAB_GEOM_V450_REGION_C:
       case TAB_GEOM_V450_REGION:
+      case TAB_GEOM_V800_REGION_C:
+      case TAB_GEOM_V800_REGION:
         poFeature = new TABRegion(poDefn);
         break;
       case TAB_GEOM_RECT_C:
@@ -198,6 +205,8 @@ TABFeature *TABFeature::CreateFromMapInfoType(int nMapInfoType,
         break;
       case TAB_GEOM_MULTIPOINT_C:
       case TAB_GEOM_MULTIPOINT:
+      case TAB_GEOM_V800_MULTIPOINT_C:
+      case TAB_GEOM_V800_MULTIPOINT:
         poFeature = new TABMultiPoint(poDefn);
         break;
       case TAB_GEOM_COLLECTION_C:
@@ -1790,7 +1799,11 @@ int  TABPolyline::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
          * Simple polyline
          *------------------------------------------------------------*/
         OGRLineString *poLine = (OGRLineString*)poGeom;
-        if ( poLine->getNumPoints() > TAB_300_MAX_VERTICES)
+        if ( poLine->getNumPoints() > TAB_REGION_PLINE_450_MAX_VERTICES)
+        {
+            m_nMapInfoType = TAB_GEOM_V800_MULTIPLINE;
+        }
+        else if ( poLine->getNumPoints() > TAB_REGION_PLINE_300_MAX_VERTICES)
         {
             m_nMapInfoType = TAB_GEOM_V450_MULTIPLINE;
         }
@@ -1808,7 +1821,6 @@ int  TABPolyline::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
         {
             m_nMapInfoType = TAB_GEOM_LINE;
         }
-        // [/Safe Software]
         else
         {
             CPLError(CE_Failure, CPLE_AssertionFailed,
@@ -1843,7 +1855,10 @@ int  TABPolyline::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
             numPointsTotal += poLine->getNumPoints();
         }
 
-        if (numPointsTotal > TAB_300_MAX_VERTICES)
+        if (numPointsTotal > TAB_REGION_PLINE_450_MAX_VERTICES ||
+            numLines > TAB_REGION_PLINE_450_MAX_SEGMENTS)
+            m_nMapInfoType = TAB_GEOM_V800_MULTIPLINE;
+        else if (numPointsTotal > TAB_REGION_PLINE_300_MAX_VERTICES)
             m_nMapInfoType = TAB_GEOM_V450_MULTIPLINE;
     }
     else
@@ -2016,7 +2031,9 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
     else if (m_nMapInfoType == TAB_GEOM_MULTIPLINE ||
              m_nMapInfoType == TAB_GEOM_MULTIPLINE_C ||
              m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE ||
-             m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C )
+             m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C ||
+             m_nMapInfoType == TAB_GEOM_V800_MULTIPLINE ||
+             m_nMapInfoType == TAB_GEOM_V800_MULTIPLINE_C )
     {
         /*=============================================================
          * PLINE MULTIPLE
@@ -2026,8 +2043,14 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         GInt32  nCoordDataSize, numPointsTotal, *panXY;
         OGRMultiLineString      *poMultiLine;
         TABMAPCoordSecHdr       *pasSecHdrs;
-        GBool bV450 = (m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE ||
-                       m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C);
+        int nVersion = 300;
+
+        if (m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE ||
+            m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C)
+            nVersion = 450;
+        else if (m_nMapInfoType == TAB_GEOM_V800_MULTIPLINE ||
+                 m_nMapInfoType == TAB_GEOM_V800_MULTIPLINE_C)
+            nVersion = 800;
 
         /*-------------------------------------------------------------
          * Copy data from poObjHdr
@@ -2072,7 +2095,8 @@ int TABPolyline::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             poCoordBlock = poMapFile->GetCoordBlock(nCoordBlockPtr);
 
         if (poCoordBlock == NULL ||
-            poCoordBlock->ReadCoordSecHdrs(bComprCoord, bV450, numLineSections,
+            poCoordBlock->ReadCoordSecHdrs(bComprCoord, nVersion, 
+                                           numLineSections,
                                            pasSecHdrs, numPointsTotal) != 0)
         {
             CPLError(CE_Failure, CPLE_FileIO,
@@ -2233,7 +2257,7 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
          *------------------------------------------------------------*/
         poLine = (OGRLineString*)poGeom;
         numPoints = poLine->getNumPoints();
-        CPLAssert(numPoints <= TAB_300_MAX_VERTICES);
+        CPLAssert(numPoints <= TAB_REGION_PLINE_300_MAX_VERTICES);
 
         if (ppoCoordBlock != NULL && *ppoCoordBlock != NULL)
             poCoordBlock = *ppoCoordBlock;
@@ -2296,9 +2320,11 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
 
     }
     else if ((m_nMapInfoType == TAB_GEOM_MULTIPLINE ||
-                  m_nMapInfoType == TAB_GEOM_MULTIPLINE_C ||
-                  m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE ||
-                  m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C) &&
+              m_nMapInfoType == TAB_GEOM_MULTIPLINE_C ||
+              m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE ||
+              m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C ||
+              m_nMapInfoType == TAB_GEOM_V800_MULTIPLINE ||
+              m_nMapInfoType == TAB_GEOM_V800_MULTIPLINE_C) &&
              poGeom && (wkbFlatten(poGeom->getGeometryType()) == wkbMultiLineString ||
                         wkbFlatten(poGeom->getGeometryType()) == wkbLineString) )
     {
@@ -2317,7 +2343,9 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         CPLAssert(m_nMapInfoType == TAB_GEOM_MULTIPLINE ||
                   m_nMapInfoType == TAB_GEOM_MULTIPLINE_C ||
                   m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE ||
-                  m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C);
+                  m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C ||
+                  m_nMapInfoType == TAB_GEOM_V800_MULTIPLINE ||
+                  m_nMapInfoType == TAB_GEOM_V800_MULTIPLINE_C);
         /*-------------------------------------------------------------
          * Process geometry first...
          *------------------------------------------------------------*/
@@ -2351,10 +2379,16 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
          * V450 header section uses int32 instead of int16 for numVertices
          * and we add another 2 bytes to align with a 4 bytes boundary.
          *------------------------------------------------------------*/
-        GBool bV450 = (m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE ||
-                       m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C );
+        int nVersion = 300;
+        if (m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE ||
+            m_nMapInfoType == TAB_GEOM_V450_MULTIPLINE_C)
+            nVersion = 450;
+        else if (m_nMapInfoType == TAB_GEOM_V800_MULTIPLINE ||
+                 m_nMapInfoType == TAB_GEOM_V800_MULTIPLINE_C)
+            nVersion = 800;
+
         int nTotalHdrSizeUncompressed;
-        if (bV450)
+        if (nVersion >= 450)
             nTotalHdrSizeUncompressed = 28 * numLines;
         else
             nTotalHdrSizeUncompressed = 24 * numLines;
@@ -2396,7 +2430,7 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         }
          
         if (nStatus == 0)
-            nStatus = poCoordBlock->WriteCoordSecHdrs(bV450, numLines, 
+            nStatus = poCoordBlock->WriteCoordSecHdrs(nVersion, numLines, 
                                                       pasSecHdrs, bCompressed);
 
         CPLFree(pasSecHdrs);
@@ -2771,7 +2805,10 @@ int  TABRegion::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
             if (poRing)
                 numPointsTotal += poRing->getNumPoints();
         }
-        if (numPointsTotal > TAB_300_MAX_VERTICES)
+         if (numPointsTotal > TAB_REGION_PLINE_450_MAX_VERTICES ||
+             numRings > TAB_REGION_PLINE_450_MAX_SEGMENTS)
+            m_nMapInfoType = TAB_GEOM_V800_REGION;
+         else if (numPointsTotal > TAB_REGION_PLINE_300_MAX_VERTICES)
             m_nMapInfoType = TAB_GEOM_V450_REGION;
         else
             m_nMapInfoType = TAB_GEOM_REGION;
@@ -2822,7 +2859,9 @@ int TABRegion::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
     if (m_nMapInfoType == TAB_GEOM_REGION ||
         m_nMapInfoType == TAB_GEOM_REGION_C ||
         m_nMapInfoType == TAB_GEOM_V450_REGION ||
-        m_nMapInfoType == TAB_GEOM_V450_REGION_C )
+        m_nMapInfoType == TAB_GEOM_V450_REGION_C ||
+        m_nMapInfoType == TAB_GEOM_V800_REGION ||
+        m_nMapInfoType == TAB_GEOM_V800_REGION_C )
     {
         /*=============================================================
          * REGION (Similar to PLINE MULTIPLE)
@@ -2834,8 +2873,14 @@ int TABRegion::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         OGRPolygon              *poPolygon = NULL;
         TABMAPCoordSecHdr       *pasSecHdrs;
         GBool                   bComprCoord = poObjHdr->IsCompressedType();
-        GBool bV450 = (m_nMapInfoType == TAB_GEOM_V450_REGION ||
-                       m_nMapInfoType == TAB_GEOM_V450_REGION_C);
+        int nVersion = 300;
+
+        if (m_nMapInfoType == TAB_GEOM_V450_REGION ||
+            m_nMapInfoType == TAB_GEOM_V450_REGION_C)
+            nVersion = 450;
+        else if (m_nMapInfoType == TAB_GEOM_V800_REGION ||
+                 m_nMapInfoType == TAB_GEOM_V800_REGION_C)
+            nVersion = 800;
 
         /*-------------------------------------------------------------
          * Copy data from poObjHdr
@@ -2885,7 +2930,8 @@ int TABRegion::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             poCoordBlock->SetComprCoordOrigin(m_nComprOrgX, m_nComprOrgY);
 
         if (poCoordBlock == NULL ||
-            poCoordBlock->ReadCoordSecHdrs(bComprCoord, bV450, numLineSections,
+            poCoordBlock->ReadCoordSecHdrs(bComprCoord, nVersion,
+                                           numLineSections,
                                            pasSecHdrs, numPointsTotal) != 0)
         {
             CPLError(CE_Failure, CPLE_FileIO,
@@ -3046,7 +3092,9 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     if ((m_nMapInfoType == TAB_GEOM_REGION ||
          m_nMapInfoType == TAB_GEOM_REGION_C ||
          m_nMapInfoType == TAB_GEOM_V450_REGION ||
-         m_nMapInfoType == TAB_GEOM_V450_REGION_C ) &&
+         m_nMapInfoType == TAB_GEOM_V450_REGION_C ||
+         m_nMapInfoType == TAB_GEOM_V800_REGION ||
+         m_nMapInfoType == TAB_GEOM_V800_REGION_C) &&
         poGeom && (wkbFlatten(poGeom->getGeometryType()) == wkbPolygon ||
                    wkbFlatten(poGeom->getGeometryType()) == wkbMultiPolygon))
     {
@@ -3089,10 +3137,16 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         /*-------------------------------------------------------------
          * Write the Coord. Section Header
          *------------------------------------------------------------*/
-        GBool bV450 = (m_nMapInfoType == TAB_GEOM_V450_REGION ||
-                       m_nMapInfoType == TAB_GEOM_V450_REGION_C);
+        int nVersion = 300;
+        if (m_nMapInfoType == TAB_GEOM_V450_REGION ||
+            m_nMapInfoType == TAB_GEOM_V450_REGION_C)
+            nVersion = 450;
+        else if (m_nMapInfoType == TAB_GEOM_V800_REGION ||
+                 m_nMapInfoType == TAB_GEOM_V800_REGION_C)
+            nVersion = 800;
+
         if (nStatus == 0)
-            nStatus = poCoordBlock->WriteCoordSecHdrs(bV450, numRingsTotal, 
+            nStatus = poCoordBlock->WriteCoordSecHdrs(nVersion, numRingsTotal, 
                                                       pasSecHdrs, bCompressed);
 
         CPLFree(pasSecHdrs);
@@ -3274,7 +3328,9 @@ int TABRegion::ComputeNumRings(TABMAPCoordSecHdr **ppasSecHdrs,
      *------------------------------------------------------------*/
     int nTotalHdrSizeUncompressed;
     if (m_nMapInfoType == TAB_GEOM_V450_REGION ||
-        m_nMapInfoType == TAB_GEOM_V450_REGION_C)
+        m_nMapInfoType == TAB_GEOM_V450_REGION_C ||
+        m_nMapInfoType == TAB_GEOM_V800_REGION ||
+        m_nMapInfoType == TAB_GEOM_V800_REGION_C)
         nTotalHdrSizeUncompressed = 28 * numRingsTotal;
     else
         nTotalHdrSizeUncompressed = 24 * numRingsTotal;

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapobjectblock.cpp,v 1.19 2007-09-18 17:43:56 dmorissette Exp $
+ * $Id: mitab_mapobjectblock.cpp,v 1.20 2008-02-01 19:36:31 dmorissette Exp $
  *
  * Name:     mitab_mapobjectblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapobjectblock.cpp,v $
- * Revision 1.19  2007-09-18 17:43:56  dmorissette
+ * Revision 1.20  2008-02-01 19:36:31  dmorissette
+ * Initial support for V800 REGION and MULTIPLINE (bug 1496)
+ *
+ * Revision 1.19  2007/09/18 17:43:56  dmorissette
  * Fixed another index splitting issue: compr coordinates origin was not
  * stored in the TABFeature in ReadGeometry... (bug 1732)
  *
@@ -739,6 +742,10 @@ TABMAPObjHdr *TABMAPObjHdr::NewObj(GByte nNewObjType, GInt32 nId /*=0*/)
       case TAB_GEOM_V450_REGION:
       case TAB_GEOM_V450_MULTIPLINE_C:
       case TAB_GEOM_V450_MULTIPLINE:
+      case TAB_GEOM_V800_REGION_C:
+      case TAB_GEOM_V800_REGION:
+      case TAB_GEOM_V800_MULTIPLINE_C:
+      case TAB_GEOM_V800_MULTIPLINE:
         poObj = new TABMAPObjPLine;
         break;
       case TAB_GEOM_ARC_C:
@@ -759,6 +766,8 @@ TABMAPObjHdr *TABMAPObjHdr::NewObj(GByte nNewObjType, GInt32 nId /*=0*/)
         break;
       case TAB_GEOM_MULTIPOINT_C:
       case TAB_GEOM_MULTIPOINT:
+//      case TAB_GEOM_V800_MULTIPOINT_C:
+//      case TAB_GEOM_V800_MULTIPOINT:
         poObj = new TABMAPObjMultiPoint;
         break;
       case TAB_GEOM_COLLECTION_C:
@@ -944,8 +953,27 @@ int TABMAPObjPLine::ReadObj(TABMAPObjectBlock *poObjBlock)
     {
         m_numLineSections = 1;
     }
+    else if (m_nType == TAB_GEOM_V800_REGION ||
+             m_nType == TAB_GEOM_V800_REGION_C ||
+             m_nType == TAB_GEOM_V800_MULTIPLINE ||
+             m_nType == TAB_GEOM_V800_MULTIPLINE_C )
+    {
+        /* V800 REGIONS/MULTIPLINES use an int32 */
+        m_numLineSections = poObjBlock->ReadInt32();
+        /* ... followed by 33 unknown bytes */
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadByte();
+    }
     else
     {
+        /* V300 and V450 REGIONS/MULTIPLINES use an int16 */
         m_numLineSections = poObjBlock->ReadInt16();
     }
 
@@ -1001,7 +1029,9 @@ int TABMAPObjPLine::ReadObj(TABMAPObjectBlock *poObjBlock)
     if (m_nType == TAB_GEOM_REGION ||
         m_nType == TAB_GEOM_REGION_C ||
         m_nType == TAB_GEOM_V450_REGION ||
-        m_nType == TAB_GEOM_V450_REGION_C )
+        m_nType == TAB_GEOM_V450_REGION_C ||
+        m_nType == TAB_GEOM_V800_REGION ||
+        m_nType == TAB_GEOM_V800_REGION_C )
     {
         m_nBrushId = poObjBlock->ReadByte();    // Brush index... REGION only
     }
@@ -1038,9 +1068,20 @@ int TABMAPObjPLine::WriteObj(TABMAPObjectBlock *poObjBlock)
         poObjBlock->WriteInt32( m_nCoordDataSize );
 
     // Number of line segments applies only to MULTIPLINE/REGION but not PLINE
-    if (m_nType != TAB_GEOM_PLINE_C &&
-        m_nType != TAB_GEOM_PLINE )
+    if (m_nType == TAB_GEOM_V800_REGION ||
+        m_nType == TAB_GEOM_V800_REGION_C ||
+        m_nType == TAB_GEOM_V800_MULTIPLINE ||
+        m_nType == TAB_GEOM_V800_MULTIPLINE_C )
     {
+        /* V800 REGIONS/MULTIPLINES use an int32 */
+        poObjBlock->WriteInt32(m_numLineSections);
+        /* ... followed by 33 unknown bytes */
+        poObjBlock->WriteZeros(33);
+    }
+    else if (m_nType != TAB_GEOM_PLINE_C &&
+             m_nType != TAB_GEOM_PLINE )
+    {
+        /* V300 and V450 REGIONS/MULTIPLINES use an int16 */
         poObjBlock->WriteInt16(m_numLineSections);
     }
 
@@ -1084,7 +1125,9 @@ int TABMAPObjPLine::WriteObj(TABMAPObjectBlock *poObjBlock)
     if (m_nType == TAB_GEOM_REGION ||
         m_nType == TAB_GEOM_REGION_C ||
         m_nType == TAB_GEOM_V450_REGION ||
-        m_nType == TAB_GEOM_V450_REGION_C )
+        m_nType == TAB_GEOM_V450_REGION_C ||
+        m_nType == TAB_GEOM_V800_REGION ||
+        m_nType == TAB_GEOM_V800_REGION_C )
     {
         poObjBlock->WriteByte(m_nBrushId);    // Brush index... REGION only
     }

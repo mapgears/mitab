@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.106 2008-02-01 19:36:31 dmorissette Exp $
+ * $Id: mitab.h,v 1.107 2008-02-01 19:55:55 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.106  2008-02-01 19:36:31  dmorissette
+ * Revision 1.107  2008-02-01 19:55:55  dmorissette
+ * Set version to 1.7.0-dev
+ *
+ * Revision 1.106  2008/02/01 19:36:31  dmorissette
  * Initial support for V800 REGION and MULTIPLINE (bug 1496)
  *
  * Revision 1.105  2008/01/29 21:56:39  dmorissette
@@ -175,8 +178,8 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION      "1.6.4 (2007-12-10)"
-#define MITAB_VERSION_INT  1006004  /* version x.y.z -> xxxyyyzzz */
+#define MITAB_VERSION      "1.7.0-dev (2008-02-xx)"
+#define MITAB_VERSION_INT  1007000  /* version x.y.z -> xxxyyyzzz */
 
 #ifndef PI
 #  define PI 3.14159265358979323846

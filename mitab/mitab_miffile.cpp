@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.45 2008-01-29 21:56:39 dmorissette Exp $
+ * $Id: mitab_miffile.cpp,v 1.46 2008-02-01 20:30:59 dmorissette Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.45  2008-01-29 21:56:39  dmorissette
+ * Revision 1.46  2008-02-01 20:30:59  dmorissette
+ * Use %.15g instead of %.16g as number precision in .MIF output
+ *
+ * Revision 1.45  2008/01/29 21:56:39  dmorissette
  * Update dataset version properly for Date/Time/DateTime field types (#1754)
  *
  * Revision 1.44  2008/01/29 20:46:32  dmorissette
@@ -983,7 +986,7 @@ int MIFFile::WriteMIFHeader()
     if (m_pszCoordSys && m_bBoundsSet)
     {
         m_poMIFFile->WriteLine("CoordSys %s "
-                               "Bounds (%.16g, %.16g) (%.16g, %.16g)\n",
+                               "Bounds (%.15g, %.15g) (%.15g, %.15g)\n",
                                m_pszCoordSys, 
                                m_dXMin, m_dYMin, m_dXMax, m_dYMax);
     }

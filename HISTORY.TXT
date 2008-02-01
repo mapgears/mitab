@@ -13,11 +13,16 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- Added support for V8.x large object types: large REGION, PLINE MULTIPLE and
+  MULTIPOINT (bug 1496)
+
 - Added support for v9.x Time and DateTime fields (based on patch from
   AJD, bug 1754)
 
 - Added bounds for Peruvian coordinate systems PSAD56 in mitab_bounds.cpp
   (came with patch from AJD sent for bug 1754)
+
+- Use %.15g instead of %.16g as number precision in .MIF output
 
 
 Version 1.6.4 (2007-12-10)
@@ -862,5 +867,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.203 2008-01-29 21:05:59 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.204 2008-02-01 20:30:59 dmorissette Exp $
 ------------

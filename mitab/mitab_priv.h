@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.50 2008-02-01 19:36:31 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.51 2008-02-05 22:22:48 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.50  2008-02-01 19:36:31  dmorissette
+ * Revision 1.51  2008-02-05 22:22:48  dmorissette
+ * Added support for TAB_GEOM_V800_MULTIPOINT (bug 1496)
+ *
+ * Revision 1.50  2008/02/01 19:36:31  dmorissette
  * Initial support for V800 REGION and MULTIPLINE (bug 1496)
  *
  * Revision 1.49  2008/01/29 20:46:32  dmorissette
@@ -210,6 +213,8 @@ typedef enum
 
 #define TAB_REGION_PLINE_450_MAX_SEGMENTS       32767
 #define TAB_REGION_PLINE_450_MAX_VERTICES       1048572
+
+#define TAB_MULTIPOINT_650_MAX_VERTICES         1048576
 
 /*---------------------------------------------------------------------
  * struct TABMAPIndexEntry - Entries found in type 1 blocks of .MAP files

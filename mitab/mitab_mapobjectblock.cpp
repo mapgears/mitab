@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapobjectblock.cpp,v 1.20 2008-02-01 19:36:31 dmorissette Exp $
+ * $Id: mitab_mapobjectblock.cpp,v 1.21 2008-02-05 22:22:48 dmorissette Exp $
  *
  * Name:     mitab_mapobjectblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapobjectblock.cpp,v $
- * Revision 1.20  2008-02-01 19:36:31  dmorissette
+ * Revision 1.21  2008-02-05 22:22:48  dmorissette
+ * Added support for TAB_GEOM_V800_MULTIPOINT (bug 1496)
+ *
+ * Revision 1.20  2008/02/01 19:36:31  dmorissette
  * Initial support for V800 REGION and MULTIPLINE (bug 1496)
  *
  * Revision 1.19  2007/09/18 17:43:56  dmorissette
@@ -766,8 +769,8 @@ TABMAPObjHdr *TABMAPObjHdr::NewObj(GByte nNewObjType, GInt32 nId /*=0*/)
         break;
       case TAB_GEOM_MULTIPOINT_C:
       case TAB_GEOM_MULTIPOINT:
-//      case TAB_GEOM_V800_MULTIPOINT_C:
-//      case TAB_GEOM_V800_MULTIPOINT:
+      case TAB_GEOM_V800_MULTIPOINT_C:
+      case TAB_GEOM_V800_MULTIPOINT:
         poObj = new TABMAPObjMultiPoint;
         break;
       case TAB_GEOM_COLLECTION_C:
@@ -1608,6 +1611,21 @@ int TABMAPObjMultiPoint::ReadObj(TABMAPObjectBlock *poObjBlock)
     poObjBlock->ReadByte();
     poObjBlock->ReadByte();
 
+    if (m_nType == TAB_GEOM_V800_MULTIPOINT ||
+        m_nType == TAB_GEOM_V800_MULTIPOINT_C )
+    {
+        /* V800 MULTIPOINTS have another 33 unknown bytes... all zeros */
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadInt32();
+        poObjBlock->ReadByte();
+    }
+
     m_nSymbolId = poObjBlock->ReadByte();
 
     // ?????
@@ -1672,13 +1690,15 @@ int TABMAPObjMultiPoint::WriteObj(TABMAPObjectBlock *poObjBlock)
     // Number of points
     poObjBlock->WriteInt32(m_nNumPoints);
 
-//  unknown bytes
-    poObjBlock->WriteInt32(0);
-    poObjBlock->WriteInt32(0);
-    poObjBlock->WriteInt32(0);
-    poObjBlock->WriteByte(0);
-    poObjBlock->WriteByte(0);
-    poObjBlock->WriteByte(0);
+    //  unknown bytes
+    poObjBlock->WriteZeros(15);
+
+    if (m_nType == TAB_GEOM_V800_MULTIPOINT ||
+        m_nType == TAB_GEOM_V800_MULTIPOINT_C )
+    {
+        /* V800 MULTIPOINTS have another 33 unknown bytes... all zeros */
+        poObjBlock->WriteZeros(33);
+    }
 
     // Symbol Id
     poObjBlock->WriteByte(m_nSymbolId);

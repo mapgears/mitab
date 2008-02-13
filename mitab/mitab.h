@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.108 2008-02-05 22:21:59 dmorissette Exp $
+ * $Id: mitab.h,v 1.109 2008-02-13 21:10:43 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.108  2008-02-05 22:21:59  dmorissette
+ * Revision 1.109  2008-02-13 21:10:43  dmorissette
+ * Fixed error in TAB_GEOM_GET_VERSION() macro logic
+ *
+ * Revision 1.108  2008/02/05 22:21:59  dmorissette
  * Added macro TAB_GEOM_GET_VERSION()
  *
  * Revision 1.107  2008/02/01 19:55:55  dmorissette
@@ -864,13 +867,13 @@ class MIFFile: public IMapInfoFile
 #define TAB_GEOM_V800_MULTIPLINE   0x41
 #define TAB_GEOM_V800_MULTIPOINT_C 0x43
 #define TAB_GEOM_V800_MULTIPOINT   0x44
-#define TAB_GEOM_UNKNOWN2_C     0x46    // ???
-#define TAB_GEOM_UNKNOWN2       0x47    // ???
+#define TAB_GEOM_V800_COLLECTION   0x46
+#define TAB_GEOM_V800_COLLECTION_C 0x47
 
 #define TAB_GEOM_GET_VERSION(nGeomType)                     \
-    (((nGeomType) >= TAB_GEOM_V450_REGION_C) ? 450:         \
-     ((nGeomType) >= TAB_GEOM_MULTIPOINT_C)  ? 650:         \
-     ((nGeomType) >= TAB_GEOM_UNKNOWN1_C)    ? 800: 300 )
+    (((nGeomType) < TAB_GEOM_V450_REGION_C)  ? 300:         \
+     ((nGeomType) < TAB_GEOM_MULTIPOINT_C)   ? 450:         \
+     ((nGeomType) < TAB_GEOM_UNKNOWN1_C)     ? 650: 800 )
 
 
 /*---------------------------------------------------------------------

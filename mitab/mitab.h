@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.109 2008-02-13 21:10:43 dmorissette Exp $
+ * $Id: mitab.h,v 1.110 2008-02-20 21:35:30 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.109  2008-02-13 21:10:43  dmorissette
+ * Revision 1.110  2008-02-20 21:35:30  dmorissette
+ * Added support for V800 COLLECTION of large objects (bug 1496)
+ *
+ * Revision 1.109  2008/02/13 21:10:43  dmorissette
  * Fixed error in TAB_GEOM_GET_VERSION() macro logic
  *
  * Revision 1.108  2008/02/05 22:21:59  dmorissette
@@ -867,8 +870,8 @@ class MIFFile: public IMapInfoFile
 #define TAB_GEOM_V800_MULTIPLINE   0x41
 #define TAB_GEOM_V800_MULTIPOINT_C 0x43
 #define TAB_GEOM_V800_MULTIPOINT   0x44
-#define TAB_GEOM_V800_COLLECTION   0x46
-#define TAB_GEOM_V800_COLLECTION_C 0x47
+#define TAB_GEOM_V800_COLLECTION_C 0x46
+#define TAB_GEOM_V800_COLLECTION   0x47
 
 #define TAB_GEOM_GET_VERSION(nGeomType)                     \
     (((nGeomType) < TAB_GEOM_V450_REGION_C)  ? 300:         \
@@ -1829,19 +1832,20 @@ class TABCollection: public TABFeature,
     TABMultiPoint   *m_poMpoint;
 
     void    EmptyCollection();
-    int     ReadLabelAndMBR(TABMAPCoordBlock *poCoordBlock, GBool bComprCoord,
+    int     ReadLabelAndMBR(TABMAPCoordBlock *poCoordBlock, 
+                            GBool bComprCoord,
                             GInt32 nComprOrgX, GInt32 nComprOrgY,
                             GInt32 &pnMinX, GInt32 &pnMinY,
                             GInt32 &pnMaxX, GInt32 &pnMaxY,
                             GInt32 &pnLabelX, GInt32 &pnLabelY );
-    int         WriteLabelAndMBR(TABMAPCoordBlock *poCoordBlock,
-                                 GBool bComprCoord,
-                                 GInt32 nMinX, GInt32 nMinY,
-                                 GInt32 nMaxX, GInt32 nMaxY,
-                                 GInt32 nLabelX, GInt32 nLabelY );
-    int         SyncOGRGeometryCollection(GBool bSyncRegion,
-                                          GBool bSyncPline,
-                                          GBool bSyncMpoint);
+    int     WriteLabelAndMBR(TABMAPCoordBlock *poCoordBlock,
+                             GBool bComprCoord,
+                             GInt32 nMinX, GInt32 nMinY,
+                             GInt32 nMaxX, GInt32 nMaxY,
+                             GInt32 nLabelX, GInt32 nLabelY );
+    int     SyncOGRGeometryCollection(GBool bSyncRegion,
+                                      GBool bSyncPline,
+                                      GBool bSyncMpoint);
 
   public:
              TABCollection(OGRFeatureDefn *poDefnIn);

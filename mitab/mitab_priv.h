@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.51 2008-02-05 22:22:48 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.52 2008-02-20 21:35:30 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.51  2008-02-05 22:22:48  dmorissette
+ * Revision 1.52  2008-02-20 21:35:30  dmorissette
+ * Added support for V800 COLLECTION of large objects (bug 1496)
+ *
+ * Revision 1.51  2008/02/05 22:22:48  dmorissette
  * Added support for TAB_GEOM_V800_MULTIPOINT (bug 1496)
  *
  * Revision 1.50  2008/02/01 19:36:31  dmorissette
@@ -212,9 +215,17 @@ typedef enum
 #define TAB_REGION_PLINE_300_MAX_VERTICES    32767
 
 #define TAB_REGION_PLINE_450_MAX_SEGMENTS       32767
-#define TAB_REGION_PLINE_450_MAX_VERTICES       1048572
+#define TAB_REGION_PLINE_450_MAX_VERTICES       1048575
 
 #define TAB_MULTIPOINT_650_MAX_VERTICES         1048576
+
+/* Use this macro to test whether the number of segments and vertices 
+ * in this object exceeds the V450/650 limits and requires a V800 object 
+ */
+#define TAB_REGION_PLINE_REQUIRES_V800(numSegments, numVerticesTotal) \
+    ((numSegments) > TAB_REGION_PLINE_450_MAX_SEGMENTS || \
+     ((numSegments)*3 + numVerticesTotal) > TAB_REGION_PLINE_450_MAX_VERTICES )
+
 
 /*---------------------------------------------------------------------
  * struct TABMAPIndexEntry - Entries found in type 1 blocks of .MAP files
@@ -703,8 +714,8 @@ class TABMAPObjCollection: public TABMAPObjHdrWithCoord
     GInt32      m_nComprOrgX;   /* Present only in compressed coord. case */
     GInt32      m_nComprOrgY;
     GInt32      m_nNumMultiPoints;
-    GInt16      m_nNumRegSections;
-    GInt16      m_nNumPLineSections;
+    GInt32      m_nNumRegSections;
+    GInt32      m_nNumPLineSections;
 
     GByte       m_nMultiPointSymbolId;
     GByte       m_nRegionPenId;

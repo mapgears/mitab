@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.42 2008-02-01 19:36:31 dmorissette Exp $
+ * $Id: mitab_mapfile.cpp,v 1.43 2008-02-20 21:35:30 dmorissette Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.42  2008-02-01 19:36:31  dmorissette
+ * Revision 1.43  2008-02-20 21:35:30  dmorissette
+ * Added support for V800 COLLECTION of large objects (bug 1496)
+ *
+ * Revision 1.42  2008/02/01 19:36:31  dmorissette
  * Initial support for V800 REGION and MULTIPLINE (bug 1496)
  *
  * Revision 1.41  2007/11/08 18:57:56  dmorissette
@@ -1086,41 +1089,15 @@ void  TABMAPFile::UpdateMapHeaderInfo(GByte nObjType)
     }
 
     /*-----------------------------------------------------------------
-     * Check for V450-specific object types and minimum TAB file version number
+     * Check forminimum TAB file version number
      *----------------------------------------------------------------*/
-    if (m_nMinTABVersion < 450 &&
-        (nObjType == TAB_GEOM_V450_REGION ||
-         nObjType == TAB_GEOM_V450_MULTIPLINE ||
-         nObjType == TAB_GEOM_V450_REGION_C ||
-         nObjType == TAB_GEOM_V450_MULTIPLINE_C) )
+    int nVersion = TAB_GEOM_GET_VERSION(nObjType);
+
+    if (nVersion > m_nMinTABVersion )
     {
-        m_nMinTABVersion = 450;
-    }
-    /*-----------------------------------------------------------------
-     * Check for V650-specific object types (multipoint and collection)
-     *----------------------------------------------------------------*/
-    if (m_nMinTABVersion < 650 &&
-        (nObjType == TAB_GEOM_MULTIPOINT   ||
-         nObjType == TAB_GEOM_MULTIPOINT_C ||
-         nObjType == TAB_GEOM_COLLECTION   ||
-         nObjType == TAB_GEOM_COLLECTION_C    ) )
-    {
-        m_nMinTABVersion = 650;
+        m_nMinTABVersion = nVersion;
     }
 
-    /*-----------------------------------------------------------------
-     * Check for V800-specific object types and minimum TAB file version number
-     *----------------------------------------------------------------*/
-    if (m_nMinTABVersion < 800 &&
-        (nObjType == TAB_GEOM_V800_REGION ||
-         nObjType == TAB_GEOM_V800_MULTIPLINE ||
-         nObjType == TAB_GEOM_V800_MULTIPOINT ||
-         nObjType == TAB_GEOM_V800_REGION_C ||
-         nObjType == TAB_GEOM_V800_MULTIPLINE_C ||
-         nObjType == TAB_GEOM_V800_MULTIPOINT_C) )
-    {
-        m_nMinTABVersion = 800;
-    }
 }
 
 /**********************************************************************

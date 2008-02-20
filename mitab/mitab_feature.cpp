@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.80 2008-02-05 22:22:48 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.81 2008-02-20 21:35:30 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.80  2008-02-05 22:22:48  dmorissette
+ * Revision 1.81  2008-02-20 21:35:30  dmorissette
+ * Added support for V800 COLLECTION of large objects (bug 1496)
+ *
+ * Revision 1.80  2008/02/05 22:22:48  dmorissette
  * Added support for TAB_GEOM_V800_MULTIPOINT (bug 1496)
  *
  * Revision 1.79  2008/02/01 19:36:31  dmorissette
@@ -214,6 +217,8 @@ TABFeature *TABFeature::CreateFromMapInfoType(int nMapInfoType,
         break;
       case TAB_GEOM_COLLECTION_C:
       case TAB_GEOM_COLLECTION:
+      case TAB_GEOM_V800_COLLECTION_C:
+      case TAB_GEOM_V800_COLLECTION:
         poFeature = new TABCollection(poDefn);  
         break;
       default:
@@ -1802,7 +1807,7 @@ int  TABPolyline::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
          * Simple polyline
          *------------------------------------------------------------*/
         OGRLineString *poLine = (OGRLineString*)poGeom;
-        if ( poLine->getNumPoints() > TAB_REGION_PLINE_450_MAX_VERTICES)
+        if ( TAB_REGION_PLINE_REQUIRES_V800(1, poLine->getNumPoints()) )
         {
             m_nMapInfoType = TAB_GEOM_V800_MULTIPLINE;
         }
@@ -1858,8 +1863,7 @@ int  TABPolyline::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
             numPointsTotal += poLine->getNumPoints();
         }
 
-        if (numPointsTotal > TAB_REGION_PLINE_450_MAX_VERTICES ||
-            numLines > TAB_REGION_PLINE_450_MAX_SEGMENTS)
+        if ( TAB_REGION_PLINE_REQUIRES_V800(numLines, numPointsTotal) )
             m_nMapInfoType = TAB_GEOM_V800_MULTIPLINE;
         else if (numPointsTotal > TAB_REGION_PLINE_300_MAX_VERTICES)
             m_nMapInfoType = TAB_GEOM_V450_MULTIPLINE;
@@ -2795,8 +2799,7 @@ int  TABRegion::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
             if (poRing)
                 numPointsTotal += poRing->getNumPoints();
         }
-         if (numPointsTotal > TAB_REGION_PLINE_450_MAX_VERTICES ||
-             numRings > TAB_REGION_PLINE_450_MAX_SEGMENTS)
+        if ( TAB_REGION_PLINE_REQUIRES_V800(numRings, numPointsTotal) )
             m_nMapInfoType = TAB_GEOM_V800_REGION;
          else if (numPointsTotal > TAB_REGION_PLINE_300_MAX_VERTICES)
             m_nMapInfoType = TAB_GEOM_V450_REGION;
@@ -6693,6 +6696,7 @@ TABFeature *TABCollection::CloneTABFeature(OGRFeatureDefn *poNewDefn /*=NULL*/)
 int  TABCollection::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
 {
     OGRGeometry *poGeom;
+    int nRegionType, nPLineType, nMPointType, nVersion = 650;
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry 
@@ -6721,47 +6725,77 @@ int  TABCollection::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
      * This also implies that ValidateMapInfoType() should *NOT* be called
      * again until the collection components are written by WriteGeom...()
      *----------------------------------------------------------------*/
+
+    // First pass to figure collection type...
     if (m_poRegion)
     {
         m_poRegion->ValidateCoordType(poMapFile);
-        if (m_poRegion->ValidateMapInfoType(poMapFile) !=  TAB_GEOM_NONE)
-        {
-            GInt32 nXMin=0, nYMin=0, nXMax=0, nYMax=0;
-            m_poRegion->GetIntMBR(nXMin, nYMin, nXMax, nYMax);
-            m_poRegion->ForceCoordTypeAndOrigin(TAB_GEOM_V450_REGION,
-                                                bComprCoord,
-                                                m_nComprOrgX, m_nComprOrgY,
-                                                nXMin, nYMin, nXMax, nYMax);
-        }
+        nRegionType = m_poRegion->ValidateMapInfoType(poMapFile);
+        if (TAB_GEOM_GET_VERSION(nRegionType) > nVersion)
+            nVersion = TAB_GEOM_GET_VERSION(nRegionType);
     }
 
     if (m_poPline)
     {
         m_poPline->ValidateCoordType(poMapFile);
-        if (m_poPline->ValidateMapInfoType(poMapFile) !=  TAB_GEOM_NONE)
-        {
-            GInt32 nXMin, nYMin, nXMax, nYMax;
-            m_poPline->GetIntMBR(nXMin, nYMin, nXMax, nYMax);
-            m_poPline->ForceCoordTypeAndOrigin(TAB_GEOM_V450_MULTIPLINE,
-                                               bComprCoord,
-                                               m_nComprOrgX, m_nComprOrgY,
-                                               nXMin, nYMin, nXMax, nYMax);
-        }
+        nPLineType = m_poPline->ValidateMapInfoType(poMapFile);
+        if (TAB_GEOM_GET_VERSION(nPLineType) > nVersion)
+            nVersion = TAB_GEOM_GET_VERSION(nPLineType);
     }
 
     if (m_poMpoint)
     {
         m_poMpoint->ValidateCoordType(poMapFile);
-        if (m_poMpoint->ValidateMapInfoType(poMapFile) !=  TAB_GEOM_NONE)
-        {
-            GInt32 nXMin, nYMin, nXMax, nYMax;
-            m_poMpoint->GetIntMBR(nXMin, nYMin, nXMax, nYMax);
-            m_poMpoint->ForceCoordTypeAndOrigin(TAB_GEOM_MULTIPOINT,
-                                                bComprCoord,
-                                                m_nComprOrgX, m_nComprOrgY,
-                                                nXMin, nYMin, nXMax, nYMax);
-        }
+        nMPointType = m_poMpoint->ValidateMapInfoType(poMapFile);
+        if (TAB_GEOM_GET_VERSION(nMPointType) > nVersion)
+            nVersion = TAB_GEOM_GET_VERSION(nMPointType);
     }
+
+    // Need to upgrade native type of collection?
+    if (nVersion == 800)
+    {
+        m_nMapInfoType = TAB_GEOM_V800_COLLECTION;
+    }
+
+    // Make another pass updating native type and coordinates type and origin
+    // of each component
+    if (m_poRegion && nRegionType != TAB_GEOM_NONE)
+    {
+        GInt32 nXMin=0, nYMin=0, nXMax=0, nYMax=0;
+        m_poRegion->GetIntMBR(nXMin, nYMin, nXMax, nYMax);
+        m_poRegion->ForceCoordTypeAndOrigin((nVersion == 800 ? 
+                                             TAB_GEOM_V800_REGION:
+                                             TAB_GEOM_V450_REGION),
+                                            bComprCoord,
+                                            m_nComprOrgX, m_nComprOrgY,
+                                            nXMin, nYMin, nXMax, nYMax);
+    }
+
+
+    if (m_poPline && nPLineType != TAB_GEOM_NONE)
+    {
+        GInt32 nXMin, nYMin, nXMax, nYMax;
+        m_poPline->GetIntMBR(nXMin, nYMin, nXMax, nYMax);
+        m_poPline->ForceCoordTypeAndOrigin((nVersion == 800 ? 
+                                            TAB_GEOM_V800_MULTIPLINE:
+                                            TAB_GEOM_V450_MULTIPLINE),
+                                           bComprCoord,
+                                           m_nComprOrgX, m_nComprOrgY,
+                                           nXMin, nYMin, nXMax, nYMax);
+    }
+
+    if (m_poMpoint && nMPointType != TAB_GEOM_NONE)
+    {
+        GInt32 nXMin, nYMin, nXMax, nYMax;
+        m_poMpoint->GetIntMBR(nXMin, nYMin, nXMax, nYMax);
+        m_poMpoint->ForceCoordTypeAndOrigin((nVersion == 800 ? 
+                                             TAB_GEOM_V800_MULTIPOINT:
+                                             TAB_GEOM_MULTIPOINT),
+                                            bComprCoord,
+                                            m_nComprOrgX, m_nComprOrgY,
+                                            nXMin, nYMin, nXMax, nYMax);
+    }
+
 
     return m_nMapInfoType;
 }
@@ -6786,6 +6820,7 @@ int  TABCollection::ReadLabelAndMBR(TABMAPCoordBlock *poCoordBlock,
     // point + MBR that are normally found in the object data blocks 
     // of regular region/pline/mulitpoint objects.
     //
+
     if (bComprCoord)
     {
         // Region center/label point, relative to compr. coord. origin
@@ -6881,13 +6916,17 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
     m_nMapInfoType = poObjHdr->m_nType;
 
     if (m_nMapInfoType != TAB_GEOM_COLLECTION &&
-        m_nMapInfoType != TAB_GEOM_COLLECTION_C )
+        m_nMapInfoType != TAB_GEOM_COLLECTION_C &&
+        m_nMapInfoType != TAB_GEOM_V800_COLLECTION &&
+        m_nMapInfoType != TAB_GEOM_V800_COLLECTION_C )
     {
         CPLError(CE_Failure, CPLE_AssertionFailed,
            "ReadGeometryFromMAPFile(): unsupported geometry type %d (0x%2.2x)",
                  m_nMapInfoType, m_nMapInfoType);
         return -1;
     }
+
+    int nVersion = TAB_GEOM_GET_VERSION(m_nMapInfoType);
 
     // Make sure collection is empty
     EmptyCollection();
@@ -6936,6 +6975,14 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         // point + MBR that are normally found in the object data blocks 
         // of regular region objects.
         //
+
+        // In V800 the mini-header starts with a copy of num_parts
+        if (nVersion >= 800)
+        {
+            int numParts = poCoordBlock->ReadInt32();
+            CPLAssert(numParts == poCollHdr->m_nNumRegSections);
+        }
+
         ReadLabelAndMBR(poCoordBlock, bComprCoord,
                         oRegionHdr.m_nComprOrgX, oRegionHdr.m_nComprOrgY,
                         oRegionHdr.m_nMinX, oRegionHdr.m_nMinY,
@@ -6949,6 +6996,9 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             oRegionHdr.m_nType = TAB_GEOM_V450_REGION_C;
         else
             oRegionHdr.m_nType = TAB_GEOM_V450_REGION;
+        if (nVersion == 800)
+            oRegionHdr.m_nType += (TAB_GEOM_V800_REGION - TAB_GEOM_V450_REGION);
+
         oRegionHdr.m_numLineSections = poCollHdr->m_nNumRegSections;
         oRegionHdr.m_nPenId = poCollHdr->m_nRegionPenId;
         oRegionHdr.m_nBrushId = poCollHdr->m_nRegionBrushId;
@@ -6987,6 +7037,14 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         // point + MBR that are normally found in the object data blocks 
         // of regular pline objects.
         //
+
+        // In V800 the mini-header starts with a copy of num_parts
+        if (nVersion >= 800)
+        {
+            int numParts = poCoordBlock->ReadInt32();
+            CPLAssert(numParts == poCollHdr->m_nNumPLineSections);
+        }
+
         ReadLabelAndMBR(poCoordBlock, bComprCoord,
                         oPLineHdr.m_nComprOrgX, oPLineHdr.m_nComprOrgY,
                         oPLineHdr.m_nMinX, oPLineHdr.m_nMinY,
@@ -7000,6 +7058,10 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             oPLineHdr.m_nType = TAB_GEOM_V450_MULTIPLINE_C;
         else
             oPLineHdr.m_nType = TAB_GEOM_V450_MULTIPLINE;
+        if (nVersion == 800)
+            oPLineHdr.m_nType += (TAB_GEOM_V800_MULTIPLINE - 
+                                  TAB_GEOM_V450_MULTIPLINE);
+
         oPLineHdr.m_numLineSections = poCollHdr->m_nNumPLineSections;
         oPLineHdr.m_nPenId = poCollHdr->m_nPolylinePenId;
         oPLineHdr.m_bSmooth = 0;        // TODO
@@ -7049,6 +7111,10 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             oMPointHdr.m_nType = TAB_GEOM_MULTIPOINT_C;
         else
             oMPointHdr.m_nType = TAB_GEOM_MULTIPOINT;
+        if (nVersion == 800)
+            oMPointHdr.m_nType += (TAB_GEOM_V800_MULTIPOINT - 
+                                   TAB_GEOM_MULTIPOINT);
+
         oMPointHdr.m_nNumPoints = poCollHdr->m_nNumMultiPoints;
         oMPointHdr.m_nSymbolId = poCollHdr->m_nMultiPointSymbolId;
 
@@ -7134,6 +7200,8 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     // TODO: ??? Do we need to track overall collection coord data size???
     int     nTotalFeatureDataSize = 0;
 
+    int nVersion = TAB_GEOM_GET_VERSION(m_nMapInfoType);
+
     if (ppoCoordBlock != NULL && *ppoCoordBlock != NULL)
         poCoordBlock = *ppoCoordBlock;
     else
@@ -7148,7 +7216,9 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     if (m_poRegion && m_poRegion->GetMapInfoType() != TAB_GEOM_NONE)
     {
         CPLAssert(m_poRegion->GetMapInfoType() == TAB_GEOM_V450_REGION ||
-                  m_poRegion->GetMapInfoType() == TAB_GEOM_V450_REGION_C );
+                  m_poRegion->GetMapInfoType() == TAB_GEOM_V450_REGION_C ||
+                  m_poRegion->GetMapInfoType() == TAB_GEOM_V800_REGION ||
+                  m_poRegion->GetMapInfoType() == TAB_GEOM_V800_REGION_C );
 
         TABMAPObjPLine *poRegionHdr = (TABMAPObjPLine *)
             TABMAPObjHdr::NewObj(m_poRegion->GetMapInfoType(), -1);
@@ -7167,6 +7237,11 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         poCoordBlock->StartNewFeature();
         int nMiniHeaderPtr = poCoordBlock->GetCurAddress();
 
+        // In V800 the mini-header starts with a copy of num_parts
+        if (nVersion >= 800)
+        {
+            poCoordBlock->WriteInt32(0);
+        }
         WriteLabelAndMBR(poCoordBlock, bCompressed,
                          0, 0, 0, 0, 0, 0);
         nTotalFeatureDataSize += poCoordBlock->GetFeatureDataSize();
@@ -7193,6 +7268,11 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
             return -1;
         }
 
+        // In V800 the mini-header starts with a copy of num_parts
+        if (nVersion >= 800)
+        {
+            poCoordBlock->WriteInt32(poRegionHdr->m_numLineSections);
+        }
         WriteLabelAndMBR(poCoordBlock, bCompressed,
                          poRegionHdr->m_nMinX, poRegionHdr->m_nMinY, 
                          poRegionHdr->m_nMaxX, poRegionHdr->m_nMaxY,
@@ -7236,7 +7316,9 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     if (m_poPline && m_poPline->GetMapInfoType() != TAB_GEOM_NONE)
     {
         CPLAssert(m_poPline->GetMapInfoType() == TAB_GEOM_V450_MULTIPLINE ||
-                  m_poPline->GetMapInfoType() == TAB_GEOM_V450_MULTIPLINE_C );
+                  m_poPline->GetMapInfoType() == TAB_GEOM_V450_MULTIPLINE_C ||
+                  m_poPline->GetMapInfoType() == TAB_GEOM_V800_MULTIPLINE ||
+                  m_poPline->GetMapInfoType() == TAB_GEOM_V800_MULTIPLINE_C );
 
         TABMAPObjPLine *poPlineHdr = (TABMAPObjPLine *)
             TABMAPObjHdr::NewObj(m_poPline->GetMapInfoType(), -1);
@@ -7255,6 +7337,11 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         poCoordBlock->StartNewFeature();
         int nMiniHeaderPtr = poCoordBlock->GetCurAddress();
 
+        // In V800 the mini-header starts with a copy of num_parts
+        if (nVersion >= 800)
+        {
+            poCoordBlock->WriteInt32(0);
+        }
         WriteLabelAndMBR(poCoordBlock, bCompressed,
                          0, 0, 0, 0, 0, 0);
         nTotalFeatureDataSize += poCoordBlock->GetFeatureDataSize();
@@ -7281,6 +7368,11 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
             return -1;
         }
 
+        // In V800 the mini-header starts with a copy of num_parts
+        if (nVersion >= 800)
+        {
+            poCoordBlock->WriteInt32(poPlineHdr->m_numLineSections);
+        }
         WriteLabelAndMBR(poCoordBlock, bCompressed,
                          poPlineHdr->m_nMinX, poPlineHdr->m_nMinY, 
                          poPlineHdr->m_nMaxX, poPlineHdr->m_nMaxY,
@@ -7323,8 +7415,8 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     {
         CPLAssert(m_poMpoint->GetMapInfoType() == TAB_GEOM_MULTIPOINT ||
                   m_poMpoint->GetMapInfoType() == TAB_GEOM_MULTIPOINT_C ||
-                  m_nMapInfoType == TAB_GEOM_V800_MULTIPOINT ||
-                  m_nMapInfoType == TAB_GEOM_V800_MULTIPOINT_C );
+                  m_poMpoint->GetMapInfoType() == TAB_GEOM_V800_MULTIPOINT ||
+                  m_poMpoint->GetMapInfoType() == TAB_GEOM_V800_MULTIPOINT_C );
 
         TABMAPObjMultiPoint *poMpointHdr = (TABMAPObjMultiPoint *)
             TABMAPObjHdr::NewObj(m_poMpoint->GetMapInfoType(), -1);

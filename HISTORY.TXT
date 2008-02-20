@@ -13,8 +13,8 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
-- Added support for V8.x large object types: large REGION, PLINE MULTIPLE and
-  MULTIPOINT (bug 1496)
+- Added support for V8.x large object types: large REGION, PLINE MULTIPLE,
+  MULTIPOINT and COLLECTION (bug 1496)
 
 - Added support for v9.x Time and DateTime fields (based on patch from
   AJD, bug 1754)
@@ -867,5 +867,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.204 2008-02-01 20:30:59 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.205 2008-02-20 21:35:29 dmorissette Exp $
 ------------

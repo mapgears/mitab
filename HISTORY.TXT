@@ -24,6 +24,10 @@ CHANGES - Current Version:
 
 - Use %.15g instead of %.16g as number precision in .MIF output
 
+- Fixed the internal compressed coordinate range detection test to prevent
+  possible overflow of the compressed integer coordinate values leading
+  to some coordinate errors in very rare cases while writing to TAB (bug 1854) 
+
 
 Version 1.6.4 (2007-12-10)
 --------------------------
@@ -867,5 +871,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.205 2008-02-20 21:35:29 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.206 2008-02-22 20:20:44 dmorissette Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.81 2008-02-20 21:35:30 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.82 2008-02-22 20:20:44 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,12 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.81  2008-02-20 21:35:30  dmorissette
+ * Revision 1.82  2008-02-22 20:20:44  dmorissette
+ * Fixed the internal compressed coordinate range detection test to prevent
+ * possible overflow of the compressed integer coordinate values leading
+ * to some coord. errors in very rare cases while writing to TAB (bug 1854)
+ *
+ * Revision 1.81  2008/02/20 21:35:30  dmorissette
  * Added support for V800 COLLECTION of large objects (bug 1496)
  *
  * Revision 1.80  2008/02/05 22:22:48  dmorissette
@@ -638,7 +643,10 @@ GBool TABFeature::ValidateCoordType(TABMAPFile * poMapFile)
      *------------------------------------------------------------*/
     if (UpdateMBR(poMapFile) == 0)
     {
-        if ((m_nXMax - m_nXMin) < 65536 && (m_nYMax-m_nYMin) < 65536)
+        /* Test for max range < 65535 here instead of < 65536 to avoid
+         * compressed coordinate overflows in some boundary situations
+         */
+        if ((m_nXMax - m_nXMin) < 65535 && (m_nYMax-m_nYMin) < 65535)
         {
             bCompr = TRUE;
         }

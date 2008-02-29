@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.110 2008-02-20 21:35:30 dmorissette Exp $
+ * $Id: mitab.h,v 1.111 2008-02-29 21:27:41 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.110  2008-02-20 21:35:30  dmorissette
+ * Revision 1.111  2008-02-29 21:27:41  dmorissette
+ * Update to v1.7.0-beta1
+ *
+ * Revision 1.110  2008/02/20 21:35:30  dmorissette
  * Added support for V800 COLLECTION of large objects (bug 1496)
  *
  * Revision 1.109  2008/02/13 21:10:43  dmorissette
@@ -187,7 +190,7 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION      "1.7.0-dev (2008-02-xx)"
+#define MITAB_VERSION      "1.7.0-beta1 (2008-02-29)"
 #define MITAB_VERSION_INT  1007000  /* version x.y.z -> xxxyyyzzz */
 
 #ifndef PI

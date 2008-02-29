@@ -13,6 +13,10 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+
+Version 1.7.0-beta1 (2007-02-29)
+--------------------------------
+
 - Added support for V8.x large object types: large REGION, PLINE MULTIPLE,
   MULTIPOINT and COLLECTION (bug 1496)
 
@@ -871,5 +875,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.206 2008-02-22 20:20:44 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.207 2008-02-29 21:27:41 dmorissette Exp $
 ------------

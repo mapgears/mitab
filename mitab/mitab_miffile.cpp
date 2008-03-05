@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.46 2008-02-01 20:30:59 dmorissette Exp $
+ * $Id: mitab_miffile.cpp,v 1.47 2008-03-05 20:35:39 dmorissette Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.46  2008-02-01 20:30:59  dmorissette
+ * Revision 1.47  2008-03-05 20:35:39  dmorissette
+ * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
+ *
+ * Revision 1.46  2008/02/01 20:30:59  dmorissette
  * Use %.15g instead of %.16g as number precision in .MIF output
  *
  * Revision 1.45  2008/01/29 21:56:39  dmorissette
@@ -1429,33 +1432,24 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
 }
 
 /**********************************************************************
- *                   MIFFile::SetFeature()
+ *                   MIFFile::CreateFeature()
  *
- * Write a feature to this dataset.  
+ * Write a new feature to this dataset. The passed in feature is updated 
+ * with the new feature id.
  *
- * For now only sequential writes are supported (i.e. with nFeatureId=-1)
- * but eventually we should be able to do random access by specifying
- * a value through nFeatureId.
- *
- * Returns the new featureId (> 0) on success, or -1 if an
+ * Returns OGRERR_NONE on success, or an appropriate OGRERR_ code if an
  * error happened in which case, CPLError() will have been called to
  * report the reason of the failure.
  **********************************************************************/
-int MIFFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
+OGRErr MIFFile::CreateFeature(TABFeature *poFeature)
 {
-    
+    int nFeatureId = -1;
+
     if (m_eAccessMode != TABWrite)
     {
         CPLError(CE_Failure, CPLE_NotSupported,
-                 "SetFeature() can be used only with Write access.");
-        return -1;
-    }
-
-    if (nFeatureId != -1)
-    {
-        CPLError(CE_Failure, CPLE_NotSupported,
-                 "SetFeature(): random access not implemented yet.");
-        return -1;
+                 "CreateFeature() can be used only with Write access.");
+        return OGRERR_UNSUPPORTED_OPERATION;
     }
 
     /*-----------------------------------------------------------------
@@ -1464,8 +1458,8 @@ int MIFFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
     if (m_poMIDFile == NULL)
     {
         CPLError(CE_Failure, CPLE_IllegalArg,
-                 "SetFeature() failed: file is not opened!");
-        return -1;
+                 "CreateFeature() failed: file is not opened!");
+        return OGRERR_FAILURE;
     }
 
     if (m_bHeaderWrote == FALSE)
@@ -1495,7 +1489,7 @@ int MIFFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
         CPLError(CE_Failure, CPLE_FileIO,
                  "Failed writing geometry for feature id %d in %s",
                  nFeatureId, m_pszFname);
-        return -1;
+        return OGRERR_FAILURE;
     }
 
     if (m_poMIDFile == NULL ||
@@ -1504,11 +1498,12 @@ int MIFFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
         CPLError(CE_Failure, CPLE_FileIO,
                  "Failed writing attributes for feature id %d in %s",
                  nFeatureId, m_pszFname);
-        return -1;
+        return OGRERR_FAILURE;
     }
 
-   
-    return nFeatureId; 
+    poFeature->SetFID(nFeatureId);
+
+    return OGRERR_NONE;
 }
 
 

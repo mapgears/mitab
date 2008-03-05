@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.111 2008-02-29 21:27:41 dmorissette Exp $
+ * $Id: mitab.h,v 1.112 2008-03-05 20:35:39 dmorissette Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.111  2008-02-29 21:27:41  dmorissette
+ * Revision 1.112  2008-03-05 20:35:39  dmorissette
+ * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
+ *
+ * Revision 1.111  2008/02/29 21:27:41  dmorissette
  * Update to v1.7.0-beta1
  *
  * Revision 1.110  2008/02/20 21:35:30  dmorissette
@@ -74,104 +77,6 @@
  * Revision 1.98  2007/09/12 20:22:31  dmorissette
  * Added TABFeature::CreateFromMapInfoType()
  *
- * Revision 1.97  2007/07/12 12:39:59  dmorissette
- * Set version to 1.6.2
- *
- * Revision 1.96  2007/06/12 14:48:44  dmorissette
- * Set version to 1.6.2-dev
- *
- * Revision 1.95  2007/06/12 14:17:16  dmorissette
- * Added TABFile::TwoPointLineAsPolyline() to allow writing two point lines
- * as polylines (bug 1735)
- *
- * Revision 1.94  2007/06/12 13:52:37  dmorissette
- * Added IMapInfoFile::SetCharset() method (bug 1734)
- *
- * Revision 1.93  2007/06/12 12:50:39  dmorissette
- * Use Quick Spatial Index by default until bug 1732 is fixed (broken files
- * produced by current coord block splitting technique).
- *
- * Revision 1.92  2007/03/30 18:05:49  dmorissette
- * Updated 1.6.1 release date
- *
- * Revision 1.91  2007/03/22 21:01:37  dmorissette
- * Update for v1.6.1
- *
- * Revision 1.90  2007/03/21 21:15:56  dmorissette
- * Added SetQuickSpatialIndexMode() which generates a non-optimal spatial
- * index but results in faster write time (bug 1669)
- *
- * Revision 1.89  2007/02/15 20:19:06  dmorissette
- * Update for v1.6.0
- *
- * Revision 1.88  2006/11/28 19:11:20  dmorissette
- * Set version to 1.6.0-dev
- *
- * Revision 1.87  2006/11/28 18:49:07  dmorissette
- * Completed changes to split TABMAPObjectBlocks properly and produce an
- * optimal spatial index (bug 1585)
- *
- * Revision 1.86  2006/11/20 20:05:58  dmorissette
- * First pass at improving generation of spatial index in .map file (bug 1585)
- * New methods for insertion and splittung in the spatial index are done.
- * Also implemented a method to dump the spatial index to .mif/.mid
- * Still need to implement splitting of TABMapObjectBlock to get optimal
- * results.
- *
- * Revision 1.85  2006/07/25 13:24:47  dmorissette
- * Updated for 1.5.1 release
- *
- * Revision 1.84  2006/07/25 13:22:58  dmorissette
- * Fixed initialization of MBR of TABCollection members (bug 1520)
- *
- * Revision 1.83  2006/02/16 15:13:38  dmorissette
- * Updated for 1.5.0 release
- *
- * Revision 1.82  2005/10/07 18:54:23  dmorissette
- * Ready for 1.5.0-beta1 release
- *
- * Revision 1.81  2005/10/06 23:05:08  dmorissette
- * TABCollection: Added automated sync'ing of OGRFeature's geometry in
- * SetRegion/Pline/MpointDirectly() methods (bug 1126)
- *
- * Revision 1.80  2005/10/06 19:15:30  dmorissette
- * Collections: added support for reading/writing pen/brush/symbol ids and
- * for writing collection objects to .TAB/.MAP (bug 1126)
- *
- * Revision 1.79  2005/10/04 15:44:31  dmorissette
- * First round of support for Collection objects. Currently supports reading
- * from .TAB/.MAP and writing to .MIF. Still lacks symbol support and write
- * support. (Based in part on patch and docs from Jim Hope, bug 1126)
- *
- * Revision 1.78  2005/05/21 03:16:01  fwarmerdam
- * Removed m_poFilterGeom ... should have been done yesterday with spatial
- * filter overhaul.
- *
- * Revision 1.77  2005/05/19 21:10:50  fwarmerdam
- * changed to use OGRLayers spatial filter support
- *
- * Revision 1.76  2005/05/19 15:26:59  jlacroix
- * Implement a method to set the StyleString of a TABFeature.
- * This is done via the ITABFeaturePen, Brush and Symbol classes.
- *
- * Revision 1.75  2005/04/01 16:48:41  dmorissette
- * Updated 1.4.0 release date
- *
- * Revision 1.74  2005/03/23 20:36:09  dmorissette
- * Ready for V1.4.0
- *
- * Revision 1.73  2004/07/07 22:18:02  dmorissette
- * Updated 1.3.0 release date
- *
- * Revision 1.72  2004/06/30 20:22:31  dmorissette
- * Ready for V1.3.0
- *
- * Revision 1.71  2003/08/07 03:20:46  dmorissette
- * Added mitab_c_getlibversion() to C API. (Uffe K. - bug 21)
- *
- * Revision 1.70  2003/07/24 02:47:58  daniel
- * Version 1.2.4
- *
  * ...
  *
  * Revision 1.1  1999/07/12 04:18:23  daniel
@@ -190,8 +95,8 @@
 /*---------------------------------------------------------------------
  * Current version of the MITAB library... always useful!
  *--------------------------------------------------------------------*/
-#define MITAB_VERSION      "1.7.0-beta1 (2008-02-29)"
-#define MITAB_VERSION_INT  1007000  /* version x.y.z -> xxxyyyzzz */
+#define MITAB_VERSION      "2.0.0-dev (2008-03)"
+#define MITAB_VERSION_INT  2000000  /* version x.y.z -> xxxyyyzzz */
 
 #ifndef PI
 #  define PI 3.14159265358979323846
@@ -306,7 +211,7 @@ class IMapInfoFile : public OGRLayer
     
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef) = 0;
 
-    virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1) = 0;
+    virtual OGRErr CreateFeature(TABFeature *poFeature) = 0;
 
     virtual int SetFieldIndexed(int nFieldId) = 0;
 
@@ -382,6 +287,9 @@ class TABFile: public IMapInfoFile
     virtual int         GetFeatureCount (int bForce);
     virtual int         GetExtent(OGREnvelope *psExtent, int bForce);
 
+    /* Implement OGRLayer's SetFeature() for random write, only with TABFile */
+    virtual OGRErr      SetFeature( OGRFeature * );
+
     ///////////////
     // Read access specific stuff
     //
@@ -419,7 +327,7 @@ class TABFile: public IMapInfoFile
                                GBool bIndexed=FALSE, GBool bUnique=FALSE);
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef);
 
-    virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1);
+    virtual OGRErr CreateFeature(TABFeature *poFeature);
 
     virtual int SetFieldIndexed(int nFieldId);
 
@@ -434,6 +342,8 @@ class TABFile: public IMapInfoFile
     TABINDFile  *GetINDFileRef();
 
     TABMAPFile  *GetMAPFileRef() { return m_poMAPFile; }
+
+    int         WriteFeature(TABFeature *poFeature, int nFeatureId /*=-1*/);
 
 #ifdef DEBUG
     virtual void Dump(FILE *fpOut = NULL);
@@ -543,7 +453,7 @@ class TABView: public IMapInfoFile
                                GBool bIndexed=FALSE, GBool bUnique=FALSE);
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef);
 
-    virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1);
+    virtual OGRErr CreateFeature(TABFeature *poFeature);
 
     virtual int SetFieldIndexed(int nFieldId);
 
@@ -658,8 +568,8 @@ class TABSeamless: public IMapInfoFile
 
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef) {return -1;}
 
-    virtual int SetFeature(TABFeature *poFeature, 
-                           int nFeatureId = -1) {return -1;}
+    virtual OGRErr CreateFeature(TABFeature *poFeature) 
+                                        {return OGRERR_UNSUPPORTED_OPERATION;}
 
     virtual int SetFieldIndexed(int nFieldId)   {return -1;}
 
@@ -802,7 +712,7 @@ class MIFFile: public IMapInfoFile
     /* TODO */
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef);
 
-    virtual int SetFeature(TABFeature *poFeature, int nFeatureId = -1);
+    virtual OGRErr CreateFeature(TABFeature *poFeature);
 
     virtual int SetFieldIndexed(int nFieldId);
 

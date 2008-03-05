@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.52 2008-02-20 21:35:30 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.53 2008-03-05 20:35:39 dmorissette Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.52  2008-02-20 21:35:30  dmorissette
+ * Revision 1.53  2008-03-05 20:35:39  dmorissette
+ * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
+ *
+ * Revision 1.52  2008/02/20 21:35:30  dmorissette
  * Added support for V800 COLLECTION of large objects (bug 1496)
  *
  * Revision 1.51  2008/02/05 22:22:48  dmorissette
@@ -1730,7 +1733,7 @@ class TABRelation
     TABFieldType    GetNativeFieldType(int nFieldId);
     TABFeature     *GetFeature(int nFeatureId);
 
-    int         SetFeature(TABFeature *poFeature, int nFeatureId=-1);
+    int         WriteFeature(TABFeature *poFeature, int nFeatureId=-1);
 
     int         SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
                            TABFieldType *paeMapInfoNativeFieldTypes=NULL);

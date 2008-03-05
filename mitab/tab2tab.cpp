@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tab2tab.cpp,v 1.17 2007-06-12 12:50:40 dmorissette Exp $
+ * $Id: tab2tab.cpp,v 1.18 2008-03-05 20:35:39 dmorissette Exp $
  *
  * Name:     tab2tab.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: tab2tab.cpp,v $
- * Revision 1.17  2007-06-12 12:50:40  dmorissette
+ * Revision 1.18  2008-03-05 20:35:39  dmorissette
+ * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
+ *
+ * Revision 1.17  2007/06/12 12:50:40  dmorissette
  * Use Quick Spatial Index by default until bug 1732 is fixed (broken files
  * produced by current coord block splitting technique).
  *
@@ -273,7 +276,7 @@ static int Tab2Tab(const char *pszSrcFname, const char *pszDstFname,
         {
 //            poFeature->DumpReadable(stdout);
 //            poFeature->DumpMIF();
-            poDstFile->SetFeature(poFeature);
+            poDstFile->CreateFeature(poFeature);
         }
         else
         {

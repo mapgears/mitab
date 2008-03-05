@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.24 2007-06-21 14:00:23 dmorissette Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.25 2008-03-05 20:35:39 dmorissette Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.24  2007-06-21 14:00:23  dmorissette
+ * Revision 1.25  2008-03-05 20:35:39  dmorissette
+ * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
+ *
+ * Revision 1.24  2007/06/21 14:00:23  dmorissette
  * Added missing cast in isspace() calls to avoid failed assertion on Windows
  * (MITAB bug 1737, GDAL ticket 1678))
  *
@@ -375,10 +378,7 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
     }
     
 
-    if (SetFeature(poTABFeature) > -1)
-        eErr = OGRERR_NONE;
-    else
-        eErr = OGRERR_FAILURE;
+    eErr = CreateFeature(poTABFeature);
 
     delete poTABFeature;
     

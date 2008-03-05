@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.67 2008-01-29 21:56:39 dmorissette Exp $
+ * $Id: mitab_tabfile.cpp,v 1.68 2008-03-05 20:35:39 dmorissette Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.67  2008-01-29 21:56:39  dmorissette
+ * Revision 1.68  2008-03-05 20:35:39  dmorissette
+ * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
+ *
+ * Revision 1.67  2008/01/29 21:56:39  dmorissette
  * Update dataset version properly for Date/Time/DateTime field types (#1754)
  *
  * Revision 1.66  2008/01/29 20:46:32  dmorissette
@@ -1406,7 +1409,7 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
 }
 
 /**********************************************************************
- *                   TABFile::SetFeature()
+ *                   TABFile::WriteFeature()
  *
  * Write a feature to this dataset.  
  *
@@ -1418,19 +1421,19 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
  * error happened in which case, CPLError() will have been called to
  * report the reason of the failure.
  **********************************************************************/
-int TABFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
+int TABFile::WriteFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
 {
     if (m_eAccessMode != TABWrite)
     {
         CPLError(CE_Failure, CPLE_NotSupported,
-                 "SetFeature() can be used only with Write access.");
+                 "WriteFeature() can be used only with Write access.");
         return -1;
     }
 
     if (nFeatureId != -1)
     {
         CPLError(CE_Failure, CPLE_NotSupported,
-                 "SetFeature(): random access not implemented yet.");
+                 "WriteFeature(): random access not implemented yet.");
         return -1;
     }
 
@@ -1440,7 +1443,7 @@ int TABFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
     if (m_poMAPFile == NULL)
     {
         CPLError(CE_Failure, CPLE_IllegalArg,
-                 "SetFeature() failed: file is not opened!");
+                 "WriteFeature() failed: file is not opened!");
         return -1;
     }
 
@@ -1537,6 +1540,45 @@ int TABFile::SetFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
     return nFeatureId;
 }
 
+
+/**********************************************************************
+ *                   TABFile::CreateFeature()
+ *
+ * Write a new feature to this dataset. The passed in feature is updated 
+ * with the new feature id.
+ *
+ * Returns OGRERR_NONE on success, or an appropriate OGRERR_ code if an
+ * error happened in which case, CPLError() will have been called to
+ * report the reason of the failure.
+ **********************************************************************/
+OGRErr TABFile::CreateFeature(TABFeature *poFeature)
+{
+    int nFeatureId = -1;
+
+    nFeatureId = WriteFeature(poFeature, -1);
+
+    if (nFeatureId == -1)
+        return OGRERR_FAILURE;
+
+    poFeature->SetFID(nFeatureId);
+
+    return OGRERR_NONE;
+}
+
+/**********************************************************************
+ *                   TABFile::SetFeature()
+ *
+ * Implementation of OGRLayer's SetFeature(), enabled only for
+ * random write access   
+ **********************************************************************/
+OGRErr TABFile::SetFeature( OGRFeature *poFeature )
+
+{
+//TODO: See CreateFeature()
+// Need to convert OGRFeature to TABFeature, extract FID and then forward
+// forward call to SetFeature(TABFeature, fid)
+    return OGRERR_UNSUPPORTED_OPERATION;
+}
 
 
 /**********************************************************************
@@ -2313,7 +2355,6 @@ int TABFile::SetProjInfo(TABProjInfo *poPI)
 
     return 0;
 }
-
 
 
 /************************************************************************/

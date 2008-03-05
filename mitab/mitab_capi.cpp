@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.44 2007-03-30 18:03:51 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.45 2008-03-05 20:35:39 dmorissette Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.44  2007-03-30 18:03:51  dmorissette
+ * Revision 1.45  2008-03-05 20:35:39  dmorissette
+ * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
+ *
+ * Revision 1.44  2007/03/30 18:03:51  dmorissette
  * Added mitab_c_set_quick_spatial_index_mode() to C API (bug 1669)
  *
  * Revision 1.43  2006/12/01 20:26:27  dmorissette
@@ -663,7 +666,7 @@ mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
     IMapInfoFile        *poFile = (IMapInfoFile *) handle;
     TABFeature          *poFeature = (TABFeature *) feature;
 
-    return poFile->SetFeature( poFeature ) != -1;
+    return poFile->CreateFeature( poFeature ) != -1;
 }
 
 /************************************************************************/

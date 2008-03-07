@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.25 2008-03-05 20:35:39 dmorissette Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.26 2008-03-07 20:16:17 dmorissette Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -9,7 +9,7 @@
  * Author:   Daniel Morissette, dmorissette@dmsolutions.ca
  *
  **********************************************************************
- * Copyright (c) 1999-2001, Daniel Morissette
+ * Copyright (c) 1999-2008, Daniel Morissette
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.25  2008-03-05 20:35:39  dmorissette
+ * Revision 1.26  2008-03-07 20:16:17  dmorissette
+ * Fixed typos in comments
+ *
+ * Revision 1.25  2008/03/05 20:35:39  dmorissette
  * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
  *
  * Revision 1.24  2007/06/21 14:00:23  dmorissette
@@ -240,7 +243,7 @@ IMapInfoFile *IMapInfoFile::SmartOpen(const char *pszFname,
 /**********************************************************************
  *                   IMapInfoFile::GetNextFeature()
  *
- * Standard OGR GetNextFeature implementation.  This methode is used
+ * Standard OGR GetNextFeature implementation.  This method is used
  * to retreive the next OGRFeature.
  **********************************************************************/
 OGRFeature *IMapInfoFile::GetNextFeature()
@@ -272,7 +275,7 @@ OGRFeature *IMapInfoFile::GetNextFeature()
 /**********************************************************************
  *                   IMapInfoFile::CreateFeature()
  *
- * Standard OGR CreateFeature implementation.  This methode is used
+ * Standard OGR CreateFeature implementation.  This method is used
  * to create a new feature in current dataset 
  **********************************************************************/
 OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
@@ -388,7 +391,7 @@ OGRErr     IMapInfoFile::CreateFeature(OGRFeature *poFeature)
 /**********************************************************************
  *                   IMapInfoFile::GetFeature()
  *
- * Standard OGR GetFeature implementation.  This methode is used
+ * Standard OGR GetFeature implementation.  This method is used
  * to get the wanted (nFeatureId) feature, a NULL value will be 
  * returned on error.
  **********************************************************************/

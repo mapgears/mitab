@@ -1,5 +1,5 @@
 {**********************************************************************
- * $Id: mitab_dyn.pas,v 1.16 2007-12-11 04:26:28 dmorissette Exp $
+ * $Id: mitab_dyn.pas,v 1.17 2008-04-21 19:03:42 dmorissette Exp $
  *
  * Name:     mitab_dyn.pas
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_dyn.pas,v $
- * Revision 1.16  2007-12-11 04:26:28  dmorissette
+ * Revision 1.17  2008-04-21 19:03:42  dmorissette
+ * Updated for V1.7.0 changes
+ *
+ * Revision 1.16  2007/12/11 04:26:28  dmorissette
  * Update for 1.6.4 release
  *
  * Revision 1.15  2007/09/14 19:42:39  dmorissette
@@ -119,8 +122,8 @@ Type
   mitab_handle = Longword;
   mitab_feature = Longword;
   mitab_projinfo = Longword;
-  TABFC = 0..10;
-  TABFT = 1..7;
+  TABFC = 0..11;
+  TABFT = 1..9;
   TABTJ = 0..2;
   TABTS = 0..2;
   TABTL = 0..2;
@@ -129,8 +132,8 @@ Type
   TadAffineParams = array [1..6] of double;
 
 const
-// update to match mitab.h (app. line 97), when new versions are released
-  Libversion = 1006004;
+// update to match mitab.h (app. line 194), when new versions are released
+  Libversion = 1007000;
   
 // feature type values
   TABFC_NoGeom      = 0;
@@ -143,7 +146,9 @@ const
   TABFC_Region      = 7;
   TABFC_Rectangle   = 8;
   TABFC_Ellipse     = 9;
-  TABFC_Multipoint  = 10 ; //1.2.0
+  TABFC_Multipoint  = 10; // 1.2.0
+  TABFC_Collection  = 11; // 1.7.0
+
 
 // field types
   TABFT_Char        = 1;
@@ -153,6 +158,9 @@ const
   TABFT_Float       = 5;
   TABFT_Date        = 6;
   TABFT_Logical     = 7;
+  TABFT_Time        = 8;  // 1.7.0
+  TABFT_DateTime    = 9;  // 1.7.0
+
 
 // text justification
   TABTJ_Left        = 0;

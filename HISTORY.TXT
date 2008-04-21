@@ -13,32 +13,8 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
-
-Version 2.0-dev (CVS)
----------------------
-
-- IMPORTANT - BACKWARDS-INCOMPATIBLE CHANGE:
-  OGRLayer::SetFeature() is intended to be used only in random write mode.
-  However, MITAB 1.x had a poorly named SetFeature() that was really doing
-  the job of OGRLayer::CreateFeature(). In order to implement random write
-  support through OGRLayer::SetFeature() in a way that is consistent with 
-  the OGRLayer methods, we had to fix this error from the early MITAB days.
-
-  In MITAB 2.x, we have replaced the old SetFeature() with a CreateFeature(),
-  and a new SetFeature() has been added that's in line with the 
-  OGRLayer::SetFeature() signature and behavior.
-  Application code that was writing features using SetFeature() with 
-  MITAB 1.x will need to be changed to use CreateFeature() with MITAB 2.x. 
-
-  Note that the return value of CreateFeature() is an OGRErr code and not
-  a feature id as was the case with the MITAB 1.x SetFeature() implementation.
-  The feature id of the created feature is returned by updating the id of the
-  passed in feature instead of through the return value of the method as
-  was the case with the old SetFeature() method in MITAB 1.x.
-
 - Added Visual Studio Project files in contrib/vcproj, contributed by 
   Tony Wells (bug 1877)
-
 
 Version 1.7.0-beta1 (2007-02-29)
 --------------------------------
@@ -901,5 +877,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.209 2008-04-21 18:33:40 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.207.2.1 2008-04-21 18:43:44 dmorissette Exp $
 ------------

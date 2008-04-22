@@ -1,5 +1,5 @@
 ' **********************************************************************
-' * $Id: mitab.vb,v 1.11 2005-04-01 16:22:54 dmorissette Exp $
+' * $Id: mitab.vb,v 1.11.6.1 2008-04-22 19:27:02 dmorissette Exp $
 ' *
 ' * Name:     mitab.vb
 ' * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
 ' **********************************************************************
 ' *
 ' * $Log: mitab.vb,v $
-' * Revision 1.11  2005-04-01 16:22:54  dmorissette
+' * Revision 1.11.6.1  2008-04-22 19:27:02  dmorissette
+' * Updated contrib/mitab.vb for V1.7.x
+' *
+' * Revision 1.11  2005/04/01 16:22:54  dmorissette
 ' * Updated to Libversion = 1004000 for 1.4.0 release
 ' *
 ' * Revision 1.10  2004/07/07 22:10:32  dmorissette
@@ -105,7 +108,8 @@ Public Const TABFC_Arc = 6
 Public Const TABFC_Region = 7
 Public Const TABFC_Rectangle = 8
 Public Const TABFC_Ellipse = 9
-Public Const TABFC_MultiPoint = 10
+Public Const TABFC_MultiPoint = 10 ' 1.2.0
+Public Const TABFC_Collection = 11 ' 1.7.0
 
 Rem field types
 
@@ -116,6 +120,8 @@ Public Const TABFT_Decimal = 4
 Public Const TABFT_Float = 5
 Public Const TABFT_Date = 6
 Public Const TABFT_Logical = 7
+Public Const TABFT_Time = 8     ' 1.7.0
+Public Const TABFT_DateTime = 9 ' 1.7.0
 
 Rem text justification
 
@@ -137,12 +143,13 @@ Public Const TABTL_Arrow = 2
 
 Rem version 
 
-Public Const Libversion = 1004000
+Public Const Libversion = 1007000
 
 
 Public Declare Function mitab_c_add_field Lib "mitab.dll" Alias "_mitab_c_add_field@28" (ByVal handle As Long, ByVal field_name As String, ByVal field_type As Long, ByVal width As Long, ByVal precision As Long, ByVal indexed As Long, ByVal unique As Long) As Long
 Public Declare Sub mitab_c_close Lib "mitab.dll" Alias "_mitab_c_close@4" (ByVal handle As Long)
 Public Declare Function mitab_c_create Lib "mitab.dll" Alias "_mitab_c_create@44" (ByVal filename As String, ByVal mif_or_tab As String, ByVal mif_projectiondef As String, ByVal north As Double, ByVal south As Double, ByVal east As Double, ByVal west As Double) As Long
+Public Declare Function mitab_c_set_quick_spatial_index_mode Lib "mitab.dll" Alias "_mitab_c_set_quick_spatial_index_mode@4" (ByVal handle As Long) As Long
 Public Declare Function mitab_c_create_feature Lib "mitab.dll" Alias "_mitab_c_create_feature@8" (ByVal handle As Long, ByVal feature_type As Long) As Long
 Public Declare Sub mitab_c_destroy_feature Lib "mitab.dll" Alias "_mitab_c_destroy_feature@4" (ByVal feature As Long)
 Public Declare Function mitab_c_get_brush_bgcolor Lib "mitab.dll" Alias "_mitab_c_get_brush_bgcolor@4" (ByVal feature As Long) As Long

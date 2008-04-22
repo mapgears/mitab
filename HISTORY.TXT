@@ -10,6 +10,12 @@ the top of the list.)
 For a complete change history, please see the CVS log comments.
 
 
+CHANGES - Current Version:
+--------------------------
+
+- Updated contrib/mitab.vb for V1.7.x
+
+
 Version 1.7.0 (2008-04-21)
 --------------------------
 
@@ -880,5 +886,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.207.2.3 2008-04-21 19:57:28 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.207.2.4 2008-04-22 19:27:02 dmorissette Exp $
 ------------

@@ -39,6 +39,7 @@ Version 2.0-dev (CVS)
 - Added Visual Studio Project files in contrib/vcproj, contributed by 
   Tony Wells (bug 1877)
 
+- Updated contrib/mitab_dyn.pas and contrib/mitab.vb for V1.7.0 changes
 
 Version 1.7.0-beta1 (2007-02-29)
 --------------------------------
@@ -901,5 +902,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.209 2008-04-21 18:33:40 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.210 2008-04-22 19:24:51 dmorissette Exp $
 ------------

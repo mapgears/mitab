@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.69 2008-03-05 20:59:10 dmorissette Exp $
+ * $Id: mitab_tabfile.cpp,v 1.70 2008-06-13 18:39:21 aboudreault Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.69  2008-03-05 20:59:10  dmorissette
+ * Revision 1.70  2008-06-13 18:39:21  aboudreault
+ * Fixed problem with corrupt pointer if file not found (bug 1899) and
+ * fixed tabdump build problem if DEBUG option not provided (bug 1898)
+ *
+ * Revision 1.69  2008/03/05 20:59:10  dmorissette
  * Purged CVS logs in header
  *
  * Revision 1.68  2008/03/05 20:35:39  dmorissette
@@ -261,6 +265,7 @@ int TABFile::Open(const char *pszFname, const char *pszAccess,
             CPLErrorReset();
 
         CPLFree(m_pszFname);
+        m_pszFname = NULL;
         return -1;
     }
 

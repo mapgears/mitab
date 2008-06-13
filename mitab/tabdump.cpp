@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: tabdump.cpp,v 1.16 2006-11-20 20:05:58 dmorissette Exp $
+ * $Id: tabdump.cpp,v 1.17 2008-06-13 18:39:21 aboudreault Exp $
  *
  * Name:     tabdump.cpp
  * Project:  MapInfo TAB format Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: tabdump.cpp,v $
- * Revision 1.16  2006-11-20 20:05:58  dmorissette
+ * Revision 1.17  2008-06-13 18:39:21  aboudreault
+ * Fixed problem with corrupt pointer if file not found (bug 1899) and
+ * fixed tabdump build problem if DEBUG option not provided (bug 1898)
+ *
+ * Revision 1.16  2006/11/20 20:05:58  dmorissette
  * First pass at improving generation of spatial index in .map file (bug 1585)
  * New methods for insertion and splittung in the spatial index are done.
  * Also implemented a method to dump the spatial index to .mif/.mid
@@ -84,10 +88,11 @@
  *
  **********************************************************************/
 
-
 #include "mitab.h"
 #include "mitab_utils.h"
 #include <ctype.h>
+
+#ifdef DEBUG
 
 static int DumpMapFileBlocks(const char *pszFname);
 static int DumpMapFileObjects(const char *pszFname);
@@ -908,3 +913,12 @@ static int DumpViaSpatialIndex(const char *pszFname,
     return 0;
 }
 
+#else
+
+int main(int argc, char *argv[])
+{
+   printf("tabdump is only available when MITAB is compiled with -DDEBUG option.\n");
+   return -1;
+}
+
+#endif

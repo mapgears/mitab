@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.84 2008-07-14 14:39:52 aboudreault Exp $
+ * $Id: mitab_feature.cpp,v 1.85 2008-07-14 16:09:10 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.84  2008-07-14 14:39:52  aboudreault
+ * Revision 1.85  2008-07-14 16:09:10  aboudreault
+ * Fixed multi-line text height problem (bug 1919)
+ *
+ * Revision 1.84  2008/07/14 14:39:52  aboudreault
  * Fixed multi-line text rendering by adding support of the end of line char
  * "\n" as well as the "\\n".
  *
@@ -5970,8 +5973,9 @@ const char *TABText::GetLabelStyleString()
     int numLines = 1;
     const char *pszNewline = GetTextString();
     for (int i=0; pszNewline[i];
-         numLines +=(pszNewline[i]=='\n' ||
-                     ((pszNewline[i]=='\\') && (pszNewline[i+1]=='n'))),++i) ;
+         numLines += ((pszNewline[i]=='\n' ||
+                       (pszNewline[i]=='\\' && pszNewline[i+1]=='n')) &&
+                      pszNewline[i+1] != '\0' ),++i);
     
     double dHeight = GetTextBoxHeight()/numLines;
 

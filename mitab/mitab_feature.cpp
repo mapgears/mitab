@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.85 2008-07-14 16:09:10 aboudreault Exp $
+ * $Id: mitab_feature.cpp,v 1.86 2008-07-14 17:51:21 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.85  2008-07-14 16:09:10  aboudreault
+ * Revision 1.86  2008-07-14 17:51:21  aboudreault
+ * Fixed the text font size problem (bug 1918)
+ *
+ * Revision 1.85  2008/07/14 16:09:10  aboudreault
  * Fixed multi-line text height problem (bug 1919)
  *
  * Revision 1.84  2008/07/14 14:39:52  aboudreault
@@ -5980,16 +5983,23 @@ const char *TABText::GetLabelStyleString()
     double dHeight = GetTextBoxHeight()/numLines;
 
     // In all cases, take out 20% of font height to account for line spacing
-    switch(GetTextSpacing())
+    if (numLines > 1)
     {
-      case TABTS1_5:
-        dHeight *= (0.67 * 0.8);
-        break;
-      case TABTSDouble:
-        dHeight *= (0.5 * 0.8);
-        break;
-      default:
-        dHeight *= 0.8;
+        switch(GetTextSpacing())
+        {
+          case TABTS1_5:
+            dHeight *= (0.80 * 0.69);
+            break;
+          case TABTSDouble:
+            dHeight *= (0.66 * 0.69);
+            break;
+          default:
+            dHeight *= 0.69;
+        }
+    }
+    else
+    {
+        dHeight *= 0.69;
     }
 
     if (IsFontBGColorUsed())

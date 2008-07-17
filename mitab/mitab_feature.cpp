@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.86 2008-07-14 17:51:21 aboudreault Exp $
+ * $Id: mitab_feature.cpp,v 1.87 2008-07-17 14:09:30 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.86  2008-07-14 17:51:21  aboudreault
+ * Revision 1.87  2008-07-17 14:09:30  aboudreault
+ * Add text outline color support (halo background in MapInfo)
+ *
+ * Revision 1.86  2008/07/14 17:51:21  aboudreault
  * Fixed the text font size problem (bug 1918)
  *
  * Revision 1.85  2008/07/14 16:09:10  aboudreault
@@ -5123,6 +5126,7 @@ TABText::TABText(OGRFeatureDefn *poDefnIn):
 
     m_rgbForeground = 0x000000;
     m_rgbBackground = 0xffffff;
+    m_rgbOutline    = 0xffffff;
 
     m_nTextAlignment = 0;
     m_nFontStyle = 0;
@@ -5288,6 +5292,7 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
     m_rgbBackground = (poTextHdr->m_nBGColorR*256*256 +
                        poTextHdr->m_nBGColorG*256 +
                        poTextHdr->m_nBGColorB);
+    m_rgbOutline =  m_rgbBackground;
 
     // arrow endpoint
     poMapFile->Int2Coordsys(poTextHdr->m_nLineEndX, poTextHdr->m_nLineEndY, 
@@ -5787,6 +5792,21 @@ void TABText::SetFontBGColor(GInt32 rgbColor)
 }
 
 /**********************************************************************
+ *                   TABText::GetFontOColor()
+ *
+ * Return outline color.
+ **********************************************************************/
+GInt32 TABText::GetFontOColor()
+{
+    return m_rgbOutline;
+}
+
+void TABText::SetFontOColor(GInt32 rgbColor)
+{
+    m_rgbOutline = rgbColor;
+}
+
+/**********************************************************************
  *                   TABText::GetFontFGColor()
  *
  * Return foreground color.
@@ -5937,8 +5957,14 @@ void TABText:: SetFontStyleMIFValue(int nStyle, GBool bBGColorSet)
 
 int TABText::IsFontBGColorUsed()
 {
-    // Font BG color is used only when BOX or HALO are set.
-    return (QueryFontStyle(TABFSBox) || QueryFontStyle(TABFSHalo));
+    // Font BG color is used only when BOX is set.
+    return (QueryFontStyle(TABFSBox));
+}
+
+int TABText::IsFontOColorUsed()
+{
+    // Font outline color is used only when HALO is set.
+    return (QueryFontStyle(TABFSHalo));
 }
 
 /**********************************************************************
@@ -6002,16 +6028,15 @@ const char *TABText::GetLabelStyleString()
         dHeight *= 0.69;
     }
 
-    if (IsFontBGColorUsed())
-        pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%fg,c:#%6.6x,b:#%6.6x,p:%d,f:\"%s\")",
-                            GetTextString(),GetTextAngle(), dHeight,
-                            GetFontFGColor(),GetFontBGColor(),nJustification,
-                            GetFontNameRef());
-    else
-        pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%fg,c:#%6.6x,p:%d,f:\"%s\")",
-                            GetTextString(),GetTextAngle(), dHeight,
-                            GetFontFGColor(),nJustification,
-                            GetFontNameRef());
+    const char *pszBGColor = IsFontBGColorUsed() ? CPLSPrintf(",b:#%6.6x",
+                                                              GetFontBGColor()) :"";
+    const char *pszOColor =  IsFontOColorUsed() ? CPLSPrintf(",o:#%6.6x",
+                                                             GetFontOColor()) :"";
+    
+    pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%fg,c:#%6.6x%s%s,p:%d,f:\"%s\")",
+                        GetTextString(),GetTextAngle(), dHeight,
+                        GetFontFGColor(),pszBGColor,pszOColor,nJustification,
+                        GetFontNameRef());
      
     return pszStyle;
     

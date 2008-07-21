@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.114 2008-07-17 14:09:30 aboudreault Exp $
+ * $Id: mitab.h,v 1.115 2008-07-21 14:09:41 aboudreault Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
- * Revision 1.114  2008-07-17 14:09:30  aboudreault
+ * Revision 1.115  2008-07-21 14:09:41  aboudreault
+ * Add font text styles support (bold, italic, etc.) (bug 1922)
+ *
+ * Revision 1.114  2008/07/17 14:09:30  aboudreault
  * Add text outline color support (halo background in MapInfo)
  *
  * Revision 1.113  2008/07/01 14:33:17  aboudreault
@@ -1599,6 +1602,7 @@ class TABText: public TABFeature,
     GInt32      m_rgbForeground;
     GInt32      m_rgbBackground;
     GInt32      m_rgbOutline;
+    GInt32      m_rgbShadow;
 
     GInt16      m_nTextAlignment;       // Justification/Vert.Spacing/arrow
     GInt16      m_nFontStyle;           // Bold/italic/underlined/shadow/...
@@ -1637,6 +1641,7 @@ class TABText: public TABFeature,
     GInt32      GetFontFGColor();
     GInt32      GetFontBGColor();
     GInt32      GetFontOColor();
+    GInt32      GetFontSColor();
     void        GetTextLineEndPoint(double &dX, double &dY);
 
     TABTextJust GetTextJustification();
@@ -1651,6 +1656,7 @@ class TABText: public TABFeature,
     void        SetFontFGColor(GInt32 rgbColor);
     void        SetFontBGColor(GInt32 rgbColor);
     void        SetFontOColor(GInt32 rgbColor);
+    void        SetFontSColor(GInt32 rgbColor);
     void        SetTextLineEndPoint(double dX, double dY);
 
     void        SetTextJustification(TABTextJust eJust);
@@ -1662,6 +1668,10 @@ class TABText: public TABFeature,
     void        SetFontStyleMIFValue(int nStyle, GBool bBGColorSet=FALSE);
     GBool       IsFontBGColorUsed();
     GBool       IsFontOColorUsed();
+    GBool       IsFontSColorUsed();
+    GBool       IsFontBold();
+    GBool       IsFontItalic();
+    GBool       IsFontUnderline();
     int         GetFontStyleTABValue()           {return m_nFontStyle;};
     void        SetFontStyleTABValue(int nStyle){m_nFontStyle=(GInt16)nStyle;};
 

@@ -52,6 +52,10 @@ Version 2.0-dev (CVS)
 - Fixed multi-line text height problem (bug 1919)
 
 - Fixed the text font size problem  (bug 1918)
+
+- Add text outline color support (halo background in MapInfo) (bug 1921)
+
+- Add font text styles support (bold, italic, etc.) (bug 1922)
  
 Version 1.7.0-beta1 (2007-02-29)
 --------------------------------
@@ -914,5 +918,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.214 2008-07-14 17:51:21 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.215 2008-07-21 14:09:41 aboudreault Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.87 2008-07-17 14:09:30 aboudreault Exp $
+ * $Id: mitab_feature.cpp,v 1.88 2008-07-21 14:09:41 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.87  2008-07-17 14:09:30  aboudreault
+ * Revision 1.88  2008-07-21 14:09:41  aboudreault
+ * Add font text styles support (bold, italic, etc.) (bug 1922)
+ *
+ * Revision 1.87  2008/07/17 14:09:30  aboudreault
  * Add text outline color support (halo background in MapInfo)
  *
  * Revision 1.86  2008/07/14 17:51:21  aboudreault
@@ -5127,6 +5130,7 @@ TABText::TABText(OGRFeatureDefn *poDefnIn):
     m_rgbForeground = 0x000000;
     m_rgbBackground = 0xffffff;
     m_rgbOutline    = 0xffffff;
+    m_rgbShadow     = 0x808080;
 
     m_nTextAlignment = 0;
     m_nFontStyle = 0;
@@ -5177,6 +5181,8 @@ TABFeature *TABText::CloneTABFeature(OGRFeatureDefn *poNewDefn/*=NULL*/)
     poNew->SetFontStyleTABValue( GetFontStyleTABValue() );
     poNew->SetFontBGColor( GetFontBGColor() );
     poNew->SetFontFGColor( GetFontFGColor() );
+    poNew->SetFontOColor( GetFontOColor() );
+    poNew->SetFontSColor( GetFontSColor() );
 
     poNew->SetTextJustification( GetTextJustification() );
     poNew->SetTextSpacing( GetTextSpacing() );
@@ -5293,6 +5299,8 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
                        poTextHdr->m_nBGColorG*256 +
                        poTextHdr->m_nBGColorB);
     m_rgbOutline =  m_rgbBackground;
+    // In MapInfo, the shadow color is always gray (128,128,128)
+    m_rgbShadow     = 0x808080;
 
     // arrow endpoint
     poMapFile->Int2Coordsys(poTextHdr->m_nLineEndX, poTextHdr->m_nLineEndY, 
@@ -5807,6 +5815,21 @@ void TABText::SetFontOColor(GInt32 rgbColor)
 }
 
 /**********************************************************************
+ *                   TABText::GetFontSColor()
+ *
+ * Return shadow color.
+ **********************************************************************/
+GInt32 TABText::GetFontSColor()
+{
+    return m_rgbShadow;
+}
+
+void TABText::SetFontSColor(GInt32 rgbColor)
+{
+    m_rgbShadow = rgbColor;
+}
+
+/**********************************************************************
  *                   TABText::GetFontFGColor()
  *
  * Return foreground color.
@@ -5967,6 +5990,30 @@ int TABText::IsFontOColorUsed()
     return (QueryFontStyle(TABFSHalo));
 }
 
+int TABText::IsFontSColorUsed()
+{
+    // Font shadow color is used only when Shadow is set.
+    return (QueryFontStyle(TABFSShadow));
+}
+
+int TABText::IsFontBold()
+{
+    // Font bold is used only when Bold is set.
+    return (QueryFontStyle(TABFSBold));
+}
+
+int TABText::IsFontItalic()
+{
+    // Font italic is used only when Italic is set.
+    return (QueryFontStyle(TABFSItalic));
+}
+
+int TABText::IsFontUnderline()
+{
+    // Font underline is used only when Underline is set.
+    return (QueryFontStyle(TABFSUnderline));
+}
+
 /**********************************************************************
  *                   TABText::GetLabelStyleString()
  *
@@ -5977,9 +6024,13 @@ int TABText::IsFontOColorUsed()
 const char *TABText::GetLabelStyleString()
 {
     const char *pszStyle = NULL;
+    int nStringLen = strlen(GetTextString());
+    // ALL Caps, Extpanded need to modify the string value
+    char *pszTextString = (char*)CPLMalloc((nStringLen+1)*sizeof(char));
     char szPattern[20];
     int nJustification = 1;
     
+    strcpy(pszTextString, GetTextString());
     szPattern[0] = '\0';
     
 
@@ -5996,15 +6047,14 @@ const char *TABText::GetLabelStyleString()
         nJustification =1;
         break;
     }
-
+    
     // Compute real font size, taking number of lines ("\\n", "\n") and line
     // spacing into account.
     int numLines = 1;
-    const char *pszNewline = GetTextString();
-    for (int i=0; pszNewline[i];
-         numLines += ((pszNewline[i]=='\n' ||
-                       (pszNewline[i]=='\\' && pszNewline[i+1]=='n')) &&
-                      pszNewline[i+1] != '\0' ),++i);
+    for (int i=0; pszTextString[i];
+         numLines += ((pszTextString[i]=='\n' ||
+                       (pszTextString[i]=='\\' && pszTextString[i+1]=='n')) &&
+                      pszTextString[i+1] != '\0' ),++i);
     
     double dHeight = GetTextBoxHeight()/numLines;
 
@@ -6028,16 +6078,46 @@ const char *TABText::GetLabelStyleString()
         dHeight *= 0.69;
     }
 
+    if (QueryFontStyle(TABFSAllCaps))
+        for (int i=0; pszTextString[i];++i)
+            if (isalpha(pszTextString[i])) 
+                pszTextString[i] = (char)toupper(pszTextString[i]);
+    
+    if  (QueryFontStyle(TABFSExpanded))
+    {
+        char *pszTmpTextString = (char*)CPLMalloc(((nStringLen*2)+1)*sizeof(char));
+        int j = 0;
+
+        for (int i =0; i < nStringLen; ++i)
+        { 
+            pszTmpTextString[j] = pszTextString[i];
+            pszTmpTextString[j+1] = ' ';
+            j += 2;
+        }
+
+        pszTmpTextString[j] = '\0';
+        CPLFree(pszTextString);
+        pszTextString = (char*)CPLMalloc((strlen(pszTmpTextString)+1)*sizeof(char));
+        strcpy(pszTextString, pszTmpTextString);
+        CPLFree(pszTmpTextString);
+    }
+    
     const char *pszBGColor = IsFontBGColorUsed() ? CPLSPrintf(",b:#%6.6x",
                                                               GetFontBGColor()) :"";
     const char *pszOColor =  IsFontOColorUsed() ? CPLSPrintf(",o:#%6.6x",
                                                              GetFontOColor()) :"";
+    const char *pszSColor = IsFontSColorUsed() ? CPLSPrintf(",h:#%6.6x",
+                                                              GetFontSColor()) :"";
+    const char *pszBold = IsFontBold() ? ",bo:1" :"";
+    const char *pszItalic = IsFontItalic() ? ",it:1" :"";
+    const char *pszUnderline = IsFontUnderline() ? ",un:1" : "";
     
-    pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%fg,c:#%6.6x%s%s,p:%d,f:\"%s\")",
-                        GetTextString(),GetTextAngle(), dHeight,
-                        GetFontFGColor(),pszBGColor,pszOColor,nJustification,
-                        GetFontNameRef());
+    pszStyle=CPLSPrintf("LABEL(t:\"%s\",a:%f,s:%fg,c:#%6.6x%s%s%s%s%s%s,p:%d,f:\"%s\")",
+                        pszTextString,GetTextAngle(), dHeight,
+                        GetFontFGColor(),pszBGColor,pszOColor,pszSColor,
+                        pszBold,pszItalic,pszUnderline,nJustification,GetFontNameRef());
      
+    CPLFree(pszTextString);
     return pszStyle;
     
 }  

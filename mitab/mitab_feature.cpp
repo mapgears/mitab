@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.88 2008-07-21 14:09:41 aboudreault Exp $
+ * $Id: mitab_feature.cpp,v 1.89 2008-07-21 17:59:28 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.88  2008-07-21 14:09:41  aboudreault
+ * Revision 1.89  2008-07-21 17:59:28  aboudreault
+ * Fixed error in GetLabelStyleString() function: when text style expanded is
+ * set, no space is needed after the last char.
+ *
+ * Revision 1.88  2008/07/21 14:09:41  aboudreault
  * Add font text styles support (bold, italic, etc.) (bug 1922)
  *
  * Revision 1.87  2008/07/17 14:09:30  aboudreault
@@ -6087,8 +6091,9 @@ const char *TABText::GetLabelStyleString()
     {
         char *pszTmpTextString = (char*)CPLMalloc(((nStringLen*2)+1)*sizeof(char));
         int j = 0;
+        int nStringCount = nStringLen-1; // no space needed after the last char
 
-        for (int i =0; i < nStringLen; ++i)
+        for (int i =0; i < nStringCount; ++i)
         { 
             pszTmpTextString[j] = pszTextString[i];
             pszTmpTextString[j+1] = ' ';

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.89 2008-07-21 17:59:28 aboudreault Exp $
+ * $Id: mitab_feature.cpp,v 1.90 2008-07-21 18:17:19 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.89  2008-07-21 17:59:28  aboudreault
+ * Revision 1.90  2008-07-21 18:17:19  dmorissette
+ * Fixed a few compile warnings
+ *
+ * Revision 1.89  2008/07/21 17:59:28  aboudreault
  * Fixed error in GetLabelStyleString() function: when text style expanded is
  * set, no space is needed after the last char.
  *
@@ -5276,7 +5279,6 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
     int     nStringLen;
     GInt32  nCoordBlockPtr;
     double  dJunk;
-    TABMAPCoordBlock        *poCoordBlock;
 
     /*-----------------------------------------------------------------
      * Read object information
@@ -5342,6 +5344,7 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
 
     if (nStringLen > 0)
     {
+        TABMAPCoordBlock        *poCoordBlock;
         CPLAssert(nCoordBlockPtr > 0);
         if (ppoCoordBlock != NULL && *ppoCoordBlock != NULL)
             poCoordBlock = *ppoCoordBlock;
@@ -5356,6 +5359,12 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
             CPLFree(pszTmpString);                
             return -1;
         }
+
+        /* Return a ref to coord block so that caller can continue reading
+         * after the end of this object (used by index splitting)
+         */
+        if (ppoCoordBlock)
+            *ppoCoordBlock = poCoordBlock;
     }
 
     pszTmpString[nStringLen] = '\0';
@@ -5437,12 +5446,6 @@ int TABText::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         m_dWidth = m_dHeight * ((dYMax-dYMin) - m_dHeight*dCos) /
                                                         (m_dHeight*dSin);
     m_dWidth = ABS(m_dWidth);
-
-    /* Return a ref to coord block so that caller can continue reading
-     * after the end of this object (used by index splitting)
-     */
-    if (ppoCoordBlock)
-        *ppoCoordBlock = poCoordBlock;
 
     return 0;
 }
@@ -6834,7 +6837,8 @@ TABFeature *TABCollection::CloneTABFeature(OGRFeatureDefn *poNewDefn /*=NULL*/)
 int  TABCollection::ValidateMapInfoType(TABMAPFile *poMapFile /*=NULL*/)
 {
     OGRGeometry *poGeom;
-    int nRegionType, nPLineType, nMPointType, nVersion = 650;
+    int nRegionType=TAB_GEOM_NONE, nPLineType=TAB_GEOM_NONE, 
+        nMPointType=TAB_GEOM_NONE, nVersion = 650;
 
     /*-----------------------------------------------------------------
      * Fetch and validate geometry 
@@ -7117,7 +7121,8 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         // In V800 the mini-header starts with a copy of num_parts
         if (nVersion >= 800)
         {
-            int numParts = poCoordBlock->ReadInt32();
+            int numParts;
+            numParts = poCoordBlock->ReadInt32();
             CPLAssert(numParts == poCollHdr->m_nNumRegSections);
         }
 
@@ -7179,7 +7184,8 @@ int TABCollection::ReadGeometryFromMAPFile(TABMAPFile *poMapFile,
         // In V800 the mini-header starts with a copy of num_parts
         if (nVersion >= 800)
         {
-            int numParts = poCoordBlock->ReadInt32();
+            int numParts;
+            numParts = poCoordBlock->ReadInt32();
             CPLAssert(numParts == poCollHdr->m_nNumPLineSections);
         }
 

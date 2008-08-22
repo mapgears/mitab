@@ -13,6 +13,9 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- mitab.h: Export MITABSpatialRef2CoordSys() and MITABCoordSys2SpatialRef()
+  from the DLL.  Mostly for use in GDAL 
+
 
 Version 2.0-dev (CVS)
 ---------------------
@@ -923,5 +926,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.217 2008-07-29 13:06:16 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.218 2008-08-22 16:14:19 fwarmerdam Exp $
 ------------

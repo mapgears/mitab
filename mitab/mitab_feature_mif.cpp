@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.34 2008-09-23 13:45:03 aboudreault Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.35 2008-09-23 14:56:03 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.34  2008-09-23 13:45:03  aboudreault
+ * Revision 1.35  2008-09-23 14:56:03  aboudreault
+ * Fixed an error related to the " character when converting mif to tab file.
+ *
+ * Revision 1.34  2008/09/23 13:45:03  aboudreault
  * Fixed bug with the characters ",\n in the tab2tab application. (bug 1945)
  *
  * Revision 1.33  2008/02/01 20:30:59  dmorissette
@@ -175,7 +178,7 @@ static char **MIDTokenize( const char *pszLine, const char *pszDelim )
 
     for( iChar = 0; pszLine[iChar] != '\0'; iChar++ )
     {
-        if( bInQuotes && pszLine[iChar] == '\\' && pszLine[iChar+1] == '"' )
+        if( bInQuotes && pszLine[iChar] == '"' && pszLine[iChar+1] == '"' )
         {
             pszToken[iTokenChar++] = '"';
             iChar++;

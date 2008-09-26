@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.47 2008-03-05 20:35:39 dmorissette Exp $
+ * $Id: mitab_miffile.cpp,v 1.48 2008-09-26 14:40:24 aboudreault Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.47  2008-03-05 20:35:39  dmorissette
+ * Revision 1.48  2008-09-26 14:40:24  aboudreault
+ * Fixed bug: MITAB doesn't support writing DateTime type (bug 1948)
+ *
+ * Revision 1.47  2008/03/05 20:35:39  dmorissette
  * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
  *
  * Revision 1.46  2008/02/01 20:30:59  dmorissette
@@ -1589,6 +1592,9 @@ int MIFFile::SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
                 break;
               case OFTReal:
                 eMapInfoType = TABFFloat;
+                break;
+              case OFTDateTime:
+                eMapInfoType = TABFDateTime;
                 break;
               case OFTString:
               default:

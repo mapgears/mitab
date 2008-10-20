@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.15 2005-10-07 18:49:40 dmorissette Exp $
+ * $Id: mitabc_test.c,v 1.16 2008-10-20 21:00:20 aboudreault Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.15  2005-10-07 18:49:40  dmorissette
+ * Revision 1.16  2008-10-20 21:00:20  aboudreault
+ * C API: Added mitab_c_get_feature_count_by_type() (bug 1952)
+ *
+ * Revision 1.15  2005/10/07 18:49:40  dmorissette
  * Added methods for collections in C API (bug 1126)
  *
  * Revision 1.14  2005/04/28 16:18:28  dmorissette
@@ -97,7 +100,8 @@ static void ReportFile( const char * pszFilename )
 
 {
     mitab_handle	dataset;
-    int			feature_id, num_fields;
+    int			feature_id, num_fields, num_features;
+    int                 numPoints, numLines, numRegions, numTexts;
     
     dataset = mitab_c_open( pszFilename );
 
@@ -107,8 +111,13 @@ static void ReportFile( const char * pszFilename )
                 pszFilename, mitab_c_getlasterrormsg() );
         exit( 1 );
     }
-
+    
     num_fields = mitab_c_get_field_count(dataset);
+    num_features = mitab_c_get_feature_count(dataset);
+    mitab_c_get_feature_count_by_type(dataset, &numPoints, &numLines,
+                              &numRegions, &numTexts);
+    printf("Number of features: %d\nNumber of features by type:\n  Points: %d\n  Lines: %d\n  Regions: %d\n  Texts: %d\n",
+           num_features,numPoints,numLines, numRegions,numTexts);
 
     for( feature_id = mitab_c_next_feature_id(dataset,-1);
          feature_id != -1;

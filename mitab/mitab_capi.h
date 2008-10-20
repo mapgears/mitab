@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.32 2008-01-29 20:46:32 dmorissette Exp $
+ * $Id: mitab_capi.h,v 1.33 2008-10-20 21:00:20 aboudreault Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.32  2008-01-29 20:46:32  dmorissette
+ * Revision 1.33  2008-10-20 21:00:20  aboudreault
+ * C API: Added mitab_c_get_feature_count_by_type() (bug 1952)
+ *
+ * Revision 1.32  2008/01/29 20:46:32  dmorissette
  * Added support for v9 Time and DateTime fields (byg 1754)
  *
  * Revision 1.31  2007/03/30 18:03:51  dmorissette
@@ -328,6 +331,9 @@ double MITAB_DLL MITAB_STDCALL mitab_c_get_vertex_x( mitab_feature, int part, in
 double MITAB_DLL MITAB_STDCALL mitab_c_get_vertex_y( mitab_feature, int part, int vertex );
 
 int MITAB_DLL MITAB_STDCALL mitab_c_get_feature_count( mitab_handle handle );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_feature_count_by_type( mitab_handle handle,
+                                                               int *numPoints, int *numLines, 
+                                                               int *numRegions, int *numTexts );
 
 int MITAB_DLL MITAB_STDCALL mitab_c_get_field_count( mitab_handle handle );
 int MITAB_DLL MITAB_STDCALL mitab_c_get_field_type( mitab_handle handle, int field );

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.45 2008-03-05 20:35:39 dmorissette Exp $
+ * $Id: mitab_capi.cpp,v 1.46 2008-10-20 21:00:20 aboudreault Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.45  2008-03-05 20:35:39  dmorissette
+ * Revision 1.46  2008-10-20 21:00:20  aboudreault
+ * C API: Added mitab_c_get_feature_count_by_type() (bug 1952)
+ *
+ * Revision 1.45  2008/03/05 20:35:39  dmorissette
  * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
  *
  * Revision 1.44  2007/03/30 18:03:51  dmorissette
@@ -2143,6 +2146,44 @@ mitab_c_get_feature_count( mitab_handle handle )
     return 0;
 }
 
+/************************************************************************/
+/*                   mitab_c_get_feature_count_by_type()                */
+/************************************************************************/
+
+/**
+ * Returns the number of features of each type.
+ *
+ * Note that the sum of the 4 returned values may be different from
+ * the total number of features since features with NONE geometry
+ * are not taken into account here.
+ *
+ * Returns 0 on success, or silently returns -1 (with no error) if this
+ * information is not available.
+ *
+ * @param handle the dataset's handle.
+ * @param numPoints a pointer to an int variable that receives the number of
+ *        point objects stored in the dataset.
+ * @param numLines a pointer to an int variable that receives the number of
+ *        line objects stored in the dataset.
+ * @param numRegions a pointer to an int variable that receives the number of
+ *        region objects stored in the dataset.
+ * @param numTexts a pointer to an int variable that receives the number of
+ *        text objects stored in the dataset.
+ * @return 0 on success or -1 if the requested information is not available.
+ */
+
+int MITAB_STDCALL
+mitab_c_get_feature_count_by_type( mitab_handle handle,
+		int *numPoints, int *numLines, int *numRegions, int *numTexts )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+
+    if (poFile != NULL)
+        return poFile->GetFeatureCountByType(*numPoints, *numLines,
+        		*numRegions, *numTexts, TRUE);
+
+    return 0;
+}
 
 
 /************************************************************************/

@@ -13,6 +13,8 @@ For a complete change history, please see the CVS log comments.
 CHANGES - Current Version:
 --------------------------
 
+- C API: Added mitab_c_get_feature_count_by_type() (bug 1952)
+
 - Fixed bug: MITAB doesn't support writing DateTime type (bug 1948)
 
 - Fixed bug with the characters ",\n in the tab2tab application. (bug 
@@ -931,5 +933,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.220 2008-09-26 14:40:24 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.221 2008-10-20 21:00:20 aboudreault Exp $
 ------------

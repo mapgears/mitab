@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.93 2008-11-17 22:06:21 aboudreault Exp $
+ * $Id: mitab_feature.cpp,v 1.94 2008-11-18 16:47:44 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.93  2008-11-17 22:06:21  aboudreault
+ * Revision 1.94  2008-11-18 16:47:44  dmorissette
+ * Fixed compile warning when MITAB_USE_OFTDATETIME is set
+ *
+ * Revision 1.93  2008/11/17 22:06:21  aboudreault
  * Added support to use OFTDateTime/OFTDate/OFTTime type when compiled with
  * OGR and fixed reading/writing support for these types.
  *
@@ -533,10 +536,12 @@ int TABFeature::ReadRecordFromDATFile(TABDATFile *poDATFile)
 int TABFeature::WriteRecordToDATFile(TABDATFile *poDATFile,
                                      TABINDFile *poINDFile, int *panIndexNo)
 {
-    int         iField, numFields, nStatus=0, 
-                nYear, nMon, nDay, nHour, nMin, nSec;
+    int         iField, numFields, nStatus=0;
+#ifdef MITAB_USE_OFTDATETIME
+    int         nYear, nMon, nDay, nHour, nMin, nSec;
     const char  *pszValue;
     char        *pszBuffer;
+#endif
 
     CPLAssert(poDATFile);
     CPLAssert(panIndexNo || GetDefnRef()->GetFieldCount() == 0);

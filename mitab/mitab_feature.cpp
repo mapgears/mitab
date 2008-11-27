@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.94 2008-11-18 16:47:44 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.95 2008-11-27 20:50:22 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
- * Revision 1.94  2008-11-18 16:47:44  dmorissette
+ * Revision 1.95  2008-11-27 20:50:22  aboudreault
+ * Improved support for OGR date/time types. New Read/Write methods (bug 1948)
+ * Added support of OGR date/time types for MIF features.
+ *
+ * Revision 1.94  2008/11/18 16:47:44  dmorissette
  * Fixed compile warning when MITAB_USE_OFTDATETIME is set
  *
  * Revision 1.93  2008/11/17 22:06:21  aboudreault
@@ -435,7 +439,7 @@ int TABFeature::ReadRecordFromDATFile(TABDATFile *poDATFile)
     double      dValue;
     const char *pszValue;
 #ifdef MITAB_USE_OFTDATETIME
-    int nYear, nMonth, nDay, nHour, nMin, nSec, nMS;
+    int nYear, nMonth, nDay, nHour, nMin, nSec, nMS, status;
     nYear = nMonth = nDay = nHour = nMin = nSec = nMS = 0;
 #endif
 
@@ -478,36 +482,42 @@ int TABFeature::ReadRecordFromDATFile(TABDATFile *poDATFile)
             SetField(iField, pszValue);
             break;
           case TABFDate:
-            pszValue = poDATFile->ReadDateField(poDATFile->
-                                                 GetFieldWidth(iField));
 #ifdef MITAB_USE_OFTDATETIME
-            sscanf(pszValue, "%4d%2d%2d",
-                    &nYear, &nMonth, &nDay);
-            SetField(iField, nYear, nMonth, nDay, nHour, nMin, nSec, 0);
+             if ((status = poDATFile->ReadDateField(poDATFile->GetFieldWidth(iField),
+                                                    &nYear, &nMonth, &nDay)) == 0)
+             {
+                SetField(iField, nYear, nMonth, nDay, nHour, nMin, nSec, 0);
+             }
 #else
+            pszValue = poDATFile->ReadDateField(poDATFile->
+                                            GetFieldWidth(iField));
             SetField(iField, pszValue);
 #endif
             break;
           case TABFTime:
+#ifdef MITAB_USE_OFTDATETIME
+             if ((status = poDATFile->ReadTimeField(poDATFile->GetFieldWidth(iField),
+                                                    &nHour, &nMin, &nSec, &nMS)) == 0)
+             {
+                SetField(iField, nYear, nMonth, nDay, nHour, nMin, nSec, 0);
+             }
+#else
              pszValue = poDATFile->ReadTimeField(poDATFile->
                                                      GetFieldWidth(iField));
-#ifdef MITAB_USE_OFTDATETIME
-             sscanf(pszValue,"%2d%2d%2d%3d",
-                    &nHour, &nMin, &nSec, &nMS);
-             
-            SetField(iField, nYear, nMonth, nDay, nHour, nMin, nSec, 0);
-#else
-            SetField(iField, pszValue);
+             SetField(iField, pszValue);
 #endif
             break;
           case TABFDateTime:
+#ifdef MITAB_USE_OFTDATETIME
+            if ((status = poDATFile->ReadDateTimeField(poDATFile->GetFieldWidth(iField),
+                                                       &nYear, &nMonth, &nDay,
+                                                       &nHour, &nMin, &nSec, &nMS)) == 0)
+            {
+               SetField(iField, nYear, nMonth, nDay, nHour, nMin, nSec, 0);
+            }
+#else
             pszValue = poDATFile->ReadDateTimeField(poDATFile->
                                                     GetFieldWidth(iField));
-#ifdef MITAB_USE_OFTDATETIME
-            sscanf(pszValue, "%4d%2d%2d%2d%2d%2d%3d",
-                   &nYear, &nMonth, &nDay, &nHour, &nMin, &nSec, &nMS);
-            SetField(iField, nYear, nMonth, nDay, nHour, nMin, nSec, 0);
-#else
             SetField(iField, pszValue);
 #endif
             break;
@@ -538,9 +548,8 @@ int TABFeature::WriteRecordToDATFile(TABDATFile *poDATFile,
 {
     int         iField, numFields, nStatus=0;
 #ifdef MITAB_USE_OFTDATETIME
-    int         nYear, nMon, nDay, nHour, nMin, nSec;
-    const char  *pszValue;
-    char        *pszBuffer;
+    int         nYear, nMon, nDay, nHour, nMin, nSec, nTZFlag;
+    nYear = nMon = nDay = nHour = nMin = nSec = nTZFlag = 0;
 #endif
 
     CPLAssert(poDATFile);
@@ -589,19 +598,33 @@ int TABFeature::WriteRecordToDATFile(TABDATFile *poDATFile,
                                                 poINDFile, panIndexNo[iField]);
             break;
           case TABFDate:
-            nStatus = poDATFile->WriteDateField(GetFieldAsString(iField),
-                                                poINDFile, panIndexNo[iField]);
+#ifdef MITAB_USE_OFTDATETIME
+             if (IsFieldSet(iField))
+             {
+                GetFieldAsDateTime(iField, &nYear, &nMon, &nDay,
+                                   &nHour, &nMin, &nSec, &nTZFlag);
+             }
+             nStatus = poDATFile->WriteDateField(nYear, nMon, nDay,
+                                                 poINDFile, panIndexNo[iField]);
+#else
+             nStatus = poDATFile->WriteDateField(GetFieldAsString(iField),
+                                                 poINDFile, panIndexNo[iField]);
+#endif
             break;
           case TABFTime:
 #ifdef MITAB_USE_OFTDATETIME
-             /* Fix Time string returned by OGR: the hour must be 2 char */
-             pszValue = GetFieldAsString(iField);
-             pszBuffer = (char*)CPLMalloc((8+1)*sizeof(char));
-             sscanf(pszValue, "%d:%d:%d", &nHour, &nMin, &nSec);
-             sprintf(pszBuffer, "%02d:%02d:%02d", nHour, nMin, nSec); 
-             nStatus = poDATFile->WriteTimeField(pszBuffer,
-                                                 poINDFile, panIndexNo[iField]);
-             CPLFree(pszBuffer);
+             if (IsFieldSet(iField))
+             {
+                GetFieldAsDateTime(iField, &nYear, &nMon, &nDay,
+                                   &nHour, &nMin, &nSec, &nTZFlag);
+             }
+             else
+             {
+                nHour = nMin = nSec = -1;
+             }
+             nStatus = poDATFile->WriteTimeField(nHour, nMin, nSec, 0,
+                                                    poINDFile, panIndexNo[iField]);
+             
 #else
              nStatus = poDATFile->WriteTimeField(GetFieldAsString(iField),
                                                  poINDFile, panIndexNo[iField]);
@@ -609,16 +632,14 @@ int TABFeature::WriteRecordToDATFile(TABDATFile *poDATFile,
             break;
           case TABFDateTime:
 #ifdef MITAB_USE_OFTDATETIME
-             /* Fix DateTime string returned by OGR: the hour must be 2 char */
-             pszValue = GetFieldAsString(iField);
-             pszBuffer = (char*)CPLMalloc((19+1)*sizeof(char));
-             sscanf(pszValue, "%4d/%2d/%2d %2d:%2d:%2d", 
-                    &nYear,&nMon, &nDay, &nHour, &nMin, &nSec);
-             sprintf(pszBuffer, "%04d/%02d/%02d %02d:%02d:%02d", 
-                     nYear, nMon, nDay, nHour, nMin, nSec); 
-             nStatus = poDATFile->WriteDateTimeField(pszBuffer,
+             if (IsFieldSet(iField))
+             {
+                GetFieldAsDateTime(iField, &nYear, &nMon, &nDay,
+                                   &nHour, &nMin, &nSec, &nTZFlag);
+             }
+             nStatus = poDATFile->WriteDateTimeField(nYear, nMon, nDay, 
+                                                     nHour, nMin, nSec, 0,
                                                      poINDFile, panIndexNo[iField]);
-             CPLFree(pszBuffer);
 #else
              nStatus = poDATFile->WriteDateTimeField(GetFieldAsString(iField),
                                                      poINDFile, panIndexNo[iField]);

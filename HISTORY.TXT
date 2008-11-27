@@ -74,6 +74,9 @@ Version 2.0-dev (CVS)
   OGR and fixed reading/writing support for these types. (Bug 1948 and 
   GDAL ticket #2585)
 
+- Improved support for OGR date/time types. New Read/Write methods (bug 1948)
+  Added support of OGR date/time types for MIF features.
+
 
 Version 1.7.0-beta1 (2007-02-29)
 --------------------------------
@@ -936,5 +939,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.223 2008-11-17 22:06:20 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.224 2008-11-27 20:50:22 aboudreault Exp $
 ------------

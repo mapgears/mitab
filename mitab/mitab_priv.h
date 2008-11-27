@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.53 2008-03-05 20:35:39 dmorissette Exp $
+ * $Id: mitab_priv.h,v 1.54 2008-11-27 20:50:23 aboudreault Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,11 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
- * Revision 1.53  2008-03-05 20:35:39  dmorissette
+ * Revision 1.54  2008-11-27 20:50:23  aboudreault
+ * Improved support for OGR date/time types. New Read/Write methods (bug 1948)
+ * Added support of OGR date/time types for MIF features.
+ *
+ * Revision 1.53  2008/03/05 20:35:39  dmorissette
  * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
  *
  * Revision 1.52  2008/02/20 21:35:30  dmorissette
@@ -1643,8 +1647,13 @@ class TABDATFile
     double      ReadDecimalField(int nWidth);
     const char  *ReadLogicalField(int nWidth);
     const char  *ReadDateField(int nWidth);
+    int         ReadDateField(int nWidth, int *nYear, int *nMonth, int *nDay);
     const char  *ReadTimeField(int nWidth);
+    int         ReadTimeField(int nWidth, int *nHour, int *nMinute, 
+                              int *nSecond, int *nMS);
     const char  *ReadDateTimeField(int nWidth);
+    int         ReadDateTimeField(int nWidth, int *nYear, int *nMonth, int *nDay,
+                                 int *nHour, int *nMinute, int *nSecond, int *nMS);
 
     int         WriteCharField(const char *pszValue, int nWidth,
                                TABINDFile *poINDFile, int nIndexNo);
@@ -1660,10 +1669,17 @@ class TABDATFile
                                   TABINDFile *poINDFile, int nIndexNo);
     int         WriteDateField(const char *pszValue,
                                TABINDFile *poINDFile, int nIndexNo);
+    int         WriteDateField(int nYear, int nMonth, int nDay,
+                               TABINDFile *poINDFile, int nIndexNo);
     int         WriteTimeField(const char *pszValue,
+                               TABINDFile *poINDFile, int nIndexNo);
+    int         WriteTimeField(int nHour, int nMinute, int nSecond, int nMS,
                                TABINDFile *poINDFile, int nIndexNo);
     int         WriteDateTimeField(const char *pszValue,
                                TABINDFile *poINDFile, int nIndexNo);
+    int         WriteDateTimeField(int nYear, int nMonth, int nDay, 
+                                   int nHour, int nMinute, int nSecond, int nMS,
+                                   TABINDFile *poINDFile, int nIndexNo);
 
 #ifdef DEBUG
     void Dump(FILE *fpOut = NULL);

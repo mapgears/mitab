@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.35 2008-09-23 14:56:03 aboudreault Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.36 2008-11-27 20:50:22 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,11 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
- * Revision 1.35  2008-09-23 14:56:03  aboudreault
+ * Revision 1.36  2008-11-27 20:50:22  aboudreault
+ * Improved support for OGR date/time types. New Read/Write methods (bug 1948)
+ * Added support of OGR date/time types for MIF features.
+ *
+ * Revision 1.35  2008/09/23 14:56:03  aboudreault
  * Fixed an error related to the " character when converting mif to tab file.
  *
  * Revision 1.34  2008/09/23 13:45:03  aboudreault
@@ -223,6 +227,11 @@ int TABFeature::ReadRecordFromMIDFile(MIDDATAFile *fp)
     const char       *pszLine;
     char            **papszToken;
     int               nFields,i;
+    OGRFieldDefn        *poFDefn = NULL;
+#ifdef MITAB_USE_OFTDATETIME
+    int nYear, nMonth, nDay, nHour, nMin, nSec, nMS, nTZFlag;
+    nYear = nMonth = nDay = nHour = nMin = nSec = nMS = nTZFlag = 0;
+#endif
 
     nFields = GetFieldCount();
     
@@ -254,7 +263,43 @@ int TABFeature::ReadRecordFromMIDFile(MIDDATAFile *fp)
 
     for (i=0;i<nFields;i++)
     {
-        SetField(i,papszToken[i]);
+        poFDefn = GetFieldDefnRef(i);
+        switch(poFDefn->GetType())
+        {
+#ifdef MITAB_USE_OFTDATETIME
+            case OFTTime:
+            {
+                if (strlen(papszToken[i]) == 9)
+                {
+                    sscanf(papszToken[i],"%2d%2d%2d%3d",&nHour, &nMin, &nSec, &nMS);
+                    SetField(i, nYear, nMonth, nDay, nHour, nMin, nSec, 0);
+                }
+                break;
+            }
+            case OFTDate:
+            {
+                if (strlen(papszToken[i]) == 8)
+                {
+                    sscanf(papszToken[i], "%4d%2d%2d", &nYear, &nMonth, &nDay);
+                    SetField(i, nYear, nMonth, nDay, nHour, nMin, nSec, 0);
+                }
+                break;
+            }
+            case OFTDateTime:
+            {
+                if (strlen(papszToken[i]) == 17)
+                {
+                    sscanf(papszToken[i], "%4d%2d%2d%2d%2d%2d%3d",
+                           &nYear, &nMonth, &nDay, &nHour, &nMin, &nSec, &nMS);
+                    SetField(i, nYear, nMonth, nDay, nHour, nMin, nSec, 0);
+                }
+                break;
+            }
+#endif
+  
+          default:
+             SetField(i,papszToken[i]);
+       }
     }
     
     fp->GetLine();
@@ -276,6 +321,11 @@ int TABFeature::WriteRecordToMIDFile(MIDDATAFile *fp)
 {
     int                  iField, numFields;
     OGRFieldDefn        *poFDefn = NULL;
+#ifdef MITAB_USE_OFTDATETIME
+    char szBuffer[20];
+    int nYear, nMonth, nDay, nHour, nMin, nSec, nMS, nTZFlag;
+    nYear = nMonth = nDay = nHour = nMin = nSec = nMS = nTZFlag = 0;
+#endif
 
     CPLAssert(fp);
     
@@ -326,6 +376,54 @@ int TABFeature::WriteRecordToMIDFile(MIDDATAFile *fp)
             CPLFree(pszString);
             break;
           }
+#ifdef MITAB_USE_OFTDATETIME
+          case OFTTime:
+          {
+              if (!IsFieldSet(iField)) 
+              {
+                 szBuffer[0] = '\0';
+              }
+              else
+              {
+                  GetFieldAsDateTime(iField, &nYear, &nMonth, &nDay,
+                                     &nHour, &nMin, &nSec, &nTZFlag);
+                  sprintf(szBuffer, "%2.2d%2.2d%2.2d%3.3d", nHour, nMin, nSec, nMS);
+              }
+              fp->WriteLine("%s",szBuffer);
+              break;
+          }
+          case OFTDate:
+          {
+              if (!IsFieldSet(iField)) 
+              {
+                 szBuffer[0] = '\0';
+              }
+              else
+              {
+                  GetFieldAsDateTime(iField, &nYear, &nMonth, &nDay,
+                                     &nHour, &nMin, &nSec, &nTZFlag);
+                  sprintf(szBuffer, "%4.4d%2.2d%2.2d", nYear, nMonth, nDay);
+              }
+              fp->WriteLine("%s",szBuffer);
+              break;
+          }
+          case OFTDateTime:
+          {
+              if (!IsFieldSet(iField)) 
+              {
+                 szBuffer[0] = '\0';
+              }
+              else
+              {
+                  GetFieldAsDateTime(iField, &nYear, &nMonth, &nDay,
+                                     &nHour, &nMin, &nSec, &nTZFlag);
+                  sprintf(szBuffer, "%4.4d%2.2d%2.2d%2.2d%2.2d%2.2d%3.3d", 
+                          nYear, nMonth, nDay, nHour, nMin, nSec, nMS);
+              }
+              fp->WriteLine("%s",szBuffer);
+              break;
+          }
+#endif
           default:
             fp->WriteLine("%s",GetFieldAsString(iField));
         }

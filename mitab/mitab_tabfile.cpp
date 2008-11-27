@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.72 2008-11-17 22:06:21 aboudreault Exp $
+ * $Id: mitab_tabfile.cpp,v 1.73 2008-11-27 20:50:23 aboudreault Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
- * Revision 1.72  2008-11-17 22:06:21  aboudreault
+ * Revision 1.73  2008-11-27 20:50:23  aboudreault
+ * Improved support for OGR date/time types. New Read/Write methods (bug 1948)
+ * Added support of OGR date/time types for MIF features.
+ *
+ * Revision 1.72  2008/11/17 22:06:21  aboudreault
  * Added support to use OFTDateTime/OFTDate/OFTTime type when compiled with
  * OGR and fixed reading/writing support for these types.
  *
@@ -799,7 +803,7 @@ int TABFile::ParseTABFileFields()
 #else
                                                    OFTString);
 #endif
-                    poFieldDefn->SetWidth(8);
+                    poFieldDefn->SetWidth(9);
                 }
                 else if (numTok >= 2 && EQUAL(papszTok[1], "datetime"))
                 {

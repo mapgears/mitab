@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.16 2008-10-20 21:00:20 aboudreault Exp $
+ * $Id: mitabc_test.c,v 1.17 2008-12-15 20:54:41 aboudreault Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,7 +30,10 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
- * Revision 1.16  2008-10-20 21:00:20  aboudreault
+ * Revision 1.17  2008-12-15 20:54:41  aboudreault
+ * C API: Added mitab_c_get_table_class() (bug 1957)
+ *
+ * Revision 1.16  2008/10/20 21:00:20  aboudreault
  * C API: Added mitab_c_get_feature_count_by_type() (bug 1952)
  *
  * Revision 1.15  2005/10/07 18:49:40  dmorissette
@@ -111,7 +114,8 @@ static void ReportFile( const char * pszFilename )
                 pszFilename, mitab_c_getlasterrormsg() );
         exit( 1 );
     }
-    
+
+    printf("Dataset class: %d\n", mitab_c_get_table_class( dataset ));
     num_fields = mitab_c_get_field_count(dataset);
     num_features = mitab_c_get_feature_count(dataset);
     mitab_c_get_feature_count_by_type(dataset, &numPoints, &numLines,

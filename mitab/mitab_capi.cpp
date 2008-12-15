@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.46 2008-10-20 21:00:20 aboudreault Exp $
+ * $Id: mitab_capi.cpp,v 1.47 2008-12-15 20:54:41 aboudreault Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
- * Revision 1.46  2008-10-20 21:00:20  aboudreault
+ * Revision 1.47  2008-12-15 20:54:41  aboudreault
+ * C API: Added mitab_c_get_table_class() (bug 1957)
+ *
+ * Revision 1.46  2008/10/20 21:00:20  aboudreault
  * C API: Added mitab_c_get_feature_count_by_type() (bug 1952)
  *
  * Revision 1.45  2008/03/05 20:35:39  dmorissette
@@ -405,6 +408,24 @@ mitab_c_close( mitab_handle handle )
     poFile->Close();
 
     delete poFile;      
+}
+
+/************************************************************************/
+/*                           mitab_c_get_table_class()                  */
+/************************************************************************/
+
+/**
+ * Get the class of a mitab_handle.
+ *
+ * @param handle the mitab_handle of the dataset to query.
+ */
+
+int MITAB_STDCALL
+mitab_c_get_table_class( mitab_handle handle )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+
+    return poFile->GetFileClass();
 }
 
 /************************************************************************/

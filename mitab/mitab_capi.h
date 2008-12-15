@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.33 2008-10-20 21:00:20 aboudreault Exp $
+ * $Id: mitab_capi.h,v 1.34 2008-12-15 20:54:41 aboudreault Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,10 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
- * Revision 1.33  2008-10-20 21:00:20  aboudreault
+ * Revision 1.34  2008-12-15 20:54:41  aboudreault
+ * C API: Added mitab_c_get_table_class() (bug 1957)
+ *
+ * Revision 1.33  2008/10/20 21:00:20  aboudreault
  * C API: Added mitab_c_get_feature_count_by_type() (bug 1952)
  *
  * Revision 1.32  2008/01/29 20:46:32  dmorissette
@@ -169,6 +172,13 @@ typedef void * mitab_handle;
 typedef void * mitab_feature;
 typedef void * mitab_projinfo;
 
+/* File class values (match values from TABFileClass enum in mitab.h )*/
+#define TABFC_IMapInfoFile 0
+#define TABFC_TABFile      1
+#define TABFC_TABView      2
+#define TABFC_TABSeamless  3
+#define TABFC_MIFFile      4
+
 /* feature type values (match values from TABFeatureClass enum in mitab.h) */
 #define TABFC_NoGeom    0
 #define TABFC_Point     1
@@ -216,6 +226,7 @@ int MITAB_DLL MITAB_STDCALL mitab_c_getlasterrorno();
 
 mitab_handle MITAB_DLL MITAB_STDCALL mitab_c_open( const char * filename );
 void MITAB_DLL MITAB_STDCALL mitab_c_close( mitab_handle handle );
+int MITAB_DLL MITAB_STDCALL mitab_c_get_table_class( mitab_handle handle ); 
 
 mitab_handle MITAB_DLL MITAB_STDCALL mitab_c_create( const char * filename,
                                        const char * mif_or_tab,

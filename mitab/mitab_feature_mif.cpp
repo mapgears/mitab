@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.36 2008-11-27 20:50:22 aboudreault Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.37 2008-12-17 14:55:20 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
+ * Revision 1.37  2008-12-17 14:55:20  aboudreault
+ * Fixed mitab mif/mid importer fails when a Text geometry have an empty
+ * text value (bug 1978)
+ *
  * Revision 1.36  2008-11-27 20:50:22  aboudreault
  * Improved support for OGR date/time types. New Read/Write methods (bug 1948)
  * Added support of OGR date/time types for MIF features.
@@ -1731,29 +1735,42 @@ int TABText::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     char               **papszToken;
     const char          *pszString;
     char                *pszTmpString;
-  
+    int                  bXYBoxRead = 0;
+    int                  tokenLen;
+
     papszToken = CSLTokenizeString2(fp->GetLastLine(), 
                                     " \t", CSLT_HONOURSTRINGS);
-
     if (CSLCount(papszToken) == 1)
     {
         CSLDestroy(papszToken);
         papszToken = CSLTokenizeString2(fp->GetLine(), 
                                         " \t", CSLT_HONOURSTRINGS);
-        if (CSLCount(papszToken) != 1)
+        tokenLen = CSLCount(papszToken);
+        if (tokenLen == 4)
+        {
+           pszString = NULL;
+           bXYBoxRead = 1;
+        }
+        else if (tokenLen == 0)
+        {
+            pszString = NULL;
+        }
+        else if (tokenLen != 1)
         {
             CSLDestroy(papszToken);
             return -1;
         }
         else
+        {
           pszString = papszToken[0];
+        }
     }
     else if (CSLCount(papszToken) == 2)
     {
         pszString = papszToken[1];
     }
     else
-     {
+    {
         CSLDestroy(papszToken);
         return -1;
     }
@@ -1768,9 +1785,13 @@ int TABText::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     if (pszTmpString != m_pszString)
         CPLFree(pszTmpString);
 
-    CSLDestroy(papszToken);
-    papszToken = CSLTokenizeString2(fp->GetLine(), 
-                                    " \t", CSLT_HONOURSTRINGS);
+    if (!bXYBoxRead)
+    {
+        CSLDestroy(papszToken);
+        papszToken = CSLTokenizeString2(fp->GetLine(), 
+                                        " \t", CSLT_HONOURSTRINGS);
+    }
+
     if (CSLCount(papszToken) != 4)
     {
         CSLDestroy(papszToken);

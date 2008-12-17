@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.49 2008-11-17 22:06:21 aboudreault Exp $
+ * $Id: mitab_miffile.cpp,v 1.50 2008-12-17 14:55:20 aboudreault Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,7 +32,11 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
- * Revision 1.49  2008-11-17 22:06:21  aboudreault
+ * Revision 1.50  2008-12-17 14:55:20  aboudreault
+ * Fixed mitab mif/mid importer fails when a Text geometry have an empty
+ * text value (bug 1978)
+ *
+ * Revision 1.49  2008/11/17 22:06:21  aboudreault
  * Added support to use OFTDateTime/OFTDate/OFTTime type when compiled with
  * OGR and fixed reading/writing support for these types.
  *
@@ -1421,6 +1425,24 @@ TABFeature *MIFFile::GetFeatureRef(int nFeatureId)
         delete m_poCurFeature;
         m_poCurFeature = NULL;
         return NULL;
+    }
+
+    /* If the feature geometry is Text, and the value is empty(""), transform 
+       it to a geometry none */
+    if (m_poCurFeature->GetFeatureClass() == TABFCText)
+    {
+       TABFeature *poTmpFeature;
+       TABText *poTextFeature = (TABText*)m_poCurFeature;
+       if (strlen(poTextFeature->GetTextString()) == 0)
+       {
+          poTmpFeature = new TABFeature(m_poDefn);
+          for( int i = 0; i < m_poDefn->GetFieldCount(); i++ )
+          {
+             poTmpFeature->SetField( i, m_poCurFeature->GetRawFieldRef( i ) );
+          }
+          delete m_poCurFeature;
+          m_poCurFeature = poTmpFeature;
+       }
     }
 
     /*---------------------------------------------------------------------

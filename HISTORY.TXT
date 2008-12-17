@@ -79,6 +79,8 @@ Version 2.0-dev (CVS)
 
 - C API: Added mitab_c_get_table_class() (bug 1957)
 
+- Fixed: mitab mif/mid importer fails when a Text geometry have an 
+  empty text value (bug 1978)
 
 Version 1.7.0-beta1 (2007-02-29)
 --------------------------------
@@ -941,5 +943,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.225 2008-12-15 20:54:41 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.226 2008-12-17 14:55:20 aboudreault Exp $
 ------------

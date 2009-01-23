@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.29 2008-11-27 20:50:22 aboudreault Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.30 2009-01-23 16:50:27 aboudreault Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
- * Revision 1.29  2008-11-27 20:50:22  aboudreault
+ * Revision 1.30  2009-01-23 16:50:27  aboudreault
+ * Fixed wrong return value of IMapInfoFile::SetCharset() method (bug 1987)
+ *
+ * Revision 1.29  2008/11/27 20:50:22  aboudreault
  * Improved support for OGR date/time types. New Read/Write methods (bug 1948)
  * Added support of OGR date/time types for MIF features.
  *
@@ -506,7 +509,8 @@ int IMapInfoFile::SetCharset(const char* pszCharset)
     {
         CPLFree(m_pszCharset);
         m_pszCharset = CPLStrdup(pszCharset);
+        return 0;
     }
-    return 0;
+    return -1;
 }
 

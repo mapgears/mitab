@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.47 2008-12-15 20:54:41 aboudreault Exp $
+ * $Id: mitab_capi.cpp,v 1.48 2009-01-23 17:04:48 aboudreault Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
+ * Revision 1.48  2009-01-23 17:04:48  aboudreault
+ * Fixed SetTextSpacing call in mitab_c_set_text_display() function (bug 1986)
+ *
  * Revision 1.47  2008-12-15 20:54:41  aboudreault
  * C API: Added mitab_c_get_table_class() (bug 1957)
  *
@@ -1132,7 +1135,7 @@ mitab_c_set_text_display( mitab_feature feature,
         if( justification != -1 )
             poFeature->SetTextJustification( (TABTextJust) justification );
         if( spacing != -1 )
-            poFeature->SetTextSpacing( (TABTextSpacing) justification );
+            poFeature->SetTextSpacing( (TABTextSpacing) spacing );
         if( linetype != -1 )
             poFeature->SetTextLineType( (TABTextLineType) linetype );
     }

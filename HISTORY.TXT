@@ -35,6 +35,8 @@ Version 2.0-dev (CVS)
   passed in feature instead of through the return value of the method as
   was the case with the old SetFeature() method in MITAB 1.x.
 
+- Fixed SetTextSpacing call in mitab_c_set_text_display() method (bug 1986)
+
 - Fixed wrong return value of IMapInfoFile::SetCharset() method (bug 1987)
 
 - Added Visual Studio Project files in contrib/vcproj, contributed by 
@@ -945,5 +947,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.227 2009-01-23 16:50:26 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.228 2009-01-23 17:04:48 aboudreault Exp $
 ------------

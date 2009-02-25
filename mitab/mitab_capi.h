@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.34 2008-12-15 20:54:41 aboudreault Exp $
+ * $Id: mitab_capi.h,v 1.35 2009-02-25 17:18:08 aboudreault Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
+ * Revision 1.35  2009-02-25 17:18:08  aboudreault
+ * C API: Added mitab_c_set_charset() (bug 2013)
+ *
  * Revision 1.34  2008-12-15 20:54:41  aboudreault
  * C API: Added mitab_c_get_table_class() (bug 1957)
  *
@@ -239,6 +242,8 @@ int MITAB_DLL MITAB_STDCALL mitab_c_set_quick_spatial_index_mode( mitab_handle h
 int MITAB_DLL MITAB_STDCALL mitab_c_add_field( mitab_handle handle, const char * field_name,
                                  int field_type, int width, int precision, 
                                  int indexed, int unique );
+
+int MITAB_DLL MITAB_STDCALL mitab_c_set_charset( mitab_handle handle, const char * charset);
 
 int MITAB_DLL MITAB_STDCALL
 mitab_c_write_feature( mitab_handle handle, mitab_feature feature );

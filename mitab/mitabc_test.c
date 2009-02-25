@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.17 2008-12-15 20:54:41 aboudreault Exp $
+ * $Id: mitabc_test.c,v 1.18 2009-02-25 17:18:08 aboudreault Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
+ * Revision 1.18  2009-02-25 17:18:08  aboudreault
+ * C API: Added mitab_c_set_charset() (bug 2013)
+ *
  * Revision 1.17  2008-12-15 20:54:41  aboudreault
  * C API: Added mitab_c_get_table_class() (bug 1957)
  *
@@ -214,13 +217,16 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     dataset = mitab_c_create( pszDest, pszMifOrTab,
                               "CoordSys Earth Projection 1, 0",
                               90, 0, 180, -180 );
-
+    
     if( dataset == NULL )
     {
         printf( "Failed to create %s file %s.\n%s\n",
                 pszMifOrTab, pszDest, mitab_c_getlasterrormsg() );
         return;
     }
+
+/* Change the charset */
+    mitab_c_set_charset(dataset, "WindowsLatin1");
 
 /* -------------------------------------------------------------------- */
 /*      Add a text, float and integer field.                            */

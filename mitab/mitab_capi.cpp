@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.48 2009-01-23 17:04:48 aboudreault Exp $
+ * $Id: mitab_capi.cpp,v 1.49 2009-02-25 17:18:08 aboudreault Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
+ * Revision 1.49  2009-02-25 17:18:08  aboudreault
+ * C API: Added mitab_c_set_charset() (bug 2013)
+ *
  * Revision 1.48  2009-01-23 17:04:48  aboudreault
  * Fixed SetTextSpacing call in mitab_c_set_text_display() function (bug 1986)
  *
@@ -583,6 +586,24 @@ mitab_c_add_field( mitab_handle dataset, const char *field_name,
     }
     else
         return -1;
+}
+
+/************************************************************************/
+/*                      mitab_c_set_charset()                           */
+/************************************************************************/
+
+/** Set the charset for the tab header. 
+ *
+ * Returns 0 on success, -1 on error.
+*/
+
+int MITAB_STDCALL 
+mitab_c_set_charset( mitab_handle handle, const char * charset)
+{
+
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+    
+    return poFile->SetCharset(charset);
 }
 
 /************************************************************************/

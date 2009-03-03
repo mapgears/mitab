@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.43 2008-02-20 21:35:30 dmorissette Exp $
+ * $Id: mitab_mapfile.cpp,v 1.44 2009-03-03 20:44:23 dmorissette Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,7 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
- * Revision 1.43  2008-02-20 21:35:30  dmorissette
+ * Revision 1.44  2009-03-03 20:44:23  dmorissette
+ * Use transparent brush in DumpSpatialIndexToMIF()
+ *
+ * Revision 1.43  2008/02/20 21:35:30  dmorissette
  * Added support for V800 COLLECTION of large objects (bug 1496)
  *
  * Revision 1.42  2008/02/01 19:36:31  dmorissette
@@ -2774,6 +2777,7 @@ void TABMAPFile::DumpSpatialIndexToMIF(TABMAPIndexBlock *poNode,
     Int2Coordsys(nXMax, nYMax, dXMax, dYMax);
 
     VSIFPrintf(fpMIF, "RECT %g %g %g %g\n", dXMin, dYMin, dXMax, dYMax);
+    VSIFPrintf(fpMIF, "  Brush(1, 0)\n");  /* No fill */
                
     VSIFPrintf(fpMID, "%d,%d,%d,%d,%g,%d,%d,%d,%d\n", 
                poNode->GetStartAddress(),
@@ -2814,6 +2818,7 @@ void TABMAPFile::DumpSpatialIndexToMIF(TABMAPIndexBlock *poNode,
                 Int2Coordsys(psEntry->XMax, psEntry->YMax, dXMax, dYMax);
 
                 VSIFPrintf(fpMIF, "RECT %g %g %g %g\n", dXMin, dYMin, dXMax, dYMax);
+                VSIFPrintf(fpMIF, "  Brush(1, 0)\n");  /* No fill */
 
                 VSIFPrintf(fpMID, "%d,%d,%d,%d,%g,%d,%d,%d,%d\n", 
                            psEntry->nBlockPtr,

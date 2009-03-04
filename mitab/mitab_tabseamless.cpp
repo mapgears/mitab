@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabseamless.cpp,v 1.7 2007-06-21 14:00:23 dmorissette Exp $
+ * $Id: mitab_tabseamless.cpp,v 1.8 2009-03-04 21:22:44 dmorissette Exp $
  *
  * Name:     mitab_tabseamless.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_tabseamless.cpp,v $
+ * Revision 1.8  2009-03-04 21:22:44  dmorissette
+ * Set m_nCurFeatureId=-1 in TABSeamless::ResetReading() (bug 2017)
+ *
  * Revision 1.7  2007-06-21 14:00:23  dmorissette
  * Added missing cast in isspace() calls to avoid failed assertion on Windows
  * (MITAB bug 1737, GDAL ticket 1678))
@@ -119,6 +122,10 @@ void TABSeamless::ResetReading()
 {
     if (m_poIndexTable)
         OpenBaseTable(-1);  // Asking for first table resets everything
+
+    // Reset m_nCurFeatureId so that next pass via GetNextFeatureId()
+    // will start from the beginning
+    m_nCurFeatureId = -1;
 }
 
 

@@ -80,6 +80,9 @@ Version 2.0-dev (CVS)
   OGR and fixed reading/writing support for these types. (Bug 1948 and 
   GDAL ticket #2585)
 
+- Set m_nCurFeatureId=-1 in TABSeamless::ResetReading() to solve problem
+  when doing multiple seamless table scans with a spatial filter (bug 2017)
+
 - Improved support for OGR date/time types. New Read/Write methods (bug 1948)
   Added support of OGR date/time types for MIF features.
 
@@ -949,5 +952,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.229 2009-02-25 17:18:08 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.230 2009-03-04 21:26:06 dmorissette Exp $
 ------------

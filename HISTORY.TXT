@@ -35,6 +35,8 @@ Version 2.0-dev (CVS)
   passed in feature instead of through the return value of the method as
   was the case with the old SetFeature() method in MITAB 1.x.
 
+- Fixed Overflow of FIDs in Seamless tables (bug 2015)
+
 - C API: Added mitab_c_set_charset() (bug 2013)
 
 - Fixed SetTextSpacing call in mitab_c_set_text_display() method (bug 1986)
@@ -952,5 +954,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.230 2009-03-04 21:26:06 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.231 2009-03-10 13:50:02 aboudreault Exp $
 ------------

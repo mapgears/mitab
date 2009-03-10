@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.117 2008-10-29 12:55:10 dmorissette Exp $
+ * $Id: mitab.h,v 1.118 2009-03-10 13:50:02 aboudreault Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
+ * Revision 1.118  2009-03-10 13:50:02  aboudreault
+ * Fixed Overflow of FIDs in Seamless tables (bug 2015)
+ *
  * Revision 1.117  2008-10-29 12:55:10  dmorissette
  * Update version to 2.0.0-dev (2008-10) for GDAL 1.6.0 release
  *
@@ -507,6 +510,8 @@ class TABSeamless: public IMapInfoFile
     OGRFeatureDefn *m_poFeatureDefnRef;
 
     TABFile     *m_poIndexTable;
+    int         m_nIndexTableFIDBits;
+    int         m_nIndexTableFIDMask;
     int         m_nTableNameField;
     int         m_nCurBaseTableId;
     TABFile     *m_poCurBaseTable;

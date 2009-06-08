@@ -82,8 +82,7 @@ Version 2.0-dev (CVS)
   OGR and fixed reading/writing support for these types. (Bug 1948 and 
   GDAL ticket #2585)
 
-- Fixed threading issue (static buffer) in Date and DateTime code (GDAL 
-  ticket #1883)
+- Fixed threading issue (static buffer) in Time/DateTime code (bug 2058)
 
 - Set m_nCurFeatureId=-1 in TABSeamless::ResetReading() to solve problem
   when doing multiple seamless table scans with a spatial filter (bug 2017)
@@ -957,5 +956,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.232 2009-06-08 20:30:46 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.233 2009-06-08 20:33:13 dmorissette Exp $
 ------------

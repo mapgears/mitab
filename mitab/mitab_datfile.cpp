@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_datfile.cpp,v 1.20 2008-11-27 20:50:22 aboudreault Exp $
+ * $Id: mitab_datfile.cpp,v 1.21 2009-06-08 20:30:46 dmorissette Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,10 @@
  **********************************************************************
  *
  * $Log: mitab_datfile.cpp,v $
+ * Revision 1.21  2009-06-08 20:30:46  dmorissette
+ * Fixed threading issue (static buffer) in Date and DateTime code (GDAL
+ * ticket #1883)
+ *
  * Revision 1.20  2008-11-27 20:50:22  aboudreault
  * Improved support for OGR date/time types. New Read/Write methods (bug 1948)
  * Added support of OGR date/time types for MIF features.
@@ -1095,14 +1099,13 @@ const char *TABDATFile::ReadTimeField(int nWidth)
 {
     int nHour, nMinute, nSecond, nMS, status;
     nHour = nMinute = nSecond = nMS = 0;
-    static char szBuf[20];
 
     if ((status = ReadTimeField(nWidth, &nHour, &nMinute, &nSecond, &nMS)) == -1)
        return "";
 
-    sprintf(szBuf, "%2.2d%2.2d%2.2d%3.3d", nHour, nMinute, nSecond, nMS);
+    sprintf(m_szBuffer, "%2.2d%2.2d%2.2d%3.3d", nHour, nMinute, nSecond, nMS);
     
-    return szBuf;
+    return m_szBuffer;
 }
 
 int TABDATFile::ReadTimeField(int nWidth, int *nHour, int *nMinute, 
@@ -1168,16 +1171,15 @@ const char *TABDATFile::ReadDateTimeField(int nWidth)
 {
     int nDay, nMonth, nYear, nHour, nMinute, nSecond, nMS, status;
     nDay = nMonth = nYear = nHour = nMinute = nSecond = nMS = 0;
-    static char szBuf[20];
     
     if ((status = ReadDateTimeField(nWidth, &nYear, &nMonth, &nDay, &nHour, 
                                     &nMinute, &nSecond, &nMS)) == -1)
        return "";
 
-    sprintf(szBuf, "%4.4d%2.2d%2.2d%2.2d%2.2d%2.2d%3.3d", 
+    sprintf(m_szBuffer, "%4.4d%2.2d%2.2d%2.2d%2.2d%2.2d%3.3d", 
             nYear, nMonth, nDay, nHour, nMinute, nSecond, nMS);
 
-    return szBuf;
+    return m_szBuffer;
 }
 
 int TABDATFile::ReadDateTimeField(int nWidth, int *nYear, int *nMonth, int *nDay,

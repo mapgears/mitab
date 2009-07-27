@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.50 2008-12-17 14:55:20 aboudreault Exp $
+ * $Id: mitab_miffile.cpp,v 1.51 2009-07-27 14:08:41 dmorissette Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
+ * Revision 1.51  2009-07-27 14:08:41  dmorissette
+ * Fixed dataset version check in AddFieldNative for type TABFDateTime
+ *
  * Revision 1.50  2008-12-17 14:55:20  aboudreault
  * Fixed mitab mif/mid importer fails when a Text geometry have an empty
  * text value (bug 1978)
@@ -1791,8 +1794,8 @@ int MIFFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                                                    OFTString);
 #endif
         poFieldDefn->SetWidth(19);
-        break;
         m_nVersion = MAX(m_nVersion, 900);
+        break;
       case TABFLogical:
         /*-------------------------------------------------
          * LOGICAL type (value "T" or "F")

@@ -35,6 +35,8 @@ Version 2.0-dev (CVS)
   passed in feature instead of through the return value of the method as
   was the case with the old SetFeature() method in MITAB 1.x.
 
+- Added functions to get the file version (API and C API) (bug 1961)
+
 - Fixed Overflow of FIDs in Seamless tables (bug 2015)
 
 - C API: Added mitab_c_set_charset() (bug 2013)
@@ -956,5 +958,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.233 2009-06-08 20:33:13 dmorissette Exp $
+$Id: HISTORY.TXT,v 1.234 2009-07-28 21:35:29 aboudreault Exp $
 ------------

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.35 2009-02-25 17:18:08 aboudreault Exp $
+ * $Id: mitab_capi.h,v 1.36 2009-07-28 21:35:29 aboudreault Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
+ * Revision 1.36  2009-07-28 21:35:29  aboudreault
+ * Added functions to get the file version (bug 1961)
+ *
  * Revision 1.35  2009-02-25 17:18:08  aboudreault
  * C API: Added mitab_c_set_charset() (bug 2013)
  *
@@ -223,6 +226,7 @@ typedef void * mitab_projinfo;
 #define TABTL_Arrow     2
 
 int MITAB_DLL MITAB_STDCALL mitab_c_getlibversion();
+int MITAB_DLL MITAB_STDCALL mitab_c_get_file_version( mitab_handle handle );
 const char MITAB_DLL * MITAB_STDCALL mitab_c_getlasterrormsg();
 int MITAB_DLL MITAB_STDCALL mitab_c_getlasterrormsg_vb (char * errormsg, int l);
 int MITAB_DLL MITAB_STDCALL mitab_c_getlasterrorno();

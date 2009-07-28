@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.49 2009-02-25 17:18:08 aboudreault Exp $
+ * $Id: mitab_capi.cpp,v 1.50 2009-07-28 21:35:29 aboudreault Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
+ * Revision 1.50  2009-07-28 21:35:29  aboudreault
+ * Added functions to get the file version (bug 1961)
+ *
  * Revision 1.49  2009-02-25 17:18:08  aboudreault
  * C API: Added mitab_c_set_charset() (bug 2013)
  *
@@ -267,10 +270,6 @@ static const char sUnitsLookup[][20]=
 
 
 
-/* ==================================================================== */
-/*                   Error handling functions                           */
-/* ==================================================================== */
-
 /************************************************************************/
 /*                       mitab_c_libversion()                           */
 /************************************************************************/
@@ -288,6 +287,39 @@ mitab_c_getlibversion()
 {
     return MITAB_VERSION_INT;
 }
+
+/**
+ * Returns the version of a file.
+ *
+ * @return the version number if possible (TAB, MIF file only), otherwise -1. 
+ */
+
+int MITAB_STDCALL
+mitab_c_get_file_version( mitab_handle handle )
+{
+    IMapInfoFile        *poFile = (IMapInfoFile *) handle;
+
+    if (poFile != NULL)
+    {
+        TABFileClass fileClass = poFile->GetFileClass();
+        if (fileClass == TABFC_TABFile)
+        {
+            TABFile *poTabFile = (TABFile *) poFile;
+            return poTabFile->GetVersion();
+        }
+        else if (fileClass == TABFC_MIFFile)
+        {
+            MIFFile *poMifFile = (MIFFile *) poFile;
+            return poMifFile->GetVersion();
+        }
+    }
+
+    return -1;
+}
+
+/* ==================================================================== */
+/*                   Error handling functions                           */
+/* ==================================================================== */
 
 /************************************************************************/
 /*                       mitab_c_getlasterrorno()                       */

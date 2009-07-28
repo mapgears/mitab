@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.118 2009-03-10 13:50:02 aboudreault Exp $
+ * $Id: mitab.h,v 1.119 2009-07-28 21:35:29 aboudreault Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
+ * Revision 1.119  2009-07-28 21:35:29  aboudreault
+ * Added functions to get the file version (bug 1961)
+ *
  * Revision 1.118  2009-03-10 13:50:02  aboudreault
  * Fixed Overflow of FIDs in Seamless tables (bug 2015)
  *
@@ -333,6 +336,8 @@ class TABFile: public IMapInfoFile
 
     virtual GBool IsFieldIndexed(int nFieldId);
     virtual GBool IsFieldUnique(int /*nFieldId*/)   {return FALSE;};
+
+    virtual int GetVersion() { return m_nVersion; };
 
     ///////////////
     // Write access specific stuff
@@ -720,6 +725,8 @@ class MIFFile: public IMapInfoFile
     virtual GBool IsFieldIndexed(int nFieldId);
     virtual GBool IsFieldUnique(int nFieldId);
 
+    virtual int GetVersion() { return m_nVersion; };
+    
     ///////////////
     // Write access specific stuff
     //

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitabc_test.c,v 1.18 2009-02-25 17:18:08 aboudreault Exp $
+ * $Id: mitabc_test.c,v 1.19 2009-07-28 21:35:29 aboudreault Exp $
  *
  * Name:     mitabc_test.c
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitabc_test.c,v $
+ * Revision 1.19  2009-07-28 21:35:29  aboudreault
+ * Added functions to get the file version (bug 1961)
+ *
  * Revision 1.18  2009-02-25 17:18:08  aboudreault
  * C API: Added mitab_c_set_charset() (bug 2013)
  *
@@ -119,6 +122,7 @@ static void ReportFile( const char * pszFilename )
     }
 
     printf("Dataset class: %d\n", mitab_c_get_table_class( dataset ));
+    printf("Dataset version: %d\n", mitab_c_get_file_version( dataset ));
     num_fields = mitab_c_get_field_count(dataset);
     num_features = mitab_c_get_feature_count(dataset);
     mitab_c_get_feature_count_by_type(dataset, &numPoints, &numLines,

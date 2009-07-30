@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.95 2008-11-27 20:50:22 aboudreault Exp $
+ * $Id: mitab_feature.cpp,v 1.96 2009-07-30 13:13:43 dmorissette Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,10 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
+ * Revision 1.96  2009-07-30 13:13:43  dmorissette
+ * Fixed incorrect text justification returned by GetLabelStyleString()
+ * for TABTJRight (bug 2085)
+ *
  * Revision 1.95  2008-11-27 20:50:22  aboudreault
  * Improved support for OGR date/time types. New Read/Write methods (bug 1948)
  * Added support of OGR date/time types for MIF features.
@@ -6150,11 +6154,11 @@ const char *TABText::GetLabelStyleString()
         nJustification = 2;
         break;
       case TABTJRight:
-        nJustification = 1;
+        nJustification = 3;
         break;
       case TABTJLeft:
       default:
-        nJustification =1;
+        nJustification = 1;
         break;
     }
     

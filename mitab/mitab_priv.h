@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_priv.h,v 1.54 2008-11-27 20:50:23 aboudreault Exp $
+ * $Id: mitab_priv.h,v 1.55 2010-01-07 20:39:12 aboudreault Exp $
  *
  * Name:     mitab_priv.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab_priv.h,v $
+ * Revision 1.55  2010-01-07 20:39:12  aboudreault
+ * Added support to handle duplicate field names, Added validation to check if a field name start with a number (bug 2141)
+ *
  * Revision 1.54  2008-11-27 20:50:23  aboudreault
  * Improved support for OGR date/time types. New Read/Write methods (bug 1948)
  * Added support of OGR date/time types for MIF features.
@@ -1755,7 +1758,7 @@ class TABRelation
                            TABFieldType *paeMapInfoNativeFieldTypes=NULL);
     int         AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                                int nWidth=0, int nPrecision=0,
-                               GBool bIndexed=FALSE, GBool bUnique=FALSE);
+                               GBool bIndexed=FALSE, GBool bUnique=FALSE, int bApproxOK=TRUE);
 
     int         SetFieldIndexed(int nFieldId);
     GBool       IsFieldIndexed(int nFieldId);

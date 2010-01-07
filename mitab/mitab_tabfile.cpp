@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.73 2008-11-27 20:50:23 aboudreault Exp $
+ * $Id: mitab_tabfile.cpp,v 1.74 2010-01-07 20:39:12 aboudreault Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
+ * Revision 1.74  2010-01-07 20:39:12  aboudreault
+ * Added support to handle duplicate field names, Added validation to check if a field name start with a number (bug 2141)
+ *
  * Revision 1.73  2008-11-27 20:50:23  aboudreault
  * Improved support for OGR date/time types. New Read/Write methods (bug 1948)
  * Added support of OGR date/time types for MIF features.
@@ -1649,11 +1652,13 @@ int TABFile::SetFeatureDefn(OGRFeatureDefn *poFeatureDefn,
  **********************************************************************/
 int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                             int nWidth /*=0*/, int nPrecision /*=0*/,
-                            GBool bIndexed /*=FALSE*/, GBool /*bUnique=FALSE*/)
+                            GBool bIndexed /*=FALSE*/, GBool /*bUnique=FALSE*/, int bApproxOK)
 {
     OGRFieldDefn *poFieldDefn;
     int nStatus = 0;
     char *pszCleanName = NULL;
+    char szNewFieldName[31+1]; /* 31 is the max characters for a field name*/
+    int nRenameNum = 1;
 
     if (m_eAccessMode != TABWrite)
     {
@@ -1711,6 +1716,39 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
      *----------------------------------------------------------------*/
     pszCleanName = TABCleanFieldName(pszName);
 
+    if( !bApproxOK &&
+        ( m_poDefn->GetFieldIndex(pszCleanName) >= 0 ||
+          !EQUAL(pszName, pszCleanName) ) )
+    {
+        CPLError( CE_Failure, CPLE_NotSupported,
+                  "Failed to add field named '%s'",
+                  pszName );
+    }
+
+    strncpy(szNewFieldName, pszCleanName, 31);
+    szNewFieldName[31] = '\0';
+
+    while (m_poDefn->GetFieldIndex(szNewFieldName) >= 0 && nRenameNum < 10) 
+      sprintf( szNewFieldName, "%.29s_%.1d", pszCleanName, nRenameNum++ );
+
+    while (m_poDefn->GetFieldIndex(szNewFieldName) >= 0 && nRenameNum < 100) 
+      sprintf( szNewFieldName, "%.29s%.2d", pszCleanName, nRenameNum++ );
+
+    if (m_poDefn->GetFieldIndex(szNewFieldName) >= 0)
+    {
+      CPLError( CE_Failure, CPLE_NotSupported, 
+                "Too many field names like '%s' when truncated to 31 letters " 
+                "for MapInfo format.", pszCleanName );
+    }
+
+    if( !EQUAL(pszCleanName,szNewFieldName) ) 
+    {
+      CPLError( CE_Warning, CPLE_NotSupported,
+                "Normalized/laundered field name: '%s' to '%s'",
+                pszCleanName,
+                szNewFieldName );
+    }
+
     /*-----------------------------------------------------------------
      * Map MapInfo native types to OGR types
      *----------------------------------------------------------------*/
@@ -1722,26 +1760,26 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         /*-------------------------------------------------
          * CHAR type
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
+        poFieldDefn = new OGRFieldDefn(szNewFieldName, OFTString);
         poFieldDefn->SetWidth(nWidth);
         break;
       case TABFInteger:
         /*-------------------------------------------------
          * INTEGER type
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTInteger);
+        poFieldDefn = new OGRFieldDefn(szNewFieldName, OFTInteger);
         break;
       case TABFSmallInt:
         /*-------------------------------------------------
          * SMALLINT type
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTInteger);
+        poFieldDefn = new OGRFieldDefn(szNewFieldName, OFTInteger);
         break;
       case TABFDecimal:
         /*-------------------------------------------------
          * DECIMAL type
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTReal);
+        poFieldDefn = new OGRFieldDefn(szNewFieldName, OFTReal);
         poFieldDefn->SetWidth(nWidth);
         poFieldDefn->SetPrecision(nPrecision);
         break;
@@ -1749,13 +1787,13 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         /*-------------------------------------------------
          * FLOAT type
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTReal);
+        poFieldDefn = new OGRFieldDefn(szNewFieldName, OFTReal);
         break;
       case TABFDate:
         /*-------------------------------------------------
          * DATE type (V450, returned as a string: "DD/MM/YYYY")
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszCleanName, 
+        poFieldDefn = new OGRFieldDefn(szNewFieldName, 
 #ifdef MITAB_USE_OFTDATETIME
                                                    OFTDate);
 #else
@@ -1768,7 +1806,7 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         /*-------------------------------------------------
          * TIME type (V900, returned as a string: "HH:MM:SS")
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszCleanName, 
+        poFieldDefn = new OGRFieldDefn(szNewFieldName, 
 #ifdef MITAB_USE_OFTDATETIME
                                                    OFTTime);
 #else
@@ -1781,7 +1819,7 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         /*-------------------------------------------------
          * DATETIME type (V900, returned as a string: "DD/MM/YYYY HH:MM:SS")
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszCleanName, 
+        poFieldDefn = new OGRFieldDefn(szNewFieldName, 
 #ifdef MITAB_USE_OFTDATETIME
                                                    OFTDateTime);
 #else
@@ -1794,12 +1832,12 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
         /*-------------------------------------------------
          * LOGICAL type (value "T" or "F")
          *------------------------------------------------*/
-        poFieldDefn = new OGRFieldDefn(pszCleanName, OFTString);
+        poFieldDefn = new OGRFieldDefn(szNewFieldName, OFTString);
         poFieldDefn->SetWidth(1);
         break;
       default:
         CPLError(CE_Failure, CPLE_NotSupported,
-                 "Unsupported type for field %s", pszCleanName);
+                 "Unsupported type for field %s", szNewFieldName);
         CPLFree(pszCleanName);
         return -1;
     }
@@ -1813,7 +1851,7 @@ int TABFile::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
     /*-----------------------------------------------------
      * ... and pass field info to the .DAT file.
      *----------------------------------------------------*/
-    nStatus = m_poDATFile->AddField(pszCleanName, eMapInfoType, 
+    nStatus = m_poDATFile->AddField(szNewFieldName, eMapInfoType, 
                                     nWidth, nPrecision);
 
     /*-----------------------------------------------------------------

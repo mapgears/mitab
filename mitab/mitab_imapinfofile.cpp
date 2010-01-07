@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_imapinfofile.cpp,v 1.30 2009-01-23 16:50:27 aboudreault Exp $
+ * $Id: mitab_imapinfofile.cpp,v 1.31 2010-01-07 20:39:12 aboudreault Exp $
  *
  * Name:     mitab_imapinfo
  * Project:  MapInfo mid/mif Tab Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_imapinfofile.cpp,v $
+ * Revision 1.31  2010-01-07 20:39:12  aboudreault
+ * Added support to handle duplicate field names, Added validation to check if a field name start with a number (bug 2141)
+ *
  * Revision 1.30  2009-01-23 16:50:27  aboudreault
  * Fixed wrong return value of IMapInfoFile::SetCharset() method (bug 1987)
  *
@@ -488,7 +491,7 @@ OGRErr IMapInfoFile::CreateField( OGRFieldDefn *poField, int bApproxOK )
     }
 
     if( AddFieldNative( poField->GetNameRef(), eTABType,
-                        nWidth, poField->GetPrecision() ) > -1 )
+                        nWidth, poField->GetPrecision(), FALSE, FALSE, bApproxOK ) > -1 )
         return OGRERR_NONE;
     else
         return OGRERR_FAILURE;

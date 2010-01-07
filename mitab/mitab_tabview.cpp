@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabview.cpp,v 1.19 2008-03-05 20:35:39 dmorissette Exp $
+ * $Id: mitab_tabview.cpp,v 1.20 2010-01-07 20:39:12 aboudreault Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_tabview.cpp,v $
+ * Revision 1.20  2010-01-07 20:39:12  aboudreault
+ * Added support to handle duplicate field names, Added validation to check if a field name start with a number (bug 2141)
+ *
  * Revision 1.19  2008-03-05 20:35:39  dmorissette
  * Replace MITAB 1.x SetFeature() with a CreateFeature() for V2.x (bug 1859)
  *
@@ -999,12 +1002,12 @@ TABFieldType TABView::GetNativeFieldType(int nFieldId)
  **********************************************************************/
 int TABView::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                             int nWidth /*=0*/, int nPrecision /*=0*/,
-                            GBool bIndexed /*=FALSE*/, GBool bUnique/*=FALSE*/)
+                            GBool bIndexed /*=FALSE*/, GBool bUnique/*=FALSE*/, int bApproxOK)
 {
     if (m_poRelation)
         return m_poRelation->AddFieldNative(pszName, eMapInfoType,
                                             nWidth, nPrecision,
-                                            bIndexed, bUnique);
+                                            bIndexed, bUnique, bApproxOK);
 
     return -1;
 }
@@ -1777,7 +1780,7 @@ TABFieldType TABRelation::GetNativeFieldType(int nFieldId)
  **********************************************************************/
 int TABRelation::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                                 int nWidth /*=0*/, int nPrecision /*=0*/,
-                            GBool bIndexed /*=FALSE*/, GBool bUnique/*=FALSE*/)
+                                GBool bIndexed /*=FALSE*/, GBool bUnique/*=FALSE*/, int bApproxOK)
 {
     if (m_poMainTable==NULL || m_poRelTable==NULL ||
         m_panMainTableFieldMap==NULL || m_panRelTableFieldMap==NULL)
@@ -1790,7 +1793,7 @@ int TABRelation::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
          *------------------------------------------------------------*/
         if (m_poMainTable->AddFieldNative(pszName, eMapInfoType,
                                           nWidth, nPrecision,
-                                          bIndexed) != 0)
+                                          bIndexed, bUnique, bApproxOK) != 0)
             return -1;
 
         OGRFeatureDefn *poMainDefn = m_poMainTable->GetLayerDefn();
@@ -1811,7 +1814,7 @@ int TABRelation::AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
          *------------------------------------------------------------*/
         if (m_poRelTable->AddFieldNative(pszName, eMapInfoType,
                                          nWidth, nPrecision,
-                                         bIndexed) != 0)
+                                         bIndexed, bUnique, bApproxOK) != 0)
             return -1;
 
         OGRFeatureDefn *poRelDefn = m_poRelTable->GetLayerDefn();

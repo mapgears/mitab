@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.22 2008-07-21 16:04:58 dmorissette Exp $
+ * $Id: mitab_utils.cpp,v 1.23 2010-01-07 20:39:12 aboudreault Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
+ * Revision 1.23  2010-01-07 20:39:12  aboudreault
+ * Added support to handle duplicate field names, Added validation to check if a field name start with a number (bug 2141)
+ *
  * Revision 1.22  2008-07-21 16:04:58  dmorissette
  * Fixed const char * warnings with GCC 4.3 (GDAL ticket #2325)
  *
@@ -639,7 +642,7 @@ char *TABCleanFieldName(const char *pszSrcName)
     for(int i=0; pszSrcName && pszSrcName[i] != '\0'; i++)
     {
         if ( !( pszSrcName[i] == '_' ||
-                (pszSrcName[i]>='0' && pszSrcName[i]<='9') || 
+                (i!=0 && pszSrcName[i]>='0' && pszSrcName[i]<='9') ||
                 (pszSrcName[i]>='a' && pszSrcName[i]<='z') || 
                 (pszSrcName[i]>='A' && pszSrcName[i]<='Z') ||
                 (GByte)pszSrcName[i]>=192 ) )

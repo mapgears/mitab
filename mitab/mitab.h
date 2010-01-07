@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab.h,v 1.119 2009-07-28 21:35:29 aboudreault Exp $
+ * $Id: mitab.h,v 1.120 2010-01-07 20:39:11 aboudreault Exp $
  *
  * Name:     mitab.h
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab.h,v $
+ * Revision 1.120  2010-01-07 20:39:11  aboudreault
+ * Added support to handle duplicate field names, Added validation to check if a field name start with a number (bug 2141)
+ *
  * Revision 1.119  2009-07-28 21:35:29  aboudreault
  * Added functions to get the file version (bug 1961)
  *
@@ -228,7 +231,8 @@ class IMapInfoFile : public OGRLayer
                             TABFieldType *paeMapInfoNativeFieldTypes = NULL)=0;
     virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                                int nWidth=0, int nPrecision=0,
-                               GBool bIndexed=FALSE, GBool bUnique=FALSE) = 0;
+                               GBool bIndexed=FALSE, GBool bUnique=FALSE, 
+                               int bApproxOK = TRUE) = 0;
     virtual OGRErr CreateField( OGRFieldDefn *poField, int bApproxOK = TRUE );
     
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef) = 0;
@@ -348,7 +352,8 @@ class TABFile: public IMapInfoFile
                             TABFieldType *paeMapInfoNativeFieldTypes = NULL);
     virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                                int nWidth=0, int nPrecision=0,
-                               GBool bIndexed=FALSE, GBool bUnique=FALSE);
+                               GBool bIndexed=FALSE, GBool bUnique=FALSE, 
+                               int bApproxOK = TRUE);
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef);
 
     virtual OGRErr CreateFeature(TABFeature *poFeature);
@@ -474,7 +479,8 @@ class TABView: public IMapInfoFile
     virtual int AddFieldNative(const char *pszName,
                                TABFieldType eMapInfoType,
                                int nWidth=0, int nPrecision=0,
-                               GBool bIndexed=FALSE, GBool bUnique=FALSE);
+                               GBool bIndexed=FALSE, GBool bUnique=FALSE, 
+                               int bApproxOK = TRUE);
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef);
 
     virtual OGRErr CreateFeature(TABFeature *poFeature);
@@ -590,7 +596,8 @@ class TABSeamless: public IMapInfoFile
                                TABFieldType eMapInfoType,
                                int nWidth=0, int nPrecision=0,
                                GBool bIndexed=FALSE, 
-                               GBool bUnique=FALSE)     {return -1;}
+                               GBool bUnique=FALSE, 
+                               int bApproxOK = TRUE)     {return -1;}
 
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef) {return -1;}
 
@@ -736,7 +743,8 @@ class MIFFile: public IMapInfoFile
                             TABFieldType *paeMapInfoNativeFieldTypes = NULL);
     virtual int AddFieldNative(const char *pszName, TABFieldType eMapInfoType,
                                int nWidth=0, int nPrecision=0,
-                               GBool bIndexed=FALSE, GBool bUnique=FALSE);
+                               GBool bIndexed=FALSE, GBool bUnique=FALSE, 
+                               int bApproxOK = TRUE);
     /* TODO */
     virtual int SetSpatialRef(OGRSpatialReference *poSpatialRef);
 

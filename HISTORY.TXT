@@ -35,6 +35,8 @@ Version 2.0-dev (CVS)
   passed in feature instead of through the return value of the method as
   was the case with the old SetFeature() method in MITAB 1.x.
 
+- Fixed error issued when reading empty TAB with spatial index active (bug 2136)
+
 - Added support to handle duplicate field names (bug 2141)
 
 - Added validation to check if a field name start with a number, which is 
@@ -968,5 +970,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.237 2010-01-07 20:39:11 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.238 2010-01-08 22:02:51 aboudreault Exp $
 ------------

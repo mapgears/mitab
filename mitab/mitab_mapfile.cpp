@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapfile.cpp,v 1.44 2009-03-03 20:44:23 dmorissette Exp $
+ * $Id: mitab_mapfile.cpp,v 1.45 2010-01-08 22:02:51 aboudreault Exp $
  *
  * Name:     mitab_mapfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_mapfile.cpp,v $
+ * Revision 1.45  2010-01-08 22:02:51  aboudreault
+ * Fixed error issued when reading empty TAB with spatial index active (bug 2136)
+ *
  * Revision 1.44  2009-03-03 20:44:23  dmorissette
  * Use transparent brush in DumpSpatialIndexToMIF()
  *
@@ -663,6 +666,10 @@ int TABMAPFile::LoadNextMatchingObjectBlock( int bFirstObject )
     if( bFirstObject )
     {
         CPLAssert( m_poSpIndex == NULL && m_poSpIndexLeaf == NULL );
+
+        /* m_nFirstIndexBlock set to 0 means that there is no feature */
+        if ( m_poHeader->m_nFirstIndexBlock == 0 )
+            return FALSE;
 
         if( PushBlock( m_poHeader->m_nFirstIndexBlock ) == NULL )
             return FALSE;

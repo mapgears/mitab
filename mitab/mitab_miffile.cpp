@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.52 2010-01-07 20:39:12 aboudreault Exp $
+ * $Id: mitab_miffile.cpp,v 1.53 2010-05-07 19:39:19 aboudreault Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
+ * Revision 1.53  2010-05-07 19:39:19  aboudreault
+ * Fixed MIF driver: doesn't create a layer defn at layer creation (bug 2180)
+ *
  * Revision 1.52  2010-01-07 20:39:12  aboudreault
  * Added support to handle duplicate field names, Added validation to check if a field name start with a number (bug 2141)
  *
@@ -433,6 +436,16 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
             m_poDefn->SetGeomType( wkbLineString );
         else
             /* we leave it unknown indicating a mixture */;
+    }
+
+    /* A newly created layer should have OGRFeatureDefn */
+    if (m_poDefn == NULL)
+    {
+        char *pszFeatureClassName = TABGetBasename(m_pszFname);
+        m_poDefn = new OGRFeatureDefn(pszFeatureClassName);
+        CPLFree(pszFeatureClassName);
+        // Ref count defaults to 0... set it to 1
+        m_poDefn->Reference();
     }
 
     return 0;

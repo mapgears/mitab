@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_utils.cpp,v 1.23 2010-01-07 20:39:12 aboudreault Exp $
+ * $Id: mitab_utils.cpp,v 1.24 2010-07-05 17:41:07 aboudreault Exp $
  *
  * Name:     mitab_utils.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab_utils.cpp,v $
+ * Revision 1.24  2010-07-05 17:41:07  aboudreault
+ * Fixed TABCleanFieldName() function should allow char '#' in field name (bug 2231)
+ *
  * Revision 1.23  2010-01-07 20:39:12  aboudreault
  * Added support to handle duplicate field names, Added validation to check if a field name start with a number (bug 2141)
  *
@@ -641,11 +644,19 @@ char *TABCleanFieldName(const char *pszSrcName)
      *----------------------------------------------------------------*/
     for(int i=0; pszSrcName && pszSrcName[i] != '\0'; i++)
     {
-        if ( !( pszSrcName[i] == '_' ||
-                (i!=0 && pszSrcName[i]>='0' && pszSrcName[i]<='9') ||
-                (pszSrcName[i]>='a' && pszSrcName[i]<='z') || 
-                (pszSrcName[i]>='A' && pszSrcName[i]<='Z') ||
-                (GByte)pszSrcName[i]>=192 ) )
+        if ( pszSrcName[i]=='#' )
+	{
+            if (i == 0)
+            {
+                pszNewName[i] = '_';
+                numInvalidChars++;
+            }
+        }
+        else if ( !( pszSrcName[i] == '_' ||
+                     (i!=0 && pszSrcName[i]>='0' && pszSrcName[i]<='9') || 
+                     (pszSrcName[i]>='a' && pszSrcName[i]<='z') || 
+                     (pszSrcName[i]>='A' && pszSrcName[i]<='Z') ||
+                     (GByte)pszSrcName[i]>=192 ) )
         {
             pszNewName[i] = '_';
             numInvalidChars++;

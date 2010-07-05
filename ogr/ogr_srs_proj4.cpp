@@ -662,13 +662,14 @@ OGRErr OGRSpatialReference::importFromProj4( const char * pszProj4 )
 
     else if( EQUAL(pszProj,"krovak") )
     {
-        SetKrovak( OSR_GDV( papszNV, "lat_0", 0.0 ), 
-                   OSR_GDV( papszNV, "lon_0", 0.0 ), 
-                   OSR_GDV( papszNV, "alpha", 0.0 ), 
-                   0.0, // pseudo_standard_parallel_1
-                   OSR_GDV( papszNV, "k", 1.0 ), 
-                   OSR_GDV( papszNV, "x_0", 0.0 ), 
-                   OSR_GDV( papszNV, "y_0", 0.0 ) );
+	// Encom 2010 AJD - Fixed up the params below. Some were incorrect before
+        SetKrovak( OSR_GDV( papszNV, "lat_0", 0.0 ),						// dfCenterLat 
+                   OSR_GDV( papszNV, "lon_0", 0.0 ),						// dfCenterLong
+                   OSR_GDV( papszNV, "azimuth", 0.0 ),						// dfAzimuth
+                   OSR_GDV( papszNV, "pseudo_standard_parallel_1", 0.0),	// dfPseudoStdParallelLat
+                   1.0, 							// dfScale
+                   OSR_GDV( papszNV, "x_0", 0.0 ),							// dfFalseEasting
+                   OSR_GDV( papszNV, "y_0", 0.0 ) );						// dfFalseNorthing
     }
 
     else if( EQUAL(pszProj,"tpeqd") )

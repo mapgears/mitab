@@ -35,6 +35,8 @@ Version 2.0-dev (CVS)
   passed in feature instead of through the return value of the method as
   was the case with the old SetFeature() method in MITAB 1.x.
 
+- Added Krovak projection suppoprt (bug 2230)
+
 - Fixed bad feature count after we deleted a feature in MapInfo (bug 2227)
 
 - Fixed MIF driver: doesn't create a layer defn at layer creation (bug 2180)
@@ -974,5 +976,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.240 2010-07-05 15:35:21 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.241 2010-07-05 17:20:14 aboudreault Exp $
 ------------

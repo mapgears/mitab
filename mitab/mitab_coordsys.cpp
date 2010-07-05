@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.36 2007-11-21 21:15:45 dmorissette Exp $
+ * $Id: mitab_coordsys.cpp,v 1.37 2010-07-05 17:20:14 aboudreault Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
+ * Revision 1.37  2010-07-05 17:20:14  aboudreault
+ * Added Krovak projection suppoprt (bug 2230)
+ *
  * Revision 1.36  2007-11-21 21:15:45  dmorissette
  * Fix asDatumInfoList[] and asSpheroidInfoList[] defns/refs (bug 1826)
  *
@@ -373,7 +376,11 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
 /*      Note that per GDAL bug 1113 the false easting and north are     */
 /*      in local units, not necessarily meters.                         */
 /* -------------------------------------------------------------------- */
-    switch( nProjection )
+    int nBaseProjection = nProjection;
+    if (nBaseProjection>=3000) nBaseProjection -=3000;
+    else if (nBaseProjection>=2000) nBaseProjection -=2000;
+    else if (nBaseProjection>=1000) nBaseProjection -=1000;
+    switch( nBaseProjection )
     {
         /*--------------------------------------------------------------
          * NonEarth ... we return with an empty SpatialRef.  Eventually
@@ -671,6 +678,19 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
             GetMIFParm( papszNextField, 2, 0.0 ),
             GetMIFParm( papszNextField, 3, 0.0 ) );
         break;
+
+        /*--------------------------------------------------------------
+         * Krovak
+         *-------------------------------------------------------------*/
+       case 32:
+         poSR->SetKrovak( GetMIFParm( papszNextField, 1, 0.0 ),  // dfCenterLat
+                          GetMIFParm( papszNextField, 0, 0.0 ),  // dfCenterLong
+                          GetMIFParm( papszNextField, 3, 1.0 ),  // dfAzimuth
+                          GetMIFParm( papszNextField, 2, 0.0 ),  // dfPseudoStdParallelLat
+                          1.0,									  // dfScale
+                          GetMIFParm( papszNextField, 4, 0.0 ),  // dfFalseEasting
+                          GetMIFParm( papszNextField, 5, 0.0 )); // dfFalseNorthing
+         break;
 
       default:
         break;
@@ -1138,6 +1158,18 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
         parms[2] = poSR->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
         parms[3] = poSR->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
         nParmCount = 4;
+    }
+
+    else if( EQUAL(pszProjection,SRS_PT_KROVAK) )
+    {
+        nProjection = 32;
+        parms[0] = poSR->GetProjParm(SRS_PP_LONGITUDE_OF_CENTER,0.0);
+        parms[1] = poSR->GetProjParm(SRS_PP_LATITUDE_OF_CENTER,0.0);
+        parms[2] = poSR->GetProjParm(SRS_PP_PSEUDO_STD_PARALLEL_1,0.0);
+        parms[3] = poSR->GetProjParm(SRS_PP_AZIMUTH,0.0);
+        parms[4] = poSR->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSR->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+        nParmCount = 6;
     }
 
     /* ==============================================================

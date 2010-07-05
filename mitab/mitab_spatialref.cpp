@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.49 2009-10-15 16:16:37 fwarmerdam Exp $
+ * $Id: mitab_spatialref.cpp,v 1.50 2010-07-05 17:20:14 aboudreault Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
+ * Revision 1.50  2010-07-05 17:20:14  aboudreault
+ * Added Krovak projection suppoprt (bug 2230)
+ *
  * Revision 1.49  2009-10-15 16:16:37  fwarmerdam
  * add the default EPSG/OGR name for new zealand datums (gdal #3187)
  *
@@ -237,7 +240,6 @@ MapInfoDatumInfo asDatumInfoList[] =
 {29, "European_Datum_1979",         4, -86,  -98,  -119,0, 0, 0, 0, 0},
 {30, "Gandajika_1970",              4, -133, -321, 50,  0, 0, 0, 0, 0},
 {31, "New_Zealand_GD49",            4, 84,   -22,  209, 0, 0, 0, 0, 0},
-{31, "New_Zealand_Geodetic_Datum_1949",4,84, -22,  209, 0, 0, 0, 0, 0},
 {32, "GRS_67",                      21,0,    0,    0,   0, 0, 0, 0, 0},
 {33, "GRS_80",                      0, 0,    0,    0,   0, 0, 0, 0, 0},
 {34, "Guam_1963",                   7, -100, -248, 259, 0, 0, 0, 0, 0},
@@ -324,7 +326,6 @@ MapInfoDatumInfo asDatumInfoList[] =
 {115, "Euref_98",                   0, 0,    0,   0,    0, 0, 0, 0, 0},
 {116, "GDA94",                      0, 0,    0,   0,    0, 0, 0, 0, 0},
 {117, "NZGD2000",                   0, 0,    0,   0,    0, 0, 0, 0, 0},
-{117, "New_Zealand_Geodetic_Datum_2000",0,0, 0,   0,    0, 0, 0, 0, 0},
 {118, "America_Samoa",              7, -115, 118, 426,  0, 0, 0, 0, 0},
 {119, "Antigua_Astro_1965",         6, -270, 13,  62,   0, 0, 0, 0, 0},
 {120, "Ayabelle_Lighthouse",        6, -79, -129, 145,  0, 0, 0, 0, 0},
@@ -377,6 +378,10 @@ MapInfoDatumInfo asDatumInfoList[] =
 {1014,"Russia_SK95",                52, 24.82,-131.21,-82.66,0,0,-0.16,-0.12, 0},
 {1015,"Tokyo",                      10, -146.414, 507.337, 680.507,0,0,0,0,0},
 {1016,"Finnish_KKJ",                4, -96.062, -82.428, -121.754, -4.801, -0.345, 1.376, 1.496, 0},
+{1017,"Xian 1980",					53, 24, -123, -94, -0.02, -0.25, 0.13, 1.1, 0},
+{1018,"Lithuanian Pulkovo 1942",	4, -40.59527, -18.54979, -69.33956, -2.508, -1.8319, 2.6114, -4.2991, 0},
+{1019,"Belgian 1972 7 Parameter",   4, -99.059, 53.322, -112.486, -0.419, 0.83, -1.885, 0.999999, 0},
+{1020,"S-JTSK with Ferro prime meridian", 10, 589, 76, 480, 0, 0, 0, 0, -17.666666666667}, 
 
 {-1, NULL,                          0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
@@ -870,6 +875,19 @@ OGRSpatialReference *TABFile::GetSpatialRef()
                                sTABProj.adProjParams[3] );
         break;
 
+     /*--------------------------------------------------------------
+      * Krovak
+      *-------------------------------------------------------------*/
+      case 32:
+        m_poSpatialRef->SetKrovak( sTABProj.adProjParams[1],   // dfCenterLat
+                                   sTABProj.adProjParams[0],   // dfCenterLong
+                                   sTABProj.adProjParams[3],   // dfAzimuth
+                                   sTABProj.adProjParams[2],   // dfPseudoStdParallelLat
+                                   1.0,					     // dfScale
+                                   sTABProj.adProjParams[4],   // dfFalseEasting
+                                   sTABProj.adProjParams[5] ); // dfFalseNorthing
+        break;
+
       default:
         break;
     }
@@ -961,7 +979,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
             && sTABProj.adDatumParams[4] == 0.0 )
         {
             sprintf( szDatumName,
-                     "MIF 999,%d,%.4g,%.4g,%.4g",
+                     "MIF 999,%d,%.15g,%.15g,%.15g", 
                      sTABProj.nEllipsoidId,
                      sTABProj.dDatumShiftX, 
                      sTABProj.dDatumShiftY, 
@@ -970,7 +988,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         else
         {
             sprintf( szDatumName,
-                     "MIF 9999,%d,%.4g,%.4g,%.4g,%.15g,%.15g,%.15g,%.15g,%.15g",
+                     "MIF 9999,%d,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g,%.15g",
                      sTABProj.nEllipsoidId,
                      sTABProj.dDatumShiftX, 
                      sTABProj.dDatumShiftY, 
@@ -1118,6 +1136,17 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     sTABProj.adDatumParams[3] = 0.0;
     sTABProj.adDatumParams[4] = 0.0;
 
+#ifdef MITAB_AFFINE_PARAMS
+    // Encom 2003
+    sTABProj.nAffineFlag   = poSpatialRef->nAffineFlag; 
+    sTABProj.nAffineUnits  = poSpatialRef->nAffineUnit; 
+    sTABProj.dAffineParamA = poSpatialRef->dAffineParamA;
+    sTABProj.dAffineParamB = poSpatialRef->dAffineParamB;
+    sTABProj.dAffineParamC = poSpatialRef->dAffineParamC;
+    sTABProj.dAffineParamD = poSpatialRef->dAffineParamD;
+    sTABProj.dAffineParamE = poSpatialRef->dAffineParamE;
+    sTABProj.dAffineParamF = poSpatialRef->dAffineParamF;
+#else
     // Encom 2003
     sTABProj.nAffineFlag   = 0;
     sTABProj.nAffineUnits  = 7;
@@ -1127,7 +1156,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     sTABProj.dAffineParamD = 0.0;
     sTABProj.dAffineParamE = 0.0;
     sTABProj.dAffineParamF = 0.0;
-    
+#endif    
     /*-----------------------------------------------------------------
      * Get the linear units and conversion.
      *----------------------------------------------------------------*/
@@ -1396,6 +1425,17 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         parms[2] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
         parms[3] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
     }
+
+   else if( EQUAL(pszProjection,SRS_PT_KROVAK) )
+   {
+        sTABProj.nProjId = 32;
+        parms[0] = poSpatialRef->GetProjParm(SRS_PP_CENTRAL_MERIDIAN,0.0);
+        parms[1] = poSpatialRef->GetProjParm(SRS_PP_LATITUDE_OF_ORIGIN,0.0);
+        parms[2] = poSpatialRef->GetProjParm(SRS_PP_PSEUDO_STD_PARALLEL_1,0.0);
+        parms[3] = poSpatialRef->GetProjParm(SRS_PP_AZIMUTH,0.0);
+        parms[4] = poSpatialRef->GetProjParm(SRS_PP_FALSE_EASTING,0.0);
+        parms[5] = poSpatialRef->GetProjParm(SRS_PP_FALSE_NORTHING,0.0);
+   }
 
     /* ==============================================================
      * Translate Datum and Ellipsoid

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.37 2010-07-05 17:20:14 aboudreault Exp $
+ * $Id: mitab_coordsys.cpp,v 1.38 2010-07-05 18:32:48 aboudreault Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
+ * Revision 1.38  2010-07-05 18:32:48  aboudreault
+ * Fixed memory leaks in mitab_capi.cpp and mitab_coordsys.cpp
+ *
  * Revision 1.37  2010-07-05 17:20:14  aboudreault
  * Added Krovak projection suppoprt (bug 2230)
  *
@@ -250,6 +253,7 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
             CPLError(CE_Warning, CPLE_IllegalArg,
                      "Failed parsing CoordSys: '%s'", pszCoordSys);
         CSLDestroy(papszFields);
+        delete poSR;
         return NULL;
     }
 

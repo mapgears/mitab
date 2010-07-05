@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.74 2010-01-07 20:39:12 aboudreault Exp $
+ * $Id: mitab_tabfile.cpp,v 1.75 2010-07-05 14:58:33 aboudreault Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
+ * Revision 1.75  2010-07-05 14:58:33  aboudreault
+ * Fixed bad feature count after we deleted a feature in MapInfo (bug 2227)
+ *
  * Revision 1.74  2010-01-07 20:39:12  aboudreault
  * Added support to handle duplicate field names, Added validation to check if a field name start with a number (bug 2141)
  *
@@ -140,7 +143,7 @@ TABFile::~TABFile()
 int TABFile::GetFeatureCount (int bForce)
 {
     
-    if( m_poFilterGeom != NULL || m_poAttrQuery != NULL )
+    if( m_poFilterGeom != NULL || m_poAttrQuery != NULL || bForce)
         return OGRLayer::GetFeatureCount( bForce );
     else
         return m_nLastFeatureId;

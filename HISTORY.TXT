@@ -35,6 +35,8 @@ Version 2.0-dev (CVS)
   passed in feature instead of through the return value of the method as
   was the case with the old SetFeature() method in MITAB 1.x.
 
+- C API: added mitab_c_bounds_set() function (bug 2233)
+
 - Added support for extended text attributes - new function for text style and symbol style (bug 2232)
 
 - Fixed TABCleanFieldName() function should allow char '#' in field name (bug 2231)
@@ -980,5 +982,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.243 2010-07-05 18:13:12 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.244 2010-07-05 18:23:53 aboudreault Exp $
 ------------

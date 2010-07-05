@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.51 2010-07-05 18:13:12 aboudreault Exp $
+ * $Id: mitab_capi.cpp,v 1.52 2010-07-05 18:23:53 aboudreault Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
+ * Revision 1.52  2010-07-05 18:23:53  aboudreault
+ * C API: added mitab_c_bounds_set() function (bug 2233)
+ *
  * Revision 1.51  2010-07-05 18:13:12  aboudreault
  * Added support for extended text attributes - new function for text style and symbol style (bug 2232)
  *
@@ -541,6 +544,20 @@ mitab_c_create( const char * filename,
     return (mitab_handle) poFile;
 }
 
+/************************************************************************/
+/*                   mitab_c_bounds_set()                               */
+/************************************************************************/
+
+int MITAB_STDCALL
+mitab_c_bounds_set( mitab_handle dataset)
+{
+    IMapInfoFile  *poFile = (IMapInfoFile *) dataset;
+
+    if (poFile->IsBoundsSet())
+        return 1;
+    else
+        return 0;
+}
 
 /************************************************************************/
 /*                   mitab_c_set_quick_spatial_index_mode()             */

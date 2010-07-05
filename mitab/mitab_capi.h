@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.37 2010-07-05 18:13:12 aboudreault Exp $
+ * $Id: mitab_capi.h,v 1.38 2010-07-05 18:23:53 aboudreault Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
+ * Revision 1.38  2010-07-05 18:23:53  aboudreault
+ * C API: added mitab_c_bounds_set() function (bug 2233)
+ *
  * Revision 1.37  2010-07-05 18:13:12  aboudreault
  * Added support for extended text attributes - new function for text style and symbol style (bug 2232)
  *
@@ -243,6 +246,7 @@ mitab_handle MITAB_DLL MITAB_STDCALL mitab_c_create( const char * filename,
                                        const char * mif_projectiondef,
                                        double north, double south,
                                        double east, double west );
+int MITAB_DLL MITAB_STDCALL mitab_c_bounds_set( mitab_handle handle ); // Returns 1 if bounds set, 0 otherwise.
 
 int MITAB_DLL MITAB_STDCALL mitab_c_set_quick_spatial_index_mode( mitab_handle handle );
 

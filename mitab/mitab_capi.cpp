@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.53 2010-07-05 18:32:48 aboudreault Exp $
+ * $Id: mitab_capi.cpp,v 1.54 2010-07-05 19:01:20 aboudreault Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
+ * Revision 1.54  2010-07-05 19:01:20  aboudreault
+ * Reverted last SetFeature change in mitab_capi.cpp and fixed another memory leak
+ *
  * Revision 1.53  2010-07-05 18:32:48  aboudreault
  * Fixed memory leaks in mitab_capi.cpp and mitab_coordsys.cpp
  *
@@ -769,7 +772,7 @@ mitab_c_write_feature( mitab_handle handle, mitab_feature feature )
     IMapInfoFile        *poFile = (IMapInfoFile *) handle;
     TABFeature          *poFeature = (TABFeature *) feature;
 
-    return poFile->SetFeature( poFeature ) != -1;
+    return poFile->CreateFeature( poFeature ) != -1;
 }
 
 /************************************************************************/

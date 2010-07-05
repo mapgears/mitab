@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabview.cpp,v 1.20 2010-01-07 20:39:12 aboudreault Exp $
+ * $Id: mitab_tabview.cpp,v 1.21 2010-07-05 19:01:20 aboudreault Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_tabview.cpp,v $
+ * Revision 1.21  2010-07-05 19:01:20  aboudreault
+ * Reverted last SetFeature change in mitab_capi.cpp and fixed another memory leak
+ *
  * Revision 1.20  2010-01-07 20:39:12  aboudreault
  * Added support to handle duplicate field names, Added validation to check if a field name start with a number (bug 2141)
  *
@@ -700,6 +703,10 @@ int TABView::WriteTABFile()
     }
     else
     {
+        CPLFree(pszTable);
+        CPLFree(pszTable1);
+        CPLFree(pszTable2);
+        
         CPLError(CE_Failure, CPLE_FileIO,
                  "Failed to create file `%s'", m_pszFname);
         return -1;

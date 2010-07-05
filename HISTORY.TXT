@@ -37,7 +37,7 @@ Version 2.0-dev (CVS)
 
 - Fixed incorrect parameters for krovak projection in ogr_srs_proj4.cpp
  
-- Fixed memory leaks in mitab_capi.cpp and mitab_coordsys.cpp
+- Fixed memory leaks in mitab_capi.cpp and mitab_coordsys.cpp and mitab_tabview.cpp
 
 - C API: added mitab_c_bounds_set() function (bug 2233)
 
@@ -986,5 +986,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.246 2010-07-05 18:39:57 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.247 2010-07-05 19:01:20 aboudreault Exp $
 ------------

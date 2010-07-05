@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.50 2009-07-28 21:35:29 aboudreault Exp $
+ * $Id: mitab_capi.cpp,v 1.51 2010-07-05 18:13:12 aboudreault Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
+ * Revision 1.51  2010-07-05 18:13:12  aboudreault
+ * Added support for extended text attributes - new function for text style and symbol style (bug 2232)
+ *
  * Revision 1.50  2009-07-28 21:35:29  aboudreault
  * Added functions to get the file version (bug 1961)
  *
@@ -1922,7 +1925,8 @@ mitab_c_get_symbol_color( mitab_feature feature )
     TABPoint    *poFeature = (TABPoint *) feature;
 
     if(( poFeature->GetFeatureClass() == TABFC_Point ) ||
-       ( poFeature->GetFeatureClass() == TABFC_MultiPoint ))
+       ( poFeature->GetFeatureClass() == TABFC_MultiPoint) ||
+       ( poFeature->GetFeatureClass() == TABFCFontPoint ))
     {
         return poFeature->GetSymbolColor();
     }
@@ -1948,7 +1952,8 @@ mitab_c_get_symbol_no( mitab_feature feature )
     TABPoint    *poFeature = (TABPoint *) feature;
 
     if(( poFeature->GetFeatureClass() == TABFC_Point ) ||
-       ( poFeature->GetFeatureClass() == TABFC_MultiPoint ))
+       ( poFeature->GetFeatureClass() == TABFC_MultiPoint) ||
+       ( poFeature->GetFeatureClass() == TABFCFontPoint ))
     {
         return poFeature->GetSymbolNo();
     }
@@ -1974,7 +1979,8 @@ mitab_c_get_symbol_size( mitab_feature feature )
     TABPoint    *poFeature = (TABPoint *) feature;
 
     if(( poFeature->GetFeatureClass() == TABFC_Point ) ||
-       ( poFeature->GetFeatureClass() == TABFC_MultiPoint ))
+       ( poFeature->GetFeatureClass() == TABFC_MultiPoint) ||
+       ( poFeature->GetFeatureClass() == TABFCFontPoint )) 
     {
         return poFeature->GetSymbolSize();
     }
@@ -2200,6 +2206,88 @@ mitab_c_get_field_count( mitab_handle handle )
     return 0;
 }
 
+/************************************************************************/
+/*                         mitab_c_get_symbol_style()                   */
+/************************************************************************/
+
+/**
+ * Get the point symbol's style. Applies only to point objects of type
+ * TABFC_FontPoint.
+ *
+ * @param feature the mitab_feature object.
+ * @return the symbol style number
+ */
+
+int MITAB_STDCALL
+mitab_c_get_symbol_style( mitab_feature feature)
+
+{
+    TABFontPoint    *poFeature = (TABFontPoint *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_FontPoint )
+    {
+        return poFeature->GetFontStyleTABValue();
+    }
+
+    return -1;
+} 
+
+/************************************************************************/
+/*                         mitab_c_set_symbol_style()                   */
+/************************************************************************/
+
+/**
+ * Set the point symbol's style. Applies only to point objects of type
+ * TABFC_FontPoint.
+ *
+ * @param feature the mitab_feature object.
+ * @param symbol_style the symbol style number
+ */
+
+void MITAB_STDCALL
+mitab_c_set_symbol_style( mitab_feature feature, int symbol_style )
+
+{
+    TABFontPoint    *poFeature = (TABFontPoint *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_FontPoint )
+    {
+		poFeature->SetFontStyleTABValue(symbol_style);
+    }
+}
+
+/************************************************************************/
+/*                         mitab_c_get_text_style()                     */
+/************************************************************************/
+
+int MITAB_STDCALL
+mitab_c_get_text_style( mitab_feature feature)
+{
+    TABText    *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+        return poFeature->GetFontStyleTABValue();
+    }
+
+    return -1;
+}    
+
+/************************************************************************/
+/*                         mitab_c_set_text_style()                     */
+/************************************************************************/
+
+void MITAB_STDCALL
+mitab_c_set_text_style( mitab_feature feature, int text_style )
+{
+    TABText    *poFeature = (TABText *) feature;
+
+    if( poFeature->GetFeatureClass() == TABFC_Text )
+    {
+		poFeature->SetFontStyleTABValue(text_style);
+
+    }
+}
 
 /************************************************************************/
 /*                       mitab_c_get_feature_count()                    */

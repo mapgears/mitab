@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.36 2009-07-28 21:35:29 aboudreault Exp $
+ * $Id: mitab_capi.h,v 1.37 2010-07-05 18:13:12 aboudreault Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
+ * Revision 1.37  2010-07-05 18:13:12  aboudreault
+ * Added support for extended text attributes - new function for text style and symbol style (bug 2232)
+ *
  * Revision 1.36  2009-07-28 21:35:29  aboudreault
  * Added functions to get the file version (bug 1961)
  *
@@ -336,6 +339,10 @@ int MITAB_DLL MITAB_STDCALL
 mitab_c_get_symbol_size( mitab_feature feature );
 double MITAB_DLL MITAB_STDCALL
 mitab_c_get_symbol_angle( mitab_feature feature );
+int  MITAB_DLL MITAB_STDCALL mitab_c_get_symbol_style( mitab_feature feature); 
+void MITAB_DLL MITAB_STDCALL mitab_c_set_symbol_style( mitab_feature feature, int symbol_style );
+int  MITAB_DLL MITAB_STDCALL mitab_c_get_text_style( mitab_feature feature);
+void MITAB_DLL MITAB_STDCALL mitab_c_set_text_style( mitab_feature feature, int text_style );
 
 void MITAB_DLL MITAB_STDCALL mitab_c_set_points( mitab_feature feature, int part,
                                    int vertex_count, double * x, double * y );

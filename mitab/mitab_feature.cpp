@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.96 2009-07-30 13:13:43 dmorissette Exp $
+ * $Id: mitab_feature.cpp,v 1.97 2010-07-06 13:56:26 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
+ * Revision 1.97  2010-07-06 13:56:26  aboudreault
+ * Fixed TABText::GetLabelStyleString() doesn't escape the double quote character (bug 2236)
+ *
  * Revision 1.96  2009-07-30 13:13:43  dmorissette
  * Fixed incorrect text justification returned by GetLabelStyleString()
  * for TABTJRight (bug 2085)
@@ -6197,25 +6200,39 @@ const char *TABText::GetLabelStyleString()
             if (isalpha(pszTextString[i])) 
                 pszTextString[i] = (char)toupper(pszTextString[i]);
     
+    /* Escape the double quote chars and expand the text */
+    char *pszTmpTextString;
+    int j = 0;
+
     if  (QueryFontStyle(TABFSExpanded))
-    {
-        char *pszTmpTextString = (char*)CPLMalloc(((nStringLen*2)+1)*sizeof(char));
-        int j = 0;
-
-        for (int i =0; i < nStringLen; ++i)
-        { 
-            pszTmpTextString[j] = pszTextString[i];
-            pszTmpTextString[j+1] = ' ';
-            j += 2;
-        }
-
-        pszTmpTextString[j-1] = '\0';
-        CPLFree(pszTextString);
-        pszTextString = (char*)CPLMalloc((strlen(pszTmpTextString)+1)*sizeof(char));
-        strcpy(pszTextString, pszTmpTextString);
-        CPLFree(pszTmpTextString);
-    }
+        pszTmpTextString = (char*)CPLMalloc(((nStringLen*4)+1)*sizeof(char));
+    else
+        pszTmpTextString = (char*)CPLMalloc(((nStringLen*2)+1)*sizeof(char));
     
+    for (int i =0; i < nStringLen; ++i,++j)
+    { 
+        if (pszTextString[i] == '"') 
+        {
+            pszTmpTextString[j] = '\\';
+            pszTmpTextString[j+1] = pszTextString[i];
+            ++j;
+        }
+        else
+            pszTmpTextString[j] = pszTextString[i];
+
+        if  (QueryFontStyle(TABFSExpanded))
+        {
+            pszTmpTextString[j+1] = ' ';
+            ++j;
+        }
+    }  
+      
+    pszTmpTextString[j] = '\0';
+    CPLFree(pszTextString);
+    pszTextString = (char*)CPLMalloc((strlen(pszTmpTextString)+1)*sizeof(char));
+    strcpy(pszTextString, pszTmpTextString);
+    CPLFree(pszTmpTextString);
+
     const char *pszBGColor = IsFontBGColorUsed() ? CPLSPrintf(",b:#%6.6x",
                                                               GetFontBGColor()) :"";
     const char *pszOColor =  IsFontOColorUsed() ? CPLSPrintf(",o:#%6.6x",

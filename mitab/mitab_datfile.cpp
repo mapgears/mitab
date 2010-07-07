@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_datfile.cpp,v 1.21 2009-06-08 20:30:46 dmorissette Exp $
+ * $Id: mitab_datfile.cpp,v 1.22 2010-07-07 19:00:15 aboudreault Exp $
  *
  * Name:     mitab_datfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_datfile.cpp,v $
+ * Revision 1.22  2010-07-07 19:00:15  aboudreault
+ * Cleanup Win32 Compile Warnings (GDAL bug #2930)
+ *
  * Revision 1.21  2009-06-08 20:30:46  dmorissette
  * Fixed threading issue (static buffer) in Date and DateTime code (GDAL
  * ticket #1883)
@@ -431,8 +434,8 @@ int  TABDATFile::WriteHeader()
     m_poHeaderBlock->WriteByte(9);     // Last update day
 
     m_poHeaderBlock->WriteInt32(m_numRecords);
-    m_poHeaderBlock->WriteInt16(m_nFirstRecordPtr);
-    m_poHeaderBlock->WriteInt16(m_nRecordSize);
+    m_poHeaderBlock->WriteInt16((GInt16)m_nFirstRecordPtr);
+    m_poHeaderBlock->WriteInt16((GInt16)m_nRecordSize);
 
     m_poHeaderBlock->WriteZeros(20);    // Pad rest with zeros
 
@@ -936,7 +939,7 @@ GInt16 TABDATFile::ReadSmallIntField(int nWidth)
     }
 
     if (m_eTableType == TABTableDBF)
-        return atoi(ReadCharField(nWidth));
+        return (GInt16)atoi(ReadCharField(nWidth));
 
     return m_poRecordBlock->ReadInt16();
 }
@@ -1531,9 +1534,9 @@ int TABDATFile::WriteDateField(int nYear, int nMonth, int nDay,
         return -1;
     }
     
-    m_poRecordBlock->WriteInt16(nYear);
-    m_poRecordBlock->WriteByte(nMonth);
-    m_poRecordBlock->WriteByte(nDay);
+    m_poRecordBlock->WriteInt16((GInt16)nYear);
+    m_poRecordBlock->WriteByte((GByte)nMonth);
+    m_poRecordBlock->WriteByte((GByte)nDay);
 
     if (CPLGetLastErrorNo() != 0)
         return -1;
@@ -1785,9 +1788,9 @@ int TABDATFile::WriteDateTimeField(int nYear, int nMonth, int nDay,
         return -1;
     }
 
-    m_poRecordBlock->WriteInt16(nYear);
-    m_poRecordBlock->WriteByte(nMonth);
-    m_poRecordBlock->WriteByte(nDay);
+    m_poRecordBlock->WriteInt16((GInt16)nYear);
+    m_poRecordBlock->WriteByte((GByte)nMonth);
+    m_poRecordBlock->WriteByte((GByte)nDay);
     m_poRecordBlock->WriteInt32(nS);
 
     if (CPLGetLastErrorNo() != 0)

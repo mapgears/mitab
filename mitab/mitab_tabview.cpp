@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabview.cpp,v 1.21 2010-07-05 19:01:20 aboudreault Exp $
+ * $Id: mitab_tabview.cpp,v 1.22 2010-07-07 19:00:15 aboudreault Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_tabview.cpp,v $
+ * Revision 1.22  2010-07-07 19:00:15  aboudreault
+ * Cleanup Win32 Compile Warnings (GDAL bug #2930)
+ *
  * Revision 1.21  2010-07-05 19:01:20  aboudreault
  * Reverted last SetFeature change in mitab_capi.cpp and fixed another memory leak
  *
@@ -198,12 +201,12 @@ int TABView::Open(const char *pszFname, const char *pszAccess,
     if (EQUALN(pszAccess, "r", 1))
     {
         m_eAccessMode = TABRead;
-        nStatus = OpenForRead(pszFname, bTestOpenNoError);
+        nStatus = (char)OpenForRead(pszFname, bTestOpenNoError);
     }
     else if (EQUALN(pszAccess, "w", 1))
     {
         m_eAccessMode = TABWrite;
-        nStatus = OpenForWrite(pszFname);
+        nStatus = (char)OpenForWrite(pszFname);
     }
     else
     {

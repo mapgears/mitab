@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.38 2010-07-05 18:32:48 aboudreault Exp $
+ * $Id: mitab_coordsys.cpp,v 1.39 2010-07-07 19:00:15 aboudreault Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
+ * Revision 1.39  2010-07-07 19:00:15  aboudreault
+ * Cleanup Win32 Compile Warnings (GDAL bug #2930)
+ *
  * Revision 1.38  2010-07-05 18:32:48  aboudreault
  * Fixed memory leaks in mitab_capi.cpp and mitab_coordsys.cpp
  *
@@ -1473,7 +1476,7 @@ int MITABCoordSys2TABProjInfo(const char * pszCoordSys, TABProjInfo *psProj)
         && EQUAL(papszFields[0],"Earth")
         && EQUAL(papszFields[1],"Projection") )
     {
-        psProj->nProjId = atoi(papszFields[2]);
+        psProj->nProjId = (GByte)atoi(papszFields[2]);
         papszNextField = papszFields + 3;
     }
     else if (CSLCount( papszFields ) >= 2
@@ -1510,7 +1513,7 @@ int MITABCoordSys2TABProjInfo(const char * pszCoordSys, TABProjInfo *psProj)
     if( (nDatum == 999 || nDatum == 9999)
         && CSLCount(papszNextField) >= 4 )
     {
-        psProj->nEllipsoidId = atoi(papszFields[0]);
+        psProj->nEllipsoidId = (GByte)atoi(papszFields[0]);
         psProj->dDatumShiftX = atof(papszNextField[1]);
         psProj->dDatumShiftY = atof(papszNextField[2]);
         psProj->dDatumShiftZ = atof(papszNextField[3]);
@@ -1553,8 +1556,8 @@ int MITABCoordSys2TABProjInfo(const char * pszCoordSys, TABProjInfo *psProj)
 
         if( psDatumInfo != NULL )
         {
-            psProj->nEllipsoidId = psDatumInfo->nEllipsoid;
-            psProj->nDatumId = psDatumInfo->nMapInfoDatumID;
+            psProj->nEllipsoidId = (GByte)psDatumInfo->nEllipsoid;
+            psProj->nDatumId = (GInt16)psDatumInfo->nMapInfoDatumID;
             psProj->dDatumShiftX = psDatumInfo->dfShiftX;
             psProj->dDatumShiftY = psDatumInfo->dfShiftY;
             psProj->dDatumShiftZ = psDatumInfo->dfShiftZ;
@@ -1571,7 +1574,7 @@ int MITABCoordSys2TABProjInfo(const char * pszCoordSys, TABProjInfo *psProj)
      *----------------------------------------------------------------*/
     if( CSLCount(papszNextField) > 0 )
     {
-        psProj->nUnitsId = TABUnitIdFromString(papszNextField[0]);
+        psProj->nUnitsId = (GByte)TABUnitIdFromString(papszNextField[0]);
         papszNextField++;
     }
 

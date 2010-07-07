@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.53 2010-05-07 19:39:19 aboudreault Exp $
+ * $Id: mitab_miffile.cpp,v 1.54 2010-07-07 19:00:15 aboudreault Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
+ * Revision 1.54  2010-07-07 19:00:15  aboudreault
+ * Cleanup Win32 Compile Warnings (GDAL bug #2930)
+ *
  * Revision 1.53  2010-05-07 19:39:19  aboudreault
  * Fixed MIF driver: doesn't create a layer defn at layer creation (bug 2180)
  *
@@ -1195,8 +1198,6 @@ int MIFFile::GetNextFeatureId(int nPrevId)
         return nPrevId + 1;
     else
         return -1;
-
-    return 0;
 }
 
 /**********************************************************************

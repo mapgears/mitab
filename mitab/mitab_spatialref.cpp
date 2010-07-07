@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.50 2010-07-05 17:20:14 aboudreault Exp $
+ * $Id: mitab_spatialref.cpp,v 1.51 2010-07-07 19:00:15 aboudreault Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
+ * Revision 1.51  2010-07-07 19:00:15  aboudreault
+ * Cleanup Win32 Compile Warnings (GDAL bug #2930)
+ *
  * Revision 1.50  2010-07-05 17:20:14  aboudreault
  * Added Krovak projection suppoprt (bug 2230)
  *
@@ -1487,7 +1490,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
 
         if( CSLCount(papszFields) >= 5 )
         {
-            sTABProj.nEllipsoidId = atoi(papszFields[1]);
+            sTABProj.nEllipsoidId = (GByte)atoi(papszFields[1]);
             sTABProj.dDatumShiftX = atof(papszFields[2]);
             sTABProj.dDatumShiftY = atof(papszFields[3]);
             sTABProj.dDatumShiftZ = atof(papszFields[4]);
@@ -1531,8 +1534,8 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
 
     if( psDatumInfo != NULL )
     {
-        sTABProj.nEllipsoidId = psDatumInfo->nEllipsoid;
-        sTABProj.nDatumId = psDatumInfo->nMapInfoDatumID;
+        sTABProj.nEllipsoidId = (GByte)psDatumInfo->nEllipsoid;
+        sTABProj.nDatumId = (GInt16)psDatumInfo->nMapInfoDatumID;
         sTABProj.dDatumShiftX = psDatumInfo->dfShiftX;
         sTABProj.dDatumShiftY = psDatumInfo->dfShiftY;
         sTABProj.dDatumShiftZ = psDatumInfo->dfShiftZ;

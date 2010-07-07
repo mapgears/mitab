@@ -35,6 +35,8 @@ Version 2.0-dev (CVS)
   passed in feature instead of through the return value of the method as
   was the case with the old SetFeature() method in MITAB 1.x.
 
+- Fixed Win32 Compile Warnings (GDAL bug #2930)
+
 - Fixed TABText::GetLabelStyleString() doesn't escape the double quote character (bug 2236)
 
 - Fixed incorrect parameters for krovak projection in ogr_srs_proj4.cpp
@@ -988,5 +990,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.248 2010-07-06 13:56:26 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.249 2010-07-07 19:00:15 aboudreault Exp $
 ------------

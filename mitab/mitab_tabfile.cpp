@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.75 2010-07-05 14:58:33 aboudreault Exp $
+ * $Id: mitab_tabfile.cpp,v 1.76 2010-07-07 19:00:15 aboudreault Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
+ * Revision 1.76  2010-07-07 19:00:15  aboudreault
+ * Cleanup Win32 Compile Warnings (GDAL bug #2930)
+ *
  * Revision 1.75  2010-07-05 14:58:33  aboudreault
  * Fixed bad feature count after we deleted a feature in MapInfo (bug 2227)
  *
@@ -1311,7 +1314,7 @@ TABFeature *TABFile::GetFeatureRef(int nFeatureId)
      * MoveToObjId() has already been called above...
      *----------------------------------------------------------------*/
     TABMAPObjHdr *poObjHdr = 
-        TABMAPObjHdr::NewObj(m_poMAPFile->GetCurObjType(), 
+        TABMAPObjHdr::NewObj((GByte)m_poMAPFile->GetCurObjType(), 
                              m_poMAPFile->GetCurObjId());
     // Note that poObjHdr==NULL is a valid case if geometry type is NONE
 
@@ -1421,7 +1424,7 @@ int TABFile::WriteFeature(TABFeature *poFeature, int nFeatureId /*=-1*/)
      * The call to PrepareNewObj() takes care of the .ID file.
      *----------------------------------------------------------------*/
     TABMAPObjHdr *poObjHdr = 
-        TABMAPObjHdr::NewObj(poFeature->ValidateMapInfoType(m_poMAPFile),
+        TABMAPObjHdr::NewObj((GByte)poFeature->ValidateMapInfoType(m_poMAPFile),
                              nFeatureId);
     
     /*-----------------------------------------------------------------

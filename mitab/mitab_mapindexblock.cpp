@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_mapindexblock.cpp,v 1.13 2007-04-02 18:58:03 dmorissette Exp $
+ * $Id: mitab_mapindexblock.cpp,v 1.14 2010-07-07 19:00:15 aboudreault Exp $
  *
  * Name:     mitab_mapindexblock.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_mapindexblock.cpp,v $
+ * Revision 1.14  2010-07-07 19:00:15  aboudreault
+ * Cleanup Win32 Compile Warnings (GDAL bug #2930)
+ *
  * Revision 1.13  2007-04-02 18:58:03  dmorissette
  * Fixed uninitialized variable warning in PickSeedsForSplit()
  *
@@ -219,7 +222,7 @@ int     TABMAPIndexBlock::CommitToFile()
     GotoByteInBlock(0x000);
 
     WriteInt16(TABMAP_INDEX_BLOCK);    // Block type code
-    WriteInt16(m_numEntries);
+    WriteInt16((GInt16)m_numEntries);
 
     nStatus = CPLGetLastErrorNo();
 

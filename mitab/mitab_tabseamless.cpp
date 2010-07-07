@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabseamless.cpp,v 1.9 2009-03-10 13:50:02 aboudreault Exp $
+ * $Id: mitab_tabseamless.cpp,v 1.10 2010-07-07 19:00:15 aboudreault Exp $
  *
  * Name:     mitab_tabseamless.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_tabseamless.cpp,v $
+ * Revision 1.10  2010-07-07 19:00:15  aboudreault
+ * Cleanup Win32 Compile Warnings (GDAL bug #2930)
+ *
  * Revision 1.9  2009-03-10 13:50:02  aboudreault
  * Fixed Overflow of FIDs in Seamless tables (bug 2015)
  *
@@ -168,7 +171,7 @@ int TABSeamless::Open(const char *pszFname, const char *pszAccess,
     if (EQUALN(pszAccess, "r", 1))
     {
         m_eAccessMode = TABRead;
-        nStatus = OpenForRead(pszFname, bTestOpenNoError);
+        nStatus = (char)OpenForRead(pszFname, bTestOpenNoError);
     }
     else
     {

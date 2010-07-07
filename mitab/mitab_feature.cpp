@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.97 2010-07-06 13:56:26 aboudreault Exp $
+ * $Id: mitab_feature.cpp,v 1.98 2010-07-07 19:00:15 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
+ * Revision 1.98  2010-07-07 19:00:15  aboudreault
+ * Cleanup Win32 Compile Warnings (GDAL bug #2930)
+ *
  * Revision 1.97  2010-07-06 13:56:26  aboudreault
  * Fixed TABText::GetLabelStyleString() doesn't escape the double quote character (bug 2236)
  *
@@ -593,7 +596,7 @@ int TABFeature::WriteRecordToDATFile(TABDATFile *poDATFile,
                                                 poINDFile, panIndexNo[iField]);
             break;
           case TABFSmallInt:
-            nStatus = poDATFile->WriteSmallIntField(GetFieldAsInteger(iField),
+            nStatus = poDATFile->WriteSmallIntField((GInt16)GetFieldAsInteger(iField),
                                                 poINDFile, panIndexNo[iField]);
             break;
           case TABFFloat:
@@ -1119,7 +1122,7 @@ int TABPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     poPointHdr->SetMBR(nX, nY, nX, nY);
 
     m_nSymbolDefIndex = poMapFile->WriteSymbolDef(&m_sSymbolDef);
-    poPointHdr->m_nSymbolId = m_nSymbolDefIndex;      // Symbol index
+    poPointHdr->m_nSymbolId = (GByte)m_nSymbolDefIndex;      // Symbol index
 
     if (CPLGetLastErrorNo() != 0)
         return -1;
@@ -1466,20 +1469,20 @@ int TABFontPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     poPointHdr->m_nPointSize = (GByte)m_sSymbolDef.nPointSize;  // point size
     poPointHdr->m_nFontStyle = m_nFontStyle;                    // font style
 
-    poPointHdr->m_nR = COLOR_R(m_sSymbolDef.rgbColor);
-    poPointHdr->m_nG = COLOR_G(m_sSymbolDef.rgbColor);
-    poPointHdr->m_nB = COLOR_B(m_sSymbolDef.rgbColor);
+    poPointHdr->m_nR = (GByte)COLOR_R(m_sSymbolDef.rgbColor);
+    poPointHdr->m_nG = (GByte)COLOR_G(m_sSymbolDef.rgbColor);
+    poPointHdr->m_nB = (GByte)COLOR_B(m_sSymbolDef.rgbColor);
 
     /*-------------------------------------------------------------
      * Symbol Angle, in thenths of degree.
      * Contrary to arc start/end angles, no conversion based on 
      * origin quadrant is required here
      *------------------------------------------------------------*/
-    poPointHdr->m_nAngle = ROUND_INT(m_dAngle * 10.0);
+    poPointHdr->m_nAngle = (GInt16)ROUND_INT(m_dAngle * 10.0);
 
     // Write Font Def
     m_nFontDefIndex = poMapFile->WriteFontDef(&m_sFontDef);
-    poPointHdr->m_nFontId = m_nFontDefIndex;      // Font name index
+    poPointHdr->m_nFontId = (GByte)m_nFontDefIndex;      // Font name index
 
     if (CPLGetLastErrorNo() != 0)
         return -1;
@@ -1533,7 +1536,7 @@ int TABFontPoint::GetFontStyleMIFValue()
 
 void TABFontPoint:: SetFontStyleMIFValue(int nStyle)
 {
-    m_nFontStyle = (nStyle & 0xff) + (nStyle & 0x7f00)*2;
+    m_nFontStyle = (GByte)((nStyle & 0xff) + (nStyle & 0x7f00)*2);
 }
 
 /**********************************************************************
@@ -1769,10 +1772,10 @@ int TABCustomPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                                                // 0x02=Apply Color
 
     m_nSymbolDefIndex = poMapFile->WriteSymbolDef(&m_sSymbolDef);
-    poPointHdr->m_nSymbolId = m_nSymbolDefIndex;      // Symbol index
+    poPointHdr->m_nSymbolId = (GByte)m_nSymbolDefIndex;      // Symbol index
 
     m_nFontDefIndex = poMapFile->WriteFontDef(&m_sFontDef);
-    poPointHdr->m_nFontId = m_nFontDefIndex;      // Font index
+    poPointHdr->m_nFontId = (GByte)m_nFontDefIndex;      // Font index
 
     if (CPLGetLastErrorNo() != 0)
         return -1;
@@ -2381,7 +2384,7 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         if (!bCoordBlockDataOnly)
         {
             m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
-            poLineHdr->m_nPenId = m_nPenDefIndex;      // Pen index
+            poLineHdr->m_nPenId = (GByte)m_nPenDefIndex;      // Pen index
         }
 
     }
@@ -2460,7 +2463,7 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         if (!bCoordBlockDataOnly)
         {
             m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
-            poPLineHdr->m_nPenId = m_nPenDefIndex;      // Pen index
+            poPLineHdr->m_nPenId = (GByte)m_nPenDefIndex;      // Pen index
         }
 
     }
@@ -2648,7 +2651,7 @@ int TABPolyline::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         if (!bCoordBlockDataOnly)
         {
             m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
-            poPLineHdr->m_nPenId = m_nPenDefIndex;      // Pen index
+            poPLineHdr->m_nPenId = (GByte)m_nPenDefIndex;      // Pen index
         }
 
     }
@@ -3348,10 +3351,10 @@ int TABRegion::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
         if (!bCoordBlockDataOnly)
         {
             m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
-            poPLineHdr->m_nPenId = m_nPenDefIndex;      // Pen index
+            poPLineHdr->m_nPenId = (GByte)m_nPenDefIndex;      // Pen index
 
             m_nBrushDefIndex = poMapFile->WriteBrushDef(&m_sBrushDef);
-            poPLineHdr->m_nBrushId = m_nBrushDefIndex;  // Brush index
+            poPLineHdr->m_nBrushId = (GByte)m_nBrushDefIndex;  // Brush index
         }
     }
     else
@@ -4186,10 +4189,10 @@ int TABRectangle::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     poRectHdr->m_nMaxY = m_nYMax;
 
     m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
-    poRectHdr->m_nPenId = m_nPenDefIndex;      // Pen index
+    poRectHdr->m_nPenId = (GByte)m_nPenDefIndex;      // Pen index
 
     m_nBrushDefIndex = poMapFile->WriteBrushDef(&m_sBrushDef);
-    poRectHdr->m_nBrushId = m_nBrushDefIndex;      // Brush index
+    poRectHdr->m_nBrushId = (GByte)m_nBrushDefIndex;      // Brush index
 
     if (CPLGetLastErrorNo() != 0)
         return -1;
@@ -4602,10 +4605,10 @@ int TABEllipse::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     poRectHdr->m_nMaxY = m_nYMax;
 
     m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
-    poRectHdr->m_nPenId = m_nPenDefIndex;      // Pen index
+    poRectHdr->m_nPenId = (GByte)m_nPenDefIndex;      // Pen index
 
     m_nBrushDefIndex = poMapFile->WriteBrushDef(&m_sBrushDef);
-    poRectHdr->m_nBrushId = m_nBrushDefIndex;      // Brush index
+    poRectHdr->m_nBrushId = (GByte)m_nBrushDefIndex;      // Brush index
 
     if (CPLGetLastErrorNo() != 0)
         return -1;
@@ -5125,7 +5128,7 @@ int TABArc::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     poArcHdr->m_nMaxY = m_nYMax;
 
     m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
-    poArcHdr->m_nPenId = m_nPenDefIndex;      // Pen index
+    poArcHdr->m_nPenId = (GByte)m_nPenDefIndex;      // Pen index
 
     if (CPLGetLastErrorNo() != 0)
         return -1;
@@ -5651,13 +5654,13 @@ int TABText::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
 
     poTextHdr->m_nFontStyle = m_nFontStyle;          // Font style/effect
 
-    poTextHdr->m_nFGColorR = COLOR_R(m_rgbForeground);
-    poTextHdr->m_nFGColorG = COLOR_G(m_rgbForeground);
-    poTextHdr->m_nFGColorB = COLOR_B(m_rgbForeground);
+    poTextHdr->m_nFGColorR = (GByte)COLOR_R(m_rgbForeground);
+    poTextHdr->m_nFGColorG = (GByte)COLOR_G(m_rgbForeground);
+    poTextHdr->m_nFGColorB = (GByte)COLOR_B(m_rgbForeground);
 
-    poTextHdr->m_nBGColorR = COLOR_R(m_rgbBackground);
-    poTextHdr->m_nBGColorG = COLOR_G(m_rgbBackground);
-    poTextHdr->m_nBGColorB = COLOR_B(m_rgbBackground);
+    poTextHdr->m_nBGColorR = (GByte)COLOR_R(m_rgbBackground);
+    poTextHdr->m_nBGColorG = (GByte)COLOR_G(m_rgbBackground);
+    poTextHdr->m_nBGColorB = (GByte)COLOR_B(m_rgbBackground);
 
     /*-----------------------------------------------------------------
      * The OGRPoint's X,Y values were the coords of the lower-left corner
@@ -5689,7 +5692,7 @@ int TABText::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     {
         // Font name
         m_nFontDefIndex = poMapFile->WriteFontDef(&m_sFontDef);
-        poTextHdr->m_nFontId = m_nFontDefIndex;      // Font name index
+        poTextHdr->m_nFontId = (GByte)m_nFontDefIndex;      // Font name index
     }
 
     // MBR after rotation
@@ -5698,7 +5701,7 @@ int TABText::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     if (!bCoordBlockDataOnly)
     {
         m_nPenDefIndex = poMapFile->WritePenDef(&m_sPenDef);
-        poTextHdr->m_nPenId = m_nPenDefIndex;      // Pen index for line/arrow
+        poTextHdr->m_nPenId = (GByte)m_nPenDefIndex;      // Pen index for line/arrow
     }
 
     if (CPLGetLastErrorNo() != 0)
@@ -6089,7 +6092,7 @@ int TABText::GetFontStyleMIFValue()
 
 void TABText:: SetFontStyleMIFValue(int nStyle, GBool bBGColorSet)
 {
-    m_nFontStyle = (nStyle & 0xff) + (nStyle & 0x7f00)*2;
+    m_nFontStyle = (GInt16)((nStyle & 0xff) + (nStyle & 0x7f00)*2);
     // When BG color is set, then either BOX or HALO should be set.
     if (bBGColorSet && !QueryFontStyle(TABFSHalo))
         ToggleFontStyle(TABFSBox, TRUE);
@@ -6656,7 +6659,7 @@ int TABMultiPoint::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
     if (!bCoordBlockDataOnly)
     {
         m_nSymbolDefIndex = poMapFile->WriteSymbolDef(&m_sSymbolDef);
-        poMPointHdr->m_nSymbolId = m_nSymbolDefIndex;      // Symbol index
+        poMPointHdr->m_nSymbolId = (GByte)m_nSymbolDefIndex;      // Symbol index
     }
 
     if (CPLGetLastErrorNo() != 0)
@@ -7488,11 +7491,11 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                   m_poRegion->GetMapInfoType() == TAB_GEOM_V800_REGION_C );
 
         TABMAPObjPLine *poRegionHdr = (TABMAPObjPLine *)
-            TABMAPObjHdr::NewObj(m_poRegion->GetMapInfoType(), -1);
+            TABMAPObjHdr::NewObj((GByte)m_poRegion->GetMapInfoType(), -1);
 
         // Update count of objects by type in header
         if (!bCoordBlockDataOnly)
-            poMapFile->UpdateMapHeaderInfo(m_poRegion->GetMapInfoType());
+            poMapFile->UpdateMapHeaderInfo((GByte)m_poRegion->GetMapInfoType());
 
         // Write a placeholder for centroid/label point and MBR mini-header
         // and we'll come back later to write the real values.
@@ -7588,11 +7591,11 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                   m_poPline->GetMapInfoType() == TAB_GEOM_V800_MULTIPLINE_C );
 
         TABMAPObjPLine *poPlineHdr = (TABMAPObjPLine *)
-            TABMAPObjHdr::NewObj(m_poPline->GetMapInfoType(), -1);
+            TABMAPObjHdr::NewObj((GByte)m_poPline->GetMapInfoType(), -1);
 
         // Update count of objects by type in header
         if (!bCoordBlockDataOnly)
-            poMapFile->UpdateMapHeaderInfo(m_poPline->GetMapInfoType());
+            poMapFile->UpdateMapHeaderInfo((GByte)m_poPline->GetMapInfoType());
 
         // Write a placeholder for centroid/label point and MBR mini-header
         // and we'll come back later to write the real values.
@@ -7686,11 +7689,11 @@ int TABCollection::WriteGeometryToMAPFile(TABMAPFile *poMapFile,
                   m_poMpoint->GetMapInfoType() == TAB_GEOM_V800_MULTIPOINT_C );
 
         TABMAPObjMultiPoint *poMpointHdr = (TABMAPObjMultiPoint *)
-            TABMAPObjHdr::NewObj(m_poMpoint->GetMapInfoType(), -1);
+            TABMAPObjHdr::NewObj((GByte)m_poMpoint->GetMapInfoType(), -1);
 
         // Update count of objects by type in header
         if (!bCoordBlockDataOnly)
-            poMapFile->UpdateMapHeaderInfo(m_poMpoint->GetMapInfoType());
+            poMapFile->UpdateMapHeaderInfo((GByte)m_poMpoint->GetMapInfoType());
 
         // Write a placeholder for centroid/label point and MBR mini-header
         // and we'll come back later to write the real values.
@@ -8449,14 +8452,14 @@ void  ITABFeaturePen::SetPenFromStyleString(const char *pszStyleString)
         if((pszPenId = (char *) strstr(pszPenName, "mapinfo-pen-")))
         {
             nPenId = atoi(pszPenId+12);
-            SetPenPattern(nPenId);
+            SetPenPattern((GByte)nPenId);
         }
         else if((pszPenId = (char *) strstr(pszPenName, "ogr-pen-")))
         {
             nPenId = atoi(pszPenId+8);
             if(nPenId == 0)
                 nPenId = 2;
-            SetPenPattern(nPenId);
+            SetPenPattern((GByte)nPenId);
         }
     }
     else
@@ -8986,7 +8989,7 @@ void ITABFeatureSymbol::SetSymbolFromStyleString(const char *pszStyleString)
     dSymbolSize = poSymbolStyle->Size(bIsNull);
     if(dSymbolSize)
     {
-        SetSymbolSize((GInt32)dSymbolSize);
+        SetSymbolSize((GInt16)dSymbolSize);
     }
 
     // Set Symbol Color

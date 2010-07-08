@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_port.h 11983 2007-08-28 17:35:15Z warmerdam $
+ * $Id: cpl_port.h 17734 2009-10-03 09:48:01Z rouault $
  *
  * Project:  CPL - Common Portability Library
  * Author:   Frank Warmerdam, warmerdam@pobox.com
@@ -80,8 +80,10 @@
 #  ifndef _CRT_NONSTDC_NO_DEPRECATE
 #    define _CRT_NONSTDC_NO_DEPRECATE
 #  endif
+#  ifdef MSVC_USE_VLD
+#    include <vld.h>
+#  endif
 #endif
-
 
 #include "cpl_config.h"
 
@@ -109,6 +111,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
+#include <limits.h>
 
 #if !defined(WIN32CE)
 #  include <time.h>
@@ -187,6 +190,24 @@ typedef unsigned long    GUIntBig;
 
 #endif
 
+#if defined(__MSVCRT__) || (defined(WIN32) && defined(_MSC_VER))
+  #define CPL_FRMT_GB_WITHOUT_PREFIX     "I64"
+#elif HAVE_LONG_LONG
+  #define CPL_FRMT_GB_WITHOUT_PREFIX     "ll"
+#else
+  #define CPL_FRMT_GB_WITHOUT_PREFIX     "l"
+#endif
+
+#define CPL_FRMT_GIB     "%" CPL_FRMT_GB_WITHOUT_PREFIX "d"
+#define CPL_FRMT_GUIB    "%" CPL_FRMT_GB_WITHOUT_PREFIX "u"
+
+/* Workaround VC6 bug */
+#if defined(_MSC_VER) && (_MSC_VER <= 1200)
+#define GUINTBIG_TO_DOUBLE(x) (double)(GIntBig)(x)
+#else
+#define GUINTBIG_TO_DOUBLE(x) (double)(x)
+#endif
+
 /* ==================================================================== */
 /*      Other standard services.                                        */
 /* ==================================================================== */
@@ -202,7 +223,11 @@ typedef unsigned long    GUIntBig;
 #if defined(_MSC_VER) && !defined(CPL_DISABLE_DLL)
 #  define CPL_DLL     __declspec(dllexport)
 #else
-#  define CPL_DLL
+#  if defined(USE_GCC_VISIBILITY_FLAG)
+#    define CPL_DLL     __attribute__ ((visibility("default")))
+#  else
+#    define CPL_DLL
+#  endif
 #endif
 #endif
 
@@ -225,6 +250,13 @@ typedef unsigned long    GUIntBig;
 #  define FORCE_CDECL  __cdecl
 #else
 #  define FORCE_CDECL 
+#endif
+
+/* TODO : support for other compilers needed */
+#if defined(__GNUC__) || defined(_MSC_VER)
+#define CPL_INLINE __inline
+#else
+#define CPL_INLINE
 #endif
 
 #ifndef NULL
@@ -254,7 +286,7 @@ typedef unsigned long    GUIntBig;
 /*      effects.                                                        */
 /* -------------------------------------------------------------------- */
 #ifndef CPLIsEqual
-#  define CPLIsEqual(x,y) (fabs(fabs(x) - fabs(y)) < 0.0000000000001)
+#  define CPLIsEqual(x,y) (fabs((x) - (y)) < 0.0000000000001)
 #endif
 
 #ifndef EQUAL
@@ -279,14 +311,15 @@ char * strdup (char *instr);
 
 /* -------------------------------------------------------------------- */
 /*      Handle isnan() and isinf().  Note that isinf() and isnan()      */
-/*      are supposed to be macros according to C99.  Some systems       */
-/*      (ie. Tru64) don't have isinf() at all, so if the macro is       */
-/*      not defined we just assume nothing is infinite.  This may       */
-/*      mean we have no real CPLIsInf() on systems with an isinf()      */
+/*      are supposed to be macros according to C99, defined in math.h   */
+/*      Some systems (ie. Tru64) don't have isinf() at all, so if       */
+/*      the macro is not defined we just assume nothing is infinite.    */
+/*      This may mean we have no real CPLIsInf() on systems with isinf()*/
 /*      function but no corresponding macro, but I can live with        */
 /*      that since it isn't that important a test.                      */
 /* -------------------------------------------------------------------- */
 #ifdef _MSC_VER
+#  include <float.h>
 #  define CPLIsNan(x) _isnan(x)
 #  define CPLIsInf(x) (!_isnan(x) && !_finite(x))
 #  define CPLIsFinite(x) _finite(x)
@@ -379,7 +412,7 @@ char * strdup (char *instr);
                                                             
 
 /* Until we have a safe 64 bits integer data type defined, we'll replace
-m * this version of the CPL_SWAP64() macro with a less efficient one.
+ * this version of the CPL_SWAP64() macro with a less efficient one.
  */
 /*
 #define CPL_SWAP64(x) \
@@ -420,6 +453,23 @@ m * this version of the CPL_SWAP64() macro with a less efficient one.
 #  define CPL_MSBPTR64(x)       CPL_SWAP64PTR(x)
 #endif
 
+/** Return a Int16 from the 2 bytes ordered in LSB order at address x */
+#define CPL_LSBINT16PTR(x)    ((*(GByte*)(x)) | ((*(GByte*)((x)+1)) << 8))
+
+/** Return a Int32 from the 4 bytes ordered in LSB order at address x */
+#define CPL_LSBINT32PTR(x)    ((*(GByte*)(x)) | ((*(GByte*)((x)+1)) << 8) | \
+                              ((*(GByte*)((x)+2)) << 16) | ((*(GByte*)((x)+3)) << 24))
+
+
+/* Utility macro to explicitly mark intentionally unreferenced parameters. */
+#ifndef UNREFERENCED_PARAM 
+#  ifdef UNREFERENCED_PARAMETER /* May be defined by Windows API */
+#    define UNREFERENCED_PARAM(param) UNREFERENCED_PARAMETER(param)
+#  else
+#    define UNREFERENCED_PARAM(param) ((void)param)
+#  endif /* UNREFERENCED_PARAMETER */
+#endif /* UNREFERENCED_PARAM */
+
 /***********************************************************************
  * Define CPL_CVSID() macro.  It can be disabled during a build by
  * defining DISABLE_CPLID in the compiler options.
@@ -429,10 +479,20 @@ m * this version of the CPL_SWAP64() macro with a less efficient one.
  */
 
 #ifndef DISABLE_CVSID
+#if defined(__GNUC__) && __GNUC__ >= 4
+#  define CPL_CVSID(string)     static char cpl_cvsid[] __attribute__((used)) = string;
+#else
 #  define CPL_CVSID(string)     static char cpl_cvsid[] = string; \
 static char *cvsid_aw() { return( cvsid_aw() ? ((char *) NULL) : cpl_cvsid ); }
+#endif
 #else
 #  define CPL_CVSID(string)
+#endif
+
+#if defined(__GNUC__) && __GNUC__ >= 3 && !defined(DOXYGEN_SKIP)
+#define CPL_PRINT_FUNC_FORMAT( format_idx, arg_idx )  __attribute__((__format__ (__printf__, format_idx, arg_idx)))
+#else
+#define CPL_PRINT_FUNC_FORMAT( format_idx, arg_idx )
 #endif
 
 #endif /* ndef CPL_BASE_H_INCLUDED */

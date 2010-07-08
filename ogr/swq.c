@@ -23,6 +23,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "cpl_conv.h"
+#include "cpl_multiproc.h"
 #include "swq.h"
 
 #ifndef SWQ_MALLOC
@@ -50,8 +52,6 @@
 #  define strcasecmp _stricmp
 #endif
 
-
-static char     swq_error[1024];
 
 #define SWQ_OP_IS_LOGICAL(op) ((op) == SWQ_OR || (op) == SWQ_AND || (op) == SWQ_NOT)
 #define SWQ_OP_IS_POSTUNARY(op) ((op) == SWQ_ISNULL || (op) == SWQ_ISNOTNULL)
@@ -98,6 +98,28 @@ void *swq_realloc( void *old_mem, int old_size, int new_size )
     return new_mem;
 }
 
+/************************************************************************/
+/*                           swq_get_errbuf()                           */
+/************************************************************************/
+
+#define SWQ_SIZEOF_ERRBUF   1024
+
+#define SNPRINTF_ERR1(x)      do { char* pszErrBuf = swq_get_errbuf(); snprintf( pszErrBuf, SWQ_SIZEOF_ERRBUF, x); pszErrBuf[SWQ_SIZEOF_ERRBUF-1] = '\0'; } while(0)
+#define SNPRINTF_ERR2(x,y)    do { char* pszErrBuf = swq_get_errbuf(); snprintf( pszErrBuf, SWQ_SIZEOF_ERRBUF, x, y); pszErrBuf[SWQ_SIZEOF_ERRBUF-1] = '\0'; } while(0)
+#define SNPRINTF_ERR3(x,y,z)  do { char* pszErrBuf = swq_get_errbuf(); snprintf( pszErrBuf, SWQ_SIZEOF_ERRBUF, x, y, z); pszErrBuf[SWQ_SIZEOF_ERRBUF-1] = '\0'; } while(0)
+
+char *swq_get_errbuf()
+
+{
+    char *pszStaticResult = (char *) CPLGetTLS( CTLS_SWQ_ERRBUF );
+    if( pszStaticResult == NULL )
+    {
+        pszStaticResult = (char *) CPLMalloc(SWQ_SIZEOF_ERRBUF);
+        CPLSetTLS( CTLS_SWQ_ERRBUF, pszStaticResult, TRUE );
+    }
+
+    return pszStaticResult;
+}
 
 /************************************************************************/
 /*                           swq_isalphanum()                           */
@@ -109,10 +131,9 @@ void *swq_realloc( void *old_mem, int old_size, int new_size )
 static int swq_isalphanum( char c )
 
 {
-
     if( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
         || (c >= '0' && c <= '9') || c == '.' || c == '+' || c == '-'
-        || c == '_' || c == '*' )
+        || c == '_' || c == '*' || ((unsigned char) c) > 127 )
         return TRUE;
     else
         return FALSE;
@@ -156,6 +177,8 @@ static char *swq_token( const char *expression, char **next, int *is_literal )
             if( *expression == '\\' && expression[1] == '"' )
                 expression++;
             else if( *expression == '\\' && expression[1] == '\'' )
+                expression++;
+            else if( *expression == '\'' && expression[1] == '\'' )
                 expression++;
             else if( *expression == '"' )
             {
@@ -489,7 +512,7 @@ static char *swq_parse_in_list( char **tokens, int *tokens_consumed )
     if( tokens[*tokens_consumed] == NULL
         || strcasecmp(tokens[*tokens_consumed],"(") != 0 )
     {
-        sprintf( swq_error, "IN argument doesn't start with '('." );
+        SNPRINTF_ERR1("IN argument doesn't start with '('." );
         return NULL;
     }
 
@@ -520,8 +543,7 @@ static char *swq_parse_in_list( char **tokens, int *tokens_consumed )
         if( strcasecmp(tokens[*tokens_consumed],",") != 0
             && strcasecmp(tokens[*tokens_consumed],")") != 0 )
         {
-            sprintf( swq_error, 
-               "Contents of IN predicate missing comma or closing bracket." );
+            SNPRINTF_ERR1("Contents of IN predicate missing comma or closing bracket." );
             SWQ_FREE( result );
             return NULL;
         }
@@ -534,8 +556,7 @@ static char *swq_parse_in_list( char **tokens, int *tokens_consumed )
 
     if( tokens[*tokens_consumed] == NULL )
     {
-        sprintf( swq_error, 
-                 "Contents of IN predicate missing closing bracket." );
+        SNPRINTF_ERR1("Contents of IN predicate missing closing bracket." );
         SWQ_FREE( result );
         return NULL;
     }
@@ -564,8 +585,8 @@ swq_subexpr_compile( char **tokens, swq_field_list *field_list,
 
     if( tokens[0] == NULL || tokens[1] == NULL )
     {
-        sprintf( swq_error, "Not enough tokens to complete expression." );
-        return swq_error;
+        SNPRINTF_ERR1("Not enough tokens to complete expression." );
+        return swq_get_errbuf();
     }
     
     op = (swq_field_op *) SWQ_MALLOC(sizeof(swq_field_op));
@@ -588,8 +609,8 @@ swq_subexpr_compile( char **tokens, swq_field_list *field_list,
         if( strcmp(tokens[sub_consumed+1],")") != 0 )
         {
             swq_expr_free( op );
-            sprintf(swq_error,"Unclosed brackets, or incomplete expression.");
-            return swq_error;
+            SNPRINTF_ERR1("Unclosed brackets, or incomplete expression.");
+            return swq_get_errbuf();
         }
 
         *tokens_consumed += sub_consumed + 2;
@@ -618,10 +639,8 @@ swq_subexpr_compile( char **tokens, swq_field_list *field_list,
         if( op->field_index < 0 )
         {
             swq_expr_free( op );
-            sprintf( swq_error, "Failed to identify field:" );
-            strncat( swq_error, tokens[*tokens_consumed], 
-                     sizeof(swq_error) - strlen(swq_error) - 1 );
-            return swq_error;
+            SNPRINTF_ERR2( "Failed to identify field:%s", tokens[*tokens_consumed] );
+            return swq_get_errbuf();
         }
 
         (*tokens_consumed)++;
@@ -632,18 +651,17 @@ swq_subexpr_compile( char **tokens, swq_field_list *field_list,
     */
     if( tokens[*tokens_consumed] == NULL || tokens[*tokens_consumed+1] == NULL)
     {
-        sprintf( swq_error, "Not enough tokens to complete expression." );
-        return swq_error;
+        swq_expr_free( op );
+        SNPRINTF_ERR1( "Not enough tokens to complete expression." );
+        return swq_get_errbuf();
     }
     
     op->operation = swq_identify_op( tokens, tokens_consumed );
     if( op->operation == SWQ_UNKNOWN )
     {
         swq_expr_free( op );
-        sprintf( swq_error, "Failed to identify operation:" );
-        strncat( swq_error, tokens[*tokens_consumed], 
-                 sizeof(swq_error) - strlen(swq_error) - 1 );
-        return swq_error;
+        SNPRINTF_ERR2( "Failed to identify operation:%s", tokens[*tokens_consumed] );
+        return swq_get_errbuf();
     }
 
     if( SWQ_OP_IS_LOGICAL( op->operation ) 
@@ -651,8 +669,8 @@ swq_subexpr_compile( char **tokens, swq_field_list *field_list,
         && op->operation != SWQ_NOT )
     {
         swq_expr_free( op );
-        strcpy( swq_error, "Used logical operation with non-logical operand.");
-        return swq_error;
+        SNPRINTF_ERR1( "Used logical operation with non-logical operand.");
+        return swq_get_errbuf();
     }
 
     if( op->field_index != -1 && op->field_type == SWQ_STRING
@@ -666,11 +684,11 @@ swq_subexpr_compile( char **tokens, swq_field_list *field_list,
         /* NOTE: the use of names[] here is wrong.  We should be looking
            up the field that matches op->field_index and op->table_index */
 
-        sprintf( swq_error, 
+        SNPRINTF_ERR3(
             "Attempt to use STRING field `%s' with numeric comparison `%s'.",
             field_list->names[op->field_index], tokens[*tokens_consumed] );
         swq_expr_free( op );
-        return swq_error;
+        return swq_get_errbuf();
     }
 
     (*tokens_consumed)++;
@@ -686,8 +704,9 @@ swq_subexpr_compile( char **tokens, swq_field_list *field_list,
 
     else if( tokens[*tokens_consumed] == NULL )
     {
-        sprintf( swq_error, "Not enough tokens to complete expression." );
-        return swq_error;
+        SNPRINTF_ERR1( "Not enough tokens to complete expression." );
+        swq_expr_free( op );
+        return swq_get_errbuf();
     }
     
     else if( SWQ_OP_IS_LOGICAL( op->operation ) )
@@ -713,7 +732,7 @@ swq_subexpr_compile( char **tokens, swq_field_list *field_list,
         if( op->string_value == NULL )
         {
             swq_expr_free( op );
-            return swq_error;
+            return swq_get_errbuf();
         }
     }
 
@@ -736,12 +755,12 @@ swq_subexpr_compile( char **tokens, swq_field_list *field_list,
             /* NOTE: the use of names[] here is wrong.  We should be looking
                up the field that matches op->field_index and op->table_index */
 
-            sprintf( swq_error, 
+            SNPRINTF_ERR3( 
                      "Attempt to compare numeric field `%s' to non-numeric"
                      " value `%s' is illegal.", 
                      field_list->names[op->field_index], op->string_value );
             swq_expr_free( op );
-            return swq_error;
+            return swq_get_errbuf();
         }
 
         (*tokens_consumed)++;
@@ -847,25 +866,30 @@ const char *swq_expr_compile2( const char *where_clause,
                                swq_expr **expr_out )
 
 {
-#define MAX_TOKEN 1024
-    char        *token_list[MAX_TOKEN], *rest_of_expr;
+#define TOKEN_BLOCK_SIZE 1024
+    char        **token_list, *rest_of_expr;
     int         token_count = 0;
-    int         tokens_consumed, i;
+    int         tokens_consumed, i, token_list_size;
     const char *error;
     
     /*
     ** Collect token array.
     */
+    token_list = (char **)SWQ_MALLOC(sizeof(char *) * TOKEN_BLOCK_SIZE);
+    token_list_size = TOKEN_BLOCK_SIZE;
     rest_of_expr = (char *) where_clause;
-    while( token_count < MAX_TOKEN )
+    while( (token_list[token_count] = 
+             swq_token(rest_of_expr,&rest_of_expr,NULL)) != NULL )
     {
-        token_list[token_count] = swq_token(rest_of_expr,&rest_of_expr,NULL);
-        if( token_list[token_count] == NULL )
-            break;
-
         token_count++;
+        if (token_count == token_list_size)
+        {
+            token_list = (char **)swq_realloc(token_list, 
+                sizeof(char *) * token_list_size, 
+                  sizeof(char *) * (token_list_size + TOKEN_BLOCK_SIZE));
+            token_list_size += TOKEN_BLOCK_SIZE;
+        }
     }
-    token_list[token_count] = NULL;
     
     /*
     ** Parse the expression.
@@ -878,6 +902,8 @@ const char *swq_expr_compile2( const char *where_clause,
     for( i = 0; i < token_count; i++ )
         SWQ_FREE( token_list[i] );
 
+    SWQ_FREE(token_list);
+
     if( error != NULL )
         return error;
 
@@ -885,9 +911,9 @@ const char *swq_expr_compile2( const char *where_clause,
     {
         swq_expr_free( *expr_out );
         *expr_out = NULL;
-        sprintf( swq_error, "Syntax error, %d extra tokens", 
+        SNPRINTF_ERR2( "Syntax error, %d extra tokens", 
                  token_count - tokens_consumed );
-        return swq_error;
+        return swq_get_errbuf();
     }
 
     return NULL;
@@ -1043,18 +1069,28 @@ SELECT <field-list> FROM <table_def>
      [WHERE <where-expr>] 
      [ORDER BY <sort specification list>]
 
+<field-list> ::= <column-spec> [ { , <column-spec> }... ]
 
-<field-list> ::= DISTINCT <field_ref> | <field-spec> 
-                 | <field-spec> , <field-list>
+<column-spec> ::= <field-spec> [ <as clause> ]
+                 | CAST ( <field-spec> AS <data type> ) [ <as clause> ]
 
-<field-spec> ::= <field_ref>
-                 | <field_func> ( [DISTINCT] <field-func> )
+<field-spec> ::= [DISTINCT] <field_ref>
+                 | <field_func> ( [DISTINCT] <field-ref> )
                  | Count(*)
+
+<as clause> ::= [ AS ] <column_name>
+
+<data type> ::= character [ ( field_length ) ]
+                | float [ ( field_length ) ]
+                | numeric [ ( field_length [, field_precision ] ) ]
+                | integer [ ( field_length ) ]
+                | date [ ( field_length ) ]
+                | time [ ( field_length ) ]
+                | timestamp [ ( field_length ) ]
 
 <field-func> ::= AVG | MAX | MIN | SUM | COUNT
 
 <field_ref>  ::= [<table_ref>.]field_name
-
 
 <sort specification list> ::=
               <sort specification> [ { <comma> <sort specification> }... ]
@@ -1074,6 +1110,10 @@ static int swq_parse_table_def( swq_select *select_info,
                                 int *is_literal,
                                 char **token, char **input );
 
+static int swq_parse_typename( swq_col_def *col_def, 
+                                int *is_literal,
+                                char **token, char **input );
+
 /************************************************************************/
 /*                        swq_select_preparse()                         */
 /************************************************************************/
@@ -1086,11 +1126,18 @@ const char *swq_select_preparse( const char *select_statement,
     char *token;
     char *input;
     int  is_literal;
+    int  type_cast;
     swq_col_def  *swq_cols;
 
 #define MAX_COLUMNS 250
 
     *select_info_ret = NULL;
+
+    if (select_statement == NULL || select_statement[0] == '\0')
+    {
+        SNPRINTF_ERR1( "Empty SQL request string" );
+        return swq_get_errbuf();
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Get first token. Ensure it is SELECT.                           */
@@ -1099,8 +1146,8 @@ const char *swq_select_preparse( const char *select_statement,
     if( strcasecmp(token,"select") != 0 )
     {
         SWQ_FREE( token );
-        strcpy( swq_error, "Missing keyword SELECT" );
-        return swq_error;
+        SNPRINTF_ERR1( "Missing keyword SELECT" );
+        return swq_get_errbuf();
     }
     SWQ_FREE( token );
 
@@ -1134,10 +1181,10 @@ const char *swq_select_preparse( const char *select_statement,
         {
             SWQ_FREE( token );
             swq_select_free( select_info );
-            sprintf( swq_error, 
+            SNPRINTF_ERR2(
                 "More than MAX_COLUMNS (%d) columns in SELECT statement.", 
                      MAX_COLUMNS );
-            return swq_error;
+            return swq_get_errbuf();
         }
 
         /* Ensure that we have a comma before fields other than the first. */
@@ -1146,23 +1193,36 @@ const char *swq_select_preparse( const char *select_statement,
         {
             if( strcasecmp(token,",") != 0 )
             {
-                sprintf( swq_error, 
+                SNPRINTF_ERR2(
                          "Missing comma after column %s in SELECT statement.", 
                          swq_cols[select_info->result_columns-1].field_name );
                 SWQ_FREE( token );
                 swq_select_free( select_info );
-                return swq_error;
+                return swq_get_errbuf();
             }
 
             SWQ_FREE( token );
             token = swq_token( input, &input, &is_literal );
         }
 
-        /* read an extra token to check for brackets. */
-        
+        /* set up some default values. */
+        swq_cols[select_info->result_columns].field_precision = -1; 
+        swq_cols[select_info->result_columns].target_type = SWQ_OTHER;
         select_info->result_columns++;
 
         next_token = swq_token( input, &input, &next_is_literal );
+
+        /* Detect the type cast. */
+        type_cast = 0;
+        if (token != NULL && next_token != NULL &&strcasecmp(token,"CAST") == 0 
+            && strcasecmp(next_token,"(") == 0)
+        {
+            type_cast = 1;
+            SWQ_FREE( token );
+            SWQ_FREE( next_token );
+            token = swq_token( input, &input, &is_literal );
+            next_token = swq_token( input, &input, &next_is_literal );
+        }
 
         /*
         ** Handle function operators.
@@ -1222,6 +1282,58 @@ const char *swq_select_preparse( const char *select_statement,
             token = next_token;
             is_literal = next_is_literal;
         }
+        
+        /* handle the type cast*/
+        if (type_cast && token != NULL)
+        {
+            if (strcasecmp(token,"AS") != 0)
+            {
+                SWQ_FREE( token );
+                swq_select_free( select_info );
+                return "Missing 'AS' keyword in the type cast in SELECT statement.";
+            }
+
+            SWQ_FREE( token );
+            token = swq_token( input, &input, &is_literal );
+
+            /* processing the typename */
+            if( swq_parse_typename( &swq_cols[select_info->result_columns-1], &is_literal, &token, &input) != 0 )
+            {
+                swq_select_free( select_info );
+                return swq_get_errbuf();
+            }
+
+            if (token != NULL && strcasecmp(token,")") != 0)
+            {
+                if( token != NULL )
+                    SWQ_FREE( token );
+                swq_select_free( select_info );
+                return "Missing closing bracket after the type cast in SELECT statement.";
+            }
+
+            SWQ_FREE( token );
+            token = swq_token( input, &input, &is_literal );
+
+            type_cast = 0;
+        }
+        
+        /* Handle the field alias */
+        if( token != NULL && strcasecmp(token,",") != 0 && strcasecmp(token,"from") != 0)
+        {
+            /* Skip field alias keyword. */
+            if (strcasecmp(token,"AS") == 0)
+            {
+                SWQ_FREE( token );
+                token = swq_token( input, &input, &is_literal );
+                if (token == NULL)
+                {
+                    swq_select_free( select_info );
+                    return "Unexpected terminator after the type cast in SELECT statement.";
+                }
+            }
+            swq_cols[select_info->result_columns-1].field_alias = token;
+            token = swq_token( input, &input, &is_literal );
+        }
     }
 
     /* make a columns_def list that is just the right size. */
@@ -1236,9 +1348,9 @@ const char *swq_select_preparse( const char *select_statement,
 /* -------------------------------------------------------------------- */
     if( token == NULL || strcasecmp(token,"FROM") != 0 )
     {
-        strcpy( swq_error, "Missing FROM clause in SELECT statement." );
+        SNPRINTF_ERR1( "Missing FROM clause in SELECT statement." );
         swq_select_free( select_info );
-        return swq_error;
+        return swq_get_errbuf();
     }
 
     SWQ_FREE( token );
@@ -1246,15 +1358,15 @@ const char *swq_select_preparse( const char *select_statement,
 
     if( token == NULL )
     {
-        strcpy( swq_error, "Missing table name in FROM clause." );
+        SNPRINTF_ERR1( "Missing table name in FROM clause." );
         swq_select_free( select_info );
-        return swq_error;
+        return swq_get_errbuf();
     }
 
     if( swq_parse_table_def( select_info, &is_literal, &token, &input) != 0 )
     {
         swq_select_free( select_info );
-        return swq_error;
+        return swq_get_errbuf();
     }
 
 /* -------------------------------------------------------------------- */
@@ -1273,9 +1385,9 @@ const char *swq_select_preparse( const char *select_statement,
 
             if( token == NULL || strcasecmp(token,"JOIN") != 0 )
             {
-                strcpy( swq_error, "Missing JOIN keyword after LEFT." );
+                SNPRINTF_ERR1( "Missing JOIN keyword after LEFT." );
                 swq_select_free( select_info );
-                return swq_error;
+                return swq_get_errbuf();
             }
         }
 
@@ -1297,7 +1409,7 @@ const char *swq_select_preparse( const char *select_statement,
         if( join_info->secondary_table < 0 )
         {
             swq_select_free( select_info );
-            return swq_error;
+            return swq_get_errbuf();
         }
 
         /* Check for ON keyword */
@@ -1307,8 +1419,8 @@ const char *swq_select_preparse( const char *select_statement,
         if( token == NULL || strcasecmp(token,"ON") != 0 )
         {
             swq_select_free( select_info );
-            strcpy( swq_error,"Corrupt JOIN clause, expecting ON keyword." );
-            return swq_error;
+            SNPRINTF_ERR1( "Corrupt JOIN clause, expecting ON keyword." );
+            return swq_get_errbuf();
         }
 
         SWQ_FREE( token );
@@ -1320,8 +1432,8 @@ const char *swq_select_preparse( const char *select_statement,
         if( token == NULL || strcasecmp(token,"=") != 0 )
         {
             swq_select_free( select_info );
-            strcpy( swq_error,"Corrupt JOIN clause, expecting '=' condition.");
-            return swq_error;
+            SNPRINTF_ERR1( "Corrupt JOIN clause, expecting '=' condition.");
+            return swq_get_errbuf();
         }
 
         SWQ_FREE( token );
@@ -1334,8 +1446,8 @@ const char *swq_select_preparse( const char *select_statement,
         if( join_info->secondary_field_name == NULL )
         {
             swq_select_free( select_info );
-            strcpy( swq_error,"Corrupt JOIN clause, missing secondary field.");
-            return swq_error;
+            SNPRINTF_ERR1( "Corrupt JOIN clause, missing secondary field.");
+            return swq_get_errbuf();
         }
 
         token = swq_token( input, &input, &is_literal );
@@ -1394,9 +1506,9 @@ const char *swq_select_preparse( const char *select_statement,
             if( token != NULL )
                 SWQ_FREE( token );
 
-            strcpy( swq_error, "ORDER BY clause missing BY keyword." );
+            SNPRINTF_ERR1( "ORDER BY clause missing BY keyword." );
             swq_select_free( select_info );
-            return swq_error;
+            return swq_get_errbuf();
         }
 
         SWQ_FREE( token );
@@ -1453,18 +1565,136 @@ const char *swq_select_preparse( const char *select_statement,
     if( token != NULL )
     {
 
-        sprintf( swq_error, 
+        SNPRINTF_ERR2( 
                  "Failed to parse SELECT statement, extra input at %s token.", 
                  token );
 
         SWQ_FREE( token );
         swq_select_free( select_info );
-        return swq_error;
+        return swq_get_errbuf();
     }
 
     *select_info_ret = select_info;
 
     return NULL;
+}
+
+/************************************************************************/
+/*                        swq_parse_typename()                          */
+/************************************************************************/
+
+static int swq_parse_typename( swq_col_def *col_def, 
+                                int *is_literal,
+                                char **token, char **input )
+
+{
+    int parse_length;
+    int parse_precision;
+
+    if( *token == NULL )
+        *token = swq_token( *input, input, is_literal );
+
+    if( *token == NULL )
+    {
+        SNPRINTF_ERR1( "Corrupt type name, insufficient tokens." );
+        return -1;
+    }
+    
+/* -------------------------------------------------------------------- */
+/*      Check for the SQL92 typenames                                   */
+/* -------------------------------------------------------------------- */
+    parse_length = 0;
+    parse_precision = 0;
+    if( strcasecmp(*token,"character") == 0 )
+    {
+        col_def->target_type = SWQ_STRING;
+        col_def->field_length = 1;
+        parse_length = 1;
+    }
+    else if( strcasecmp(*token,"integer") == 0 )
+    {
+        col_def->target_type = SWQ_INTEGER;
+        parse_length = 1;
+    }
+    else if( strcasecmp(*token,"float") == 0 )
+    {
+        col_def->target_type = SWQ_FLOAT;
+        parse_length = 1;
+    }
+    else if( strcasecmp(*token,"numeric") == 0 )
+    {
+        col_def->target_type = SWQ_FLOAT;
+        parse_length = 1;
+        parse_precision = 1;
+    }
+    else if( strcasecmp(*token,"timestamp") == 0 )
+    {
+        col_def->target_type = SWQ_TIMESTAMP;
+        parse_length = 1;
+    }
+    else if( strcasecmp(*token,"date") == 0 )
+    {
+        col_def->target_type = SWQ_DATE;
+        parse_length = 1;
+    }
+    else if( strcasecmp(*token,"time") == 0 )
+    {
+        col_def->target_type = SWQ_TIME;
+        parse_length = 1;
+    }
+    else
+    {
+        SNPRINTF_ERR2( "Unrecognized typename %s.", *token );
+        SWQ_FREE( *token );
+        *token = NULL;
+        return -1;
+    }
+    
+    SWQ_FREE( *token );
+    *token = swq_token( *input, input, is_literal );
+    
+/* -------------------------------------------------------------------- */
+/*      Check for the field length and precision                        */
+/* -------------------------------------------------------------------- */
+    if (parse_length && *token != NULL && strcasecmp(*token,"(") == 0)
+    {
+        SWQ_FREE( *token );
+        *token = swq_token( *input, input, is_literal );
+        
+        if (*token != NULL) 
+        {
+            col_def->field_length = atoi( *token );
+            SWQ_FREE( *token );
+            *token = swq_token( *input, input, is_literal );
+        }
+
+        if (parse_precision && *token != NULL && strcasecmp(*token,",") == 0) 
+        {
+            SWQ_FREE( *token );
+            *token = swq_token( *input, input, is_literal );
+            if (*token != NULL) 
+            {
+                col_def->field_precision = atoi( *token );
+                SWQ_FREE( *token );
+                *token = swq_token( *input, input, is_literal );
+            }
+        }
+        
+        if (*token == NULL || strcasecmp(*token,")") != 0) 
+        {
+            if (*token != NULL)
+            {
+                SWQ_FREE( *token );
+                *token = NULL;
+            }
+            SNPRINTF_ERR1( "Missing closing bracket in the field length specifier." );
+            return -1;
+        }
+
+        SWQ_FREE( *token );
+        *token = swq_token( *input, input, is_literal );
+    }
+    return  0;
 }
 
 /************************************************************************/
@@ -1493,7 +1723,7 @@ static int swq_parse_table_def( swq_select *select_info,
 
     if( *token == NULL )
     {
-        strcpy( swq_error, "Corrupt table definition, insufficient tokens." );
+        SNPRINTF_ERR1( "Corrupt table definition, insufficient tokens." );
         return -1;
     }
     
@@ -1631,9 +1861,9 @@ const char *swq_select_expand_wildcard( swq_select *select_info,
         else if( strlen(src_fieldname) < 3 
                  || src_fieldname[strlen(src_fieldname)-2] != '.' )
         {
-            sprintf( swq_error, "Ill formatted field definition '%s'.",
+            SNPRINTF_ERR2( "Ill formatted field definition '%s'.",
                      src_fieldname );
-            return swq_error;
+            return swq_get_errbuf();
         }
         else
         {
@@ -1649,11 +1879,11 @@ const char *swq_select_expand_wildcard( swq_select *select_info,
             
             if( itable == field_list->table_count )
             {
-                sprintf( swq_error, 
+                SNPRINTF_ERR3( 
                          "Table %s not recognised from %s definition.", 
                          table_name, src_fieldname );
                 swq_free( table_name );
-                return swq_error;
+                return swq_get_errbuf();
             }
             swq_free( table_name );
             
@@ -1666,34 +1896,52 @@ const char *swq_select_expand_wildcard( swq_select *select_info,
             }
         }
 
+        if (new_fields > 0)
+        {
 /* -------------------------------------------------------------------- */
 /*      Reallocate the column list larger.                              */
 /* -------------------------------------------------------------------- */
-        SWQ_FREE( select_info->column_defs[isrc].field_name );
-        select_info->column_defs = (swq_col_def *) 
-            swq_realloc( select_info->column_defs, 
-                         sizeof(swq_col_def) * select_info->result_columns, 
-                         sizeof(swq_col_def) * 
-                         (select_info->result_columns + new_fields - 1 ) );
+            SWQ_FREE( select_info->column_defs[isrc].field_name );
+            select_info->column_defs = (swq_col_def *) 
+                swq_realloc( select_info->column_defs, 
+                            sizeof(swq_col_def) * select_info->result_columns, 
+                            sizeof(swq_col_def) * 
+                            (select_info->result_columns + new_fields - 1 ) );
 
 /* -------------------------------------------------------------------- */
 /*      Push the old definitions that came after the one to be          */
 /*      replaced further up in the array.                               */
 /* -------------------------------------------------------------------- */
-        for( i = select_info->result_columns-1; i > isrc; i-- )
-        {
-            memcpy( select_info->column_defs + i + new_fields - 1,
-                    select_info->column_defs + i,
-                    sizeof( swq_col_def ) );
-        }
+            if (new_fields != 1)
+            {
+                for( i = select_info->result_columns-1; i > isrc; i-- )
+                {
+                    memcpy( select_info->column_defs + i + new_fields - 1,
+                            select_info->column_defs + i,
+                            sizeof( swq_col_def ) );
+                }
+            }
 
-        select_info->result_columns += (new_fields - 1 );
+            select_info->result_columns += (new_fields - 1 );
 
 /* -------------------------------------------------------------------- */
 /*      Zero out all the stuff in the target column definitions.        */
 /* -------------------------------------------------------------------- */
-        memset( select_info->column_defs + i, 0, 
-                new_fields * sizeof(swq_col_def) );
+            memset( select_info->column_defs + isrc, 0, 
+                    new_fields * sizeof(swq_col_def) );
+        }
+        else
+        {
+/* -------------------------------------------------------------------- */
+/*      The wildcard expands to nothing                                 */
+/* -------------------------------------------------------------------- */
+            SWQ_FREE( select_info->column_defs[isrc].field_name );
+            memmove( select_info->column_defs + isrc,
+                     select_info->column_defs + isrc + 1,
+                     sizeof( swq_col_def ) * (select_info->result_columns-1-isrc) );
+
+            select_info->result_columns --;
+        }
 
 /* -------------------------------------------------------------------- */
 /*      Assign the selected fields.                                     */
@@ -1702,13 +1950,18 @@ const char *swq_select_expand_wildcard( swq_select *select_info,
         
         for( i = 0; i < field_list->count; i++ )
         {
-            swq_col_def *def = select_info->column_defs + iout;
+            swq_col_def *def;
             int compose = itable != -1;
 
             /* skip this field if it isn't in the target table.  */
             if( itable != -1 && field_list->table_ids != NULL 
                 && itable != field_list->table_ids[i] )
                 continue;
+
+            /* set up some default values. */
+            def = select_info->column_defs + iout;
+            def->field_precision = -1; 
+            def->target_type = SWQ_OTHER;
 
             /* does this field duplicate an earlier one? */
             if( field_list->table_ids != NULL 
@@ -1752,7 +2005,11 @@ const char *swq_select_expand_wildcard( swq_select *select_info,
                parse operation. */
         }
 
-        return NULL;
+        /* If there are several occurrences of '*', go on, but stay on the */
+        /* same index in case '*' is expanded to nothing */
+        /* (the -- is to compensate the fact that isrc will be incremented in */
+        /*  the after statement of the for loop) */
+        isrc --;
     }
 
     
@@ -1810,9 +2067,9 @@ const char *swq_select_parse( swq_select *select_info,
                 def->col_func = SWQCF_CUSTOM;
                 if( !(parse_flags & SWQP_ALLOW_UNDEFINED_COL_FUNCS) )
                 {
-                    sprintf( swq_error, "Unrecognised field function %s.",
+                    SNPRINTF_ERR2( "Unrecognised field function %s.",
                              def->col_func_name );
-                    return swq_error;
+                    return swq_get_errbuf();
                 }
             }
 
@@ -1822,10 +2079,10 @@ const char *swq_select_parse( swq_select *select_info,
                  || def->col_func == SWQCF_SUM)
                 && this_type == SWQ_STRING )
             {
-                sprintf( swq_error, 
+                SNPRINTF_ERR3( 
                      "Use of field function %s() on string field %s illegal.", 
                          def->col_func_name, def->field_name );
-                return swq_error;
+                return swq_get_errbuf();
             }
         }
         else
@@ -1833,9 +2090,9 @@ const char *swq_select_parse( swq_select *select_info,
 
         if( def->field_index == -1 && def->col_func != SWQCF_COUNT )
         {
-            sprintf( swq_error, "Unrecognised field name %s.", 
+            SNPRINTF_ERR2( "Unrecognised field name %s.", 
                      def->field_name );
-            return swq_error;
+            return swq_get_errbuf();
         }
     }
 
@@ -1880,6 +2137,10 @@ const char *swq_select_parse( swq_select *select_info,
     {
         return "SELECTing more than one DISTINCT field is a query not supported.";
     }
+    else if (select_info->result_columns == 0)
+    {
+        select_info->query_mode = SWQM_RECORDSET;
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Process column names in JOIN specs.                             */
@@ -1894,19 +2155,19 @@ const char *swq_select_parse( swq_select *select_info,
                                                  field_list, NULL, &table_id );
         if( def->primary_field == -1 )
         {
-            sprintf( swq_error, 
+            SNPRINTF_ERR2(
                      "Unrecognised primary field %s in JOIN clause..", 
                      def->primary_field_name );
-            return swq_error;
+            return swq_get_errbuf();
         }
         
         if( table_id != 0 )
         {
-            sprintf( swq_error, 
+            SNPRINTF_ERR2( 
                      "Currently the primary key must come from the primary table in\n"
                      "JOIN, %s is not from the primary table.",
                      def->primary_field_name );
-            return swq_error;
+            return swq_get_errbuf();
         }
         
         /* identify secondary field */
@@ -1914,20 +2175,20 @@ const char *swq_select_parse( swq_select *select_info,
                                                    field_list, NULL,&table_id);
         if( def->secondary_field == -1 )
         {
-            sprintf( swq_error, 
+            SNPRINTF_ERR2( 
                      "Unrecognised secondary field %s in JOIN clause..", 
                      def->primary_field_name );
-            return swq_error;
+            return swq_get_errbuf();
         }
         
         if( table_id != def->secondary_table )
         {
-            sprintf( swq_error, 
+            SNPRINTF_ERR3( 
                      "Currently the secondary key must come from the secondary table\n"
                      "listed in the JOIN.  %s is not from table %s..",
                      def->primary_field_name,
                      select_info->table_defs[def->secondary_table].table_name);
-            return swq_error;
+            return swq_get_errbuf();
         }
     }
 
@@ -1943,9 +2204,9 @@ const char *swq_select_parse( swq_select *select_info,
                                                NULL, &(def->table_index) );
         if( def->field_index == -1 )
         {
-            sprintf( swq_error, "Unrecognised field name %s in ORDER BY.", 
+            SNPRINTF_ERR2( "Unrecognised field name %s in ORDER BY.", 
                      def->field_name );
-            return swq_error;
+            return swq_get_errbuf();
         }
     }
 
@@ -2037,6 +2298,8 @@ swq_select_summarize( swq_select *select_info,
                     sizeof(char *) * summary->count );
             summary->distinct_list[(summary->count)++] = 
                 swq_strdup( value );
+
+            SWQ_FREE(old_list);
         }
     }
 
@@ -2099,7 +2362,12 @@ static int FORCE_CDECL swq_compare_int( const void *item1, const void *item2 )
     v1 = atoi(*((const char **) item1));
     v2 = atoi(*((const char **) item2));
 
-    return v1 - v2;
+    if( v1 < v2 )
+        return -1;
+    else if( v1 == v2 )
+        return 0;
+    else
+        return 1;
 }
 
 static int FORCE_CDECL swq_compare_real( const void *item1, const void *item2 )
@@ -2133,8 +2401,8 @@ const char *swq_select_finish_summarize( swq_select *select_info )
 
 {
     int (FORCE_CDECL *compare_func)(const void *, const void*);
-    int count;
-    char **distinct_list;
+    int count = 0;
+    char **distinct_list = NULL;
 
     if( select_info->query_mode != SWQM_DISTINCT_LIST 
         || select_info->order_specs == 0 )
@@ -2146,6 +2414,9 @@ const char *swq_select_finish_summarize( swq_select *select_info )
     if( select_info->order_defs[0].field_index != 
         select_info->column_defs[0].field_index )
         return "Only selected DISTINCT field can be used for ORDER BY.";
+
+    if( select_info->column_summary == NULL )
+        return NULL;
 
     if( select_info->column_defs[0].field_type == SWQ_INTEGER )
         compare_func = swq_compare_int;
@@ -2189,6 +2460,9 @@ void swq_select_free( swq_select *select_info )
 
     if( select_info == NULL )
         return;
+
+    if( select_info->where_expr != NULL )
+        swq_expr_free(select_info->where_expr);
 
     if( select_info->raw_select != NULL )
         SWQ_FREE( select_info->raw_select );

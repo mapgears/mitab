@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrpoint.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogrpoint.cpp 16853 2009-04-26 12:22:10Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The Point geometry class.
@@ -29,24 +29,21 @@
 
 #include "ogr_geometry.h"
 #include "ogr_p.h"
-#include <assert.h>
 
-CPL_CVSID("$Id: ogrpoint.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: ogrpoint.cpp 16853 2009-04-26 12:22:10Z rouault $");
 
 /************************************************************************/
 /*                              OGRPoint()                              */
 /************************************************************************/
 
 /**
- * Create a (0,0) point.
+ * \brief Create a (0,0) point.
  */
 
 OGRPoint::OGRPoint()
 
 {
-    x = 0;
-    y = 0;
-    z = 0;
+    empty();
 }
 
 /************************************************************************/
@@ -112,6 +109,7 @@ void OGRPoint::empty()
 
 {
     x = y = z = 0.0;
+    nCoordDimension = 0;
 }
 
 /************************************************************************/
@@ -155,7 +153,8 @@ void OGRPoint::flattenTo2D()
 
 {
     z = 0;
-    nCoordDimension = 2;
+    if (nCoordDimension > 2)
+        nCoordDimension = 2;
 }
 
 /************************************************************************/
@@ -207,7 +206,8 @@ OGRErr OGRPoint::importFromWkb( unsigned char * pabyData,
 /*      Get the byte order byte.                                        */
 /* -------------------------------------------------------------------- */
     eByteOrder = DB2_V72_FIX_BYTE_ORDER((OGRwkbByteOrder) *pabyData);
-    assert( eByteOrder == wkbXDR || eByteOrder == wkbNDR );
+    if (!( eByteOrder == wkbXDR || eByteOrder == wkbNDR ))
+        return OGRERR_CORRUPT_DATA;
 
 /* -------------------------------------------------------------------- */
 /*      Get the geometry feature type.  For now we assume that          */
@@ -228,7 +228,8 @@ OGRErr OGRPoint::importFromWkb( unsigned char * pabyData,
         bIs3D = pabyData[1] & 0x80 || pabyData[3] & 0x80;
     }
 
-    assert( eGeometryType == wkbPoint );
+    if( eGeometryType != wkbPoint )
+        return OGRERR_CORRUPT_DATA;
 
 /* -------------------------------------------------------------------- */
 /*      Get the vertex.                                                 */
@@ -407,9 +408,14 @@ OGRErr OGRPoint::exportToWkt( char ** ppszDstText ) const
     char        szTextEquiv[140];
     char        szCoordinate[80];
 
-    OGRMakeWktCoordinate(szCoordinate, x, y, z, nCoordDimension );
-    sprintf( szTextEquiv, "POINT (%s)", szCoordinate );
-    *ppszDstText = CPLStrdup( szTextEquiv );
+    if (nCoordDimension == 0)
+        *ppszDstText = CPLStrdup( "POINT EMPTY" );
+    else
+    {
+        OGRMakeWktCoordinate(szCoordinate, x, y, z, nCoordDimension );
+        sprintf( szTextEquiv, "POINT (%s)", szCoordinate );
+        *ppszDstText = CPLStrdup( szTextEquiv );
+    }
     
     return OGRERR_NONE;
 }
@@ -430,7 +436,7 @@ void OGRPoint::getEnvelope( OGREnvelope * psEnvelope ) const
 /**
  * \fn double OGRPoint::getX() const;
  *
- * Fetch X coordinate.
+ * \brief Fetch X coordinate.
  *
  * Relates to the SFCOM IPoint::get_X() method.
  *
@@ -440,7 +446,7 @@ void OGRPoint::getEnvelope( OGREnvelope * psEnvelope ) const
 /**
  * \fn double OGRPoint::getY() const;
  *
- * Fetch Y coordinate.
+ * \brief Fetch Y coordinate.
  *
  * Relates to the SFCOM IPoint::get_Y() method.
  *
@@ -450,7 +456,7 @@ void OGRPoint::getEnvelope( OGREnvelope * psEnvelope ) const
 /**
  * \fn double OGRPoint::getZ() const;
  *
- * Fetch Z coordinate.
+ * \brief Fetch Z coordinate.
  *
  * Relates to the SFCOM IPoint::get_Z() method.
  *
@@ -460,7 +466,7 @@ void OGRPoint::getEnvelope( OGREnvelope * psEnvelope ) const
 /**
  * \fn void OGRPoint::setX( double xIn );
  *
- * Assign point X coordinate.
+ * \brief Assign point X coordinate.
  *
  * There is no corresponding SFCOM method.
  */ 
@@ -468,7 +474,7 @@ void OGRPoint::getEnvelope( OGREnvelope * psEnvelope ) const
 /**
  * \fn void OGRPoint::setY( double yIn );
  *
- * Assign point Y coordinate.
+ * \brief Assign point Y coordinate.
  *
  * There is no corresponding SFCOM method.
  */ 
@@ -476,8 +482,9 @@ void OGRPoint::getEnvelope( OGREnvelope * psEnvelope ) const
 /**
  * \fn void OGRPoint::setZ( double zIn );
  *
- * Assign point Z coordinate.  Setting a zero zIn value will make the point
- * 2D, and setting a non-zero value will make the point 3D (wkbPoint|wkbZ).
+ * \brief Assign point Z coordinate.
+ * Calling this method will force the geometry
+ * coordinate dimension to 3D (wkbPoint|wkbZ).
  *
  * There is no corresponding SFCOM method.  
  */ 
@@ -525,4 +532,13 @@ OGRErr OGRPoint::transform( OGRCoordinateTransformation *poCT )
     else
         return OGRERR_FAILURE;
 #endif
+}
+
+/************************************************************************/
+/*                               IsEmpty()                              */
+/************************************************************************/
+
+OGRBoolean OGRPoint::IsEmpty(  ) const
+{
+    return nCoordDimension == 0;
 }

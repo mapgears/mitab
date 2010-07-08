@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrsfdriverregistrar.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogrsfdriverregistrar.cpp 18695 2010-02-01 17:23:44Z hobu $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRSFDriverRegistrar class implementation.
@@ -32,15 +32,24 @@
 #include "ogr_p.h"
 #include "cpl_multiproc.h"
 
-CPL_CVSID("$Id: ogrsfdriverregistrar.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: ogrsfdriverregistrar.cpp 18695 2010-02-01 17:23:44Z hobu $");
 
-static OGRSFDriverRegistrar *poRegistrar = NULL;
+static void *hDRMutex = NULL;
+static OGRSFDriverRegistrar * volatile poRegistrar = NULL;
 
-static char *pszUpdatableINST_DATA = 
+static const char *pszUpdatableINST_DATA = 
 "__INST_DATA_TARGET:                                                                                                                                      ";
 /************************************************************************/
 /*                         OGRSFDriverRegistrar                         */
 /************************************************************************/
+
+/**
+ * \brief Constructor
+ *
+ * Normally the driver registrar is constucted by the 
+ * OGRSFDriverRegistrar::GetRegistrar() accessor which ensures singleton
+ * status.  
+ */
 
 OGRSFDriverRegistrar::OGRSFDriverRegistrar()
 
@@ -53,6 +62,7 @@ OGRSFDriverRegistrar::OGRSFDriverRegistrar()
     papszOpenDSRawName = NULL;
     papoOpenDS = NULL;
     papoOpenDSDriver = NULL;
+    panOpenDSPID = NULL;
 
 /* -------------------------------------------------------------------- */
 /*      We want to push a location to search for data files             */
@@ -104,12 +114,36 @@ OGRSFDriverRegistrar::~OGRSFDriverRegistrar()
 /*                           OGRCleanupAll()                            */
 /************************************************************************/
 
+/**
+ * \brief Cleanup all OGR related resources. 
+ *
+ * This function will destroy the OGRSFDriverRegistrar along with all registered
+ * drivers, and then cleanup long lived OSR (OGRSpatialReference) and CPL
+ * resources.  This may be called in an application when OGR services are
+ * no longer needed.  It is not normally required, but by freeing all
+ * dynamically allocated memory it can make memory leak testing easier.
+ * 
+ * In addition to destroying the OGRDriverRegistrar, this function also calls:
+ * - OSRCleanup()
+ * - CPLFinderClean()
+ * - VSICleanupFileManager()
+ * - CPLFreeConfig()
+ * - CPLCleanupTLS()
+ */
 void OGRCleanupAll()
 
 {
-    if( poRegistrar != NULL )
-        delete poRegistrar;
-    OSRCleanup();
+    {
+        // We don't want to hold the mutex while CPL level mutex services
+        // are being destroyed ... just long enough to avoid conflict while
+        // cleaning up OGR and OSR services.
+        CPLMutexHolderD( &hDRMutex );
+    
+        if( poRegistrar != NULL )
+            delete poRegistrar;
+        OSRCleanup();
+    }
+
     CPLFinderClean();
     VSICleanupFileManager();
     CPLFreeConfig();
@@ -121,12 +155,28 @@ void OGRCleanupAll()
 /*                            GetRegistrar()                            */
 /************************************************************************/
 
+/**
+ * \brief Fetch registrar.
+ *
+ * This static method should be used to fetch the singleton 
+ * registrar.  It will create a registrar if there is not already
+ * one in existance.
+ *
+ * @return the current driver registrar.
+ */
+
 OGRSFDriverRegistrar *OGRSFDriverRegistrar::GetRegistrar()
 
 {
     if( poRegistrar == NULL )
-        poRegistrar = new OGRSFDriverRegistrar();
+    {
+        CPLMutexHolderD( &hDRMutex );
 
+        if( poRegistrar == NULL )
+            poRegistrar = new OGRSFDriverRegistrar();
+    }
+   
+    CPLAssert( NULL != poRegistrar );
     return poRegistrar;
 }
 
@@ -148,17 +198,23 @@ OGRDataSource *OGRSFDriverRegistrar::Open( const char * pszName,
     
     CPLErrorReset();
 
+    CPLAcquireMutex( hDRMutex, 0.1 );
+
     for( int iDriver = 0; iDriver < poRegistrar->nDrivers; iDriver++ )
     {
-        poDS = poRegistrar->papoDrivers[iDriver]->Open( pszName, bUpdate );
+        OGRSFDriver *poDriver = poRegistrar->papoDrivers[iDriver];
+
+        CPLReleaseMutex( hDRMutex );
+
+        poDS = poDriver->Open( pszName, bUpdate );
         if( poDS != NULL )
         {
             if( ppoDriver != NULL )
-                *ppoDriver = poRegistrar->papoDrivers[iDriver];
+                *ppoDriver = poDriver;
 
             poDS->Reference();
             if( poDS->GetDriver() == NULL )
-                poDS->m_poDriver = poRegistrar->papoDrivers[iDriver];
+                poDS->m_poDriver = poDriver;
 
             CPLDebug( "OGR", "OGROpen(%s/%p) succeeded as %s.", 
                       pszName, poDS, poDS->GetDriver()->GetName() );
@@ -168,7 +224,11 @@ OGRDataSource *OGRSFDriverRegistrar::Open( const char * pszName,
 
         if( CPLGetLastErrorType() == CE_Failure )
             return NULL;
+
+        CPLAcquireMutex( hDRMutex, 0.1 );
     }
+
+    CPLReleaseMutex( hDRMutex );
 
     CPLDebug( "OGR", "OGROpen(%s) failed.", pszName );
             
@@ -183,9 +243,12 @@ OGRDataSourceH OGROpen( const char *pszName, int bUpdate,
                         OGRSFDriverH *pahDriverList )
 
 {
+    VALIDATE_POINTER1( pszName, "OGROpen", NULL );
+
     if (poRegistrar)
-        return poRegistrar->Open( pszName, bUpdate, 
-                                  (OGRSFDriver **) pahDriverList );
+        return (OGRDataSourceH) 
+            poRegistrar->Open( pszName, bUpdate, 
+                               (OGRSFDriver **) pahDriverList );
 
     return NULL;
 }
@@ -215,37 +278,43 @@ OGRSFDriverRegistrar::OpenShared( const char * pszName, int bUpdate,
 /*      and return whatever is open even if it is read-only and the     */
 /*      application requested update access.                            */
 /* -------------------------------------------------------------------- */
-    int iDS;
-
-    for( iDS = 0; iDS < nOpenDSCount; iDS++ )
     {
-        poDS = papoOpenDS[iDS];
-
-        if( strcmp( pszName, papszOpenDSRawName[iDS]) == 0 )
+        int iDS;
+        CPLMutexHolderD( &hDRMutex );
+        GIntBig nThisPID = CPLGetPID();
+        
+        for( iDS = 0; iDS < nOpenDSCount; iDS++ )
         {
-            poDS->Reference();
-
-            if( ppoDriver != NULL )
-                *ppoDriver = papoOpenDSDriver[iDS];
-            return poDS;
+            poDS = papoOpenDS[iDS];
+            
+            if( strcmp( pszName, papszOpenDSRawName[iDS]) == 0 
+                && nThisPID == panOpenDSPID[iDS] )
+            {
+                poDS->Reference();
+                
+                if( ppoDriver != NULL )
+                    *ppoDriver = papoOpenDSDriver[iDS];
+                return poDS;
+            }
         }
-    }
 
 /* -------------------------------------------------------------------- */
 /*      If that doesn't match, try matching on the name returned by     */
 /*      the datasource itself.                                          */
 /* -------------------------------------------------------------------- */
-    for( iDS = 0; iDS < nOpenDSCount; iDS++ )
-    {
-        poDS = papoOpenDS[iDS];
-
-        if( strcmp( pszName, poDS->GetName()) == 0 )
+        for( iDS = 0; iDS < nOpenDSCount; iDS++ )
         {
-            poDS->Reference();
-
-            if( ppoDriver != NULL )
-                *ppoDriver = papoOpenDSDriver[iDS];
-            return poDS;
+            poDS = papoOpenDS[iDS];
+            
+            if( strcmp( pszName, poDS->GetName()) == 0 
+                && nThisPID == panOpenDSPID[iDS] )
+            {
+                poDS->Reference();
+                
+                if( ppoDriver != NULL )
+                    *ppoDriver = papoOpenDSDriver[iDS];
+                return poDS;
+            }
         }
     }
 
@@ -263,20 +332,28 @@ OGRSFDriverRegistrar::OpenShared( const char * pszName, int bUpdate,
 /*      We don't have this datasource already.  Grow our list to        */
 /*      hold the new datasource.                                        */
 /* -------------------------------------------------------------------- */
-    papszOpenDSRawName = (char **) 
-        CPLRealloc( papszOpenDSRawName, sizeof(char*) * (nOpenDSCount+1) );
-    
-    papoOpenDS = (OGRDataSource **) 
-        CPLRealloc( papoOpenDS, sizeof(char*) * (nOpenDSCount+1) );
-    
-    papoOpenDSDriver = (OGRSFDriver **) 
-        CPLRealloc( papoOpenDSDriver, sizeof(char*) * (nOpenDSCount+1) );
+    {
+        CPLMutexHolderD( &hDRMutex );
 
-    papszOpenDSRawName[nOpenDSCount] = CPLStrdup( pszName );
-    papoOpenDS[nOpenDSCount] = poDS;
-    papoOpenDSDriver[nOpenDSCount] = poTempDriver;
+        papszOpenDSRawName = (char **) 
+            CPLRealloc( papszOpenDSRawName, sizeof(char*) * (nOpenDSCount+1) );
+    
+        papoOpenDS = (OGRDataSource **) 
+            CPLRealloc( papoOpenDS, sizeof(char*) * (nOpenDSCount+1) );
+    
+        papoOpenDSDriver = (OGRSFDriver **) 
+            CPLRealloc( papoOpenDSDriver, sizeof(char*) * (nOpenDSCount+1) );
 
-    nOpenDSCount++;
+        panOpenDSPID = (GIntBig *) 
+            CPLRealloc( panOpenDSPID, sizeof(GIntBig) * (nOpenDSCount+1) );
+
+        papszOpenDSRawName[nOpenDSCount] = CPLStrdup( pszName );
+        papoOpenDS[nOpenDSCount] = poDS;
+        papoOpenDSDriver[nOpenDSCount] = poTempDriver;
+        panOpenDSPID[nOpenDSCount] = CPLGetPID();
+
+        nOpenDSCount++;
+    }
 
     if( ppoDriver != NULL )
         *ppoDriver = poTempDriver;
@@ -292,9 +369,12 @@ OGRDataSourceH OGROpenShared( const char *pszName, int bUpdate,
                               OGRSFDriverH *pahDriverList )
 
 {
+    VALIDATE_POINTER1( pszName, "OGROpenShared", NULL );
+
     OGRSFDriverRegistrar::GetRegistrar();
-    return poRegistrar->OpenShared( pszName, bUpdate, 
-                                    (OGRSFDriver **) pahDriverList );
+    return (OGRDataSourceH)
+        poRegistrar->OpenShared( pszName, bUpdate, 
+                                 (OGRSFDriver **) pahDriverList );
 }
 
 /************************************************************************/
@@ -304,76 +384,88 @@ OGRDataSourceH OGROpenShared( const char *pszName, int bUpdate,
 OGRErr OGRSFDriverRegistrar::ReleaseDataSource( OGRDataSource * poDS )
 
 {
-    int iDS;
-
-    for( iDS = 0; iDS < nOpenDSCount; iDS++ )
     {
-        if( poDS == papoOpenDS[iDS] )
-            break;
-    }
+        CPLMutexHolderD( &hDRMutex );
 
-    if( iDS == nOpenDSCount )
-    {
-        CPLDebug( "OGR", 
-                  "ReleaseDataSource(%s/%p) on unshared datasource!\n"
-                  "Deleting directly.", 
-                  poDS->GetName(), poDS );
-        delete poDS;
-        return OGRERR_FAILURE;
-    }
+        int iDS;
 
-    if( poDS->GetRefCount() > 0 )
-        poDS->Dereference();
+        for( iDS = 0; iDS < nOpenDSCount; iDS++ )
+        {
+            if( poDS == papoOpenDS[iDS] )
+                break;
+        }
 
-    if( poDS->GetRefCount() > 0 )
-    {
-        CPLDebug( "OGR", 
-                  "ReleaseDataSource(%s/%p) ... just dereferencing.",
-                  poDS->GetName(), poDS );
-        return OGRERR_NONE;
-    }
+        if( iDS == nOpenDSCount )
+        {
+            CPLDebug( "OGR", 
+                      "ReleaseDataSource(%s/%p) on unshared datasource!\n"
+                      "Deleting directly.", 
+                      poDS->GetName(), poDS );
+            delete poDS;
+            return OGRERR_FAILURE;
+        }
 
-    if( poDS->GetSummaryRefCount() > 0 )
-    {
-        CPLDebug( "OGR", 
-                  "OGRSFDriverRegistrar::ReleaseDataSource(%s)\n"
-                  "Datasource reference count is now zero, but some layers\n"
-                  "are still referenced ... not closing datasource.",
-                  poDS->GetName() );
-        return OGRERR_FAILURE;
-    }
+        if( poDS->GetRefCount() > 0 )
+            poDS->Dereference();
+
+        if( poDS->GetRefCount() > 0 )
+        {
+            CPLDebug( "OGR", 
+                      "ReleaseDataSource(%s/%p) ... just dereferencing.",
+                      poDS->GetName(), poDS );
+            return OGRERR_NONE;
+        }
+
+        if( poDS->GetSummaryRefCount() > 0 )
+        {
+            CPLDebug( "OGR", 
+                      "OGRSFDriverRegistrar::ReleaseDataSource(%s)\n"
+                      "Datasource reference count is now zero, but some layers\n"
+                      "are still referenced ... not closing datasource.",
+                      poDS->GetName() );
+            return OGRERR_FAILURE;
+        }
 
 /* -------------------------------------------------------------------- */
 /*      We really want to close this file, and remove it from the       */
 /*      shared list.                                                    */
 /* -------------------------------------------------------------------- */
-    CPLDebug( "OGR", 
-              "ReleaseDataSource(%s/%p) dereferenced and now destroying.",
-              poDS->GetName(), poDS );
+        CPLDebug( "OGR", 
+                  "ReleaseDataSource(%s/%p) dereferenced and now destroying.",
+                  poDS->GetName(), poDS );
 
-    CPLFree( papszOpenDSRawName[iDS] );
-    memmove( papszOpenDSRawName + iDS, papszOpenDSRawName + iDS + 1, 
-             sizeof(char *) * (nOpenDSCount - iDS - 1) );
-    memmove( papoOpenDS + iDS, papoOpenDS + iDS + 1, 
-             sizeof(char *) * (nOpenDSCount - iDS - 1) );
-    memmove( papoOpenDSDriver + iDS, papoOpenDSDriver + iDS + 1, 
-             sizeof(char *) * (nOpenDSCount - iDS - 1) );
+        CPLFree( papszOpenDSRawName[iDS] );
+        memmove( papszOpenDSRawName + iDS, papszOpenDSRawName + iDS + 1, 
+                 sizeof(char *) * (nOpenDSCount - iDS - 1) );
+        memmove( papoOpenDS + iDS, papoOpenDS + iDS + 1, 
+                 sizeof(char *) * (nOpenDSCount - iDS - 1) );
+        memmove( papoOpenDSDriver + iDS, papoOpenDSDriver + iDS + 1, 
+                 sizeof(char *) * (nOpenDSCount - iDS - 1) );
+        memmove( panOpenDSPID + iDS, panOpenDSPID + iDS + 1, 
+                 sizeof(GIntBig) * (nOpenDSCount - iDS - 1) );
 
-    nOpenDSCount--;
+        nOpenDSCount--;
 
-    if( nOpenDSCount == 0 )
-    {
-        CPLFree( papszOpenDSRawName );
-        papszOpenDSRawName = NULL;
-        CPLFree( papoOpenDS );
-        papoOpenDS = NULL;
-        CPLFree( papoOpenDSDriver );
-        papoOpenDSDriver = NULL;
+        if( nOpenDSCount == 0 )
+        {
+            CPLFree( papszOpenDSRawName );
+            papszOpenDSRawName = NULL;
+            CPLFree( papoOpenDS );
+            papoOpenDS = NULL;
+            CPLFree( papoOpenDSDriver );
+            papoOpenDSDriver = NULL;
+            CPLFree( panOpenDSPID );
+            panOpenDSPID = NULL;
+        }
     }
 
-    // We are careful to only do the delete poDS after adjusting the
-    // table, as if it is a virtual dataset, other removals may happen
-    // in the meantime.
+/* -------------------------------------------------------------------- */
+/*      We are careful to only do the delete poDS after adjusting       */
+/*      the table, as if it is a virtual dataset, other removals may    */
+/*      happen in the meantime.  We are also careful to do this         */
+/*      outside the mutex protected loop as destroying a dataset can    */
+/*      take quite a while.                                             */
+/* -------------------------------------------------------------------- */
     delete poDS;
 
     return OGRERR_NONE;
@@ -386,6 +478,8 @@ OGRErr OGRSFDriverRegistrar::ReleaseDataSource( OGRDataSource * poDS )
 OGRErr OGRReleaseDataSource( OGRDataSourceH hDS )
 
 {
+    VALIDATE_POINTER1( hDS, "OGRReleaseDataSource", OGRERR_INVALID_HANDLE );
+
     OGRSFDriverRegistrar::GetRegistrar();
     return poRegistrar->ReleaseDataSource((OGRDataSource *) hDS);
 }
@@ -408,6 +502,8 @@ int OGRGetOpenDSCount()
 OGRDataSource *OGRSFDriverRegistrar::GetOpenDS( int iDS )
 
 {
+    CPLMutexHolderD( &hDRMutex );
+
     if( iDS < 0 || iDS >= nOpenDSCount )
         return NULL;
     else
@@ -432,6 +528,7 @@ OGRDataSourceH OGRGetOpenDS( int iDS )
 void OGRSFDriverRegistrar::RegisterDriver( OGRSFDriver * poDriver )
 
 {
+    CPLMutexHolderD( &hDRMutex );
     int         iDriver;
 
 /* -------------------------------------------------------------------- */
@@ -441,7 +538,33 @@ void OGRSFDriverRegistrar::RegisterDriver( OGRSFDriver * poDriver )
     {
         if( poDriver == papoDrivers[iDriver] )
             return;
-    }                                                   
+
+        /* Same name but different pointer. Likely a second call to OGRRegisterAll() */
+        /* We delete the new driver */
+        if (EQUAL(poDriver->GetName(), papoDrivers[iDriver]->GetName()))
+        {
+            delete poDriver;
+            return;
+        }
+    }
+
+/* -------------------------------------------------------------------- */
+/*      Skip and destroy drivers in the black list.                     */
+/* -------------------------------------------------------------------- */
+    char** papszSkipDrivers =
+            CSLTokenizeStringComplex(CPLGetConfigOption("OGR_SKIP", ""), ",", FALSE, FALSE);
+    char** iter = papszSkipDrivers;
+    while(*iter)
+    {
+        if (strcmp(*iter, poDriver->GetName()) == 0)
+        {
+            CSLDestroy(papszSkipDrivers);
+            delete poDriver;
+            return;
+        }
+        iter ++;
+    }
+    CSLDestroy(papszSkipDrivers);
 
 /* -------------------------------------------------------------------- */
 /*      Add to the end of the driver list.                              */
@@ -459,6 +582,8 @@ void OGRSFDriverRegistrar::RegisterDriver( OGRSFDriver * poDriver )
 void OGRRegisterDriver( OGRSFDriverH hDriver )
 
 {
+    VALIDATE_POINTER0( hDriver, "OGRRegisterDriver" );
+
     OGRSFDriverRegistrar::GetRegistrar()->RegisterDriver( 
         (OGRSFDriver *) hDriver );
 }
@@ -493,6 +618,8 @@ int OGRGetDriverCount()
 OGRSFDriver *OGRSFDriverRegistrar::GetDriver( int iDriver )
 
 {
+    CPLMutexHolderD( &hDRMutex );
+
     if( iDriver < 0 || iDriver >= nDrivers )
         return NULL;
     else
@@ -506,6 +633,8 @@ OGRSFDriver *OGRSFDriverRegistrar::GetDriver( int iDriver )
 OGRSFDriverH OGRGetDriver( int iDriver )
 
 {
+    VALIDATE_POINTER1( poRegistrar, "OGRGetDriver", NULL );
+
     return (OGRSFDriverH) poRegistrar->GetDriver( iDriver );
 }
 
@@ -516,6 +645,8 @@ OGRSFDriverH OGRGetDriver( int iDriver )
 OGRSFDriver *OGRSFDriverRegistrar::GetDriverByName( const char * pszName )
 
 {
+    CPLMutexHolderD( &hDRMutex );
+
     for( int i = 0; i < nDrivers; i++ )
     {
         if( papoDrivers[i] != NULL 
@@ -533,7 +664,8 @@ OGRSFDriver *OGRSFDriverRegistrar::GetDriverByName( const char * pszName )
 OGRSFDriverH OGRGetDriverByName( const char *pszName )
 
 {
-    ;
+    VALIDATE_POINTER1( pszName, "OGRGetDriverByName", NULL );
+
     return (OGRSFDriverH) 
         OGRSFDriverRegistrar::GetRegistrar()->GetDriverByName( pszName );
 }
@@ -543,20 +675,31 @@ OGRSFDriverH OGRGetDriverByName( const char *pszName )
 /************************************************************************/
 
 /**
- * Auto-load GDAL drivers from shared libraries.
+ * \brief Auto-load GDAL drivers from shared libraries.
  *
  * This function will automatically load drivers from shared libraries.  It
  * searches the "driver path" for .so (or .dll) files that start with the
- * prefix "gdal_X.so".  It then tries to load them and then tries to call
- * a function within them called GDALRegister_X() where the 'X' is the same 
+ * prefix "ogr_X.so".  It then tries to load them and then tries to call
+ * a function within them called RegisterOGRX() where the 'X' is the same 
  * as the remainder of the shared library basename, or failing that to 
  * call GDALRegisterMe().  
  *
- * There are a few rules for the driver path.  If the GDAL_DRIVER_PATH
- * environment variable it set, it is taken to be a list of directories
- * to search separated by colons on unix, or semi-colons on Windows.  Otherwise
- * the /usr/local/lib/gdalplugins directory, and (if known) the lib/gdalplugins
- * subdirectory of the gdal home directory are searched. 
+ * There are a few rules for the driver path.  If the GDAL_DRIVER_PATH 
+ * environment variable it set, it is taken to be a list of directories to 
+ * search separated by colons on unix, or semi-colons on Windows.  
+ *
+ * If that is not set the following defaults are used:
+ *
+ * <ul>
+ * <li> Linux/Unix: <prefix>/lib/gdalplugins is searched or 
+ * /usr/local/lib/gdalplugins if the install prefix is not known.
+ * <li> MacOSX: <prefix>/PlugIns is searched, or /usr/local/lib/gdalplugins if
+ * the install prefix is not known.  Also, the framework directory
+ * /Library/Application Support/GDAL/PlugIns is searched.
+ * <li> Win32: <prefix>/lib/gdalplugins if the prefix is known (normally it 
+ * is not), otherwise the gdalplugins subdirectory of the directory containing
+ * the currently running executable is used. 
+ * </ul>
  */
 
 void OGRSFDriverRegistrar::AutoLoadDrivers()
@@ -610,8 +753,12 @@ void OGRSFDriverRegistrar::AutoLoadDrivers()
 #endif 
 
 #ifdef MACOSX_FRAMEWORK
+#define num2str(x) str(x)
+#define str(x) #x 
         papszSearchPath = CSLAddString( papszSearchPath, 
-                                        "/Library/Application Support/GDAL/PlugIns" );
+                                        "/Library/Application Support/GDAL/"
+                                        num2str(GDAL_VERSION_MAJOR) "."
+                                        num2str(GDAL_VERSION_MINOR) "PlugIns" );
 #endif
 
     }
@@ -669,3 +816,4 @@ void OGRSFDriverRegistrar::AutoLoadDrivers()
 
     CSLDestroy( papszSearchPath );
 }
+

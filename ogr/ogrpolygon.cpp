@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrpolygon.cpp 11427 2007-05-07 19:16:26Z warmerdam $
+ * $Id: ogrpolygon.cpp 16898 2009-05-01 12:23:36Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRPolygon geometry class.
@@ -32,14 +32,14 @@
 #include "ogr_geos.h"
 #include "ogr_api.h"
 
-CPL_CVSID("$Id: ogrpolygon.cpp 11427 2007-05-07 19:16:26Z warmerdam $");
+CPL_CVSID("$Id: ogrpolygon.cpp 16898 2009-05-01 12:23:36Z rouault $");
 
 /************************************************************************/
 /*                             OGRPolygon()                             */
 /************************************************************************/
 
 /**
- * Create an empty polygon.
+ * \brief Create an empty polygon.
  */
 
 OGRPolygon::OGRPolygon()
@@ -150,7 +150,7 @@ const char * OGRPolygon::getGeometryName() const
 /************************************************************************/
 
 /**
- * Fetch reference to external polygon ring.
+ * \brief Fetch reference to external polygon ring.
  *
  * Note that the returned ring pointer is to an internal data object of
  * the OGRPolygon.  It should not be modified or deleted by the application,
@@ -186,7 +186,7 @@ const OGRLinearRing *OGRPolygon::getExteriorRing() const
 /************************************************************************/
 
 /**
- * Fetch the number of internal rings.
+ * \brief Fetch the number of internal rings.
  *
  * Relates to the SFCOM IPolygon::get_NumInteriorRings() method.
  *
@@ -208,7 +208,7 @@ int OGRPolygon::getNumInteriorRings() const
 /************************************************************************/
 
 /**
- * Fetch reference to indicated internal ring.
+ * \brief Fetch reference to indicated internal ring.
  *
  * Note that the returned ring pointer is to an internal data object of
  * the OGRPolygon.  It should not be modified or deleted by the application,
@@ -246,7 +246,7 @@ const OGRLinearRing *OGRPolygon::getInteriorRing( int iRing ) const
 /************************************************************************/
 
 /**
- * Add a ring to a polygon.
+ * \brief Add a ring to a polygon.
  *
  * If the polygon has no external ring (it is empty) this will be used as
  * the external ring, otherwise it is used as an internal ring.  The passed
@@ -277,7 +277,7 @@ void OGRPolygon::addRing( OGRLinearRing * poNewRing )
 /************************************************************************/
 
 /**
- * Add a ring to a polygon.
+ * \brief Add a ring to a polygon.
  *
  * If the polygon has no external ring (it is empty) this will be used as
  * the external ring, otherwise it is used as an internal ring.  Ownership
@@ -339,14 +339,15 @@ OGRErr OGRPolygon::importFromWkb( unsigned char * pabyData,
     OGRwkbByteOrder     eByteOrder;
     int                 nDataOffset, b3D;
     
-    if( nSize < 21 && nSize != -1 )
+    if( nSize < 9 && nSize != -1 )
         return OGRERR_NOT_ENOUGH_DATA;
 
 /* -------------------------------------------------------------------- */
 /*      Get the byte order byte.                                        */
 /* -------------------------------------------------------------------- */
     eByteOrder = DB2_V72_FIX_BYTE_ORDER((OGRwkbByteOrder) *pabyData);
-    CPLAssert( eByteOrder == wkbXDR || eByteOrder == wkbNDR );
+    if (!( eByteOrder == wkbXDR || eByteOrder == wkbNDR ))
+        return OGRERR_CORRUPT_DATA;
 
 /* -------------------------------------------------------------------- */
 /*      Get the geometry feature type.  For now we assume that          */
@@ -361,7 +362,8 @@ OGRErr OGRPolygon::importFromWkb( unsigned char * pabyData,
     else
         eGeometryType = (OGRwkbGeometryType) pabyData[4];
 
-    CPLAssert( eGeometryType == wkbPolygon );
+    if( eGeometryType != wkbPolygon )
+        return OGRERR_CORRUPT_DATA;
 #endif    
 
     if( eByteOrder == wkbNDR )
@@ -394,7 +396,27 @@ OGRErr OGRPolygon::importFromWkb( unsigned char * pabyData,
     if( OGR_SWAP( eByteOrder ) )
         nRingCount = CPL_SWAP32(nRingCount);
 
-    papoRings = (OGRLinearRing **) OGRMalloc(sizeof(void*) * nRingCount);
+    if (nRingCount < 0 || nRingCount > INT_MAX / 4)
+    {
+        nRingCount = 0;
+        return OGRERR_CORRUPT_DATA;
+    }
+
+    /* Each ring has a minimum of 4 bytes (point count) */
+    if (nSize != -1 && nSize - 9 < nRingCount * 4)
+    {
+        CPLError( CE_Failure, CPLE_AppDefined,
+                  "Length of input WKB is too small" );
+        nRingCount = 0;
+        return OGRERR_NOT_ENOUGH_DATA;
+    }
+
+    papoRings = (OGRLinearRing **) VSIMalloc2(sizeof(void*), nRingCount);
+    if (nRingCount != 0 && papoRings == NULL)
+    {
+        nRingCount = 0;
+        return OGRERR_NOT_ENOUGH_MEMORY;
+    }
 
     nDataOffset = 9;
     if( nSize != -1 )
@@ -413,6 +435,7 @@ OGRErr OGRPolygon::importFromWkb( unsigned char * pabyData,
                                                  nSize );
         if( eErr != OGRERR_NONE )
         {
+            delete papoRings[iRing];
             nRingCount = iRing;
             return eErr;
         }
@@ -632,6 +655,17 @@ OGRErr OGRPolygon::exportToWkt( char ** ppszDstText ) const
     char        **papszRings;
     int         iRing, nCumulativeLength = 0, nNonEmptyRings = 0;
     OGRErr      eErr;
+    int         bMustWriteComma = FALSE;
+
+/* -------------------------------------------------------------------- */
+/*      If we have no valid exterior ring, return POLYGON EMPTY.        */
+/* -------------------------------------------------------------------- */
+    if (getExteriorRing() == NULL ||
+        getExteriorRing()->IsEmpty())
+    {
+        *ppszDstText = CPLStrdup("POLYGON EMPTY");
+        return OGRERR_NONE;
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Build a list of strings containing the stuff for each ring.     */
@@ -649,22 +683,12 @@ OGRErr OGRPolygon::exportToWkt( char ** ppszDstText ) const
 
         eErr = papoRings[iRing]->exportToWkt( &(papszRings[iRing]) );
         if( eErr != OGRERR_NONE )
-            return eErr;
+            goto error;
 
         CPLAssert( EQUALN(papszRings[iRing],"LINEARRING (", 12) );
         nCumulativeLength += strlen(papszRings[iRing] + 11);
 
         nNonEmptyRings++;
-    }
-    
-/* -------------------------------------------------------------------- */
-/*      If we have no valid rings, return POLYGON EMPTY.                */
-/* -------------------------------------------------------------------- */
-    if( nNonEmptyRings == 0 )
-    {
-        CPLFree( papszRings );
-        *ppszDstText = CPLStrdup("POLYGON EMPTY");
-        return OGRERR_NONE;
     }
 
 /* -------------------------------------------------------------------- */
@@ -674,30 +698,47 @@ OGRErr OGRPolygon::exportToWkt( char ** ppszDstText ) const
     *ppszDstText = (char *) VSIMalloc(nCumulativeLength + nNonEmptyRings + 11);
 
     if( *ppszDstText == NULL )
-        return OGRERR_NOT_ENOUGH_MEMORY;
+    {
+        eErr = OGRERR_NOT_ENOUGH_MEMORY;
+        goto error;
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Build up the string, freeing temporary strings as we go.        */
 /* -------------------------------------------------------------------- */
     strcpy( *ppszDstText, "POLYGON (" );
+    nCumulativeLength = strlen(*ppszDstText);
 
     for( iRing = 0; iRing < nRingCount; iRing++ )
     {                                                           
         if( papszRings[iRing] == NULL )
+        {
+            CPLDebug( "OGR", "OGRPolygon::exportToWkt() - skipping empty ring.");
             continue;
+        }
 
-        if( iRing > 0 )
-            strcat( *ppszDstText, "," );
+        if( bMustWriteComma )
+            (*ppszDstText)[nCumulativeLength++] = ',';
+        bMustWriteComma = TRUE;
         
-        strcat( *ppszDstText, papszRings[iRing] + 11 );
+        int nRingLen = strlen(papszRings[iRing] + 11);
+        memcpy( *ppszDstText + nCumulativeLength, papszRings[iRing] + 11, nRingLen );
+        nCumulativeLength += nRingLen;
         VSIFree( papszRings[iRing] );
     }
 
-    strcat( *ppszDstText, ")" );
+    (*ppszDstText)[nCumulativeLength++] = ')';
+    (*ppszDstText)[nCumulativeLength] = '\0';
 
     CPLFree( papszRings );
 
     return OGRERR_NONE;
+
+error:
+    for( iRing = 0; iRing < nRingCount; iRing++ )
+        CPLFree(papszRings[iRing]);
+    CPLFree(papszRings);
+    return eErr;
 }
 
 /************************************************************************/
@@ -705,7 +746,7 @@ OGRErr OGRPolygon::exportToWkt( char ** ppszDstText ) const
 /************************************************************************/
 
 /**
- * Compute the polygon centroid.
+ * \brief Compute the polygon centroid.
  *
  * The centroid location is applied to the passed in OGRPoint object.
  *
@@ -793,14 +834,46 @@ int OGR_G_Centroid( OGRGeometryH hPolygon, OGRGeometryH hCentroidPoint )
 /*                           PointOnSurface()                           */
 /************************************************************************/
 
-int OGRPolygon::PointOnSurface( OGRPoint * ) const
+int OGRPolygon::PointOnSurface( OGRPoint *poPoint ) const
 
 {
-    // notdef ... not implemented yet.
-    
+    if( poPoint == NULL )
+        return OGRERR_FAILURE;
+ 
+#ifndef HAVE_GEOS
     return OGRERR_FAILURE;
+#else
+    GEOSGeom hThisGeosGeom = NULL;
+    GEOSGeom hOtherGeosGeom = NULL;
+     
+    hThisGeosGeom = exportToGEOS();
+ 
+    if( hThisGeosGeom != NULL )
+    {
+     	hOtherGeosGeom = GEOSPointOnSurface( hThisGeosGeom );
+        OGRPoint *poInsidePoint = (OGRPoint *) 
+            OGRGeometryFactory::createFromGEOS( hOtherGeosGeom );
+ 
+        GEOSGeom_destroy( hThisGeosGeom );
+        GEOSGeom_destroy( hOtherGeosGeom );
+ 
+        if( poPoint == NULL 
+            || wkbFlatten(poPoint->getGeometryType()) != wkbPoint )
+            return OGRERR_FAILURE;
+ 
+ 	poPoint->setX( poInsidePoint->getX() );
+ 	poPoint->setY( poInsidePoint->getY() );
+ 
+        delete poInsidePoint;
+ 
+     	return OGRERR_NONE;
+    }
+    else
+    {
+     	return OGRERR_FAILURE;
+    }
+#endif /* HAVE_GEOS */
 }
-
 
 
 /************************************************************************/
@@ -850,7 +923,11 @@ OGRBoolean OGRPolygon::Equals( OGRGeometry * poOther ) const
     if( getNumInteriorRings() != poOPoly->getNumInteriorRings() )
         return FALSE;
 
-    if( !getExteriorRing()->Equals( poOPoly->getExteriorRing() ) )
+    if( getExteriorRing() == NULL && poOPoly->getExteriorRing() == NULL )
+        /* ok */;
+    else if( getExteriorRing() == NULL || poOPoly->getExteriorRing() == NULL )
+        return FALSE;
+    else if( !getExteriorRing()->Equals( poOPoly->getExteriorRing() ) )
         return FALSE;
     
     // we should eventually test the SRS.
@@ -937,7 +1014,7 @@ void OGRPolygon::closeRings()
 /************************************************************************/
 
 /**
- * Compute area of polygon.
+ * \brief Compute area of polygon.
  *
  * The area is computed as the area of the outer ring less the area of all
  * internal rings. 
@@ -976,3 +1053,25 @@ void OGRPolygon::setCoordinateDimension( int nNewDimension )
     OGRGeometry::setCoordinateDimension( nNewDimension );
 }
 
+
+/************************************************************************/
+/*                               IsEmpty()                              */
+/************************************************************************/
+
+OGRBoolean OGRPolygon::IsEmpty(  ) const
+{
+    for( int iRing = 0; iRing < nRingCount; iRing++ )
+        if (papoRings[iRing]->IsEmpty() == FALSE)
+            return FALSE;
+    return TRUE;
+}
+
+/************************************************************************/
+/*                       OGRPolygon::segmentize()                       */
+/************************************************************************/
+
+void OGRPolygon::segmentize( double dfMaxLength )
+{
+    for( int iRing = 0; iRing < nRingCount; iRing++ )
+        papoRings[iRing]->segmentize(dfMaxLength);
+}

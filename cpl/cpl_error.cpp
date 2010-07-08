@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_error.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: cpl_error.cpp 17293 2009-06-26 14:55:34Z warmerdam $
  *
  * Name:     cpl_error.cpp
  * Project:  CPL - Common Portability Library
@@ -40,7 +40,7 @@
  
 #define TIMESTAMP_DEBUG
 
-CPL_CVSID("$Id: cpl_error.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: cpl_error.cpp 17293 2009-06-26 14:55:34Z warmerdam $");
 
 static void *hErrorMutex = NULL;
 static CPLErrorHandler pfnErrorHandler = CPLDefaultErrorHandler;
@@ -156,9 +156,33 @@ void    CPLErrorV(CPLErr eErrClass, int err_no, const char *fmt, va_list args )
         wrk_args = args;
 #endif
 
-        while( ((nPR = vsnprintf( psCtx->szLastErrMsg, 
-                                 psCtx->nLastErrMsgMax, fmt, wrk_args )) == -1
-                || nPR >= psCtx->nLastErrMsgMax-1)
+/* -------------------------------------------------------------------- */
+/*      If CPL_ACCUM_ERROR_MSG=ON accumulate the error messages,        */
+/*      rather than just replacing the last error message.              */
+/* -------------------------------------------------------------------- */
+        int nPreviousSize = 0;
+        if ( psCtx->psHandlerStack != NULL &&
+             EQUAL(CPLGetConfigOption( "CPL_ACCUM_ERROR_MSG", "" ), "ON"))
+        {
+            nPreviousSize = strlen(psCtx->szLastErrMsg);
+            if (nPreviousSize)
+            {
+                if (nPreviousSize + 1 + 1 >= psCtx->nLastErrMsgMax)
+                {
+                    psCtx->nLastErrMsgMax *= 3;
+                    psCtx = (CPLErrorContext *) 
+                        CPLRealloc(psCtx, sizeof(CPLErrorContext) - DEFAULT_LAST_ERR_MSG_SIZE + psCtx->nLastErrMsgMax + 1);
+                    CPLSetTLS( CTLS_ERRORCONTEXT, psCtx, TRUE );
+                }
+                psCtx->szLastErrMsg[nPreviousSize] = '\n';
+                psCtx->szLastErrMsg[nPreviousSize+1] = '0';
+                nPreviousSize ++;
+            }
+        }
+
+        while( ((nPR = vsnprintf( psCtx->szLastErrMsg+nPreviousSize, 
+                                 psCtx->nLastErrMsgMax-nPreviousSize, fmt, wrk_args )) == -1
+                || nPR >= psCtx->nLastErrMsgMax-nPreviousSize-1)
                && psCtx->nLastErrMsgMax < 1000000 )
         {
 #ifdef va_copy
@@ -421,6 +445,21 @@ void CPL_STDCALL CPLDefaultErrorHandler( CPLErr eErrClass, int nError,
 {
     static int       bLogInit = FALSE;
     static FILE *    fpLog = stderr;
+    static int       nCount = 0;
+    static int       nMaxErrors = -1;
+
+    if (eErrClass != CE_Debug)
+    {
+        if( nMaxErrors == -1 )
+        {
+            nMaxErrors = 
+                atoi(CPLGetConfigOption( "CPL_MAX_ERROR_REPORTS", "1000" ));
+        }
+
+        nCount++;
+        if (nCount > nMaxErrors && nMaxErrors > 0 )
+            return;
+    }
 
     if( !bLogInit )
     {
@@ -441,6 +480,16 @@ void CPL_STDCALL CPLDefaultErrorHandler( CPLErr eErrClass, int nError,
         fprintf( fpLog, "Warning %d: %s\n", nError, pszErrorMsg );
     else
         fprintf( fpLog, "ERROR %d: %s\n", nError, pszErrorMsg );
+
+    if (eErrClass != CE_Debug 
+        && nMaxErrors > 0 
+        && nCount == nMaxErrors )
+    {
+        fprintf( fpLog, 
+                 "More than %d errors or warnings have been reported. "
+                 "No more will be reported from now.\n", 
+                 nMaxErrors );
+    }
 
     fflush( fpLog );
 }
@@ -485,19 +534,20 @@ void CPL_STDCALL CPLLoggingErrorHandler( CPLErr eErrClass, int nError,
         }
         else if( cpl_log != NULL )
         {
-            char      path[5000];
+            char*     pszPath;
             int       i = 0;
 
-            strcpy( path, cpl_log );
+            pszPath = (char*)CPLMalloc(strlen(cpl_log) + 20);
+            strcpy(pszPath, cpl_log);
 
-            while( (fpLog = fopen( path, "rt" )) != NULL ) 
+            while( (fpLog = fopen( pszPath, "rt" )) != NULL ) 
             {
                 fclose( fpLog );
 
                 /* generate sequenced log file names, inserting # before ext.*/
                 if (strrchr(cpl_log, '.') == NULL)
                 {
-                    sprintf( path, "%s_%d%s", cpl_log, i++,
+                    sprintf( pszPath, "%s_%d%s", cpl_log, i++,
                              ".log" );
                 }
                 else
@@ -509,12 +559,14 @@ void CPL_STDCALL CPLLoggingErrorHandler( CPLErr eErrClass, int nError,
                     {
                         cpl_log_base[pos] = '\0';
                     }
-                    sprintf( path, "%s_%d%s", cpl_log_base,
+                    sprintf( pszPath, "%s_%d%s", cpl_log_base,
                              i++, ".log" );
+                    free(cpl_log_base);
                 }
             }
 
-            fpLog = fopen( path, "wt" );
+            fpLog = fopen( pszPath, "wt" );
+            CPLFree(pszPath);
         }
     }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_vsil.cpp 11305 2007-04-20 16:31:38Z warmerdam $
+ * $Id: cpl_vsil.cpp 18725 2010-02-04 21:02:19Z rouault $
  *
  * Project:  VSI Virtual File System
  * Purpose:  Implementation VSI*L File API and other file system access
@@ -29,8 +29,58 @@
  ****************************************************************************/
 
 #include "cpl_vsi_virtual.h"
+#include "cpl_string.h"
+#include <string>
 
-CPL_CVSID("$Id: cpl_vsil.cpp 11305 2007-04-20 16:31:38Z warmerdam $");
+CPL_CVSID("$Id: cpl_vsil.cpp 18725 2010-02-04 21:02:19Z rouault $");
+
+/************************************************************************/
+/*                             VSIReadDir()                             */
+/************************************************************************/
+
+/**
+ * \brief Read names in a directory.
+ *
+ * This function abstracts access to directory contains.  It returns a
+ * list of strings containing the names of files, and directories in this
+ * directory.  The resulting string list becomes the responsibility of the
+ * application and should be freed with CSLDestroy() when no longer needed.
+ *
+ * Note that no error is issued via CPLError() if the directory path is
+ * invalid, though NULL is returned.
+ * 
+ * This function used to be known as CPLReadDir(), but the old name is now 
+ * deprecated. 
+ *
+ * @param pszPath the relative, or absolute path of a directory to read.
+ * @return The list of entries in the directory, or NULL if the directory
+ * doesn't exist.
+ */
+
+char **VSIReadDir(const char *pszPath)
+{
+    VSIFilesystemHandler *poFSHandler = 
+        VSIFileManager::GetHandler( pszPath );
+
+    return poFSHandler->ReadDir( pszPath );
+}
+
+/************************************************************************/
+/*                             CPLReadDir()                             */
+/*                                                                      */
+/*      This is present only to provide ABI compatability with older    */
+/*      versions.                                                       */
+/************************************************************************/
+#undef CPLReadDir
+
+CPL_C_START
+char CPL_DLL **CPLReadDir( const char *pszPath );
+CPL_C_END
+
+char **CPLReadDir( const char *pszPath )
+{
+    return VSIReadDir(pszPath);
+}
 
 /************************************************************************/
 /*                              VSIMkdir()                              */
@@ -176,6 +226,18 @@ int VSIRmdir( const char * pszDirname )
 int VSIStatL( const char * pszFilename, VSIStatBufL *psStatBuf )
 
 {
+    char    szAltPath[4];
+    /* enable to work on "C:" as if it were "C:\" */
+    if( strlen(pszFilename) == 2 && pszFilename[1] == ':' )
+    {
+        szAltPath[0] = pszFilename[0];
+        szAltPath[1] = pszFilename[1];
+        szAltPath[2] = '\\';
+        szAltPath[3] = '\0';
+
+        pszFilename = szAltPath;
+    }
+
     VSIFilesystemHandler *poFSHandler = 
         VSIFileManager::GetHandler( pszFilename );
 
@@ -213,8 +275,12 @@ FILE *VSIFOpenL( const char * pszFilename, const char * pszAccess )
 {
     VSIFilesystemHandler *poFSHandler = 
         VSIFileManager::GetHandler( pszFilename );
+        
+    FILE* fp = (FILE *) poFSHandler->Open( pszFilename, pszAccess );
 
-    return (FILE *) poFSHandler->Open( pszFilename, pszAccess );
+    VSIDebug3( "VSIFOpenL(%s,%s) = %p", pszFilename, pszAccess, fp );
+        
+    return fp;
 }
 
 /************************************************************************/
@@ -240,6 +306,9 @@ int VSIFCloseL( FILE * fp )
 
 {
     VSIVirtualHandle *poFileHandle = (VSIVirtualHandle *) fp;
+    
+    VSIDebug1( "VSICloseL(%p)", fp );
+    
     int nResult = poFileHandle->Close();
     
     delete poFileHandle;
@@ -435,6 +504,48 @@ int VSIFEofL( FILE * fp )
 }
 
 /************************************************************************/
+/*                            VSIFPrintfL()                             */
+/************************************************************************/
+
+/**
+ * \brief Formatted write to file.
+ *
+ * Provides fprintf() style formatted output to a VSI*L file.  This formats
+ * an internal buffer which is written using VSIFWriteL(). 
+ *
+ * Analog of the POSIX fprintf() call.
+ *
+ * @param fp file handle opened with VSIFOpenL(). 
+ * @param pszFormat the printf style format string. 
+ * 
+ * @return the number of bytes written or -1 on an error.
+ */
+
+int VSIFPrintfL( FILE *fp, const char *pszFormat, ... )
+
+{
+    va_list args;
+    CPLString osResult;
+
+    va_start( args, pszFormat );
+    osResult.vPrintf( pszFormat, args );
+    va_end( args );
+
+    return VSIFWriteL( osResult.c_str(), 1, osResult.length(), fp );
+}
+
+/************************************************************************/
+/*                              VSIFPutcL()                              */
+/************************************************************************/
+
+int VSIFPutcL( int nChar, FILE * fp )
+
+{
+    unsigned char cChar = (unsigned char)nChar;
+    return VSIFWriteL(&cChar, 1, 1, fp);
+}
+
+/************************************************************************/
 /* ==================================================================== */
 /*                           VSIFileManager()                           */
 /* ==================================================================== */
@@ -491,7 +602,13 @@ VSIFileManager *VSIFileManager::Get()
     {
         poManager = new VSIFileManager;
         VSIInstallLargeFileHandler();
+        VSIInstallSubFileHandler();
         VSIInstallMemFileHandler();
+#ifdef HAVE_LIBZ
+        VSIInstallGZipFileHandler();
+        VSIInstallZipFileHandler();
+#endif
+        VSIInstallStdoutHandler();
     }
     
     return poManager;
@@ -506,12 +623,22 @@ VSIFilesystemHandler *VSIFileManager::GetHandler( const char *pszPath )
 {
     VSIFileManager *poThis = Get();
     std::map<std::string,VSIFilesystemHandler*>::const_iterator iter;
+    int nPathLen = strlen(pszPath);
 
     for( iter = poThis->oHandlers.begin();
          iter != poThis->oHandlers.end();
          iter++ )
     {
-        if( strncmp(pszPath,iter->first.c_str(),iter->first.size()) == 0 )
+        const char* pszIterKey = iter->first.c_str();
+        int nIterKeyLen = iter->first.size();
+        if( strncmp(pszPath,pszIterKey,nIterKeyLen) == 0 )
+            return iter->second;
+
+        /* "/vsimem\foo" should be handled as "/vsimem/foo" */
+        if (nIterKeyLen && nPathLen > nIterKeyLen &&
+            pszIterKey[nIterKeyLen-1] == '/' &&
+            pszPath[nIterKeyLen-1] == '\\' &&
+            strncmp(pszPath,pszIterKey,nIterKeyLen-1) == 0 )
             return iter->second;
     }
     
@@ -522,7 +649,7 @@ VSIFilesystemHandler *VSIFileManager::GetHandler( const char *pszPath )
 /*                           InstallHandler()                           */
 /************************************************************************/
 
-void VSIFileManager::InstallHandler( std::string osPrefix,
+void VSIFileManager::InstallHandler( const std::string& osPrefix,
                                      VSIFilesystemHandler *poHandler )
 
 {

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_attrind.h 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogr_attrind.h 10645 2007-01-18 02:22:39Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Classes related to generic implementation of attribute indexing.

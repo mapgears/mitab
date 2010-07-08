@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_srsnode.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogr_srsnode.cpp 18443 2010-01-05 19:33:15Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGR_SRSNode class.
@@ -30,7 +30,7 @@
 #include "ogr_spatialref.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogr_srsnode.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: ogr_srsnode.cpp 18443 2010-01-05 19:33:15Z rouault $");
 
 /************************************************************************/
 /*                            OGR_SRSNode()                             */
@@ -382,6 +382,11 @@ int OGR_SRSNode::NeedsQuoting() const
     if( poParent != NULL && EQUAL(poParent->GetValue(),"AXIS") 
         && this != poParent->GetChild(0) )
         return FALSE;
+
+    // Strings starting with e or E are not valid numeric values, so they
+    // need quoting, like in AXIS["E",EAST] 
+    if( (pszValue[0] == 'e' || pszValue[0] == 'E') )
+        return TRUE;
 
     // Non-numeric tokens are generally quoted while clean numeric values
     // are generally not. 
@@ -834,17 +839,17 @@ void OGR_SRSNode::StripNodes( const char * pszName )
  * wrong.  
  */
 
-static char *apszPROJCSRule[] = 
+static const char * const apszPROJCSRule[] = 
 { "PROJCS", "GEOGCS", "PROJECTION", "PARAMETER", "UNIT", "AXIS", "AUTHORITY", 
   NULL };
 
-static char *apszDATUMRule[] = 
+static const char * const apszDATUMRule[] = 
 { "DATUM", "SPHEROID", "TOWGS84", "AUTHORITY", NULL };
 
-static char *apszGEOGCSRule[] = 
+static const char * const apszGEOGCSRule[] = 
 { "GEOGCS", "DATUM", "PRIMEM", "UNIT", "AXIS", "AUTHORITY", NULL };
 
-static char **apszOrderingRules[] = {
+static const char * const *apszOrderingRules[] = {
     apszPROJCSRule, apszGEOGCSRule, apszDATUMRule, NULL };
 
 OGRErr OGR_SRSNode::FixupOrdering()
@@ -864,7 +869,7 @@ OGRErr OGR_SRSNode::FixupOrdering()
 /* -------------------------------------------------------------------- */
 /*      Is this a node for which an ordering rule exists?               */
 /* -------------------------------------------------------------------- */
-    char **papszRule = NULL;
+    const char * const * papszRule = NULL;
 
     for( i = 0; apszOrderingRules[i] != NULL; i++ )
     {
@@ -887,7 +892,8 @@ OGRErr OGR_SRSNode::FixupOrdering()
 
     for( i = 1; i < GetChildCount(); i++ )
     {
-        panChildKey[i] = CSLFindString( papszRule, GetChild(i)->GetValue() );
+        panChildKey[i] = CSLFindString( (char**) papszRule, 
+                                        GetChild(i)->GetValue() );
         if( panChildKey[i] == -1 )
         {
             CPLDebug( "OGRSpatialReference", 

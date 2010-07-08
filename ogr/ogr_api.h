@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_api.h 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogr_api.h 18226 2009-12-09 09:30:48Z chaitanya $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  C API for OGR Geometry, Feature, Layers, DataSource and drivers.
@@ -27,8 +27,8 @@
  * DEALINGS IN THE SOFTWARE.
  ****************************************************************************/
 
-#ifndef _OGR_API_H_INCLUDED
-#define _OGR_API_H_INCLUDED
+#ifndef OGR_API_H_INCLUDED
+#define OGR_API_H_INCLUDED
 
 /**
  * \file ogr_api.h
@@ -36,7 +36,7 @@
  * C API and defines for OGRFeature, OGRGeometry, and OGRDataSource
  * related classes. 
  * 
- * See also: ogr_geometry.h, ogr_feature.h, ogrsf_frmts.h
+ * See also: ogr_geometry.h, ogr_feature.h, ogrsf_frmts.h, ogr_featurestyle.h
  */
 
 #include "ogr_core.h"
@@ -46,13 +46,22 @@ CPL_C_START
 /* -------------------------------------------------------------------- */
 /*      Geometry related functions (ogr_geometry.h)                     */
 /* -------------------------------------------------------------------- */
+#ifdef DEBUG
+typedef struct OGRGeometryHS *OGRGeometryH;
+#else
 typedef void *OGRGeometryH;
+#endif
 
 #ifndef _DEFINED_OGRSpatialReferenceH
 #define _DEFINED_OGRSpatialReferenceH
 
+#ifdef DEBUG
+typedef struct OGRSpatialReferenceHS *OGRSpatialReferenceH;
+typedef struct OGRCoordinateTransformationHS *OGRCoordinateTransformationH;
+#else
 typedef void *OGRSpatialReferenceH;                               
 typedef void *OGRCoordinateTransformationH;
+#endif
 
 #endif
 
@@ -64,8 +73,16 @@ OGRErr CPL_DLL OGR_G_CreateFromWkb( unsigned char *, OGRSpatialReferenceH,
                                     OGRGeometryH *, int );
 OGRErr CPL_DLL OGR_G_CreateFromWkt( char **, OGRSpatialReferenceH, 
                                     OGRGeometryH * );
+OGRErr CPL_DLL OGR_G_CreateFromFgf( unsigned char *, OGRSpatialReferenceH, 
+                                    OGRGeometryH *, int, int * );
 void   CPL_DLL OGR_G_DestroyGeometry( OGRGeometryH );
 OGRGeometryH CPL_DLL OGR_G_CreateGeometry( OGRwkbGeometryType );
+OGRGeometryH CPL_DLL 
+OGR_G_ApproximateArcAngles( 
+    double dfCenterX, double dfCenterY, double dfZ,
+    double dfPrimaryRadius, double dfSecondaryAxis, double dfRotation, 
+    double dfStartAngle, double dfEndAngle,
+    double dfMaxAngleStepSizeDegrees );
 
 int    CPL_DLL OGR_G_GetDimension( OGRGeometryH );
 int    CPL_DLL OGR_G_GetCoordinateDimension( OGRGeometryH );
@@ -92,12 +109,17 @@ CPLXMLNode CPL_DLL *OGR_G_ExportToGMLTree( OGRGeometryH );
 CPLXMLNode CPL_DLL *OGR_G_ExportEnvelopeToGMLTree( OGRGeometryH );
 #endif
 
+char   CPL_DLL *OGR_G_ExportToKML( OGRGeometryH, const char* pszAltitudeMode );
+
+char   CPL_DLL *OGR_G_ExportToJson( OGRGeometryH );
+OGRGeometryH CPL_DLL OGR_G_CreateGeometryFromJson( const char* );
+
 void   CPL_DLL OGR_G_AssignSpatialReference( OGRGeometryH, 
                                              OGRSpatialReferenceH );
 OGRSpatialReferenceH CPL_DLL OGR_G_GetSpatialReference( OGRGeometryH );
 OGRErr CPL_DLL OGR_G_Transform( OGRGeometryH, OGRCoordinateTransformationH );
 OGRErr CPL_DLL OGR_G_TransformTo( OGRGeometryH, OGRSpatialReferenceH );
-
+void   CPL_DLL OGR_G_Segmentize(OGRGeometryH hGeom, double dfMaxLength );
 int    CPL_DLL OGR_G_Intersects( OGRGeometryH, OGRGeometryH );
 int    CPL_DLL OGR_G_Equals( OGRGeometryH, OGRGeometryH );
 int    CPL_DLL OGR_G_Disjoint( OGRGeometryH, OGRGeometryH );
@@ -120,6 +142,10 @@ double CPL_DLL OGR_G_GetArea( OGRGeometryH );
 int    CPL_DLL OGR_G_Centroid( OGRGeometryH, OGRGeometryH );
 
 void   CPL_DLL OGR_G_Empty( OGRGeometryH );
+int    CPL_DLL OGR_G_IsEmpty (OGRGeometryH );
+int    CPL_DLL OGR_G_IsValid (OGRGeometryH );
+int    CPL_DLL OGR_G_IsSimple (OGRGeometryH );
+int    CPL_DLL OGR_G_IsRing (OGRGeometryH );
 
 /* backward compatibility */
 int    CPL_DLL OGR_G_Intersect( OGRGeometryH, OGRGeometryH );
@@ -162,9 +188,17 @@ int CPL_DLL OGRGetGenerate_DB2_V72_BYTE_ORDER(void);
 /*      Feature related (ogr_feature.h)                                 */
 /* -------------------------------------------------------------------- */
 
+#ifdef DEBUG
+typedef struct OGRFieldDefnHS   *OGRFieldDefnH;
+typedef struct OGRFeatureDefnHS *OGRFeatureDefnH;
+typedef struct OGRFeatureHS     *OGRFeatureH;
+typedef struct OGRStyleTableHS *OGRStyleTableH;
+#else
 typedef void *OGRFieldDefnH;
 typedef void *OGRFeatureDefnH;
 typedef void *OGRFeatureH;
+typedef void *OGRStyleTableH;
+#endif
 
 /* OGRFieldDefn */
 
@@ -247,18 +281,28 @@ long   CPL_DLL OGR_F_GetFID( OGRFeatureH );
 OGRErr CPL_DLL OGR_F_SetFID( OGRFeatureH, long );
 void   CPL_DLL OGR_F_DumpReadable( OGRFeatureH, FILE * );
 OGRErr CPL_DLL OGR_F_SetFrom( OGRFeatureH, OGRFeatureH, int );
+OGRErr CPL_DLL OGR_F_SetFromWithMap( OGRFeatureH, OGRFeatureH, int , int * );
 
 const char CPL_DLL *OGR_F_GetStyleString( OGRFeatureH );
 void   CPL_DLL OGR_F_SetStyleString( OGRFeatureH, const char * );
 void   CPL_DLL OGR_F_SetStyleStringDirectly( OGRFeatureH, char * );
+OGRStyleTableH CPL_DLL OGR_F_GetStyleTable( OGRFeatureH );
+void   CPL_DLL OGR_F_SetStyleTableDirectly( OGRFeatureH, OGRStyleTableH );
+void   CPL_DLL OGR_F_SetStyleTable( OGRFeatureH, OGRStyleTableH );
 
 /* -------------------------------------------------------------------- */
 /*      ogrsf_frmts.h                                                   */
 /* -------------------------------------------------------------------- */
 
+#ifdef DEBUG
+typedef struct OGRLayerHS      *OGRLayerH;
+typedef struct OGRDataSourceHS *OGRDataSourceH;
+typedef struct OGRDriverHS     *OGRSFDriverH;
+#else
 typedef void *OGRLayerH;
 typedef void *OGRDataSourceH;
 typedef void *OGRSFDriverH;
+#endif
 
 /* OGRLayer */
 
@@ -290,6 +334,10 @@ OGRErr CPL_DLL OGR_L_SyncToDisk( OGRLayerH );
 GIntBig CPL_DLL OGR_L_GetFeaturesRead( OGRLayerH );
 const char CPL_DLL *OGR_L_GetFIDColumn( OGRLayerH );
 const char CPL_DLL *OGR_L_GetGeometryColumn( OGRLayerH );
+OGRStyleTableH CPL_DLL OGR_L_GetStyleTable( OGRLayerH );
+void   CPL_DLL OGR_L_SetStyleTableDirectly( OGRLayerH, OGRStyleTableH );
+void   CPL_DLL OGR_L_SetStyleTable( OGRLayerH, OGRStyleTableH );
+
 /* OGRDataSource */
 
 void   CPL_DLL OGR_DS_Destroy( OGRDataSourceH );
@@ -313,6 +361,9 @@ int    CPL_DLL OGR_DS_Dereference( OGRDataSourceH );
 int    CPL_DLL OGR_DS_GetRefCount( OGRDataSourceH );
 int    CPL_DLL OGR_DS_GetSummaryRefCount( OGRDataSourceH );
 OGRErr CPL_DLL OGR_DS_SyncToDisk( OGRDataSourceH );
+OGRStyleTableH CPL_DLL OGR_DS_GetStyleTable( OGRDataSourceH );
+void   CPL_DLL OGR_DS_SetStyleTableDirectly( OGRDataSourceH, OGRStyleTableH );
+void   CPL_DLL OGR_DS_SetStyleTable( OGRDataSourceH, OGRStyleTableH );
 
 /* OGRSFDriver */
 
@@ -342,8 +393,71 @@ OGRDataSourceH CPL_DLL OGRGetOpenDS( int iDS );
 void CPL_DLL OGRRegisterAll(void);
 void CPL_DLL OGRCleanupAll(void);
 
+/* -------------------------------------------------------------------- */
+/*      ogrsf_featurestyle.h                                            */
+/* -------------------------------------------------------------------- */
+
+#ifdef DEBUG
+typedef struct OGRStyleMgrHS *OGRStyleMgrH;
+typedef struct OGRStyleToolHS *OGRStyleToolH;
+#else
+typedef void *OGRStyleMgrH;
+typedef void *OGRStyleToolH;
+#endif
+
+/* OGRStyleMgr */
+
+OGRStyleMgrH CPL_DLL OGR_SM_Create(OGRStyleTableH hStyleTable);
+void    CPL_DLL OGR_SM_Destroy(OGRStyleMgrH hSM);
+
+const char CPL_DLL *OGR_SM_InitFromFeature(OGRStyleMgrH hSM, 
+                                           OGRFeatureH hFeat);
+int     CPL_DLL OGR_SM_InitStyleString(OGRStyleMgrH hSM, 
+                                       const char *pszStyleString);
+int     CPL_DLL OGR_SM_GetPartCount(OGRStyleMgrH hSM, 
+                                    const char *pszStyleString);
+OGRStyleToolH CPL_DLL OGR_SM_GetPart(OGRStyleMgrH hSM, int nPartId, 
+                                     const char *pszStyleString);
+int     CPL_DLL OGR_SM_AddPart(OGRStyleMgrH hSM, OGRStyleToolH hST);
+int     CPL_DLL OGR_SM_AddStyle(OGRStyleMgrH hSM, const char *pszStyleName, 
+                               const char *pszStyleString);
+
+/* OGRStyleTool */
+
+OGRStyleToolH CPL_DLL OGR_ST_Create(OGRSTClassId eClassId);
+void    CPL_DLL OGR_ST_Destroy(OGRStyleToolH hST);
+
+OGRSTClassId CPL_DLL OGR_ST_GetType(OGRStyleToolH hST);
+
+OGRSTUnitId CPL_DLL OGR_ST_GetUnit(OGRStyleToolH hST);
+void    CPL_DLL OGR_ST_SetUnit(OGRStyleToolH hST, OGRSTUnitId eUnit, 
+                               double dfGroundPaperScale);
+
+const char CPL_DLL *OGR_ST_GetParamStr(OGRStyleToolH hST, int eParam, int *bValueIsNull);
+int     CPL_DLL OGR_ST_GetParamNum(OGRStyleToolH hST, int eParam, int *bValueIsNull);
+double  CPL_DLL OGR_ST_GetParamDbl(OGRStyleToolH hST, int eParam, int *bValueIsNull);
+void    CPL_DLL OGR_ST_SetParamStr(OGRStyleToolH hST, int eParam, const char *pszValue);
+void    CPL_DLL OGR_ST_SetParamNum(OGRStyleToolH hST, int eParam, int nValue);
+void    CPL_DLL OGR_ST_SetParamDbl(OGRStyleToolH hST, int eParam, double dfValue);
+const char CPL_DLL *OGR_ST_GetStyleString(OGRStyleToolH hST);
+
+int CPL_DLL OGR_ST_GetRGBFromString(OGRStyleToolH hST, const char *pszColor, 
+                                    int *pnRed, int *pnGreen, int *pnBlue, 
+                                    int *pnAlpha);
+
+/* OGRStyleTable */
+
+OGRStyleTableH  CPL_DLL OGR_STBL_Create( void );
+void    CPL_DLL OGR_STBL_Destroy( OGRStyleTableH hSTBL ); 
+int     CPL_DLL OGR_STBL_SaveStyleTable( OGRStyleTableH hStyleTable,
+                                         const char *pszFilename );
+int     CPL_DLL OGR_STBL_LoadStyleTable( OGRStyleTableH hStyleTable,
+                                         const char *pszFilename );
+const char CPL_DLL *OGR_STBL_Find( OGRStyleTableH hStyleTable, const char *pszName );
+void    CPL_DLL OGR_STBL_ResetStyleStringReading( OGRStyleTableH hStyleTable );
+const char CPL_DLL *OGR_STBL_GetNextStyle( OGRStyleTableH hStyleTable);
+const char CPL_DLL *OGR_STBL_GetLastStyleName( OGRStyleTableH hStyleTable);
+
 CPL_C_END
 
-#endif /* ndef _OGR_API_H_INCLUDED */
-
-
+#endif /* ndef OGR_API_H_INCLUDED */

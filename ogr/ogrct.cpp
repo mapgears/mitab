@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrct.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogrct.cpp 18520 2010-01-11 03:59:14Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRSCoordinateTransformation class.
@@ -38,7 +38,7 @@
 #include "proj_api.h"
 #endif
 
-CPL_CVSID("$Id: ogrct.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: ogrct.cpp 18520 2010-01-11 03:59:14Z warmerdam $");
 
 /* ==================================================================== */
 /*      PROJ.4 interface stuff.                                         */
@@ -67,10 +67,18 @@ static char        *(*pfn_pj_strerrno)(int) = NULL;
 static char        *(*pfn_pj_get_def)(projPJ,int) = NULL;
 static void         (*pfn_pj_dalloc)(void *) = NULL;
 
-#if defined(WIN32) || defined(WIN32CE)
+#if (defined(WIN32) || defined(WIN32CE)) && !defined(__MINGW32__)
 #  define LIBNAME      "proj.dll"
+#elif defined(__MINGW32__)
+// XXX: If PROJ.4 library was properly built using libtool in Cygwin or MinGW
+// environments it has the interface version number embedded in the file name
+// (it is CURRENT-AGE number). If DLL came somewhere else (e.g. from MSVC
+// build) it can be named either way, so use PROJSO environment variable to
+// specify the right library name. By default assume that in Cygwin/MinGW all
+// components were buit in the same way.
+#  define LIBNAME      "libproj-0.dll"
 #elif defined(__CYGWIN__)
-#  define LIBNAME      "libproj.dll"
+#  define LIBNAME      "cygproj-0.dll"
 #elif defined(__APPLE__)
 #  define LIBNAME      "libproj.dylib"
 #else
@@ -101,6 +109,9 @@ class OGRProj4CT : public OGRCoordinateTransformation
     double      dfTargetWrapLong;
 
     int         nErrorCount;
+    
+    int         bCheckWithInvertProj;
+    double      dfThreshold;
 
 public:
                 OGRProj4CT();
@@ -120,6 +131,20 @@ public:
 };
 
 /************************************************************************/
+/*                        GetProjLibraryName()                          */
+/************************************************************************/
+
+static const char* GetProjLibraryName()
+{
+    const char *pszLibName = LIBNAME;
+#if !defined(WIN32CE)
+    if( CPLGetConfigOption("PROJSO",NULL) != NULL )
+        pszLibName = CPLGetConfigOption("PROJSO",NULL);
+#endif
+    return pszLibName;
+}
+
+/************************************************************************/
 /*                          LoadProjLibrary()                           */
 /************************************************************************/
 
@@ -128,17 +153,14 @@ static int LoadProjLibrary()
 {
     CPLMutexHolderD( &hPROJMutex );
     static int  bTriedToLoad = FALSE;
-    const char *pszLibName = LIBNAME;
+    const char *pszLibName;
     
     if( bTriedToLoad )
-        return( pfn_pj_init != NULL );
+        return( pfn_pj_transform != NULL );
 
     bTriedToLoad = TRUE;
 
-#if !defined(WIN32CE)
-    if( CPLGetConfigOption("PROJSO",NULL) != NULL )
-        pszLibName = CPLGetConfigOption("PROJSO",NULL);
-#endif
+    pszLibName = GetProjLibraryName();
 
 #ifdef PROJ_STATIC
     pfn_pj_init = pj_init;
@@ -242,11 +264,44 @@ char *OCTProj4Normalize( const char *pszProj4Src )
 /*                 OCTDestroyCoordinateTransformation()                 */
 /************************************************************************/
 
+/**
+ * \brief OGRCoordinateTransformation destructor. 
+ *
+ * This function is the same as OGRCoordinateTransformation::DestroyCT()
+ *
+ * @param hCT the object to delete
+ */
+ 
 void CPL_STDCALL
 OCTDestroyCoordinateTransformation( OGRCoordinateTransformationH hCT )
 
 {
     delete (OGRCoordinateTransformation *) hCT;
+}
+
+/************************************************************************/
+/*                             DestroyCT()                              */
+/************************************************************************/
+
+/**
+ * \brief OGRCoordinateTransformation destructor. 
+ *
+ * This function is the same as OGRCoordinateTransformation::~OGRCoordinateTransformation()
+ * and OCTDestroyCoordinateTransformation()
+ *
+ * This static method will destroy a OGRCoordinateTransformation.  It is
+ * equivalent to calling delete on the object, but it ensures that the
+ * deallocation is properly executed within the OGR libraries heap on
+ * platforms where this can matter (win32).  
+ *
+ * @param poCT the object to delete
+ *
+ * @since GDAL 1.7.0
+ */
+ 
+void OGRCoordinateTransformation::DestroyCT(OGRCoordinateTransformation* poCT)
+{
+    delete poCT;
 }
 
 /************************************************************************/
@@ -263,6 +318,8 @@ OCTDestroyCoordinateTransformation( OGRCoordinateTransformationH hCT )
  *
  * The delete operator, or OCTDestroyCoordinateTransformation() should
  * be used to destroy transformation objects. 
+ *
+ * The PROJ.4 library must be available at run-time.
  *
  * @param poSource source spatial reference system. 
  * @param poTarget target spatial reference system. 
@@ -281,7 +338,7 @@ OGRCreateCoordinateTransformation( OGRSpatialReference *poSource,
         CPLError( CE_Failure, CPLE_NotSupported, 
                   "Unable to load PROJ.4 library (%s), creation of\n"
                   "OGRCoordinateTransformation failed.",
-                  LIBNAME );
+                  GetProjLibraryName() );
         return NULL;
     }
 
@@ -326,6 +383,9 @@ OGRProj4CT::OGRProj4CT()
     psPJTarget = NULL;
     
     nErrorCount = 0;
+    
+    bCheckWithInvertProj = FALSE;
+    dfThreshold = 0;
 }
 
 /************************************************************************/
@@ -443,17 +503,36 @@ int OGRProj4CT::Initialize( OGRSpatialReference * poSourceIn,
         bTargetWrap = TRUE;
         CPLDebug( "OGRCT", "Wrap target at %g.", dfTargetWrapLong );
     }
+    
+    bCheckWithInvertProj = CSLTestBoolean(CPLGetConfigOption( "CHECK_WITH_INVERT_PROJ", "NO" ));
+    
+    /* The threshold is rather experimental... Works well with the cases of ticket #2305 */
+    if (bSourceLatLong)
+        dfThreshold = atof(CPLGetConfigOption( "THRESHOLD", ".1" ));
+    else
+        /* 1 works well for most projections, except for +proj=aeqd that requires */
+        /* a tolerance of 10000 */
+        dfThreshold = atof(CPLGetConfigOption( "THRESHOLD", "10000" ));
 
 /* -------------------------------------------------------------------- */
 /*      Establish PROJ.4 handle for source if projection.               */
 /* -------------------------------------------------------------------- */
-    char        *pszProj4Defn;
+    // OGRThreadSafety: The following variable is not a thread safety issue 
+    // since the only issue is incrementing while accessing which at worse 
+    // means debug output could be one "increment" late. 
+    static int   nDebugReportCount = 0;
+
+    char        *pszProj4Defn = NULL;
 
     if( poSRSSource->exportToProj4( &pszProj4Defn ) != OGRERR_NONE )
+    {
+        CPLFree( pszProj4Defn );
         return FALSE;
+    }
 
     if( strlen(pszProj4Defn) == 0 )
     {
+        CPLFree( pszProj4Defn );
         CPLError( CE_Failure, CPLE_AppDefined, 
                   "No PROJ.4 translation for source SRS, coordinate\n"
                   "transformation initialization has failed." );
@@ -481,19 +560,28 @@ int OGRProj4CT::Initialize( OGRSpatialReference * poSourceIn,
         }
     }
     
-    CPLFree( pszProj4Defn );
+    if( nDebugReportCount < 10 )
+        CPLDebug( "OGRCT", "Source: %s", pszProj4Defn );
     
+    CPLFree( pszProj4Defn );
+
     if( psPJSource == NULL )
         return FALSE;
 
 /* -------------------------------------------------------------------- */
 /*      Establish PROJ.4 handle for target if projection.               */
 /* -------------------------------------------------------------------- */
+    pszProj4Defn = NULL;
+
     if( poSRSTarget->exportToProj4( &pszProj4Defn ) != OGRERR_NONE )
+    {
+        CPLFree( pszProj4Defn );
         return FALSE;
+    }
 
     if( strlen(pszProj4Defn) == 0 )
     {
+        CPLFree( pszProj4Defn );
         CPLError( CE_Failure, CPLE_AppDefined, 
                   "No PROJ.4 translation for destination SRS, coordinate\n"
                   "transformation initialization has failed." );
@@ -507,6 +595,12 @@ int OGRProj4CT::Initialize( OGRSpatialReference * poSourceIn,
                   "Failed to initialize PROJ.4 with `%s'.", 
                   pszProj4Defn );
     
+    if( nDebugReportCount < 10 )
+    {
+        CPLDebug( "OGRCT", "Target: %s", pszProj4Defn );
+        nDebugReportCount++;
+    }
+
     CPLFree( pszProj4Defn );
     
     if( psPJTarget == NULL )
@@ -613,12 +707,72 @@ int OGRProj4CT::TransformEx( int nCount, double *x, double *y, double *z,
             }
         }
     }
-
+    
 /* -------------------------------------------------------------------- */
 /*      Do the transformation using PROJ.4.                             */
 /* -------------------------------------------------------------------- */
     CPLMutexHolderD( &hPROJMutex );
-    err = pfn_pj_transform( psPJSource, psPJTarget, nCount, 1, x, y, z );
+        
+    if (bCheckWithInvertProj)
+    {
+        /* For some projections, we cannot detect if we are trying to reproject */
+        /* coordinates outside the validity area of the projection. So let's do */
+        /* the reverse reprojection and compare with the source coordinates */
+        
+        double *ori_x = NULL;
+        double *ori_y = NULL;
+        double *ori_z = NULL;
+        ori_x = (double*)CPLMalloc(sizeof(double)*nCount);
+        memcpy(ori_x, x, sizeof(double)*nCount);
+        ori_y = (double*)CPLMalloc(sizeof(double)*nCount);
+        memcpy(ori_y, y, sizeof(double)*nCount);
+        if (z)
+        {
+            ori_z = (double*)CPLMalloc(sizeof(double)*nCount);
+            memcpy(ori_z, z, sizeof(double)*nCount);
+        }
+        err = pfn_pj_transform( psPJSource, psPJTarget, nCount, 1, x, y, z );
+        if (err == 0)
+        {
+            double* target_x = (double*)CPLMalloc(sizeof(double)*nCount);
+            double* target_y = (double*)CPLMalloc(sizeof(double)*nCount);
+            double* target_z = NULL;
+            memcpy(target_x, x, sizeof(double)*nCount);
+            memcpy(target_y, y, sizeof(double)*nCount);
+            if (z)
+            {
+                target_z = (double*)CPLMalloc(sizeof(double)*nCount);
+                memcpy(target_z, z, sizeof(double)*nCount);
+            }
+            
+            err = pfn_pj_transform( psPJTarget, psPJSource , nCount, 1,
+                                    target_x, target_y, target_z );
+            if (err == 0)
+            {
+                for( i = 0; i < nCount; i++ )
+                {
+                    if ( x[i] != HUGE_VAL && y[i] != HUGE_VAL &&
+                        (fabs(target_x[i] - ori_x[i]) > dfThreshold ||
+                         fabs(target_y[i] - ori_y[i]) > dfThreshold) )
+                    {
+                        x[i] = HUGE_VAL;
+                        y[i] = HUGE_VAL;
+                    }
+                }
+            }
+            
+            CPLFree(target_x);
+            CPLFree(target_y);
+            CPLFree(target_z);
+        }
+        CPLFree(ori_x);
+        CPLFree(ori_y);
+        CPLFree(ori_z);
+    }
+    else
+    {
+        err = pfn_pj_transform( psPJSource, psPJTarget, nCount, 1, x, y, z );
+    }
 
 /* -------------------------------------------------------------------- */
 /*      Try to report an error through CPL.  Get proj.4 error string    */

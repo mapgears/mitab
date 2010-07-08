@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_error.h 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: cpl_error.h 14047 2008-03-20 18:46:12Z rouault $
  *
  * Name:     cpl_error.h
  * Project:  CPL - Common Portability Library
@@ -28,8 +28,8 @@
  * DEALINGS IN THE SOFTWARE.
  ****************************************************************************/
 
-#ifndef _CPL_ERROR_H_INCLUDED_
-#define _CPL_ERROR_H_INCLUDED_
+#ifndef CPL_ERROR_H_INCLUDED
+#define CPL_ERROR_H_INCLUDED
 
 #include "cpl_port.h"
 
@@ -54,7 +54,7 @@ typedef enum
     CE_Fatal = 4
 } CPLErr;
 
-void CPL_DLL CPLError(CPLErr eErrClass, int err_no, const char *fmt, ...);
+void CPL_DLL CPLError(CPLErr eErrClass, int err_no, const char *fmt, ...)  CPL_PRINT_FUNC_FORMAT (3, 4);
 void CPL_DLL CPLErrorV(CPLErr, int, const char *, va_list );
 void CPL_DLL CPL_STDCALL CPLErrorReset( void );
 int CPL_DLL CPL_STDCALL CPLGetLastErrorNo( void );
@@ -71,7 +71,7 @@ CPLErrorHandler CPL_DLL CPL_STDCALL CPLSetErrorHandler(CPLErrorHandler);
 void CPL_DLL CPL_STDCALL CPLPushErrorHandler( CPLErrorHandler );
 void CPL_DLL CPL_STDCALL CPLPopErrorHandler(void);
 
-void CPL_DLL CPL_STDCALL CPLDebug( const char *, const char *, ... );
+void CPL_DLL CPL_STDCALL CPLDebug( const char *, const char *, ... )  CPL_PRINT_FUNC_FORMAT (2, 3);
 void CPL_DLL CPL_STDCALL _CPLAssert( const char *, const char *, int );
 
 #ifdef DEBUG
@@ -81,6 +81,31 @@ void CPL_DLL CPL_STDCALL _CPLAssert( const char *, const char *, int );
 #endif
 
 CPL_C_END
+
+/*
+ * Helper macros used for input parameters validation.
+ */
+#ifdef DEBUG
+#  define VALIDATE_POINTER_ERR CE_Fatal
+#else
+#  define VALIDATE_POINTER_ERR CE_Failure
+#endif
+
+#define VALIDATE_POINTER0(ptr, func) \
+   do { if( NULL == ptr ) \
+      { \
+        CPLErr const ret = VALIDATE_POINTER_ERR; \
+        CPLError( ret, CPLE_ObjectNull, \
+           "Pointer \'%s\' is NULL in \'%s\'.\n", #ptr, (func)); \
+         return; }} while(0)
+
+#define VALIDATE_POINTER1(ptr, func, rc) \
+   do { if( NULL == ptr ) \
+      { \
+          CPLErr const ret = VALIDATE_POINTER_ERR; \
+          CPLError( ret, CPLE_ObjectNull, \
+           "Pointer \'%s\' is NULL in \'%s\'.\n", #ptr, (func)); \
+        return (rc); }} while(0)
 
 /* ==================================================================== */
 /*      Well known error codes.                                         */
@@ -96,7 +121,8 @@ CPL_C_END
 #define CPLE_AssertionFailed            7
 #define CPLE_NoWriteAccess              8
 #define CPLE_UserInterrupt              9
+#define CPLE_ObjectNull                 10
 
 /* 100 - 299 reserved for GDAL */
 
-#endif /* _CPL_ERROR_H_INCLUDED_ */
+#endif /* CPL_ERROR_H_INCLUDED */

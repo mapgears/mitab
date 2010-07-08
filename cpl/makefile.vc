@@ -6,7 +6,6 @@ OBJ	=	cpl_conv.obj \
 		cpl_error.obj \
 		cpl_string.obj \
 		cpl_vsisimple.obj \
-		cpl_dir.obj \
 		cpl_path.obj \
 		cpl_csv.obj \
 		cplgetsymbol.obj \
@@ -18,7 +17,13 @@ OBJ	=	cpl_conv.obj \
 		cpl_vsil_unix_stdio_64.obj \
 		cpl_multiproc.obj \
 		cplstring.obj \
-		cpl_getexecpath.obj
+		cpl_getexecpath.obj \
+		cpl_atomic_ops.obj \
+		cpl_http.obj \
+		cpl_strtod.obj \
+		cpl_vsil_subfile.obj \
+		cpl_recode_stub.obj \
+		cpl_vsil_stdout.obj
 
 LIB	=	cpl.lib
 

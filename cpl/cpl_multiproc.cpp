@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_multiproc.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: cpl_multiproc.cpp 18652 2010-01-24 14:44:08Z rouault $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  CPL Multi-Threading, and process handling portability functions.
@@ -27,6 +27,10 @@
  * DEALINGS IN THE SOFTWARE.
  ****************************************************************************/
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include "cpl_multiproc.h"
 #include "cpl_conv.h"
 
@@ -36,7 +40,7 @@
 #  include <wce_time.h>
 #endif
 
-CPL_CVSID("$Id: cpl_multiproc.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: cpl_multiproc.cpp 18652 2010-01-24 14:44:08Z rouault $");
 
 #if defined(CPL_MULTIPROC_STUB) && !defined(DEBUG)
 #  define MUTEX_NONE
@@ -56,8 +60,8 @@ CPLMutexHolder::CPLMutexHolder( void **phMutex, double dfWaitInSeconds,
     nLine = nLineIn;
 
 #ifdef DEBUG_MUTEX
-    CPLDebug( "MH", "Request %p for pid %d at %d/%s", 
-              *phMutex, CPLGetPID(), nLine, pszFile );
+    CPLDebug( "MH", "Request %p for pid %ld at %d/%s", 
+              *phMutex, (long) CPLGetPID(), nLine, pszFile );
 #endif
 
     if( !CPLCreateOrAcquireMutex( phMutex, dfWaitInSeconds ) )
@@ -68,8 +72,8 @@ CPLMutexHolder::CPLMutexHolder( void **phMutex, double dfWaitInSeconds,
     else
     {
 #ifdef DEBUG_MUTEX
-        CPLDebug( "MH", "Acquired %p for pid %d at %d/%s", 
-                  *phMutex, CPLGetPID(), nLine, pszFile );
+        CPLDebug( "MH", "Acquired %p for pid %ld at %d/%s", 
+                  *phMutex, (long) CPLGetPID(), nLine, pszFile );
 #endif
 
         hMutex = *phMutex;
@@ -88,8 +92,8 @@ CPLMutexHolder::~CPLMutexHolder()
     if( hMutex != NULL )
     {
 #ifdef DEBUG_MUTEX
-        CPLDebug( "MH", "Release %p for pid %d at %d/%s", 
-                  hMutex, CPLGetPID(), nLine, pszFile );
+        CPLDebug( "MH", "Release %p for pid %ld at %d/%s", 
+                  hMutex, (long) CPLGetPID(), nLine, pszFile );
 #endif
         CPLReleaseMutex( hMutex );
     }
@@ -104,6 +108,8 @@ CPLMutexHolder::~CPLMutexHolder()
 int CPLCreateOrAcquireMutex( void **phMutex, double dfWaitInSeconds )
 
 {
+    int bSuccess = FALSE;
+
 #ifndef MUTEX_NONE
     static void *hCOAMutex = NULL;
 
@@ -125,19 +131,17 @@ int CPLCreateOrAcquireMutex( void **phMutex, double dfWaitInSeconds )
     {
         *phMutex = CPLCreateMutex();
         CPLReleaseMutex( hCOAMutex );
-        return TRUE;
+        bSuccess = TRUE;
     }
     else
     {
         CPLReleaseMutex( hCOAMutex );
 
-        int bSuccess = CPLAcquireMutex( *phMutex, dfWaitInSeconds );
-        
-        return bSuccess;
+        bSuccess = CPLAcquireMutex( *phMutex, dfWaitInSeconds );
     }
 #endif /* ndef MUTEX_NONE */
 
-    return TRUE;
+    return bSuccess;
 }
 
 /************************************************************************/
@@ -351,7 +355,7 @@ void CPLUnlockFile( void *hLock )
 /*                             CPLGetPID()                              */
 /************************************************************************/
 
-int CPLGetPID()
+GIntBig CPLGetPID()
 
 {
     return 1;
@@ -364,6 +368,8 @@ int CPLGetPID()
 int CPLCreateThread( CPLThreadFunc pfnMain, void *pArg )
 
 {
+    CPLDebug( "CPLCreateThread", "Fails to dummy implementation" );
+
     return -1;
 }
 
@@ -558,10 +564,10 @@ void CPLUnlockFile( void *hLock )
 /*                             CPLGetPID()                              */
 /************************************************************************/
 
-int CPLGetPID()
+GIntBig CPLGetPID()
 
 {
-    return GetCurrentThreadId();
+    return (GIntBig) GetCurrentThreadId();
 }
 
 /************************************************************************/
@@ -581,6 +587,8 @@ static DWORD WINAPI CPLStdCallThreadJacket( void *pData )
     psInfo->pfnMain( psInfo->pAppData );
 
     CPLFree( psInfo );
+    
+    CPLCleanupTLS();
 
     return 0;
 }
@@ -719,11 +727,20 @@ void *CPLCreateMutex()
 
     hMutex = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
 
-#if defined(PTHREAD_MUTEX_RECURSIVE)
+#if defined(PTHREAD_MUTEX_RECURSIVE) || defined(HAVE_PTHREAD_MUTEX_RECURSIVE)
     {
         pthread_mutexattr_t  attr;
         pthread_mutexattr_init( &attr );
         pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+        pthread_mutex_init( hMutex, &attr );
+    }
+/* BSDs have PTHREAD_MUTEX_RECURSIVE as an enum, not a define. */
+/* But they have #define MUTEX_TYPE_COUNTING_FAST	PTHREAD_MUTEX_RECURSIVE */
+#elif defined(MUTEX_TYPE_COUNTING_FAST)
+    {
+        pthread_mutexattr_t  attr;
+        pthread_mutexattr_init( &attr );
+        pthread_mutexattr_settype( &attr, MUTEX_TYPE_COUNTING_FAST );
         pthread_mutex_init( hMutex, &attr );
     }
 #elif defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP)
@@ -782,20 +799,60 @@ void CPLDestroyMutex( void *hMutexIn )
 
 {
     pthread_mutex_destroy( (pthread_mutex_t *) hMutexIn );
-    CPLFree( hMutexIn );
+    free( hMutexIn );
 }
 
 /************************************************************************/
 /*                            CPLLockFile()                             */
+/*                                                                      */
+/*      This is really a stub implementation, see first                 */
+/*      CPLLockFile() for caveats.                                      */
 /************************************************************************/
 
 void *CPLLockFile( const char *pszPath, double dfWaitInSeconds )
 
 {
-    CPLError( CE_Failure, CPLE_NotSupported, 
-              "PThreads CPLLockFile() not implemented yet." );
+    FILE      *fpLock;
+    char      *pszLockFilename;
+    
+/* -------------------------------------------------------------------- */
+/*      We use a lock file with a name derived from the file we want    */
+/*      to lock to represent the file being locked.  Note that for      */
+/*      the stub implementation the target file does not even need      */
+/*      to exist to be locked.                                          */
+/* -------------------------------------------------------------------- */
+    pszLockFilename = (char *) CPLMalloc(strlen(pszPath) + 30);
+    sprintf( pszLockFilename, "%s.lock", pszPath );
 
-    return NULL;
+    fpLock = fopen( pszLockFilename, "r" );
+    while( fpLock != NULL && dfWaitInSeconds > 0.0 )
+    {
+        fclose( fpLock );
+        CPLSleep( MIN(dfWaitInSeconds,0.5) );
+        dfWaitInSeconds -= 0.5;
+
+        fpLock = fopen( pszLockFilename, "r" );
+    }
+        
+    if( fpLock != NULL )
+    {
+        fclose( fpLock );
+        CPLFree( pszLockFilename );
+        return NULL;
+    }
+
+    fpLock = fopen( pszLockFilename, "w" );
+
+    if( fpLock == NULL )
+    {
+        CPLFree( pszLockFilename );
+        return NULL;
+    }
+
+    fwrite( "held\n", 1, 5, fpLock );
+    fclose( fpLock );
+
+    return pszLockFilename;
 }
 
 /************************************************************************/
@@ -805,16 +862,24 @@ void *CPLLockFile( const char *pszPath, double dfWaitInSeconds )
 void CPLUnlockFile( void *hLock )
 
 {
+    char *pszLockFilename = (char *) hLock;
+
+    if( hLock == NULL )
+        return;
+    
+    VSIUnlink( pszLockFilename );
+    
+    CPLFree( pszLockFilename );
 }
 
 /************************************************************************/
 /*                             CPLGetPID()                              */
 /************************************************************************/
 
-int CPLGetPID()
+GIntBig CPLGetPID()
 
 {
-    return (int) pthread_self();
+    return (GIntBig) pthread_self();
 }
 
 /************************************************************************/
@@ -835,7 +900,7 @@ static void *CPLStdCallThreadJacket( void *pData )
     psInfo->pfnMain( psInfo->pAppData );
 
     CPLFree( psInfo );
-
+    
     return NULL;
 }
 
@@ -970,6 +1035,6 @@ void CPLSetTLS( int nIndex, void *pData, int bFreeOnExit )
     CPLAssert( nIndex >= 0 && nIndex < CTLS_MAX );
 
     papTLSList[nIndex] = pData;
-    papTLSList[CTLS_MAX + nIndex] = (void *) bFreeOnExit;
+    papTLSList[CTLS_MAX + nIndex] = (void *) (long) bFreeOnExit;
 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_csv.h 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: cpl_csv.h 16759 2009-04-09 21:32:43Z rouault $
  *
  * Project:  Common Portability Library
  * Purpose:  Functions for reading and scaning CSV (comma separated,
@@ -45,12 +45,16 @@ typedef enum {
 
 const char CPL_DLL *CSVFilename( const char * );
 
-char CPL_DLL  **CSVReadParseLine( FILE * );
+char CPL_DLL CSVDetectSeperator( const char *pszLine );
+
+char CPL_DLL  **CSVReadParseLine( FILE *fp);
+char CPL_DLL  **CSVReadParseLine2( FILE *fp, char chDelimiter );
 char CPL_DLL **CSVScanLines( FILE *, int, const char *, CSVCompareCriteria );
 char CPL_DLL **CSVScanFile( const char *, int, const char *,
                             CSVCompareCriteria );
 char CPL_DLL **CSVScanFileByName( const char *, const char *, const char *,
                                   CSVCompareCriteria );
+char CPL_DLL **CSVGetNextLine( const char * );
 int CPL_DLL CSVGetFieldId( FILE *, const char * );
 int CPL_DLL CSVGetFileFieldId( const char *, const char * );
 

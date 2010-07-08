@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrsfdriver.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogrsfdriver.cpp 16319 2009-02-13 23:17:58Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The generic portions of the OGRSFDriver class.
@@ -31,7 +31,7 @@
 #include "ogr_api.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrsfdriver.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: ogrsfdriver.cpp 16319 2009-02-13 23:17:58Z rouault $");
 
 /************************************************************************/
 /*                            ~OGRSFDriver()                            */
@@ -64,8 +64,26 @@ OGRDataSourceH OGR_Dr_CreateDataSource( OGRSFDriverH hDriver,
                                         char ** papszOptions )
 
 {
-    return ((OGRSFDriver *)hDriver)->CreateDataSource( pszName, 
-                                                       papszOptions );
+    VALIDATE_POINTER1( hDriver, "OGR_Dr_CreateDataSource", NULL );
+
+    OGRSFDriver* poDriver = (OGRSFDriver *) hDriver;
+    CPLAssert( NULL != poDriver );
+
+    OGRDataSource* poDS = NULL;
+    poDS = poDriver->CreateDataSource( pszName, papszOptions );
+
+    /* This fix is explained in Ticket #1223 */
+    if( NULL != poDS )
+    {
+        poDS->SetDriver( poDriver );
+        CPLAssert( NULL != poDS->GetDriver() );
+    }
+    else
+    {
+        CPLDebug( "OGR", "CreateDataSource operation failed. NULL pointer returned." );
+    }
+
+    return (OGRDataSourceH) poDS;
 }
 
 /************************************************************************/
@@ -90,6 +108,9 @@ OGRErr OGR_Dr_DeleteDataSource( OGRSFDriverH hDriver,
                                 const char *pszDataSource )
 
 {
+    VALIDATE_POINTER1( hDriver, "OGR_Dr_DeleteDataSource",
+                       OGRERR_INVALID_HANDLE );
+
     return ((OGRSFDriver *) hDriver)->DeleteDataSource( pszDataSource );
 }
 
@@ -100,6 +121,8 @@ OGRErr OGR_Dr_DeleteDataSource( OGRSFDriverH hDriver,
 const char *OGR_Dr_GetName( OGRSFDriverH hDriver )
 
 {
+    VALIDATE_POINTER1( hDriver, "OGR_Dr_GetName", NULL );
+
     return ((OGRSFDriver *) hDriver)->GetName();
 }
 
@@ -111,7 +134,14 @@ OGRDataSourceH OGR_Dr_Open( OGRSFDriverH hDriver, const char *pszName,
                             int bUpdate )
 
 {
-    return ((OGRSFDriver *)hDriver)->Open( pszName, bUpdate );
+    VALIDATE_POINTER1( hDriver, "OGR_Dr_Open", NULL );
+
+    OGRDataSource *poDS = ((OGRSFDriver *)hDriver)->Open( pszName, bUpdate );
+
+    if( poDS != NULL && poDS->GetDriver() == NULL )
+        poDS->SetDriver( (OGRSFDriver *)hDriver );
+
+    return (OGRDataSourceH) poDS;
 }
 
 /************************************************************************/
@@ -121,6 +151,9 @@ OGRDataSourceH OGR_Dr_Open( OGRSFDriverH hDriver, const char *pszName,
 int OGR_Dr_TestCapability( OGRSFDriverH hDriver, const char *pszCap )
 
 {
+    VALIDATE_POINTER1( hDriver, "OGR_Dr_TestCapability", 0 );
+    VALIDATE_POINTER1( pszCap, "OGR_Dr_TestCapability", 0 );
+
     return ((OGRSFDriver *) hDriver)->TestCapability( pszCap );
 }
 
@@ -174,7 +207,11 @@ OGRDataSourceH OGR_Dr_CopyDataSource( OGRSFDriverH hDriver,
                                       char **papszOptions )
                                       
 {
-    return ((OGRSFDriver *) hDriver)->CopyDataSource( 
-        (OGRDataSource *) hSrcDS, pszNewName, papszOptions );
+    VALIDATE_POINTER1( hDriver, "OGR_Dr_CopyDataSource", NULL );
+    VALIDATE_POINTER1( hSrcDS, "OGR_Dr_CopyDataSource", NULL );
+
+    return (OGRDataSourceH)
+        ((OGRSFDriver *) hDriver)->CopyDataSource( 
+            (OGRDataSource *) hSrcDS, pszNewName, papszOptions );
 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_core.h 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogr_core.h 17722 2009-10-01 16:40:26Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Define some core portability services for cross-platform OGR code.
@@ -27,16 +27,22 @@
  * DEALINGS IN THE SOFTWARE.
  ****************************************************************************/
 
-#ifndef _OGR_CORE_H_INCLUDED
-#define _OGR_CORE_H_INCLUDED
+#ifndef OGR_CORE_H_INCLUDED
+#define OGR_CORE_H_INCLUDED
 
 #include "cpl_port.h"
+
+/**
+ * \file
+ *
+ * Core portability services for cross-platform OGR code.
+ */
 
 /**
  * Simple container for a bounding region.
  */
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && !defined(CPL_SUPRESS_CPLUSPLUS)
 class CPL_DLL OGREnvelope
 {
   public:
@@ -49,8 +55,8 @@ class CPL_DLL OGREnvelope
     double      MinY;
     double      MaxY;
 
-    int  IsInit() { return MinX != 0 || MinY != 0 || MaxX != 0 || MaxY != 0; }
-    void Merge( OGREnvelope & sOther ) {
+    int  IsInit() const { return MinX != 0 || MinY != 0 || MaxX != 0 || MaxY != 0; }
+    void Merge( OGREnvelope const& sOther ) {
         if( IsInit() )
         {
             MinX = MIN(MinX,sOther.MinX);
@@ -65,6 +71,59 @@ class CPL_DLL OGREnvelope
             MinY = sOther.MinY;
             MaxY = sOther.MaxY;
         }
+    }
+    void Merge( double dfX, double dfY ) {
+        if( IsInit() )
+        {
+            MinX = MIN(MinX,dfX);
+            MaxX = MAX(MaxX,dfX);
+            MinY = MIN(MinY,dfY);
+            MaxY = MAX(MaxY,dfY);
+        }
+        else
+        {
+            MinX = MaxX = dfX;
+            MinY = MaxY = dfY;
+        }
+    }
+    
+    void Intersect( OGREnvelope const& sOther ) {
+        if(Intersects(sOther))
+        {
+            if( IsInit() )
+            {
+                MinX = MAX(MinX,sOther.MinX);
+                MaxX = MIN(MaxX,sOther.MaxX);
+                MinY = MAX(MinY,sOther.MinY);
+                MaxY = MIN(MaxY,sOther.MaxY);
+            }
+            else
+            {
+                MinX = sOther.MinX;
+                MaxX = sOther.MaxX;
+                MinY = sOther.MinY;
+                MaxY = sOther.MaxY;
+            }
+        }
+        else
+        {
+            MinX = 0;
+            MaxX = 0;
+            MinY = 0;
+            MaxY = 0;
+        }
+    }
+ 
+    int Intersects(OGREnvelope const& other) const
+    {
+        return MinX <= other.MaxX && MaxX >= other.MinX && 
+               MinY <= other.MaxY && MaxY >= other.MinY;
+    }
+
+    int Contains(OGREnvelope const& other) const
+    {
+        return MinX <= other.MinX && MinY <= other.MinY &&
+               MaxX >= other.MaxX && MaxY >= other.MaxY;
     }
 };
 #else
@@ -95,6 +154,7 @@ typedef int OGRErr;
 #define OGRERR_CORRUPT_DATA        5
 #define OGRERR_FAILURE             6
 #define OGRERR_UNSUPPORTED_SRS     7
+#define OGRERR_INVALID_HANDLE      8
 
 typedef int     OGRBoolean;
 
@@ -109,23 +169,27 @@ typedef int     OGRBoolean;
 
 typedef enum 
 {
-    wkbUnknown = 0,             /* non-standard */
-    wkbPoint = 1,               /* rest are standard WKB type codes */
-    wkbLineString = 2,
-    wkbPolygon = 3,
-    wkbMultiPoint = 4,
-    wkbMultiLineString = 5,
-    wkbMultiPolygon = 6,
-    wkbGeometryCollection = 7,
-    wkbNone = 100,              /* non-standard, for pure attribute records */
-    wkbLinearRing = 101,        /* non-standard, just for createGeometry() */
-    wkbPoint25D = 0x80000001,   /* 2.5D extensions as per 99-402 */
-    wkbLineString25D = 0x80000002,
-    wkbPolygon25D = 0x80000003,
-    wkbMultiPoint25D = 0x80000004,
-    wkbMultiLineString25D = 0x80000005,
-    wkbMultiPolygon25D = 0x80000006,
-    wkbGeometryCollection25D = 0x80000007
+    wkbUnknown = 0,         /**< unknown type, non-standard */
+    wkbPoint = 1,           /**< 0-dimensional geometric object, standard WKB */
+    wkbLineString = 2,      /**< 1-dimensional geometric object with linear
+                             *   interpolation between Points, standard WKB */
+    wkbPolygon = 3,         /**< planar 2-dimensional geometric object defined
+                             *   by 1 exterior boundary and 0 or more interior
+                             *   boundaries, standard WKB */
+    wkbMultiPoint = 4,      /**< GeometryCollection of Points, standard WKB */
+    wkbMultiLineString = 5, /**< GeometryCollection of LineStrings, standard WKB */
+    wkbMultiPolygon = 6,    /**< GeometryCollection of Polygons, standard WKB */
+    wkbGeometryCollection = 7, /**< geometric object that is a collection of 1
+                                    or more geometric objects, standard WKB */
+    wkbNone = 100,          /**< non-standard, for pure attribute records */
+    wkbLinearRing = 101,    /**< non-standard, just for createGeometry() */
+    wkbPoint25D = 0x80000001, /**< 2.5D extension as per 99-402 */
+    wkbLineString25D = 0x80000002, /**< 2.5D extension as per 99-402 */
+    wkbPolygon25D = 0x80000003, /**< 2.5D extension as per 99-402 */
+    wkbMultiPoint25D = 0x80000004, /**< 2.5D extension as per 99-402 */
+    wkbMultiLineString25D = 0x80000005, /**< 2.5D extension as per 99-402 */
+    wkbMultiPolygon25D = 0x80000006, /**< 2.5D extension as per 99-402 */
+    wkbGeometryCollection25D = 0x80000007 /**< 2.5D extension as per 99-402 */
 } OGRwkbGeometryType;
 
 #define wkb25DBit 0x80000000
@@ -134,6 +198,8 @@ typedef enum
 #define ogrZMarker 0x21125711
 
 const char CPL_DLL * OGRGeometryTypeToName( OGRwkbGeometryType eType );
+OGRwkbGeometryType CPL_DLL OGRMergeGeometryTypes( OGRwkbGeometryType eMain,
+                                                  OGRwkbGeometryType eExtra );
 
 typedef enum 
 {
@@ -171,12 +237,13 @@ typedef enum
   /** List of doubles */                        OFTRealList = 3,
   /** String of ASCII chars */                  OFTString = 4,
   /** Array of strings */                       OFTStringList = 5,
-  /** Double byte string (unsupported) */       OFTWideString = 6,
-  /** List of wide strings (unsupported) */     OFTWideStringList = 7,
+  /** deprecated */                             OFTWideString = 6,
+  /** deprecated */                             OFTWideStringList = 7,
   /** Raw Binary data */                        OFTBinary = 8,
   /** Date */                                   OFTDate = 9,
   /** Time */                                   OFTTime = 10,
-  /** Date and Time */                          OFTDateTime = 11
+  /** Date and Time */                          OFTDateTime = 11,
+                                                OFTMaxType = 11
 } OGRFieldType;
 
 /**
@@ -205,7 +272,6 @@ typedef union {
     int         Integer;
     double      Real;
     char       *String;
-    /* wchar    *WideString; */
     
     struct {
         int     nCount;
@@ -221,13 +287,6 @@ typedef union {
         int     nCount;
         char    **paList;
     } StringList;
-
-    /*
-    union {
-        int   nCount;
-        wchar *paList;
-    } WideStringList;
-    */
 
     struct {
         int     nCount;
@@ -267,6 +326,7 @@ int CPL_DLL OGRParseDate( const char *pszInput, OGRField *psOutput,
 #define OLCTransactions        "Transactions"
 #define OLCDeleteFeature       "DeleteFeature"
 #define OLCFastSetNextByIndex  "FastSetNextByIndex"
+#define OLCStringsAsUTF8       "StringsAsUTF8"
 
 #define ODsCCreateLayer        "CreateLayer"
 #define ODsCDeleteLayer        "DeleteLayer"
@@ -274,7 +334,157 @@ int CPL_DLL OGRParseDate( const char *pszInput, OGRField *psOutput,
 #define ODrCCreateDataSource   "CreateDataSource"
 #define ODrCDeleteDataSource   "DeleteDataSource"
 
+
+/************************************************************************/
+/*                  ogr_featurestyle.h related definitions.             */
+/************************************************************************/
+
+/**
+ * OGRStyleTool derived class types (returned by GetType()).
+ */
+
+typedef enum ogr_style_tool_class_id
+{
+    OGRSTCNone   = 0,
+    OGRSTCPen    = 1,
+    OGRSTCBrush  = 2,
+    OGRSTCSymbol = 3,
+    OGRSTCLabel  = 4,
+    OGRSTCVector = 5
+} OGRSTClassId;
+
+/**
+ * List of units supported by OGRStyleTools.
+ */
+typedef enum ogr_style_tool_units_id
+{
+    OGRSTUGround = 0,
+    OGRSTUPixel  = 1,
+    OGRSTUPoints = 2,
+    OGRSTUMM     = 3,
+    OGRSTUCM     = 4,
+    OGRSTUInches = 5
+} OGRSTUnitId;
+
+/**
+ * List of parameters for use with OGRStylePen.
+ */
+typedef enum ogr_style_tool_param_pen_id
+{  
+    OGRSTPenColor       = 0,                   
+    OGRSTPenWidth       = 1,                   
+    OGRSTPenPattern     = 2,
+    OGRSTPenId          = 3,
+    OGRSTPenPerOffset   = 4,
+    OGRSTPenCap         = 5,
+    OGRSTPenJoin        = 6,
+    OGRSTPenPriority    = 7,
+    OGRSTPenLast        = 8
+              
+} OGRSTPenParam;
+
+/**
+ * List of parameters for use with OGRStyleBrush.
+ */
+typedef enum ogr_style_tool_param_brush_id
+{  
+    OGRSTBrushFColor    = 0,                   
+    OGRSTBrushBColor    = 1,                   
+    OGRSTBrushId        = 2,
+    OGRSTBrushAngle     = 3,                   
+    OGRSTBrushSize      = 4,
+    OGRSTBrushDx        = 5,
+    OGRSTBrushDy        = 6,
+    OGRSTBrushPriority  = 7,
+    OGRSTBrushLast      = 8
+              
+} OGRSTBrushParam;
+
+
+/**
+ * List of parameters for use with OGRStyleSymbol.
+ */
+typedef enum ogr_style_tool_param_symbol_id
+{  
+    OGRSTSymbolId       = 0,
+    OGRSTSymbolAngle    = 1,
+    OGRSTSymbolColor    = 2,
+    OGRSTSymbolSize     = 3,
+    OGRSTSymbolDx       = 4,
+    OGRSTSymbolDy       = 5,
+    OGRSTSymbolStep     = 6,
+    OGRSTSymbolPerp     = 7,
+    OGRSTSymbolOffset   = 8,
+    OGRSTSymbolPriority = 9,
+    OGRSTSymbolFontName = 10,
+    OGRSTSymbolOColor   = 11,
+    OGRSTSymbolLast     = 12
+              
+} OGRSTSymbolParam;
+
+/**
+ * List of parameters for use with OGRStyleLabel.
+ */
+typedef enum ogr_style_tool_param_label_id
+{  
+    OGRSTLabelFontName  = 0,
+    OGRSTLabelSize      = 1,
+    OGRSTLabelTextString = 2,
+    OGRSTLabelAngle     = 3,
+    OGRSTLabelFColor    = 4,
+    OGRSTLabelBColor    = 5,
+    OGRSTLabelPlacement = 6,
+    OGRSTLabelAnchor    = 7,
+    OGRSTLabelDx        = 8,
+    OGRSTLabelDy        = 9,
+    OGRSTLabelPerp      = 10,
+    OGRSTLabelBold      = 11,
+    OGRSTLabelItalic    = 12,
+    OGRSTLabelUnderline = 13,
+    OGRSTLabelPriority  = 14,
+    OGRSTLabelStrikeout = 15,
+    OGRSTLabelStretch   = 16,
+    OGRSTLabelAdjHor    = 17,
+    OGRSTLabelAdjVert   = 18,
+    OGRSTLabelHColor    = 19,
+    OGRSTLabelOColor    = 20,
+    OGRSTLabelLast      = 21
+              
+} OGRSTLabelParam;
+
+/* ------------------------------------------------------------------- */
+/*                        Version checking                             */
+/* -------------------------------------------------------------------- */
+
+/* Note to developers : please keep this section in sync with gdal.h */
+
+#ifndef GDAL_VERSION_INFO_DEFINED
+#define GDAL_VERSION_INFO_DEFINED
+const char CPL_DLL * CPL_STDCALL GDALVersionInfo( const char * );
+#endif
+
+#ifndef GDAL_CHECK_VERSION
+
+/** Return TRUE if GDAL library version at runtime matches nVersionMajor.nVersionMinor.
+
+    The purpose of this method is to ensure that calling code will run with the GDAL
+    version it is compiled for. It is primarly intented for external plugins.
+
+    @param nVersionMajor Major version to be tested against
+    @param nVersionMinor Minor version to be tested against
+    @param pszCallingComponentName If not NULL, in case of version mismatch, the method
+                                   will issue a failure mentionning the name of
+                                   the calling component.
+  */
+int CPL_DLL CPL_STDCALL GDALCheckVersion( int nVersionMajor, int nVersionMinor,
+                                          const char* pszCallingComponentName);
+
+/** Helper macro for GDALCheckVersion */
+#define GDAL_CHECK_VERSION(pszCallingComponentName) \
+ GDALCheckVersion(GDAL_VERSION_MAJOR, GDAL_VERSION_MINOR, pszCallingComponentName)
+
+#endif
+
 CPL_C_END
 
-#endif /* ndef _OGR_CORE_H_INCLUDED */
-
+#endif /* ndef OGR_CORE_H_INCLUDED */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_srs_dict.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogr_srs_dict.cpp 11881 2007-08-13 18:03:48Z mloskot $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Implement importFromDict() method to read a WKT SRS from a 
@@ -31,7 +31,7 @@
 #include "ogr_spatialref.h"
 #include "cpl_conv.h"
 
-CPL_CVSID("$Id: ogr_srs_dict.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: ogr_srs_dict.cpp 11881 2007-08-13 18:03:48Z mloskot $");
 
 
 /************************************************************************/
@@ -127,6 +127,8 @@ OGRErr OSRImportFromDict( OGRSpatialReferenceH hSRS,
                           const char *pszCode )
 
 {
+    VALIDATE_POINTER1( hSRS, "OSRImportFromDict", CE_Failure );
+
     return ((OGRSpatialReference *) hSRS)->importFromDict( pszDictFile,
                                                            pszCode );
 }

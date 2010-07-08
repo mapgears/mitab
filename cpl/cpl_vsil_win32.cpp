@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_vsil_win32.cpp 11305 2007-04-20 16:31:38Z warmerdam $
+ * $Id: cpl_vsil_win32.cpp 17269 2009-06-20 03:42:47Z warmerdam $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Implement VSI large file api for Win32.
@@ -29,7 +29,7 @@
 
 #include "cpl_vsi_virtual.h"
 
-CPL_CVSID("$Id: cpl_vsil_win32.cpp 11305 2007-04-20 16:31:38Z warmerdam $");
+CPL_CVSID("$Id: cpl_vsil_win32.cpp 17269 2009-06-20 03:42:47Z warmerdam $");
 
 #if defined(WIN32)
 
@@ -38,8 +38,8 @@ CPL_CVSID("$Id: cpl_vsil_win32.cpp 11305 2007-04-20 16:31:38Z warmerdam $");
 
 
 #if !defined(WIN32CE)
-#  include <sys/stat.h>
 #  include <sys/types.h>
+#  include <sys/stat.h>
 #  include <io.h>
 #  include <fcntl.h>
 #  include <direct.h>
@@ -90,6 +90,91 @@ class VSIWin32Handle : public VSIVirtualHandle
     virtual int       Flush();
     virtual int       Close();
 };
+
+/************************************************************************/
+/*                      ErrnoFromGetLastError()                         */
+/*                                                                      */
+/* Private function translating Windows API error codes to POSIX errno. */
+/*                                                                      */
+/* TODO: If the function is going to be public CPL function, then       */
+/* replace the switch with array of (Win32 code, errno code) tuples and */
+/* complement it with missing codes.                                    */ 
+/************************************************************************/
+
+static int ErrnoFromGetLastError()
+{
+    int err = 0;
+    DWORD dwError = GetLastError();
+    
+    switch( dwError )
+    {
+    case NO_ERROR:
+        err = 0;
+        break;
+    case ERROR_FILE_NOT_FOUND:      /* Cannot find the file specified. */
+    case ERROR_PATH_NOT_FOUND:      /* Cannot find the path specified. */
+    case ERROR_INVALID_DRIVE:       /* Cannot find the drive specified. */
+    case ERROR_NO_MORE_FILES:       /* There are no more files. */
+    case ERROR_BAD_PATHNAME:        /* The specified path is invalid. */
+    case ERROR_BAD_NETPATH:         /* The network path was not found. */
+    case ERROR_FILENAME_EXCED_RANGE:/* The filename or extension is too long. */
+        err = ENOENT;
+        break;
+    case ERROR_TOO_MANY_OPEN_FILES: /* The system cannot open the file. */
+        err = EMFILE;
+        break;
+    case ERROR_ACCESS_DENIED:       /* Access denied. */
+    case ERROR_CURRENT_DIRECTORY:   /* The directory cannot be removed. */
+    case ERROR_WRITE_PROTECT:       /* The media is write protected. */
+    case ERROR_LOCK_VIOLATION:      /* Another process has locked a portion of the file. */
+    case ERROR_WRONG_DISK:          /* The wrong diskette is in the drive. */
+    case ERROR_SHARING_BUFFER_EXCEEDED: /* Too many files opened for sharing. */
+    case ERROR_DRIVE_LOCKED:        /* The disk is in use or locked by another process. */
+    case ERROR_LOCK_FAILED:         /* Unable to lock a region of a file. */
+    case ERROR_SEEK_ON_DEVICE:      /* The file pointer cannot be set on the specified device or file. */
+        err = EACCES;
+        break;
+    case ERROR_INVALID_HANDLE:      /* The handle is invalid. */
+    case ERROR_INVALID_TARGET_HANDLE: /* The target internal file identifier is incorrect. */
+    case ERROR_DIRECT_ACCESS_HANDLE:  /* Operation other than raw disk I/O not permitted. */
+        err = EBADF;
+        break;
+    case ERROR_ARENA_TRASHED:       /* The storage control blocks were destroyed. */
+    case ERROR_NOT_ENOUGH_MEMORY:   /* Not enough storage is available. */
+    case ERROR_INVALID_BLOCK:       /* The storage control block address is invalid. */
+    case ERROR_NOT_ENOUGH_QUOTA:    /* Not enough quota is available to process this command. */
+        err = ENOMEM;
+        break;
+    case ERROR_BAD_ENVIRONMENT:     /* The environment is incorrect. */
+        err = E2BIG;
+        break;
+    case ERROR_INVALID_ACCESS:      /* The access code is invalid. */
+    case ERROR_INVALID_DATA:        /* The data is invalid. */
+        err = EINVAL;
+        break;
+    case ERROR_NOT_SAME_DEVICE:     /* The system cannot move the file to a different disk drive. */
+        err = EXDEV;
+        break;
+    case ERROR_DIR_NOT_EMPTY:       /* The directory is not empty. */
+        err = ENOTEMPTY;
+        break;
+    case ERROR_FILE_EXISTS:         /* The file exists. */
+    case ERROR_ALREADY_EXISTS:      /* Cannot create a file when that file already exists. */
+        err = EEXIST;
+        break;
+    case ERROR_DISK_FULL:           /* There is not enough space on the disk. */
+        err = ENOSPC;
+        break;
+    case ERROR_HANDLE_EOF:          /* Reached the end of the file. */
+        err = 0; /* There is no errno quivalent, in the errno.h */
+        break;
+    default:
+        err = 0;
+    }
+    CPLAssert( 0 <= err );
+
+    return err;
+}
 
 /************************************************************************/
 /*                               Close()                                */
@@ -150,7 +235,7 @@ int VSIWin32Handle::Seek( vsi_l_offset nOffset, int nWhence )
         printf( "nOffset=%u, nMoveLow=%u, dwMoveHigh=%u\n", 
                 (GUInt32) nOffset, nMoveLow, dwMoveHigh );
 #endif
-        
+        errno = ErrnoFromGetLastError();
         return -1;
     }
     else
@@ -195,7 +280,10 @@ size_t VSIWin32Handle::Read( void * pBuffer, size_t nSize, size_t nCount )
     size_t      nResult;
 
     if( !ReadFile( hFile, pBuffer, (DWORD)(nSize*nCount), &dwSizeRead, NULL ) )
+    {
         nResult = 0;
+        errno = ErrnoFromGetLastError();
+    }
     else if( nSize == 0 )
         nResult = 0;
     else
@@ -216,7 +304,10 @@ size_t VSIWin32Handle::Write( const void *pBuffer, size_t nSize, size_t nCount)
 
     if( !WriteFile(hFile, (void *)pBuffer,
                    (DWORD)(nSize*nCount),&dwSizeWritten,NULL) )
+    {
         nResult = 0;
+        errno = ErrnoFromGetLastError();
+    }
     else if( nSize == 0)
         nResult = 0;
     else
@@ -284,6 +375,7 @@ VSIVirtualHandle *VSIWin32FilesystemHandler::Open( const char *pszFilename,
 
     if( hFile == INVALID_HANDLE_VALUE )
     {
+        errno = ErrnoFromGetLastError();
         return NULL;
     }
     else
@@ -304,7 +396,7 @@ int VSIWin32FilesystemHandler::Stat( const char * pszFilename,
                                      VSIStatBufL * pStatBuf )
 
 {
-    return( stat( pszFilename, pStatBuf ) );
+    return( VSI_STAT64( pszFilename, pStatBuf ) );
 }
 
 /************************************************************************/
@@ -358,7 +450,7 @@ char **VSIWin32FilesystemHandler::ReadDir( const char *pszPath )
 
 {
     struct _finddata_t c_file;
-    long    hFile;
+    intptr_t hFile;
     char    *pszFileSpec, **papszDir = NULL;
 
     if (strlen(pszPath) == 0)
@@ -368,9 +460,28 @@ char **VSIWin32FilesystemHandler::ReadDir( const char *pszPath )
 
     if ( (hFile = _findfirst( pszFileSpec, &c_file )) != -1L )
     {
+        /* In case of really big number of files in the directory, CSLAddString */
+        /* can be slow (see #2158). We then directly build the list. */
+        int nItems=0;
+        int nAllocatedItems=0;
         do
         {
-            papszDir = CSLAddString(papszDir, c_file.name);
+            if (nItems == 0)
+            {
+                papszDir = (char**) CPLCalloc(2,sizeof(char*));
+                nAllocatedItems = 1;
+            }
+            else if (nItems >= nAllocatedItems)
+            {
+                nAllocatedItems = nAllocatedItems * 2;
+                papszDir = (char**)CPLRealloc(papszDir, 
+                                              (nAllocatedItems+2)*sizeof(char*));
+            }
+
+            papszDir[nItems] = CPLStrdup(c_file.name);
+            papszDir[nItems+1] = NULL;
+
+            nItems++;
         } while( _findnext( hFile, &c_file ) == 0 );
 
         _findclose( hFile );
@@ -394,8 +505,7 @@ char **VSIWin32FilesystemHandler::ReadDir( const char *pszPath )
 void VSIInstallLargeFileHandler()
 
 {
-    VSIFileManager::InstallHandler( CPLString(""), 
-                                    new VSIWin32FilesystemHandler );
+    VSIFileManager::InstallHandler( "", new VSIWin32FilesystemHandler );
 }
 
 #endif /* def WIN32 */

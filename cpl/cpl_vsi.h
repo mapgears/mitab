@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_vsi.h 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: cpl_vsi.h 18725 2010-02-04 21:02:19Z rouault $
  *
  * Project:  CPL - Common Portability Library
  * Author:   Frank Warmerdam, warmerdam@pobox.com
@@ -89,7 +89,7 @@ size_t CPL_DLL  VSIFRead( void *, size_t, size_t, FILE * );
 size_t CPL_DLL  VSIFWrite( const void *, size_t, size_t, FILE * );
 char CPL_DLL   *VSIFGets( char *, int, FILE * );
 int CPL_DLL     VSIFPuts( const char *, FILE * );
-int CPL_DLL     VSIFPrintf( FILE *, const char *, ... );
+int CPL_DLL     VSIFPrintf( FILE *, const char *, ... ) CPL_PRINT_FUNC_FORMAT(2, 3);
 
 int CPL_DLL     VSIFGetc( FILE * );
 int CPL_DLL     VSIFPutc( int, FILE * );
@@ -132,7 +132,9 @@ void CPL_DLL    VSIRewindL( FILE * );
 size_t CPL_DLL  VSIFReadL( void *, size_t, size_t, FILE * );
 size_t CPL_DLL  VSIFWriteL( const void *, size_t, size_t, FILE * );
 int CPL_DLL     VSIFEofL( FILE * );
-int CPL_DLL    VSIFFlushL( FILE * );
+int CPL_DLL     VSIFFlushL( FILE * );
+int CPL_DLL     VSIFPrintfL( FILE *, const char *, ... ) CPL_PRINT_FUNC_FORMAT(2, 3);
+int CPL_DLL     VSIFPutcL( int, FILE * );
 
 #if defined(VSI_STAT64_T)
 typedef struct VSI_STAT64_T VSIStatBufL;
@@ -152,10 +154,31 @@ void CPL_DLL    VSIFree( void * );
 void CPL_DLL   *VSIRealloc( void *, size_t );
 char CPL_DLL   *VSIStrdup( const char * );
 
+/**
+ VSIMalloc2 allocates (nSize1 * nSize2) bytes.
+ In case of overflow of the multiplication, or if memory allocation fails, a
+ NULL pointer is returned and a CE_Failure error is raised with CPLError().
+ If nSize1 == 0 || nSize2 == 0, a NULL pointer will also be returned.
+ CPLFree() or VSIFree() can be used to free memory allocated by this function.
+*/
+void CPL_DLL *VSIMalloc2( size_t nSize1, size_t nSize2 );
+
+/**
+ VSIMalloc3 allocates (nSize1 * nSize2 * nSize3) bytes.
+ In case of overflow of the multiplication, or if memory allocation fails, a
+ NULL pointer is returned and a CE_Failure error is raised with CPLError().
+ If nSize1 == 0 || nSize2 == 0 || nSize3 == 0, a NULL pointer will also be returned.
+ CPLFree() or VSIFree() can be used to free memory allocated by this function.
+*/
+void CPL_DLL *VSIMalloc3( size_t nSize1, size_t nSize2, size_t nSize3 );
+
+
 /* ==================================================================== */
 /*      Other...                                                        */
 /* ==================================================================== */
 
+#define CPLReadDir VSIReadDir
+char CPL_DLL **VSIReadDir( const char * );
 int CPL_DLL VSIMkdir( const char * pathname, long mode );
 int CPL_DLL VSIRmdir( const char * pathname );
 int CPL_DLL VSIUnlink( const char * pathname );
@@ -167,6 +190,10 @@ char CPL_DLL *VSIStrerror( int );
 /* ==================================================================== */
 void CPL_DLL VSIInstallMemFileHandler(void);
 void CPL_DLL VSIInstallLargeFileHandler(void);
+void CPL_DLL VSIInstallSubFileHandler(void);
+void VSIInstallGZipFileHandler(void); /* No reason to export that */
+void VSIInstallZipFileHandler(void); /* No reason to export that */
+void VSIInstallStdoutHandler(void); /* No reason to export that */
 void CPL_DLL VSICleanupFileManager(void);
 
 FILE CPL_DLL *VSIFileFromMemBuffer( const char *pszFilename, 

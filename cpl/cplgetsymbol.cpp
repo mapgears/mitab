@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cplgetsymbol.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: cplgetsymbol.cpp 16702 2009-04-01 20:42:49Z rouault $
  *
  * Project:  Common Portability Library
  * Purpose:  Fetch a function pointer from a shared library / DLL.
@@ -29,12 +29,15 @@
 
 #include "cpl_conv.h"
 
-CPL_CVSID("$Id: cplgetsymbol.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: cplgetsymbol.cpp 16702 2009-04-01 20:42:49Z rouault $");
+
 
 /* ==================================================================== */
 /*                  Unix Implementation                                 */
 /* ==================================================================== */
-#if defined(HAVE_DLFCN_H)
+
+/* MinGW32 might define HAVE_DLFCN_H, so skip the unix implementation */
+#if defined(HAVE_DLFCN_H) && !defined(WIN32)
 
 #define GOT_GETSYMBOL
 
@@ -141,8 +144,19 @@ void *CPLGetSymbol( const char * pszLibrary, const char * pszSymbolName )
     pLibrary = LoadLibrary(pszLibrary);
     if( pLibrary == NULL )
     {
+        LPVOID      lpMsgBuf = NULL;
+        int         nLastError = GetLastError();
+        
+        FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER 
+                       | FORMAT_MESSAGE_FROM_SYSTEM
+                       | FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL, nLastError,
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
+                       (LPTSTR) &lpMsgBuf, 0, NULL );
+ 
         CPLError( CE_Failure, CPLE_AppDefined,
-                  "Can't load requested DLL: %s", pszLibrary );
+                  "Can't load requested DLL: %s\n%d: %s", 
+                  pszLibrary, nLastError, (const char *) lpMsgBuf );
         return NULL;
     }
 

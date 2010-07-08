@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrfeaturedefn.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogrfeaturedefn.cpp 17587 2009-08-27 17:56:01Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRFeatureDefn class implementation.
@@ -31,14 +31,14 @@
 #include "ogr_api.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrfeaturedefn.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: ogrfeaturedefn.cpp 17587 2009-08-27 17:56:01Z warmerdam $");
 
 /************************************************************************/
 /*                           OGRFeatureDefn()                           */
 /************************************************************************/
 
 /**
- * Constructor
+ * \brief Constructor.
  *
  * The OGRFeatureDefn maintains a reference count, but this starts at
  * zero.  It is mainly intended to represent a count of OGRFeature's
@@ -64,7 +64,7 @@ OGRFeatureDefn::OGRFeatureDefn( const char * pszName )
 /*                           OGR_FD_Create()                            */
 /************************************************************************/
 /**
- * Create a new feature definition object to held the field definitions.
+ * \brief Create a new feature definition object to hold the field definitions.
  *
  * The OGRFeatureDefn maintains a reference count, but this starts at
  * zero, and should normally be incremented by the owner.
@@ -112,8 +112,7 @@ OGRFeatureDefn::~OGRFeatureDefn()
 /*                           OGR_FD_Destroy()                           */
 /************************************************************************/
 /**
- * Destroy a feature definition object and release all memory 
- * associated with it. 
+ * \brief Destroy a feature definition object and release all memory associated with it. 
  *
  * This function is the same as the C++ method 
  * OGRFeatureDefn::~OGRFeatureDefn().
@@ -134,13 +133,15 @@ void OGR_FD_Destroy( OGRFeatureDefnH hDefn )
 /**
  * \fn void OGRFeatureDefn::Release();
  *
- * Drop a reference to this object, and destroy if no longer referenced.
+ * \brief Drop a reference to this object, and destroy if no longer referenced.
  */
 
 void OGRFeatureDefn::Release()
 
 {
-    if( this && Dereference() == 0 )
+    CPLAssert( NULL != this );
+
+    if( Dereference() <= 0 )
         delete this;
 }
 
@@ -149,7 +150,7 @@ void OGRFeatureDefn::Release()
 /************************************************************************/
 
 /**
- * Drop a reference, and destroy if unreferenced.
+ * \brief Drop a reference, and destroy if unreferenced.
  *
  * This function is the same as the C++ method OGRFeatureDefn::Release().
  *
@@ -169,7 +170,7 @@ void OGR_FD_Release( OGRFeatureDefnH hDefn )
 /**
  * \fn OGRFeatureDefn *OGRFeatureDefn::Clone();
  *
- * Create a copy of this feature definition.
+ * \brief Create a copy of this feature definition.
  *
  * Creates a deep copy of the feature definition. 
  * 
@@ -198,7 +199,7 @@ OGRFeatureDefn *OGRFeatureDefn::Clone()
 /**
  * \fn const char *OGRFeatureDefn::GetName();
  *
- * Get name of this OGRFeatureDefn.
+ * \brief Get name of this OGRFeatureDefn.
  *
  * This method is the same as the C function OGR_FD_GetName().
  *
@@ -210,7 +211,7 @@ OGRFeatureDefn *OGRFeatureDefn::Clone()
 /*                           OGR_FD_GetName()                           */
 /************************************************************************/
 /**
- * Get name of the OGRFeatureDefn passed as an argument.
+ * \brief Get name of the OGRFeatureDefn passed as an argument.
  *
  * This function is the same as the C++ method OGRFeatureDefn::GetName().
  *
@@ -232,7 +233,7 @@ const char *OGR_FD_GetName( OGRFeatureDefnH hDefn )
 /**
  * \fn int OGRFeatureDefn::GetFieldCount();
  *
- * Fetch number of fields on this feature.
+ * \brief Fetch number of fields on this feature.
  *
  * This method is the same as the C function OGR_FD_GetFieldCount().
  * @return count of fields.
@@ -243,7 +244,7 @@ const char *OGR_FD_GetName( OGRFeatureDefnH hDefn )
 /************************************************************************/
 
 /**
- * Fetch number of fields on the passed feature definition.
+ * \brief Fetch number of fields on the passed feature definition.
  *
  * This function is the same as the C++ OGRFeatureDefn::GetFieldCount().
  *
@@ -262,14 +263,17 @@ int OGR_FD_GetFieldCount( OGRFeatureDefnH hDefn )
 /************************************************************************/
 
 /**
- * Fetch field definition.
+ * \brief Fetch field definition.
  *
  * This method is the same as the C function OGR_FD_GetFieldDefn().
  *
+ * Starting with GDAL 1.7.0, this method will also issue an error if the index
+ * is not valid.
+ *
  * @param iField the field to fetch, between 0 and GetFieldCount()-1.
  *
- * @return a pointer to an internal field definition object.  This object
- * should not be modified or freed by the application.
+ * @return a pointer to an internal field definition object or NULL if invalid index.
+ * This object should not be modified or freed by the application.
  */
 
 OGRFieldDefn *OGRFeatureDefn::GetFieldDefn( int iField )
@@ -277,6 +281,7 @@ OGRFieldDefn *OGRFeatureDefn::GetFieldDefn( int iField )
 {
     if( iField < 0 || iField >= nFieldCount )
     {
+        CPLError(CE_Failure, CPLE_AppDefined, "Invalid index : %d", iField);
         return NULL;
     }
 
@@ -288,23 +293,26 @@ OGRFieldDefn *OGRFeatureDefn::GetFieldDefn( int iField )
 /************************************************************************/
 
 /**
- * Fetch field definition of the passed feature definition.
+ * \brief Fetch field definition of the passed feature definition.
  *
  * This function is the same as the C++ method 
  * OGRFeatureDefn::GetFieldDefn().
+ *
+ * Starting with GDAL 1.7.0, this method will also issue an error if the index
+ * is not valid.
  *
  * @param hDefn handle to the feature definition to get the field definition
  * from.
  * @param iField the field to fetch, between 0 and GetFieldCount()-1.
  *
- * @return an handle to an internal field definition object.  This object
- * should not be modified or freed by the application.
+ * @return an handle to an internal field definition object or NULL if invalid index.
+ * This object should not be modified or freed by the application.
  */
 
 OGRFieldDefnH OGR_FD_GetFieldDefn( OGRFeatureDefnH hDefn, int iField )
 
 {
-    return ((OGRFeatureDefn *) hDefn)->GetFieldDefn( iField );
+    return (OGRFieldDefnH) ((OGRFeatureDefn *) hDefn)->GetFieldDefn( iField );
 }
 
 /************************************************************************/
@@ -312,7 +320,7 @@ OGRFieldDefnH OGR_FD_GetFieldDefn( OGRFeatureDefnH hDefn, int iField )
 /************************************************************************/
 
 /**
- * Add a new field definition.
+ * \brief Add a new field definition.
  *
  * This method should only be called while there are no OGRFeature
  * objects in existance based on this OGRFeatureDefn.  The OGRFieldDefn
@@ -338,7 +346,7 @@ void OGRFeatureDefn::AddFieldDefn( OGRFieldDefn * poNewDefn )
 /************************************************************************/
 
 /**
- * Add a new field definition to the passed feature definition.
+ * \brief Add a new field definition to the passed feature definition.
  *
  * This function  should only be called while there are no OGRFeature
  * objects in existance based on this OGRFeatureDefn.  The OGRFieldDefn
@@ -364,7 +372,7 @@ void OGR_FD_AddFieldDefn( OGRFeatureDefnH hDefn, OGRFieldDefnH hNewField )
 /**
  * \fn OGRwkbGeometryType OGRFeatureDefn::GetGeomType();
  *
- * Fetch the geometry base type.
+ * \brief Fetch the geometry base type.
  *
  * Note that some drivers are unable to determine a specific geometry
  * type for a layer, in which case wkbUnknown is returned.  A value of
@@ -382,7 +390,7 @@ void OGR_FD_AddFieldDefn( OGRFeatureDefnH hDefn, OGRFieldDefnH hNewField )
 /*                         OGR_FD_GetGeomType()                         */
 /************************************************************************/
 /**
- * Fetch the geometry base type of the passed feature definition.
+ * \brief Fetch the geometry base type of the passed feature definition.
  *
  * This function is the same as the C++ method OGRFeatureDefn::GetGeomType().
  *
@@ -390,7 +398,7 @@ void OGR_FD_AddFieldDefn( OGRFeatureDefnH hDefn, OGRFieldDefnH hNewField )
  * @return the base type for all geometry related to this definition.
  */
 
-OGRwkbGeometryType OGR_FD_GetGeomType( OGRFieldDefnH hDefn )
+OGRwkbGeometryType OGR_FD_GetGeomType( OGRFeatureDefnH hDefn )
 
 {
     return ((OGRFeatureDefn *) hDefn)->GetGeomType();
@@ -401,7 +409,7 @@ OGRwkbGeometryType OGR_FD_GetGeomType( OGRFieldDefnH hDefn )
 /************************************************************************/
 
 /**
- * Assign the base geometry type for this layer.
+ * \brief Assign the base geometry type for this layer.
  *
  * All geometry objects using this type must be of the defined type or
  * a derived type.  The default upon creation is wkbUnknown which allows for
@@ -424,8 +432,7 @@ void OGRFeatureDefn::SetGeomType( OGRwkbGeometryType eNewType )
 /************************************************************************/
 
 /**
- * Assign the base geometry type for the passed layer (the same as the
- * feature definition).
+ * \brief Assign the base geometry type for the passed layer (the same as the feature definition).
  *
  * All geometry objects using this type must be of the defined type or
  * a derived type.  The default upon creation is wkbUnknown which allows for
@@ -453,7 +460,7 @@ void OGR_FD_SetGeomType( OGRFeatureDefnH hDefn, OGRwkbGeometryType eType )
 /**
  * \fn int OGRFeatureDefn::Reference();
  * 
- * Increments the reference count by one.
+ * \brief Increments the reference count by one.
  *
  * The reference count is used keep track of the number of OGRFeature
  * objects referencing this definition. 
@@ -467,7 +474,7 @@ void OGR_FD_SetGeomType( OGRFeatureDefnH hDefn, OGRwkbGeometryType eType )
 /*                          OGR_FD_Reference()                          */
 /************************************************************************/
 /**
- * Increments the reference count by one.
+ * \brief Increments the reference count by one.
  *
  * The reference count is used keep track of the number of OGRFeature
  * objects referencing this definition. 
@@ -492,7 +499,7 @@ int OGR_FD_Reference( OGRFeatureDefnH hDefn )
 /**
  * \fn int OGRFeatureDefn::Dereference();
  *
- * Decrements the reference count by one.
+ * \brief Decrements the reference count by one.
  *
  * This method is the same as the C function OGR_FD_Dereference().
  *
@@ -504,7 +511,7 @@ int OGR_FD_Reference( OGRFeatureDefnH hDefn )
 /************************************************************************/
 
 /**
- * Decrements the reference count by one.
+ * \brief Decrements the reference count by one.
  *
  * This function is the same as the C++ method OGRFeatureDefn::Dereference().
  *
@@ -526,7 +533,7 @@ int OGR_FD_Dereference( OGRFeatureDefnH hDefn )
 /**
  * \fn int OGRFeatureDefn::GetReferenceCount();
  *
- * Fetch current reference count.
+ * \brief Fetch current reference count.
  *
  * This method is the same as the C function OGR_FD_GetReferenceCount().
  *
@@ -538,7 +545,7 @@ int OGR_FD_Dereference( OGRFeatureDefnH hDefn )
 /************************************************************************/
 
 /**
- * Fetch current reference count.
+ * \brief Fetch current reference count.
  *
  * This function is the same as the C++ method 
  * OGRFeatureDefn::GetReferenceCount().
@@ -559,7 +566,7 @@ int OGR_FD_GetReferenceCount( OGRFeatureDefnH hDefn )
 /************************************************************************/
 
 /**
- * Find field by name.
+ * \brief Find field by name.
  *
  * The field index of the first field matching the passed field name (case
  * insensitively) is returned.
@@ -588,7 +595,7 @@ int OGRFeatureDefn::GetFieldIndex( const char * pszFieldName )
 /*                        OGR_FD_GetFieldIndex()                        */
 /************************************************************************/
 /**
- * Find field by name.
+ * \brief Find field by name.
  *
  * The field index of the first field matching the passed field name (case
  * insensitively) is returned.

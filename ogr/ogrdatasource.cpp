@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrdatasource.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogrdatasource.cpp 16933 2009-05-03 19:49:41Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The generic portions of the OGRDataSource class.
@@ -32,8 +32,9 @@
 #include "ogr_p.h"
 #include "ogr_gensql.h"
 #include "ogr_attrind.h"
+#include "cpl_multiproc.h"
 
-CPL_CVSID("$Id: ogrdatasource.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: ogrdatasource.cpp 16933 2009-05-03 19:49:41Z rouault $");
 
 /************************************************************************/
 /*                           ~OGRDataSource()                           */
@@ -45,6 +46,7 @@ OGRDataSource::OGRDataSource()
     m_poStyleTable = NULL;
     m_nRefCount = 0;
     m_poDriver = NULL;
+    m_hMutex = NULL;
 }
 
 /************************************************************************/
@@ -59,6 +61,9 @@ OGRDataSource::~OGRDataSource()
         delete m_poStyleTable;
         m_poStyleTable = NULL;
     }
+
+    if( m_hMutex != NULL )
+        CPLDestroyMutex( m_hMutex );
 }
 
 /************************************************************************/
@@ -78,6 +83,7 @@ void OGRDataSource::DestroyDataSource( OGRDataSource *poDS )
 void OGR_DS_Destroy( OGRDataSourceH hDS )
 
 {
+    VALIDATE_POINTER0( hDS, "OGR_DS_Destroy" );
     delete (OGRDataSource *) hDS;
 }
 
@@ -108,6 +114,8 @@ int OGRDataSource::Reference()
 int OGR_DS_Reference( OGRDataSourceH hDataSource )
 
 {
+    VALIDATE_POINTER1( hDataSource, "OGR_DS_Reference", 0 );
+
     return ((OGRDataSource *) hDataSource)->Reference();
 }
 
@@ -128,6 +136,8 @@ int OGRDataSource::Dereference()
 int OGR_DS_Dereference( OGRDataSourceH hDataSource )
 
 {
+    VALIDATE_POINTER1( hDataSource, "OGR_DS_Dereference", 0 );
+
     return ((OGRDataSource *) hDataSource)->Dereference();
 }
 
@@ -148,6 +158,8 @@ int OGRDataSource::GetRefCount() const
 int OGR_DS_GetRefCount( OGRDataSourceH hDataSource )
 
 {
+    VALIDATE_POINTER1( hDataSource, "OGR_DS_GetRefCount", 0 );
+
     return ((OGRDataSource *) hDataSource)->GetRefCount();
 }
 
@@ -158,6 +170,7 @@ int OGR_DS_GetRefCount( OGRDataSourceH hDataSource )
 int OGRDataSource::GetSummaryRefCount() const
 
 {
+    CPLMutexHolderD( (void **) &m_hMutex );
     int nSummaryCount = m_nRefCount;
     int iLayer;
     OGRDataSource *poUseThis = (OGRDataSource *) this;
@@ -175,6 +188,8 @@ int OGRDataSource::GetSummaryRefCount() const
 int OGR_DS_GetSummaryRefCount( OGRDataSourceH hDataSource )
 
 {
+    VALIDATE_POINTER1( hDataSource, "OGR_DS_GetSummaryRefCount", 0 );
+
     return ((OGRDataSource *) hDataSource)->GetSummaryRefCount();
 }
 
@@ -210,7 +225,14 @@ OGRLayerH OGR_DS_CreateLayer( OGRDataSourceH hDS,
                               char ** papszOptions )
 
 {
-    return ((OGRDataSource *)hDS)->CreateLayer( 
+    VALIDATE_POINTER1( hDS, "OGR_DS_CreateLayer", NULL );
+
+    if (pszName == NULL)
+    {
+        CPLError ( CE_Failure, CPLE_ObjectNull, "Name was NULL in OGR_DS_CreateLayer");
+        return 0;
+    }
+    return (OGRLayerH) ((OGRDataSource *)hDS)->CreateLayer( 
         pszName, (OGRSpatialReference *) hSpatialRef, eType, papszOptions );
 }
 
@@ -277,7 +299,7 @@ OGRLayer *OGRDataSource::CopyLayer( OGRLayer *poSrcLayer,
         {
             delete poFeature;
             CPLError( CE_Failure, CPLE_AppDefined,
-                      "Unable to translate feature %d from layer %s.\n",
+                      "Unable to translate feature %ld from layer %s.\n",
                       poFeature->GetFID(), poSrcDefn->GetName() );
             return poDstLayer;
         }
@@ -308,8 +330,12 @@ OGRLayerH OGR_DS_CopyLayer( OGRDataSourceH hDS,
                             char **papszOptions )
 
 {
-    return ((OGRDataSource *) hDS)->CopyLayer( (OGRLayer *) hSrcLayer, 
-                                               pszNewName, papszOptions );
+    VALIDATE_POINTER1( hDS, "OGR_DS_CopyLayer", NULL );
+    VALIDATE_POINTER1( hSrcLayer, "OGR_DS_CopyLayer", NULL );
+
+    return (OGRLayerH) 
+        ((OGRDataSource *) hDS)->CopyLayer( (OGRLayer *) hSrcLayer, 
+                                            pszNewName, papszOptions );
 }
 
 /************************************************************************/
@@ -333,6 +359,8 @@ OGRErr OGRDataSource::DeleteLayer( int iLayer )
 OGRErr OGR_DS_DeleteLayer( OGRDataSourceH hDS, int iLayer )
 
 {
+    VALIDATE_POINTER1( hDS, "OGR_DS_DeleteLayer", OGRERR_INVALID_HANDLE );
+
     return ((OGRDataSource *) hDS)->DeleteLayer( iLayer );
 }
 
@@ -343,6 +371,8 @@ OGRErr OGR_DS_DeleteLayer( OGRDataSourceH hDS, int iLayer )
 OGRLayer *OGRDataSource::GetLayerByName( const char *pszName )
 
 {
+    CPLMutexHolderD( &m_hMutex );
+
     if ( ! pszName )
         return NULL;
 
@@ -376,6 +406,8 @@ OGRLayer *OGRDataSource::GetLayerByName( const char *pszName )
 OGRLayerH OGR_DS_GetLayerByName( OGRDataSourceH hDS, const char *pszName )
 
 {
+    VALIDATE_POINTER1( hDS, "OGR_DS_GetLayerByName", NULL );
+
     return (OGRLayerH) ((OGRDataSource *) hDS)->GetLayerByName( pszName );
 }
 
@@ -417,21 +449,25 @@ OGRErr OGRDataSource::ProcessSQLCreateIndex( const char *pszSQLCommand )
     int  i;
     OGRLayer *poLayer = NULL;
 
-    for( i = 0; i < GetLayerCount(); i++ )
     {
-        poLayer = GetLayer(i);
-        
-        if( EQUAL(poLayer->GetLayerDefn()->GetName(),papszTokens[3]) )
-            break;
-    }
+        CPLMutexHolderD( &m_hMutex );
 
-    if( i >= GetLayerCount() )
-    {
-        CPLError( CE_Failure, CPLE_AppDefined, 
-                  "CREATE INDEX ON failed, no such layer as `%s'.",
-                  papszTokens[3] );
-        CSLDestroy( papszTokens );
-        return OGRERR_FAILURE;
+        for( i = 0; i < GetLayerCount(); i++ )
+        {
+            poLayer = GetLayer(i);
+            
+            if( EQUAL(poLayer->GetLayerDefn()->GetName(),papszTokens[3]) )
+                break;
+        }
+        
+        if( i >= GetLayerCount() )
+        {
+            CPLError( CE_Failure, CPLE_AppDefined, 
+                      "CREATE INDEX ON failed, no such layer as `%s'.",
+                      papszTokens[3] );
+            CSLDestroy( papszTokens );
+            return OGRERR_FAILURE;
+        }
     }
 
 /* -------------------------------------------------------------------- */
@@ -515,21 +551,25 @@ OGRErr OGRDataSource::ProcessSQLDropIndex( const char *pszSQLCommand )
     int  i;
     OGRLayer *poLayer=NULL;
 
-    for( i = 0; i < GetLayerCount(); i++ )
     {
-        poLayer = GetLayer(i);
-        
-        if( EQUAL(poLayer->GetLayerDefn()->GetName(),papszTokens[3]) )
-            break;
-    }
+        CPLMutexHolderD( &m_hMutex );
 
-    if( i >= GetLayerCount() )
-    {
-        CPLError( CE_Failure, CPLE_AppDefined, 
-                  "CREATE INDEX ON failed, no such layer as `%s'.",
-                  papszTokens[3] );
-        CSLDestroy( papszTokens );
-        return OGRERR_FAILURE;
+        for( i = 0; i < GetLayerCount(); i++ )
+        {
+            poLayer = GetLayer(i);
+        
+            if( EQUAL(poLayer->GetLayerDefn()->GetName(),papszTokens[3]) )
+                break;
+        }
+
+        if( i >= GetLayerCount() )
+        {
+            CPLError( CE_Failure, CPLE_AppDefined, 
+                      "CREATE INDEX ON failed, no such layer as `%s'.",
+                      papszTokens[3] );
+            CSLDestroy( papszTokens );
+            return OGRERR_FAILURE;
+        }
     }
 
 /* -------------------------------------------------------------------- */
@@ -609,6 +649,12 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
 
     (void) pszDialect;
 
+    swq_field_list sFieldList;
+    int            nFIDIndex = 0;
+    OGRGenSQLResultsLayer *poResults = NULL;
+
+    memset( &sFieldList, 0, sizeof(sFieldList) );
+
 /* -------------------------------------------------------------------- */
 /*      Handle CREATE INDEX statements specially.                       */
 /* -------------------------------------------------------------------- */
@@ -643,6 +689,10 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
 /*      fields.                                                         */
 /* -------------------------------------------------------------------- */
     int  nFieldCount = 0, iTable, iField;
+    int  iEDS;
+    int  nExtraDSCount = 0;
+    OGRDataSource** papoExtraDS = NULL;
+    OGRSFDriverRegistrar *poReg=OGRSFDriverRegistrar::GetRegistrar();
 
     for( iTable = 0; iTable < psSelectInfo->table_count; iTable++ )
     {
@@ -663,12 +713,13 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
                               psTableDef->data_source );
 
                 swq_select_free( psSelectInfo );
-                return NULL;
+                goto end;
             }
 
-            // This drops explicit reference, but leave it open for use by
-            // code in ogr_gensql.cpp
-            poTableDS->Dereference();
+            /* Keep in an array to release at the end of this function */
+            papoExtraDS = (OGRDataSource** )CPLRealloc(papoExtraDS,
+                               sizeof(OGRDataSource*) * (nExtraDSCount + 1));
+            papoExtraDS[nExtraDSCount++] = poTableDS;
         }
 
         poSrcLayer = poTableDS->GetLayerByName( psTableDef->table_name );
@@ -679,7 +730,7 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
                       "SELECT from table %s failed, no such table/featureclass.",
                       psTableDef->table_name );
             swq_select_free( psSelectInfo );
-            return NULL;
+            goto end;
         }
 
         nFieldCount += poSrcLayer->GetLayerDefn()->GetFieldCount();
@@ -688,10 +739,7 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
 /* -------------------------------------------------------------------- */
 /*      Build the field list for all indicated tables.                  */
 /* -------------------------------------------------------------------- */
-    swq_field_list sFieldList;
-    int            nFIDIndex = 0;
 
-    memset( &sFieldList, 0, sizeof(sFieldList) );
     sFieldList.table_count = psSelectInfo->table_count;
     sFieldList.table_defs = psSelectInfo->table_defs;
 
@@ -752,14 +800,15 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
 
     if( pszError != NULL )
     {
+        swq_select_free( psSelectInfo );
         CPLError( CE_Failure, CPLE_AppDefined, 
                   "SQL: %s", pszError );
-        return NULL;
+        goto end;
     }
 
     for (iField = 0; iField < SPECIAL_FIELD_COUNT; iField++)
     {
-        sFieldList.names[sFieldList.count] = SpecialFieldNames[iField];
+        sFieldList.names[sFieldList.count] = (char*) SpecialFieldNames[iField];
         sFieldList.types[sFieldList.count] = SpecialFieldTypes[iField];
         sFieldList.table_ids[sFieldList.count] = 0;
         sFieldList.ids[sFieldList.count] = nFIDIndex + iField;
@@ -772,27 +821,36 @@ OGRLayer * OGRDataSource::ExecuteSQL( const char *pszStatement,
     
     pszError = swq_select_parse( psSelectInfo, &sFieldList, 0 );
 
-    CPLFree( sFieldList.names );
-    CPLFree( sFieldList.types );
-    CPLFree( sFieldList.table_ids );
-    CPLFree( sFieldList.ids );
-
     if( pszError != NULL )
     {
+        swq_select_free( psSelectInfo );
         CPLError( CE_Failure, CPLE_AppDefined, 
                   "SQL: %s", pszError );
-        return NULL;
+        goto end;
     }
 
 /* -------------------------------------------------------------------- */
 /*      Everything seems OK, try to instantiate a results layer.        */
 /* -------------------------------------------------------------------- */
-    OGRGenSQLResultsLayer *poResults;
 
     poResults = new OGRGenSQLResultsLayer( this, psSelectInfo, 
                                            poSpatialFilter );
 
     // Eventually, we should keep track of layers to cleanup.
+
+end:
+    CPLFree( sFieldList.names );
+    CPLFree( sFieldList.types );
+    CPLFree( sFieldList.table_ids );
+    CPLFree( sFieldList.ids );
+
+    /* Release the datasets we have opened with OGROpenShared() */
+    /* It is safe to do that as the 'new OGRGenSQLResultsLayer' itself */
+    /* has taken a reference on them, which it will release in its */
+    /* destructor */
+    for(iEDS = 0; iEDS < nExtraDSCount; iEDS++)
+        poReg->ReleaseDataSource( papoExtraDS[iEDS] );
+    CPLFree(papoExtraDS);
 
     return poResults;
 }
@@ -807,6 +865,8 @@ OGRLayerH OGR_DS_ExecuteSQL( OGRDataSourceH hDS,
                              const char *pszDialect )
 
 {
+    VALIDATE_POINTER1( hDS, "OGR_DS_ExecuteSQL", NULL );
+
     return (OGRLayerH) 
         ((OGRDataSource *)hDS)->ExecuteSQL( pszStatement,
                                             (OGRGeometry *) hSpatialFilter,
@@ -830,6 +890,8 @@ void OGRDataSource::ReleaseResultSet( OGRLayer * poResultsSet )
 void OGR_DS_ReleaseResultSet( OGRDataSourceH hDS, OGRLayerH hLayer )
 
 {
+    VALIDATE_POINTER0( hDS, "OGR_DS_ReleaseResultSet" );
+
     ((OGRDataSource *) hDS)->ReleaseResultSet( (OGRLayer *) hLayer );
 }
 
@@ -840,6 +902,9 @@ void OGR_DS_ReleaseResultSet( OGRDataSourceH hDS, OGRLayerH hLayer )
 int OGR_DS_TestCapability( OGRDataSourceH hDS, const char *pszCap )
 
 {
+    VALIDATE_POINTER1( hDS, "OGR_DS_TestCapability", 0 );
+    VALIDATE_POINTER1( pszCap, "OGR_DS_TestCapability", 0 );
+
     return ((OGRDataSource *) hDS)->TestCapability( pszCap );
 }
 
@@ -850,6 +915,8 @@ int OGR_DS_TestCapability( OGRDataSourceH hDS, const char *pszCap )
 int OGR_DS_GetLayerCount( OGRDataSourceH hDS )
 
 {
+    VALIDATE_POINTER1( hDS, "OGR_DS_GetLayerCount", 0 );
+
     return ((OGRDataSource *)hDS)->GetLayerCount();
 }
 
@@ -860,6 +927,8 @@ int OGR_DS_GetLayerCount( OGRDataSourceH hDS )
 OGRLayerH OGR_DS_GetLayer( OGRDataSourceH hDS, int iLayer )
 
 {
+    VALIDATE_POINTER1( hDS, "OGR_DS_GetLayer", NULL );
+
     return (OGRLayerH) ((OGRDataSource*)hDS)->GetLayer( iLayer );
 }
 
@@ -870,6 +939,8 @@ OGRLayerH OGR_DS_GetLayer( OGRDataSourceH hDS, int iLayer )
 const char *OGR_DS_GetName( OGRDataSourceH hDS )
 
 {
+    VALIDATE_POINTER1( hDS, "OGR_DS_GetName", NULL );
+
     return ((OGRDataSource*)hDS)->GetName();
 }
 
@@ -880,6 +951,7 @@ const char *OGR_DS_GetName( OGRDataSourceH hDS )
 OGRErr OGRDataSource::SyncToDisk()
 
 {
+    CPLMutexHolderD( &m_hMutex );
     int i;
     OGRErr eErr;
 
@@ -905,6 +977,8 @@ OGRErr OGRDataSource::SyncToDisk()
 OGRErr OGR_DS_SyncToDisk( OGRDataSourceH hDS )
 
 {
+    VALIDATE_POINTER1( hDS, "OGR_DS_SyncToDisk", OGRERR_INVALID_HANDLE );
+
     return ((OGRDataSource *) hDS)->SyncToDisk();
 }
 
@@ -925,6 +999,55 @@ OGRSFDriver *OGRDataSource::GetDriver() const
 OGRSFDriverH OGR_DS_GetDriver( OGRDataSourceH hDS )
 
 {
+    VALIDATE_POINTER1( hDS, "OGR_DS_GetDriver", NULL );
+
     return (OGRSFDriverH) ((OGRDataSource *) hDS)->GetDriver();
 }
 
+/************************************************************************/
+/*                             SetDriver()                              */
+/************************************************************************/
+
+void OGRDataSource::SetDriver( OGRSFDriver *poDriver ) 
+
+{
+    m_poDriver = poDriver;
+}
+
+/************************************************************************/
+/*                         OGR_DS_GetStyleTable()                       */
+/************************************************************************/
+
+OGRStyleTableH OGR_DS_GetStyleTable( OGRDataSourceH hDS )
+
+{
+    VALIDATE_POINTER1( hDS, "OGR_DS_GetStyleTable", NULL );
+    
+    return (OGRStyleTableH) ((OGRDataSource *) hDS)->GetStyleTable( );
+}
+
+/************************************************************************/
+/*                         OGR_DS_SetStyleTableDirectly()               */
+/************************************************************************/
+
+void OGR_DS_SetStyleTableDirectly( OGRDataSourceH hDS,
+                                   OGRStyleTableH hStyleTable )
+
+{
+    VALIDATE_POINTER0( hDS, "OGR_DS_SetStyleTableDirectly" );
+    
+    ((OGRDataSource *) hDS)->SetStyleTableDirectly( (OGRStyleTable *) hStyleTable);
+}
+
+/************************************************************************/
+/*                         OGR_DS_SetStyleTable()                       */
+/************************************************************************/
+
+void OGR_DS_SetStyleTable( OGRDataSourceH hDS, OGRStyleTableH hStyleTable )
+
+{
+    VALIDATE_POINTER0( hDS, "OGR_DS_SetStyleTable" );
+    VALIDATE_POINTER0( hStyleTable, "OGR_DS_SetStyleTable" );
+    
+    ((OGRDataSource *) hDS)->SetStyleTable( (OGRStyleTable *) hStyleTable);
+}

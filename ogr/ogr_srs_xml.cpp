@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_srs_xml.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogr_srs_xml.cpp 16587 2009-03-15 00:09:42Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  OGRSpatialReference interface to OGC XML (014r4).
@@ -30,6 +30,7 @@
 #include "ogr_spatialref.h"
 #include "ogr_p.h"
 #include "cpl_minixml.h"
+#include "cpl_multiproc.h"
 
 /************************************************************************/
 /*                              parseURN()                              */
@@ -40,10 +41,10 @@
 /************************************************************************/
 
 static int parseURN( char *pszURN, 
-                     char **ppszObjectType, 
-                     char **ppszAuthority, 
-                     char **ppszCode,
-                     char **ppszVersion = NULL )
+                     const char **ppszObjectType, 
+                     const char **ppszAuthority, 
+                     const char **ppszCode,
+                     const char **ppszVersion = NULL )
 
 {
     int  i;
@@ -67,7 +68,7 @@ static int parseURN( char *pszURN,
 /*      Extract object type                                             */
 /* -------------------------------------------------------------------- */
     if( ppszObjectType != NULL )
-        *ppszObjectType = (char *) pszURN + 12;
+        *ppszObjectType = (const char *) pszURN + 12;
 
     i = 12;
     while( pszURN[i] != ':' && pszURN[i] != '\0' )
@@ -238,6 +239,9 @@ static CPLXMLNode *addAuthorityIDBlock( CPLXMLNode *psTarget,
 static void addGMLId( CPLXMLNode *psParent )
 
 {
+    static void *hGMLIdMutex = NULL;
+    CPLMutexHolderD( &hGMLIdMutex );
+
     CPLXMLNode *psId;
     static int nNextGMLId = 1;
     char   szIdText[40];
@@ -326,7 +330,7 @@ static void addProjArg( const OGRSpatialReference *poSRS, CPLXMLNode *psBase,
         = poSRS->GetNormProjParm( pszWKTName, dfDefault, NULL );
         
     CPLCreateXMLNode( psValue, CXT_Text, 
-                      CPLSPrintf( "%.16g", dfParmValue ) );
+                      CPLString().Printf( "%.16g", dfParmValue ) );
 
 /* -------------------------------------------------------------------- */
 /*      Add the valueOfParameter.                                       */
@@ -493,7 +497,7 @@ static CPLXMLNode *exportGeogCSToXML( const OGRSpatialReference *poSRS )
 /* -------------------------------------------------------------------- */
     const OGR_SRSNode *poPMNode = poGeogCS->GetNode( "PRIMEM" );
     CPLXMLNode *psPM;
-    char *pszPMName = "Greenwich";
+    char *pszPMName = (char* ) "Greenwich";
     double dfPMOffset = poSRS->GetPrimeMeridian( &pszPMName );
 
     psPM = CPLCreateXMLNode( 
@@ -517,8 +521,9 @@ static CPLXMLNode *exportGeogCSToXML( const OGRSpatialReference *poSRS )
     CPLCreateXMLNode( CPLCreateXMLNode( psAngle, CXT_Attribute, "gml:uom" ),
                       CXT_Text, "urn:ogc:def:uom:EPSG::9102" );
 
-    CPLCreateXMLNode( psAngle, CXT_Text, CPLSPrintf( "%.16g", dfPMOffset ) );
-
+    CPLCreateXMLNode( psAngle, CXT_Text, 
+                      CPLString().Printf( "%.16g", dfPMOffset ) );
+    
 /* -------------------------------------------------------------------- */
 /*      Translate the ellipsoid.                                        */
 /* -------------------------------------------------------------------- */
@@ -688,8 +693,27 @@ static CPLXMLNode *exportProjCSToXML( const OGRSpatialReference *poSRS )
 /*                            exportToXML()                             */
 /************************************************************************/
 
+/**
+ * \brief Export coordinate system in XML format.
+ *
+ * Converts the loaded coordinate reference system into XML format
+ * to the extent possible.  The string returned in ppszRawXML should be
+ * deallocated by the caller with CPLFree() when no longer needed.
+ *
+ * LOCAL_CS coordinate systems are not translatable.  An empty string
+ * will be returned along with OGRERR_NONE.  
+ *
+ * This method is the equivelent of the C function OSRExportToXML().
+ *
+ * @param ppszRawXML pointer to which dynamically allocated XML definition 
+ * will be assigned. 
+ * @param pszDialect currently ignored. The dialect used is GML based.
+ *
+ * @return OGRERR_NONE on success or an error code on failure. 
+ */
+
 OGRErr OGRSpatialReference::exportToXML( char **ppszRawXML, 
-                                         const char * /*pszDialect*/ ) const
+                                         const char * pszDialect ) const
 
 {
     CPLXMLNode *psXMLTree = NULL;
@@ -706,6 +730,7 @@ OGRErr OGRSpatialReference::exportToXML( char **ppszRawXML,
         return OGRERR_UNSUPPORTED_SRS;
 
     *ppszRawXML = CPLSerializeXMLTree( psXMLTree );
+    CPLDestroyXMLNode( psXMLTree );
 
     return OGRERR_NONE;
 }
@@ -713,11 +738,18 @@ OGRErr OGRSpatialReference::exportToXML( char **ppszRawXML,
 /************************************************************************/
 /*                           OSRExportToXML()                           */
 /************************************************************************/
+/** 
+ * \brief Export coordinate system in XML format.
+ *
+ * This function is the same as OGRSpatialReference::exportToXML().
+ */
 
 OGRErr OSRExportToXML( OGRSpatialReferenceH hSRS, char **ppszRawXML, 
                        const char *pszDialect )
 
 {
+    VALIDATE_POINTER1( hSRS, "OSRExportToXML", CE_Failure );
+
     return ((OGRSpatialReference *) hSRS)->exportToXML( ppszRawXML, 
                                                         pszDialect );
 }
@@ -809,7 +841,8 @@ static void importXMLAuthority( CPLXMLNode *psSrcXML,
     CPLXMLNode *psIDNode = CPLGetXMLNode( psSrcXML, pszSourceKey );
     CPLXMLNode *psNameNode = CPLGetXMLNode( psIDNode, "name" );
     CPLXMLNode *psCodeSpace = CPLGetXMLNode( psNameNode, "codeSpace" );
-    char *pszAuthority, *pszCode, *pszURN;
+    const char *pszAuthority, *pszCode;
+    char *pszURN;
     int nCode = 0;
 
     if( psIDNode == NULL || psNameNode == NULL || psCodeSpace == NULL )
@@ -905,8 +938,13 @@ static int getEPSGObjectCodeValue( CPLXMLNode *psNode,
         return nDefault;
     
     CPLString osObjectType, osAuthority, osValue;
+    const char* pszHrefVal;
     
-    if( !ParseOGCDefURN( CPLGetXMLValue( psNode, "href", NULL ),
+    pszHrefVal = CPLGetXMLValue( psNode, "xlink:href", NULL );
+    if (pszHrefVal == NULL)
+        pszHrefVal = CPLGetXMLValue( psNode, "href", NULL );
+    
+    if( !ParseOGCDefURN( pszHrefVal,
                          &osObjectType, &osAuthority, NULL, &osValue ) )
         return nDefault;
 
@@ -1228,6 +1266,13 @@ static OGRErr importProjCSFromXML( OGRSpatialReference *poSRS,
 /*                           importFromXML()                            */
 /************************************************************************/
 
+/** 
+ * \brief Import coordinate system from XML format (GML only currently).
+ *
+ * This method is the same as the C function OSRImportFromXML()
+ * @param pszXML XML string to import
+ * @return OGRERR_NONE on success or OGRERR_CORRUPT_DATA on failure.
+ */
 OGRErr OGRSpatialReference::importFromXML( const char *pszXML )
 
 {
@@ -1277,8 +1322,15 @@ OGRErr OGRSpatialReference::importFromXML( const char *pszXML )
 /*                          OSRImportFromXML()                          */
 /************************************************************************/
 
+/** 
+ * \brief Import coordinate system from XML format (GML only currently).
+ *
+ * This function is the same as OGRSpatialReference::importFromXML().
+ */
 OGRErr OSRImportFromXML( OGRSpatialReferenceH hSRS, const char *pszXML )
 
 {
+    VALIDATE_POINTER1( hSRS, "OSRImportFromXML", CE_Failure );
+
     return ((OGRSpatialReference *) hSRS)->importFromXML( pszXML );
 }

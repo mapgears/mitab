@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_attrind.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogr_attrind.cpp 10645 2007-01-18 02:22:39Z warmerdam $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Implementation of OGRLayerAttrIndex and OGRAttrIndex base classes.
@@ -30,7 +30,7 @@
 #include "ogr_attrind.h"
 #include "cpl_conv.h"
 
-CPL_CVSID("$Id: ogr_attrind.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: ogr_attrind.cpp 10645 2007-01-18 02:22:39Z warmerdam $");
 
 /************************************************************************/
 /* ==================================================================== */

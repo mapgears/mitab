@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrsf_frmts.h 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogrsf_frmts.h 18449 2010-01-07 09:09:09Z martinl $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Classes related to format registration, and file opening.
@@ -55,9 +55,9 @@ class CPL_DLL OGRLayer
 {
   protected:
     int          m_bFilterIsEnvelope;
-    OGRGeometry  *m_poFilterGeom;
+    OGRGeometry *m_poFilterGeom;
     OGREnvelope  m_sFilterEnvelope;
-
+    
     int          FilterGeometry( OGRGeometry * );
     int          InstallFilter( OGRGeometry * );
 
@@ -153,6 +153,8 @@ class CPL_DLL OGRDataSource
 {
     friend class OGRSFDriverRegistrar;
 
+    void        *m_hMutex;
+
   public:
 
     OGRDataSource();
@@ -201,6 +203,7 @@ class CPL_DLL OGRDataSource
     OGRErr              Release();
 
     OGRSFDriver        *GetDriver() const;
+    void                SetDriver( OGRSFDriver *poDriver );
 
   protected:
 
@@ -251,8 +254,11 @@ class CPL_DLL OGRSFDriver
 /************************************************************************/
 
 /**
- * Singleton manager for drivers.
- *
+ * Singleton manager for OGRSFDriver instances that will be used to try
+ * and open datasources.  Normally the registrar is populated with 
+ * standard drivers using the OGRRegisterAll() function and does not need
+ * to be directly accessed.  The driver registrar and all registered drivers
+ * may be cleaned up on shutdown using OGRCleanupAll().
  */
 
 class CPL_DLL OGRSFDriverRegistrar
@@ -266,6 +272,7 @@ class CPL_DLL OGRSFDriverRegistrar
     char        **papszOpenDSRawName;
     OGRDataSource **papoOpenDS;
     OGRSFDriver **papoOpenDSDriver;
+    GIntBig     *panOpenDSPID;
 
   public:
 
@@ -313,6 +320,7 @@ void CPL_DLL RegisterOGROCI();
 void CPL_DLL RegisterOGRDGN();
 void CPL_DLL RegisterOGRGML();
 void CPL_DLL RegisterOGRKML();
+void CPL_DLL RegisterOGRGeoJSON();
 void CPL_DLL RegisterOGRAVCBin();
 void CPL_DLL RegisterOGRAVCE00();
 void CPL_DLL RegisterOGRREC();
@@ -326,8 +334,20 @@ void CPL_DLL RegisterOGRILI2();
 void CPL_DLL RegisterOGRGRASS();
 void CPL_DLL RegisterOGRPGeo();
 void CPL_DLL RegisterOGRDXFDWG();
+void CPL_DLL RegisterOGRDXF();
 void CPL_DLL RegisterOGRSDE();
 void CPL_DLL RegisterOGRIDB();
+void CPL_DLL RegisterOGRGMT();
+void CPL_DLL RegisterOGRBNA();
+void CPL_DLL RegisterOGRGPX();
+void CPL_DLL RegisterOGRGeoconcept();
+void CPL_DLL RegisterOGRIngres();
+void CPL_DLL RegisterOGRPCIDSK();
+void CPL_DLL RegisterOGRXPlane();
+void CPL_DLL RegisterOGRNAS();
+void CPL_DLL RegisterOGRGeoRSS();
+void CPL_DLL RegisterOGRGTM();
+void CPL_DLL RegisterOGRVFK();
 
 CPL_C_END
 

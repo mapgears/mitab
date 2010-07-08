@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrmultilinestring.cpp 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: ogrmultilinestring.cpp 14336 2008-04-20 14:36:09Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRMultiLineString class.
@@ -30,7 +30,7 @@
 #include "ogr_geometry.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrmultilinestring.cpp 10646 2007-01-18 02:38:10Z warmerdam $");
+CPL_CVSID("$Id: ogrmultilinestring.cpp 14336 2008-04-20 14:36:09Z rouault $");
 
 /************************************************************************/
 /*                        OGRMultiLineString()                          */
@@ -234,14 +234,8 @@ OGRErr OGRMultiLineString::exportToWkt( char ** ppszDstText ) const
 
 {
     char        **papszLines;
-    int         iLine, nCumulativeLength = 0;
+    int         iLine, nCumulativeLength = 0, nValidLineStrings=0;
     OGRErr      eErr;
-
-    if( getNumGeometries() == 0 )
-    {
-        *ppszDstText = CPLStrdup("MULTILINESTRING EMPTY");
-        return OGRERR_NONE;
-    }
 
 /* -------------------------------------------------------------------- */
 /*      Build a list of strings containing the stuff for each ring.     */
@@ -254,10 +248,29 @@ OGRErr OGRMultiLineString::exportToWkt( char ** ppszDstText ) const
         if( eErr != OGRERR_NONE )
             return eErr;
 
-        CPLAssert( EQUALN(papszLines[iLine],"LINESTRING (", 12) );
+        if( !EQUALN(papszLines[iLine],"LINESTRING (", 12) )
+        {
+            CPLDebug( "OGR", "OGRMultiLineString::exportToWkt() - skipping %s.",
+                      papszLines[iLine] );
+            CPLFree( papszLines[iLine] );
+            papszLines[iLine] = NULL;
+            continue;
+        }
+
         nCumulativeLength += strlen(papszLines[iLine] + 11);
+        nValidLineStrings++;
     }
     
+/* -------------------------------------------------------------------- */
+/*      Return MULTILINESTRING EMPTY if we get no valid line string.    */
+/* -------------------------------------------------------------------- */
+    if( nValidLineStrings == 0 )
+    {
+        CPLFree( papszLines );
+        *ppszDstText = CPLStrdup("MULTILINESTRING EMPTY");
+        return OGRERR_NONE;
+    }
+
 /* -------------------------------------------------------------------- */
 /*      Allocate exactly the right amount of space for the              */
 /*      aggregated string.                                              */
@@ -274,10 +287,15 @@ OGRErr OGRMultiLineString::exportToWkt( char ** ppszDstText ) const
 
     strcpy( pszAppendPoint, "MULTILINESTRING (" );
 
+    int bMustWriteComma = FALSE;
     for( iLine = 0; iLine < getNumGeometries(); iLine++ )
     {                                                           
-        if( iLine > 0 )
+        if( papszLines[iLine] == NULL )
+            continue;
+
+        if( bMustWriteComma )
             strcat( pszAppendPoint, "," );
+        bMustWriteComma = TRUE;
         
         strcat( pszAppendPoint, papszLines[iLine] + 11 );
         pszAppendPoint += strlen(pszAppendPoint);

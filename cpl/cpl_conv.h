@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_conv.h 12407 2007-10-13 17:33:44Z rouault $
+ * $Id: cpl_conv.h 17742 2009-10-03 16:13:16Z rouault $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Convenience functions declarations.
@@ -52,6 +52,8 @@ void CPL_DLL CPLVerifyConfiguration(void);
 const char CPL_DLL * CPL_STDCALL
 CPLGetConfigOption( const char *, const char * );
 void CPL_DLL CPL_STDCALL CPLSetConfigOption( const char *, const char * );
+void CPL_DLL CPL_STDCALL CPLSetThreadLocalConfigOption( const char *pszKey, 
+                                                        const char *pszValue );
 void CPL_DLL CPL_STDCALL CPLFreeConfig(void);
 
 /* -------------------------------------------------------------------- */
@@ -72,6 +74,7 @@ char CPL_DLL *CPLStrlwr( char *);
 char CPL_DLL *CPLFGets( char *, int, FILE *);
 const char CPL_DLL *CPLReadLine( FILE * );
 const char CPL_DLL *CPLReadLineL( FILE * );
+const char CPL_DLL *CPLReadLine2L( FILE * , int nMaxCols, char** papszOptions);
 
 /* -------------------------------------------------------------------- */
 /*      Convert ASCII string to floationg point number                  */
@@ -94,7 +97,7 @@ double CPL_DLL CPLAtofM(const char *);
 /*      Read a numeric value from an ASCII character string.            */
 /* -------------------------------------------------------------------- */
 char CPL_DLL *CPLScanString( const char *, int, int, int );
-double CPL_DLL CPLScanDouble( const char *, int, char * );
+double CPL_DLL CPLScanDouble( const char *, int );
 long CPL_DLL CPLScanLong( const char *, int );
 unsigned long CPL_DLL CPLScanULong( const char *, int );
 GUIntBig CPL_DLL CPLScanUIntBig( const char *, int );
@@ -107,9 +110,9 @@ int CPL_DLL CPLPrintString( char *, const char *, int );
 int CPL_DLL CPLPrintStringFill( char *, const char *, int );
 int CPL_DLL CPLPrintInt32( char *, GInt32 , int );
 int CPL_DLL CPLPrintUIntBig( char *, GUIntBig , int );
-int CPL_DLL CPLPrintDouble( char *, const char *, double, char * );
+int CPL_DLL CPLPrintDouble( char *, const char *, double, const char * );
 int CPL_DLL CPLPrintTime( char *, int , const char *, const struct tm *,
-                          char * );
+                          const char * );
 int CPL_DLL CPLPrintPointer( char *, void *, int );
 
 /* -------------------------------------------------------------------- */
@@ -117,11 +120,6 @@ int CPL_DLL CPLPrintPointer( char *, void *, int );
 /* -------------------------------------------------------------------- */
 
 void CPL_DLL *CPLGetSymbol( const char *, const char * );
-
-/* -------------------------------------------------------------------- */
-/*      Read a directory  (cpl_dir.c)                                   */
-/* -------------------------------------------------------------------- */
-char CPL_DLL  **CPLReadDir( const char *pszPath );
 
 /* -------------------------------------------------------------------- */
 /*      Fetch executable path.                                          */
@@ -149,6 +147,12 @@ const char CPL_DLL *CPLProjectRelativeFilename( const char *pszProjectDir,
 int CPL_DLL CPLIsFilenameRelative( const char *pszFilename );
 const char CPL_DLL *CPLExtractRelativePath(const char *, const char *, int *);
 const char CPL_DLL *CPLCleanTrailingSlash( const char * );
+char CPL_DLL      **CPLCorrespondingPaths( const char *pszOldFilename, 
+                                           const char *pszNewFilename, 
+                                           char **papszFileList );
+int CPL_DLL CPLCheckForFile( char *pszFilename, char **papszSiblingList );
+
+const char CPL_DLL *CPLGenerateTempFilename( const char *pszStem );
 
 /* -------------------------------------------------------------------- */
 /*      Find File Function                                              */
@@ -204,6 +208,7 @@ void CPL_DLL CPLStringToComplex( const char *pszString,
 /* -------------------------------------------------------------------- */
 int CPL_DLL CPLUnlinkTree( const char * );
 int CPL_DLL CPLCopyFile( const char *pszNewPath, const char *pszOldPath );
+int CPL_DLL CPLMoveFile( const char *pszNewPath, const char *pszOldPath );
 
 CPL_C_END
 
@@ -211,16 +216,20 @@ CPL_C_END
 /*      C++ object for temporariliy forcing a LC_NUMERIC locale to "C". */
 /* -------------------------------------------------------------------- */
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && !defined(CPL_SUPRESS_CPLUSPLUS)
 
 class CPLLocaleC
 {
-  private:
-    char *pszOldLocale;
-
-  public:
+public:
     CPLLocaleC();
     ~CPLLocaleC();
+
+private:
+    char *pszOldLocale;
+
+    // Make it non-copyable
+    CPLLocaleC(CPLLocaleC&);
+    CPLLocaleC& operator=(CPLLocaleC&);
 };
 
 #endif /* def __cplusplus */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrfeaturequery.cpp 11207 2007-04-04 17:02:36Z warmerdam $
+ * $Id: ogrfeaturequery.cpp 16787 2009-04-17 13:51:40Z dmorissette $
  * 
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Implementation of simple SQL WHERE style attributes queries
@@ -33,16 +33,16 @@
 #include "ogr_p.h"
 #include "ogr_attrind.h"
 
-CPL_CVSID("$Id: ogrfeaturequery.cpp 11207 2007-04-04 17:02:36Z warmerdam $");
+CPL_CVSID("$Id: ogrfeaturequery.cpp 16787 2009-04-17 13:51:40Z dmorissette $");
 
 /************************************************************************/
 /*     Support for special attributes (feature query and selection)     */
 /************************************************************************/
 
-char* SpecialFieldNames[SPECIAL_FIELD_COUNT] 
-    = {"FID", "OGR_GEOMETRY", "OGR_STYLE", "OGR_GEOM_WKT"};
-swq_field_type SpecialFieldTypes[SPECIAL_FIELD_COUNT] 
-    = {SWQ_INTEGER, SWQ_STRING, SWQ_STRING, SWQ_STRING};
+const char* SpecialFieldNames[SPECIAL_FIELD_COUNT] 
+= {"FID", "OGR_GEOMETRY", "OGR_STYLE", "OGR_GEOM_WKT", "OGR_GEOM_AREA"};
+const swq_field_type SpecialFieldTypes[SPECIAL_FIELD_COUNT] 
+= {SWQ_INTEGER, SWQ_STRING, SWQ_STRING, SWQ_STRING, SWQ_FLOAT};
 
 /************************************************************************/
 /*                          OGRFeatureQuery()                           */
@@ -122,7 +122,7 @@ OGRErr OGRFeatureQuery::Compile( OGRFeatureDefn *poDefn,
     iField = 0;
     while (iField < SPECIAL_FIELD_COUNT)
     {
-        papszFieldNames[poDefn->GetFieldCount() + iField] = SpecialFieldNames[iField];
+        papszFieldNames[poDefn->GetFieldCount() + iField] = (char *) SpecialFieldNames[iField];
         paeFieldTypes[poDefn->GetFieldCount() + iField] = SpecialFieldTypes[iField];
         ++iField;
     }
@@ -173,9 +173,17 @@ static int OGRFeatureQueryEvaluator( swq_field_op *op, OGRFeature *poFeature )
                 sField.Integer = poFeature->GetFieldAsInteger(op->field_index);
                 break;
                 
+              case SWQ_FLOAT:
+                sField.Real = poFeature->GetFieldAsDouble(op->field_index);
+                break;
+                
               case SWQ_STRING:
                 sField.String = (char*) 
                     poFeature->GetFieldAsString( op->field_index );
+                break;
+
+              default:
+                CPLAssert( FALSE );
                 break;
             }      
         }

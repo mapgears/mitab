@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_miattrind.cpp 12519 2007-10-23 15:28:53Z mloskot $
+ * $Id: ogr_miattrind.cpp 14048 2008-03-20 18:47:21Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Implements interface to MapInfo .ID files used as attribute
@@ -32,7 +32,7 @@
 #include "mitab/mitab_priv.h"
 #include "cpl_minixml.h"
 
-CPL_CVSID("$Id: ogr_miattrind.cpp 12519 2007-10-23 15:28:53Z mloskot $");
+CPL_CVSID("$Id: ogr_miattrind.cpp 14048 2008-03-20 18:47:21Z rouault $");
 
 /************************************************************************/
 /*                            OGRMIAttrIndex                            */
@@ -406,7 +406,7 @@ OGRErr OGRMILayerAttrIndex::CreateIndex( int iField )
             CPLError( CE_Failure, CPLE_AppDefined, 
                       "It seems we already have an index for field %d/%s\n"
                       "of layer %s.", 
-                      poFldDefn->GetNameRef(),
+                      iField, poFldDefn->GetNameRef(),
                       poLayer->GetLayerDefn()->GetName() );
             return OGRERR_FAILURE;
         }

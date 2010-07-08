@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cplstring.cpp 11196 2007-04-03 23:18:17Z mloskot $
+ * $Id: cplstring.cpp 11044 2007-03-22 12:04:04Z dron $
  *
  * Project:  GDAL 
  * Purpose:  CPLString implementation.
@@ -30,7 +30,7 @@
 #include "cpl_string.h"
 #include <string>
 
-CPL_CVSID("$Id: cplstring.cpp 11196 2007-04-03 23:18:17Z mloskot $");
+CPL_CVSID("$Id: cplstring.cpp 11044 2007-03-22 12:04:04Z dron $");
 
 /*
  * The CPLString class is derived from std::string, so the vast majority 
@@ -128,6 +128,46 @@ CPLString &CPLString::vPrintf( const char *pszFormat, va_list args )
     va_end( wrk_args );
 #endif
 
+    return *this;
+}
+
+/************************************************************************/
+/*                              FormatC()                               */
+/************************************************************************/
+
+/**
+ * Format double in C locale.
+ * 
+ * The passed value is formatted using the C locale (period as decimal 
+ * seperator) and appended to the target CPLString. 
+ *
+ * @param dfValue the value to format. 
+ * @param pszFormat the sprintf() style format to use or omit for default.
+ * Note that this format string should only include one substitution argument 
+ * and it must be for a double (%f or %g). 
+ *
+ * @return a reference to the CPLString. 
+ */
+
+CPLString &CPLString::FormatC( double dfValue, const char *pszFormat )
+
+{
+    if( pszFormat == NULL )
+        pszFormat = "%g";
+
+    char szWork[512]; // presumably long enough for any number?
+
+    sprintf( szWork, pszFormat, dfValue );
+    CPLAssert( strlen(szWork) < sizeof(szWork) );
+    
+    if( strchr( szWork, ',' ) != NULL )
+    {
+        char *pszDelim = strchr( szWork, ',' );
+        *pszDelim = '.';
+    }
+
+    *this += szWork;
+    
     return *this;
 }
 

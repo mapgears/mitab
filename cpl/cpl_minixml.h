@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_minixml.h 10646 2007-01-18 02:38:10Z warmerdam $
+ * $Id: cpl_minixml.h 15686 2008-11-06 18:46:11Z rouault $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Declarations for MiniXML Handler.
@@ -62,7 +62,7 @@ typedef enum
  * for a document can be represented as a tree of CPLXMLNode structures. 
  */
 
-typedef struct _CPLXMLNode
+typedef struct CPLXMLNode
 {
     /** 
      * \brief Node type
@@ -102,19 +102,19 @@ typedef struct _CPLXMLNode
      * one that has the same parent as this node.  NULL if this node is the
      * last child of the parent element. 
      */
-    struct _CPLXMLNode  *psNext;     
+    struct CPLXMLNode  *psNext;     
 
     /** 
      * \brief Child node.
      *
      * Pointer to first child node, if any.  Only CXT_Element and CXT_Attribute
      * nodes should have children.  For CXT_Attribute it should be a single
-     * CXT_Text value node, while CXT_Attribute can have any kind of child. 
+     * CXT_Text value node, while CXT_Element can have any kind of child. 
      * The full list of children for a node are identified by walking the 
      * psNext's starting with the psChild node. 
      */
 
-    struct _CPLXMLNode  *psChild;    
+    struct CPLXMLNode  *psChild;    
 } CPLXMLNode;
 
 

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.h,v 1.38 2010-07-05 18:23:53 aboudreault Exp $
+ * $Id: mitab_capi.h,v 1.39 2010-09-07 17:19:22 aboudreault Exp $
  *
  * Name:     mitab_capi.h
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.h,v $
+ * Revision 1.39  2010-09-07 17:19:22  aboudreault
+ * Removed an unimplemented function from the C API: mitab_c_get_feature_id
+ *
  * Revision 1.38  2010-07-05 18:23:53  aboudreault
  * C API: added mitab_c_bounds_set() function (bug 2233)
  *
@@ -266,7 +269,6 @@ mitab_feature MITAB_DLL MITAB_STDCALL
 mitab_c_read_feature( mitab_handle handle, int feature_id );
 
 void MITAB_DLL MITAB_STDCALL mitab_c_destroy_feature( mitab_feature );
-int MITAB_DLL MITAB_STDCALL mitab_c_get_feature_id( mitab_feature );
 
 mitab_feature MITAB_DLL MITAB_STDCALL
 mitab_c_create_feature( mitab_handle, int feature_type );

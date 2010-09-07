@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature_mif.cpp,v 1.38 2010-07-07 19:00:15 aboudreault Exp $
+ * $Id: mitab_feature_mif.cpp,v 1.39 2010-09-07 16:07:53 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_feature_mif.cpp,v $
+ * Revision 1.39  2010-09-07 16:07:53  aboudreault
+ * Added the use of OGRGeometryFactory::organizePolygons for mif features
+ *
  * Revision 1.38  2010-07-07 19:00:15  aboudreault
  * Cleanup Win32 Compile Warnings (GDAL bug #2930)
  *
@@ -1028,8 +1031,7 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     double               dX, dY;
     OGRLinearRing       *poRing;
     OGRGeometry         *poGeometry = NULL;
-    OGRPolygon          *poPolygon = NULL;
-    OGRMultiPolygon     *poMultiPolygon = NULL;
+    OGRPolygon          **tabPolygons = NULL;
     int                  i,iSection, numLineSections=0;
     char               **papszToken;
     const char          *pszLine;
@@ -1047,25 +1049,14 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
     CSLDestroy(papszToken);
     papszToken = NULL;
 
-    /*-------------------------------------------------------------
-     * For 1-ring regions, we return an OGRPolygon with one single
-     * OGRLinearRing geometry. 
-     *
-     * REGIONs with multiple rings are returned as OGRMultiPolygon
-     * instead of as OGRPolygons since OGRPolygons require that the
-     * first ring be the outer ring, and the other all be inner 
-     * rings, but this is not guaranteed inside MapInfo files.  
-     *------------------------------------------------------------*/
-    if (numLineSections > 1)
-        poGeometry = poMultiPolygon = new OGRMultiPolygon;
-    else
-        poGeometry = NULL;  // Will be set later
+    if (numLineSections > 0) 
+        tabPolygons = new OGRPolygon*[numLineSections];
 
     for(iSection=0; iSection<numLineSections; iSection++)
     {
         int     numSectionVertices = 0;
 
-        poPolygon = new OGRPolygon();
+        tabPolygons[iSection] = new OGRPolygon();
 
         if ((pszLine = fp->GetLine()) != NULL)
         {
@@ -1074,7 +1065,6 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
 
         poRing = new OGRLinearRing();
         poRing->setNumPoints(numSectionVertices);
-
 
         for(i=0; i<numSectionVertices; i++)
         {
@@ -1093,18 +1083,33 @@ int TABRegion::ReadGeometryFromMIFFile(MIDDATAFile *fp)
                 papszToken = NULL;
             }   
         }
-        poPolygon->addRingDirectly(poRing);
+
+        tabPolygons[iSection]->addRingDirectly(poRing);
+
+        if (numLineSections == 1)
+            poGeometry = tabPolygons[iSection];
+        
         poRing = NULL;
-
-        if (numLineSections > 1)
-            poMultiPolygon->addGeometryDirectly(poPolygon);
-        else
-            poGeometry = poPolygon;
-
-        poPolygon = NULL;
     }
   
-  
+    if (numLineSections > 1)
+    {
+        int isValidGeometry;
+        const char* papszOptions[] = { "METHOD=DEFAULT", NULL };
+        poGeometry = OGRGeometryFactory::organizePolygons( 
+            (OGRGeometry**)tabPolygons, numLineSections, &isValidGeometry, papszOptions );
+
+        if (!isValidGeometry)
+        {
+            CPLError(CE_Warning, CPLE_AppDefined,
+                     "Geometry of polygon cannot be translated to Simple Geometry. "
+                     "All polygons will be contained in a multipolygon.\n");
+        }
+    }
+
+    if (tabPolygons)
+        delete[] tabPolygons;
+
     SetGeometryDirectly(poGeometry);
     poGeometry->getEnvelope(&sEnvelope);
     

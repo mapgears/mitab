@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_capi.cpp,v 1.54 2010-07-05 19:01:20 aboudreault Exp $
+ * $Id: mitab_capi.cpp,v 1.55 2010-09-07 16:48:08 aboudreault Exp $
  *
  * Name:     mitab_capi.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_capi.cpp,v $
+ * Revision 1.55  2010-09-07 16:48:08  aboudreault
+ * Removed incomplete patch for affine params support in mitab. (bug 1155)
+ *
  * Revision 1.54  2010-07-05 19:01:20  aboudreault
  * Reverted last SetFeature change in mitab_capi.cpp and fixed another memory leak
  *
@@ -2786,28 +2789,6 @@ mitab_c_get_extended_mif_coordsys( mitab_handle dataset)
     if (poFile && (poSRS = poFile->GetSpatialRef()) != NULL)
     {
         spszCoordSys = MITABSpatialRef2CoordSys( poSRS );
-
-#ifdef MITAB_AFFINE_PARAMS  // See MITAB bug 1155
-        // Append extra stuff if necessary (Added by Encom 2003)
-        // TODO: DMo 20050929: Shouldn't this go in MITABSpatialRef2CoordSys()?
-        if (poSRS->nAffineFlag == 1)
-        {
-            int nAffineUnit = poSRS->nAffineUnit;
-            if (nAffineUnit>32) nAffineUnit=7; // Use "m" if units out of range
-
-            // Note: We should also probably add the optional bounds clause if reqd.
-            //       (Anthony Dunk, Encom Technology P/L, 25/07/03)
-            char szExtCoordSys[1000];
-            sprintf(szExtCoordSys,"%s Affine Units \"%s\", %.12f, %.12f, %.12f, %.12f, %.12f, %.12f",
-                    spszCoordSys, sUnitsLookup[nAffineUnit],
-                    poSRS->dAffineParamA, poSRS->dAffineParamB,
-                    poSRS->dAffineParamC, poSRS->dAffineParamD,
-                    poSRS->dAffineParamE, poSRS->dAffineParamF);
-
-            CPLFree( spszCoordSys );
-            spszCoordSys = CPLStrdup( szExtCoordSys );
-        }
-#endif /// MITAB_AFFINE_PARAMS
 
         return spszCoordSys;
     }

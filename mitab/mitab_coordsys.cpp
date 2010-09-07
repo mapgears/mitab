@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.39 2010-07-07 19:00:15 aboudreault Exp $
+ * $Id: mitab_coordsys.cpp,v 1.40 2010-09-07 16:48:08 aboudreault Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
+ * Revision 1.40  2010-09-07 16:48:08  aboudreault
+ * Removed incomplete patch for affine params support in mitab. (bug 1155)
+ *
  * Revision 1.39  2010-07-07 19:00:15  aboudreault
  * Cleanup Win32 Compile Warnings (GDAL bug #2930)
  *
@@ -138,12 +141,6 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
     char        **papszFields;
     OGRSpatialReference *poSR;
 
-#ifdef MITAB_AFFINE_PARAMS  // See MITAB bug 1155
-    // Encom 2003
-    int nAffineUnits = 7;
-    double dAffineParams[6];
-#endif
-
     if( pszCoordSys == NULL )
         return NULL;
     
@@ -155,40 +152,6 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
         pszCoordSys += 9;
     
     papszFields = CSLTokenizeStringComplex( pszCoordSys, " ,", TRUE, FALSE );
-
-#ifdef MITAB_AFFINE_PARAMS  // See MITAB bug 1155
-/* -------------------------------------------------------------------- */
-/*      Store and then clip off Affine information. - Encom 2003        */
-/* -------------------------------------------------------------------- */
-    int         iAffine = CSLFindString( papszFields, "Affine" );
-    int         nAffineIndex = 0;
-    int         nAffineFlag = 0;
-
-    while( iAffine != -1 && papszFields[iAffine] != NULL )
-    {
-        nAffineFlag = 1;
-        if (nAffineIndex<2)
-        {
-            // Ignore "Affine Units"
-        }
-        else if (nAffineIndex==2)
-        {
-            // Convert units to integer (TBD)
-            nAffineUnits = TABUnitIdFromString(papszFields[iAffine]);
-            if (nAffineUnits==-1) nAffineUnits = 7; // metres is default
-        }
-        else if (nAffineIndex<=8)
-        {
-            // Store affine params
-            dAffineParams[nAffineIndex-3] = atof(papszFields[iAffine]);
-        }
-        nAffineIndex++;
-
-        CPLFree( papszFields[iAffine] );
-        papszFields[iAffine] = NULL;
-        iAffine++;
-    }
-#endif // MITAB_AFFINE_PARAMS
 
 /* -------------------------------------------------------------------- */
 /*      Clip off Bounds information.                                    */
@@ -206,25 +169,6 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
 /*      Create a spatialreference object to operate on.                 */
 /* -------------------------------------------------------------------- */
     poSR = new OGRSpatialReference;
-
-#ifdef MITAB_AFFINE_PARAMS  // See MITAB bug 1155
-    // Encom 2003
-    if (nAffineFlag)
-    {
-        poSR->nAffineFlag = 1;
-        poSR->nAffineUnit = nAffineUnits;
-        poSR->dAffineParamA = dAffineParams[0];
-        poSR->dAffineParamB = dAffineParams[1];
-        poSR->dAffineParamC = dAffineParams[2];
-        poSR->dAffineParamD = dAffineParams[3];
-        poSR->dAffineParamE = dAffineParams[4];
-        poSR->dAffineParamF = dAffineParams[5];
-    }
-    else
-    {
-        poSR->nAffineFlag = 0; // Encom 2005
-    }
-#endif
 
 /* -------------------------------------------------------------------- */
 /*      Fetch the projection.                                           */

@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.52 2010-07-08 17:21:12 aboudreault Exp $
+ * $Id: mitab_spatialref.cpp,v 1.53 2010-09-07 16:48:08 aboudreault Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
+ * Revision 1.53  2010-09-07 16:48:08  aboudreault
+ * Removed incomplete patch for affine params support in mitab. (bug 1155)
+ *
  * Revision 1.52  2010-07-08 17:21:12  aboudreault
  * Put back New_Zealand Datum in asDatumInfoList
  *
@@ -913,27 +916,6 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         poUnits->AddChild( new OGR_SRSNode( pszUnitsConv ) );
     }
 
-#ifdef MITAB_AFFINE_PARAMS  // See MITAB bug 1155
-    /*-----------------------------------------------------------------
-     * Collect affine definitions. (Added by Encom 2003)
-     *----------------------------------------------------------------*/
-    if( sTABProj.nAffineFlag==1 && m_poSpatialRef->GetRoot() != NULL )
-    {
-        m_poSpatialRef->nAffineFlag = 1;
-        m_poSpatialRef->nAffineUnit = sTABProj.nAffineUnits;
-        m_poSpatialRef->dAffineParamA = sTABProj.dAffineParamA;
-        m_poSpatialRef->dAffineParamB = sTABProj.dAffineParamB;
-        m_poSpatialRef->dAffineParamC = sTABProj.dAffineParamC;
-        m_poSpatialRef->dAffineParamD = sTABProj.dAffineParamD;
-        m_poSpatialRef->dAffineParamE = sTABProj.dAffineParamE;
-        m_poSpatialRef->dAffineParamF = sTABProj.dAffineParamF;
-    }
-    else
-    {
-        m_poSpatialRef->nAffineFlag = 0;
-    }
-#endif // MITAB_AFFINE_PARAMS
-
     /*-----------------------------------------------------------------
      * Local (nonearth) coordinate systems have no Geographic relationship
      * so we just return from here. 
@@ -1144,18 +1126,6 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     sTABProj.adDatumParams[3] = 0.0;
     sTABProj.adDatumParams[4] = 0.0;
 
-#ifdef MITAB_AFFINE_PARAMS
-    // Encom 2003
-    sTABProj.nAffineFlag   = poSpatialRef->nAffineFlag; 
-    sTABProj.nAffineUnits  = poSpatialRef->nAffineUnit; 
-    sTABProj.dAffineParamA = poSpatialRef->dAffineParamA;
-    sTABProj.dAffineParamB = poSpatialRef->dAffineParamB;
-    sTABProj.dAffineParamC = poSpatialRef->dAffineParamC;
-    sTABProj.dAffineParamD = poSpatialRef->dAffineParamD;
-    sTABProj.dAffineParamE = poSpatialRef->dAffineParamE;
-    sTABProj.dAffineParamF = poSpatialRef->dAffineParamF;
-#else
-    // Encom 2003
     sTABProj.nAffineFlag   = 0;
     sTABProj.nAffineUnits  = 7;
     sTABProj.dAffineParamA = 0.0;
@@ -1164,7 +1134,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     sTABProj.dAffineParamD = 0.0;
     sTABProj.dAffineParamE = 0.0;
     sTABProj.dAffineParamF = 0.0;
-#endif    
+
     /*-----------------------------------------------------------------
      * Get the linear units and conversion.
      *----------------------------------------------------------------*/

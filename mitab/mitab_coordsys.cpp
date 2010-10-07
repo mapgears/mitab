@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_coordsys.cpp,v 1.40 2010-09-07 16:48:08 aboudreault Exp $
+ * $Id: mitab_coordsys.cpp,v 1.41 2010-10-07 18:46:26 aboudreault Exp $
  *
  * Name:     mitab_coordsys.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -31,6 +31,9 @@
  **********************************************************************
  *
  * $Log: mitab_coordsys.cpp,v $
+ * Revision 1.41  2010-10-07 18:46:26  aboudreault
+ * Fixed bad use of atof when locale setting doesn't use . for float (GDAL bug #3775)
+ *
  * Revision 1.40  2010-09-07 16:48:08  aboudreault
  * Removed incomplete patch for affine params support in mitab. (bug 1155)
  *
@@ -266,7 +269,7 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
     else if( EQUAL(pszMIFUnits, "ft" ) )
     {
         pszUnitsName = SRS_UL_FOOT;
-        dfUnitsConv = atof(SRS_UL_FOOT_CONV);
+        dfUnitsConv = CPLAtof(SRS_UL_FOOT_CONV);
     }
     else if( EQUAL(pszMIFUnits, "yd" ) )
     {
@@ -292,27 +295,27 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
              || EQUAL(pszMIFUnits, "survey ft" ) )
     {
         pszUnitsName = SRS_UL_US_FOOT;
-        dfUnitsConv = atof(SRS_UL_US_FOOT_CONV);
+        dfUnitsConv = CPLAtof(SRS_UL_US_FOOT_CONV);
     }   
     else if( EQUAL(pszMIFUnits, "nmi" ) )
     {
         pszUnitsName = SRS_UL_NAUTICAL_MILE;
-        dfUnitsConv = atof(SRS_UL_NAUTICAL_MILE_CONV);
+        dfUnitsConv = CPLAtof(SRS_UL_NAUTICAL_MILE_CONV);
     }   
     else if( EQUAL(pszMIFUnits, "li" ) )
     {
         pszUnitsName = SRS_UL_LINK;
-        dfUnitsConv = atof(SRS_UL_LINK_CONV);
+        dfUnitsConv = CPLAtof(SRS_UL_LINK_CONV);
     }
     else if( EQUAL(pszMIFUnits, "ch" ) )
     {
         pszUnitsName = SRS_UL_CHAIN;
-        dfUnitsConv = atof(SRS_UL_CHAIN_CONV);
+        dfUnitsConv = CPLAtof(SRS_UL_CHAIN_CONV);
     }   
     else if( EQUAL(pszMIFUnits, "rd" ) )
     {
         pszUnitsName = SRS_UL_ROD;
-        dfUnitsConv = atof(SRS_UL_ROD);
+        dfUnitsConv = CPLAtof(SRS_UL_ROD);
     }   
     else if( EQUAL(pszMIFUnits, "mi" ) )
     {
@@ -776,7 +779,7 @@ OGRSpatialReference *MITABCoordSys2SpatialRef( const char * pszCoordSys )
                      dfSemiMajor, dfInvFlattening,
                      pszPrimeM, dfPMLongToGreenwich,
                      SRS_UA_DEGREE,
-                     atof(SRS_UA_DEGREE_CONV) );
+                     CPLAtof(SRS_UA_DEGREE_CONV) );
 
     poSR->SetTOWGS84( adfDatumParm[0], adfDatumParm[1], adfDatumParm[2],
                       -adfDatumParm[3], -adfDatumParm[4], -adfDatumParm[5], 
@@ -1221,7 +1224,7 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
     else if( dfLinearConv == 0.0254 || EQUAL(pszLinearUnits,"Inch")
              || EQUAL(pszLinearUnits,"IINCH"))
         pszMIFUnits = "in";
-    else if( dfLinearConv == atof(SRS_UL_FOOT_CONV)
+    else if( dfLinearConv == CPLAtof(SRS_UL_FOOT_CONV)
              || EQUAL(pszLinearUnits,SRS_UL_FOOT) )
         pszMIFUnits = "ft";
     else if( EQUAL(pszLinearUnits,"YARD") || EQUAL(pszLinearUnits,"IYARD") 
@@ -1233,7 +1236,7 @@ char *MITABSpatialRef2CoordSys( OGRSpatialReference * poSR )
         pszMIFUnits = "cm";
     else if( dfLinearConv == 1.0 )
         pszMIFUnits = "m";
-    else if( dfLinearConv == atof(SRS_UL_US_FOOT_CONV)
+    else if( dfLinearConv == CPLAtof(SRS_UL_US_FOOT_CONV)
              || EQUAL(pszLinearUnits,SRS_UL_US_FOOT) )
         pszMIFUnits = "survey ft";
     else if( EQUAL(pszLinearUnits,SRS_UL_NAUTICAL_MILE) )

@@ -35,6 +35,8 @@ Version 2.0-dev (CVS)
   passed in feature instead of through the return value of the method as
   was the case with the old SetFeature() method in MITAB 1.x.
 
+- Fixed bad use of atof when locale setting doesn't use "." for float (GDAL bug #3775)
+
 - Removed incomplete patch for affine params support in mitab. (bug 1155)
 
 - Added the use of OGRGeometryFactory::organizePolygons for mif features
@@ -994,5 +996,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.251 2010-09-07 16:48:07 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.252 2010-10-07 18:46:26 aboudreault Exp $
 ------------

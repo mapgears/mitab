@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_spatialref.cpp,v 1.53 2010-09-07 16:48:08 aboudreault Exp $
+ * $Id: mitab_spatialref.cpp,v 1.54 2010-10-07 18:46:26 aboudreault Exp $
  *
  * Name:     mitab_spatialref.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab_spatialref.cpp,v $
+ * Revision 1.54  2010-10-07 18:46:26  aboudreault
+ * Fixed bad use of atof when locale setting doesn't use . for float (GDAL bug #3775)
+ *
  * Revision 1.53  2010-09-07 16:48:08  aboudreault
  * Removed incomplete patch for affine params support in mitab. (bug 1155)
  *
@@ -589,7 +592,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
         break;
     }
 
-    dfConv = atof(pszUnitsConv);
+    dfConv = CPLAtof(pszUnitsConv);
 
     /*-----------------------------------------------------------------
      * Transform them into an OGRSpatialReference.
@@ -1047,7 +1050,7 @@ OGRSpatialReference *TABFile::GetSpatialRef()
                                pszSpheroidName,
                                dfSemiMajor, dfInvFlattening,
                                pszPMName, dfPMOffset,
-                               SRS_UA_DEGREE, atof(SRS_UA_DEGREE_CONV));
+                               SRS_UA_DEGREE, CPLAtof(SRS_UA_DEGREE_CONV));
 
     if( psDatumInfo != NULL )
     {
@@ -1531,7 +1534,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
     else if( dfLinearConv == 0.0254 || EQUAL(pszLinearUnits,"Inch")
              || EQUAL(pszLinearUnits,"IINCH") )
         sTABProj.nUnitsId = 2;
-    else if( dfLinearConv == atof(SRS_UL_FOOT_CONV)
+    else if( dfLinearConv == CPLAtof(SRS_UL_FOOT_CONV)
              || EQUAL(pszLinearUnits,SRS_UL_FOOT) )
         sTABProj.nUnitsId = 3;
     else if( EQUAL(pszLinearUnits,"YARD") || EQUAL(pszLinearUnits,"IYARD") 
@@ -1543,7 +1546,7 @@ int TABFile::SetSpatialRef(OGRSpatialReference *poSpatialRef)
         sTABProj.nUnitsId = 6;
     else if( dfLinearConv == 1.0 )
         sTABProj.nUnitsId = 7;
-    else if( dfLinearConv == atof(SRS_UL_US_FOOT_CONV)
+    else if( dfLinearConv == CPLAtof(SRS_UL_US_FOOT_CONV)
              || EQUAL(pszLinearUnits,SRS_UL_US_FOOT) )
         sTABProj.nUnitsId = 8;
     else if( EQUAL(pszLinearUnits,SRS_UL_NAUTICAL_MILE) )

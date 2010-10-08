@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_tabfile.cpp,v 1.77 2010-10-08 18:38:13 aboudreault Exp $
+ * $Id: mitab_tabfile.cpp,v 1.78 2010-10-08 18:40:12 aboudreault Exp $
  *
  * Name:     mitab_tabfile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_tabfile.cpp,v $
+ * Revision 1.78  2010-10-08 18:40:12  aboudreault
+ * Fixed missing initializations that cause crashes
+ *
  * Revision 1.77  2010-10-08 18:38:13  aboudreault
  * Added attribute index support for the sql queries in mapinfo tab format (GDAL bug #3687)
  *
@@ -131,6 +134,9 @@ TABFile::TABFile()
     m_panIndexNo = NULL;
 
     bUseSpatialTraversal = FALSE;
+
+    m_panMatchingFIDs = NULL; 
+    m_iMatchingFID = 0; 
 }
 
 /**********************************************************************

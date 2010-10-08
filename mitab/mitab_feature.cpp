@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_feature.cpp,v 1.98 2010-07-07 19:00:15 aboudreault Exp $
+ * $Id: mitab_feature.cpp,v 1.99 2010-10-08 19:36:44 aboudreault Exp $
  *
  * Name:     mitab_feature.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -30,6 +30,9 @@
  **********************************************************************
  *
  * $Log: mitab_feature.cpp,v $
+ * Revision 1.99  2010-10-08 19:36:44  aboudreault
+ * Fixed memory leak (GDAL bug #3045)
+ *
  * Revision 1.98  2010-07-07 19:00:15  aboudreault
  * Cleanup Win32 Compile Warnings (GDAL bug #2930)
  *
@@ -8401,11 +8404,19 @@ void  ITABFeaturePen::SetPenFromStyleString(const char *pszStyleString)
         {
             break;
         }
+        else
+        {
+            delete poStylePart;
+            poStylePart = NULL;
+        }
     }
 
     // If the no Pen found, do nothing.
     if(i >= numParts)
+    {
+        delete poStyleMgr;
         return;
+    }
 
     OGRStylePen *poPenStyle = (OGRStylePen*)poStylePart;
 
@@ -8648,11 +8659,19 @@ void  ITABFeatureBrush::SetBrushFromStyleString(const char *pszStyleString)
         {
             break;
         }
+        else
+        {
+            delete poStylePart;
+            poStylePart = NULL;
+        }
     }
 
     // If the no Brush found, do nothing.
     if(i >= numParts)
+    {
+        delete poStyleMgr;
         return;
+    }
 
     OGRStyleBrush *poBrushStyle = (OGRStyleBrush*)poStylePart;
 
@@ -8910,11 +8929,19 @@ void ITABFeatureSymbol::SetSymbolFromStyleString(const char *pszStyleString)
         {
             break;
         }
+        else
+        {
+            delete poStylePart;
+            poStylePart = NULL;
+        }
     }
 
     // If the no Symbol found, do nothing.
     if(i >= numParts)
+    {
+        delete poStyleMgr;
         return;
+    }
 
     OGRStyleSymbol *poSymbolStyle = (OGRStyleSymbol*)poStylePart;
 

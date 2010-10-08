@@ -35,6 +35,8 @@ Version 2.0-dev (CVS)
   passed in feature instead of through the return value of the method as
   was the case with the old SetFeature() method in MITAB 1.x.
 
+- Fixed memory leak (GDAL bug #3045)
+
 - Fixed handle differently indented lines in mif files. (GDAL bug #3694)
 
 - Added attribute index support for the sql queries in mapinfo tab format (GDAL bug #3687)
@@ -1000,5 +1002,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.254 2010-10-08 18:50:52 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.255 2010-10-08 19:36:44 aboudreault Exp $
 ------------

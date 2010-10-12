@@ -35,6 +35,11 @@ Version 2.0-dev (CVS)
   passed in feature instead of through the return value of the method as
   was the case with the old SetFeature() method in MITAB 1.x.
 
+  In MITAB 2.x, the ID parameter of a style string is now comma-delimited
+  rather than dot-delimited as per the OGR Feature Style
+  Specification. Application code that was parsing that string will need to
+  change the proper delimiter for this parameter.
+
 - Fixed memory leak (GDAL bug #3045)
 
 - Fixed handle differently indented lines in mif files. (GDAL bug #3694)
@@ -1002,5 +1007,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.255 2010-10-08 19:36:44 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.256 2010-10-12 19:55:32 aboudreault Exp $
 ------------

@@ -40,6 +40,8 @@ Version 2.0-dev (CVS)
   Specification. Application code that was parsing that string will need to
   change the proper delimiter for this parameter.
 
+- Fixed crash when trying to get the same mitab mif feature twice (GDAL #3765)
+
 - Fixed memory leak (GDAL bug #3045)
 
 - Fixed handle differently indented lines in mif files. (GDAL bug #3694)
@@ -1007,5 +1009,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.256 2010-10-12 19:55:32 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.257 2010-10-15 12:06:44 aboudreault Exp $
 ------------

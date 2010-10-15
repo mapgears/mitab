@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: mitab_miffile.cpp,v 1.56 2010-10-12 19:02:40 aboudreault Exp $
+ * $Id: mitab_miffile.cpp,v 1.57 2010-10-15 12:06:44 aboudreault Exp $
  *
  * Name:     mitab_miffile.cpp
  * Project:  MapInfo TAB Read/Write library
@@ -32,6 +32,9 @@
  **********************************************************************
  *
  * $Log: mitab_miffile.cpp,v $
+ * Revision 1.57  2010-10-15 12:06:44  aboudreault
+ * Fixed crash when trying to get the same mitab mif feature twice (GDAL #3765)
+ *
  * Revision 1.56  2010-10-12 19:02:40  aboudreault
  * Fixed incomplet patch to handle differently indented lines in mif files (gdal #3694)
  *
@@ -1235,7 +1238,7 @@ int MIFFile::GotoFeature(int nFeatureId)
     }
     else
     {
-        if (nFeatureId < m_nCurFeatureId || m_nCurFeatureId == 0)
+        if (nFeatureId < m_nPreloadedId || m_nCurFeatureId == 0)
             ResetReading();
 
         while(m_nPreloadedId < nFeatureId)

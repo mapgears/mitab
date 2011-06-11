@@ -148,6 +148,8 @@ Version 2.0-dev (CVS)
 
 - Add EPSG/OGR name for New Zealand datums (GDAL #3187)
 
+- Add support for reading Google Mercator (GDAL #4115) (but not writing!)
+
 
 Version 1.7.0-beta1 (2007-02-29)
 --------------------------------
@@ -156,7 +158,7 @@ Version 1.7.0-beta1 (2007-02-29)
   MULTIPOINT and COLLECTION (bug 1496)
 
 - Added support for v9.x Time and DateTime fields (based on patch from
-  AJD, bug 1754)
+  AJD, bug 1754)Q
 
 - Added bounds for Peruvian coordinate systems PSAD56 in mitab_bounds.cpp
   (came with patch from AJD sent for bug 1754)
@@ -1009,5 +1011,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.257 2010-10-15 12:06:44 aboudreault Exp $
+$Id: HISTORY.TXT,v 1.258 2011-06-11 00:35:00 fwarmerdam Exp $
 ------------

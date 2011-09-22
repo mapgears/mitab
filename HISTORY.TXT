@@ -40,6 +40,8 @@ Version 2.0-dev (CVS)
   Specification. Application code that was parsing that string will need to
   change the proper delimiter for this parameter.
 
+- Fixed problem with tab delimiter used in MIF files (GDAL #4257)
+
 - Fixed crash when trying to get the same mitab mif feature twice (GDAL #3765)
 
 - Fixed memory leak (GDAL bug #3045)
@@ -1013,5 +1015,5 @@ Version 0.1 - (1999-12-04)
 
 
 ------------
-$Id: HISTORY.TXT,v 1.259 2011-06-16 15:53:12 fwarmerdam Exp $
+$Id: HISTORY.TXT,v 1.260 2011-09-22 21:57:46 dmorissette Exp $
 ------------

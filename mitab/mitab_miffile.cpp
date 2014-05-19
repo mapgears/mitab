@@ -2215,9 +2215,6 @@ int MIFFile::TestCapability( const char * pszCap )
     else if( EQUAL(pszCap,OLCSequentialWrite) )
         return TRUE;
 
-    else if( EQUAL(pszCap,OLCSequentialWrite) )
-        return FALSE;
-
     else if( EQUAL(pszCap,OLCFastFeatureCount) )
         return m_bPreParsed;
 
@@ -2226,6 +2223,9 @@ int MIFFile::TestCapability( const char * pszCap )
 
     else if( EQUAL(pszCap,OLCFastGetExtent) )
         return m_bPreParsed;
+
+    else if( EQUAL(pszCap,OLCCreateField) ) 
+        return TRUE; 
 
     else 
         return FALSE;

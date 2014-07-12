@@ -396,7 +396,8 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
     /*-----------------------------------------------------------------
      * Read MIF File Header
      *----------------------------------------------------------------*/
-    if (m_eAccessMode == TABRead && ParseMIFHeader() != 0)
+    int bIsEmpty = FALSE;
+    if (m_eAccessMode == TABRead && ParseMIFHeader(&bIsEmpty) != 0)
     {
         Close();
 
@@ -419,7 +420,7 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
     }
 
     /* Put the MID file at the correct location, on the first feature */
-    if (m_eAccessMode == TABRead && (m_poMIDFile->GetLine() == NULL))
+    if (m_eAccessMode == TABRead && (m_poMIDFile != NULL && !bIsEmpty && m_poMIDFile->GetLine() == NULL))
     {
         Close();
 
@@ -477,7 +478,7 @@ int MIFFile::Open(const char *pszFname, const char *pszAccess,
  *
  * Returns 0 on success, -1 on error.
  **********************************************************************/
-int MIFFile::ParseMIFHeader()
+int MIFFile::ParseMIFHeader(int* pbIsEmpty)
 {  
     GBool  bColumns = FALSE, bAllColumnsRead =  FALSE;
     int    nColumns = 0;
@@ -487,6 +488,8 @@ int MIFFile::ParseMIFHeader()
     
     const char *pszLine;
     char **papszToken;
+    
+    *pbIsEmpty = FALSE;
 
     char *pszFeatureClassName = TABGetBasename(m_pszFname);
     m_poDefn = new OGRFeatureDefn(pszFeatureClassName);
@@ -670,6 +673,8 @@ int MIFFile::ParseMIFHeader()
     while (((pszLine = m_poMIFFile->GetLine()) != NULL) && 
            m_poMIFFile->IsValidFeature(pszLine) == FALSE)
         ;
+    
+    *pbIsEmpty = (pszLine == NULL);
 
     /*-----------------------------------------------------------------
      * Check for Unique and Indexed flags

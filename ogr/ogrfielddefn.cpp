@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrfielddefn.cpp 16574 2009-03-14 13:09:10Z rouault $
+ * $Id: ogrfielddefn.cpp 27044 2014-03-16 23:41:27Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRFieldDefn class implementation.
@@ -7,6 +7,7 @@
  *
  ******************************************************************************
  * Copyright (c) 1999,  Les Technologies SoftMap Inc.
+ * Copyright (c) 2009-2013, Even Rouault <even dot rouault at mines-paris dot org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,7 +32,7 @@
 #include "ogr_api.h"
 #include "ogr_p.h"
 
-CPL_CVSID("$Id: ogrfielddefn.cpp 16574 2009-03-14 13:09:10Z rouault $");
+CPL_CVSID("$Id: ogrfielddefn.cpp 27044 2014-03-16 23:41:27Z rouault $");
 
 /************************************************************************/
 /*                            OGRFieldDefn()                            */
@@ -107,6 +108,7 @@ void OGRFieldDefn::Initialize( const char * pszNameIn, OGRFieldType eTypeIn )
     nPrecision = 0;     // for numbers?
 
     memset( &uDefault, 0, sizeof(OGRField) );
+    bIgnore = FALSE;
 }
 
 /************************************************************************/
@@ -639,4 +641,87 @@ void OGR_Fld_Set( OGRFieldDefnH hDefn, const char *pszNameIn,
 {
     ((OGRFieldDefn *) hDefn)->Set( pszNameIn, eTypeIn, nWidthIn, 
                                    nPrecisionIn, eJustifyIn );
+}
+
+/************************************************************************/
+/*                             IsIgnored()                              */
+/************************************************************************/
+
+/**
+ * \fn int OGRFieldDefn::IsIgnored();
+ *
+ * \brief Return whether this field should be omitted when fetching features
+ *
+ * This method is the same as the C function OGR_Fld_IsIgnored().
+ *
+ * @return ignore state
+ */
+
+/************************************************************************/
+/*                         OGR_Fld_IsIgnored()                          */
+/************************************************************************/
+
+/**
+ * \brief Return whether this field should be omitted when fetching features
+ *
+ * This method is the same as the C++ method OGRFieldDefn::IsIgnored().
+ *
+ * @param hDefn handle to the field definition
+ * @return ignore state
+ */
+
+int OGR_Fld_IsIgnored( OGRFieldDefnH hDefn )
+{
+    return ((OGRFieldDefn *) hDefn)->IsIgnored();
+}
+
+/************************************************************************/
+/*                            SetIgnored()                              */
+/************************************************************************/
+
+/**
+ * \fn void OGRFieldDefn::SetIgnored( int ignore );
+ *
+ * \brief Set whether this field should be omitted when fetching features
+ *
+ * This method is the same as the C function OGR_Fld_SetIgnored().
+ *
+ * @param ignore ignore state
+ */
+
+/************************************************************************/
+/*                        OGR_Fld_SetIgnored()                          */
+/************************************************************************/
+
+/**
+ * \brief Set whether this field should be omitted when fetching features
+ *
+ * This method is the same as the C++ method OGRFieldDefn::SetIgnored().
+ *
+ * @param hDefn handle to the field definition
+ * @param ignore ignore state
+ */
+
+void OGR_Fld_SetIgnored( OGRFieldDefnH hDefn, int ignore )
+{
+    ((OGRFieldDefn *) hDefn)->SetIgnored( ignore );
+}
+
+/************************************************************************/
+/*                             IsSame()                                 */
+/************************************************************************/
+
+/**
+ * \brief Test if the field definition is identical to the other one.
+ *
+ * @param poOtherFieldDefn the other field definition to compare to.
+ * @return TRUE if the field definition is identical to the other one.
+ */
+
+int OGRFieldDefn::IsSame( const OGRFieldDefn * poOtherFieldDefn ) const
+{
+    return (strcmp(pszName, poOtherFieldDefn->pszName) == 0 &&
+            eType == poOtherFieldDefn->eType &&
+            nWidth == poOtherFieldDefn->nWidth &&
+            nPrecision == poOtherFieldDefn->nPrecision);
 }

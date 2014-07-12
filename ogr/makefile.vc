@@ -12,7 +12,16 @@ OBJ =	ogr_srsnode.obj ogrcurve.obj ogrfeature.obj ogrfeaturedefn.obj \
 	ogrfeaturestyle.obj ogr_fromepsg.obj ogrfeaturequery.obj swq.obj \
 	ogrct.obj ogr_gensql.obj ogr_srs_xml.obj ogr_srs_esri.obj \
 	ogr_api.obj gml2ogrgeometry.obj ogr2gmlgeometry.obj \
-	ogr_miattrind.obj ogr_attrind.obj ogr_srs_dict.obj
+	ogr_miattrind.obj ogr_attrind.obj ogr_srs_dict.obj \
+	swq_expr_node.obj swq_op_general.obj swq_op_registrar.obj swq_parser.obj swq_select.obj \
+	gdalmajorobject.obj gdaldataset.obj gdalrasterband.obj gdalmultidomainmetadata.obj \
+	ogrgeomfielddefn.obj gdal_misc.obj gdaldriver.obj gdaldrivermanager.obj \
+	gdalcolortable.obj rasterio.obj gdalrasterblock.obj gdaldefaultoverviews.obj \
+	gdaltransformer.obj gdalopeninfo.obj gdalclientserver.obj gdalpamdataset.obj gdalpamrasterband.obj \
+	gdalnodatamaskband.obj gdalnodatavaluesmaskband.obj gdalpamproxydb.obj gdal_rat.obj \
+	gdalvirtualmem.obj gdalallvalidmaskband.obj gdalproxypool.obj gdalproxydataset.obj gdaldefaultasync.obj \
+	ogrunionlayer.obj ogrwarpedlayer.obj ogrlayerdecorator.obj overview.obj ogr_srs_ozi.obj \
+	stub.obj
 	
 LIB	=	ogr.lib
 

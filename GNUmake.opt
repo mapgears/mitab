@@ -6,7 +6,7 @@
 # BYTE_ORDER_FL = -DCPL_MSB
 BYTE_ORDER_FL = -DCPL_LSB
 
-OPTFLAGS =	-g -Wall -DDEBUG $(BYTE_ORDER_FL)
+OPTFLAGS =	-g -Wall -DDEBUG $(BYTE_ORDER_FL) -DOGR_ENABLED
 INCLUDE = 	-I. -I.. -I../cpl 
 #CXXFLAGS =	$(INCLUDE) -fPIC --no-rtti -fno-exceptions $(OPTFLAGS)
 CFLAGS =	$(INCLUDE) -fPIC $(OPTFLAGS)
@@ -34,7 +34,7 @@ else
       CXX =       gcc
     endif
   endif
-  CXXFLAGS =      $(INCLUDE) -fPIC --no-rtti -fno-exceptions $(OPTFLAGS)
+  CXXFLAGS =      $(INCLUDE) -fPIC --no-rtti $(OPTFLAGS)
 endif
 
 

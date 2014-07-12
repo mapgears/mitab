@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrutils.cpp 17696 2009-09-26 15:56:39Z rouault $
+ * $Id: ogrutils.cpp 27384 2014-05-24 12:28:12Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Utility functions for OGR classes, including some related to
@@ -8,6 +8,7 @@
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
+ * Copyright (c) 2008-2014, Even Rouault <even dot rouault at mines-paris dot org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -28,6 +29,9 @@
  * DEALINGS IN THE SOFTWARE.
  ****************************************************************************/
 
+#include "cpl_conv.h"
+#include "cpl_vsi.h"
+
 #include <ctype.h>
 
 #include "ogr_geometry.h"
@@ -37,41 +41,122 @@
 # include "ogrsf_frmts.h"
 #endif /* OGR_ENABLED */
 
-CPL_CVSID("$Id: ogrutils.cpp 17696 2009-09-26 15:56:39Z rouault $");
+CPL_CVSID("$Id: ogrutils.cpp 27384 2014-05-24 12:28:12Z rouault $");
 
 /************************************************************************/
-/*                         OGRTrimExtraZeros()                          */
+/*                        OGRFormatDouble()                             */
 /************************************************************************/
 
-static void OGRTrimExtraZeros( char *pszTarget )
-
+void OGRFormatDouble( char *pszBuffer, int nBufferLen, double dfVal, char chDecimalSep, int nPrecision )
 {
-    int i = 0;
+    int i;
+    int nTruncations = 0;
+    char szFormat[16];
+    sprintf(szFormat, "%%.%df", nPrecision);
 
-    while( pszTarget[i] != '\0' ) 
-        i++;
-
-/* -------------------------------------------------------------------- */
-/*      Trim trailing 000001's as they are likely roundoff error.       */
-/* -------------------------------------------------------------------- */
-    if( i > 10
-        && pszTarget[i-1] == '1' 
-        && pszTarget[i-2] == '0' 
-        && pszTarget[i-3] == '0' 
-        && pszTarget[i-4] == '0' 
-        && pszTarget[i-5] == '0' 
-        && pszTarget[i-6] == '0' )
+    int ret = snprintf(pszBuffer, nBufferLen, szFormat, dfVal);
+    /* Windows CRT doesn't conform with C99 and return -1 when buffer is truncated */
+    if (ret >= nBufferLen || ret == -1)
     {
-        pszTarget[--i] = '\0';
+        snprintf(pszBuffer, nBufferLen, "%s", "too_big");
+        return;
     }
 
-/* -------------------------------------------------------------------- */
-/*      Trim trailing zeros.                                            */
-/* -------------------------------------------------------------------- */
-    while( i > 2 && pszTarget[i-1] == '0' && pszTarget[i-2] != '.' )
+    while(nPrecision > 0)
     {
-        pszTarget[--i] = '\0';
+        i = 0;
+        int nCountBeforeDot = 0;
+        int iDotPos = -1;
+        while( pszBuffer[i] != '\0' )
+        {
+            if ((pszBuffer[i] == '.' || pszBuffer[i] == ',') && chDecimalSep != '\0')
+            {
+                iDotPos = i;
+                pszBuffer[i] = chDecimalSep;
+            }
+            else if (iDotPos < 0 && pszBuffer[i] != '-')
+                nCountBeforeDot ++;
+            i++;
+        }
+
+    /* -------------------------------------------------------------------- */
+    /*      Trim trailing 00000x's as they are likely roundoff error.       */
+    /* -------------------------------------------------------------------- */
+        if( i > 10 && iDotPos >=0 )
+        {
+            if (/* && pszBuffer[i-1] == '1' &&*/
+                pszBuffer[i-2] == '0' 
+                && pszBuffer[i-3] == '0' 
+                && pszBuffer[i-4] == '0' 
+                && pszBuffer[i-5] == '0' 
+                && pszBuffer[i-6] == '0' )
+            {
+                pszBuffer[--i] = '\0';
+            }
+            else if( i - 8 > iDotPos && /* pszBuffer[i-1] == '1' */
+                  /* && pszBuffer[i-2] == '0' && */
+                    (nCountBeforeDot >= 4 || pszBuffer[i-3] == '0') 
+                    && (nCountBeforeDot >= 5 || pszBuffer[i-4] == '0') 
+                    && (nCountBeforeDot >= 6 || pszBuffer[i-5] == '0') 
+                    && (nCountBeforeDot >= 7 || pszBuffer[i-6] == '0')
+                    && (nCountBeforeDot >= 8 || pszBuffer[i-7] == '0')
+                    && pszBuffer[i-8] == '0'
+                    && pszBuffer[i-9] == '0')
+            {
+                i -= 8;
+                pszBuffer[i] = '\0';
+            }
+        }
+
+    /* -------------------------------------------------------------------- */
+    /*      Trim trailing zeros.                                            */
+    /* -------------------------------------------------------------------- */
+        while( i > 2 && pszBuffer[i-1] == '0' && pszBuffer[i-2] != '.' )
+        {
+            pszBuffer[--i] = '\0';
+        }
+
+    /* -------------------------------------------------------------------- */
+    /*      Detect trailing 99999X's as they are likely roundoff error.     */
+    /* -------------------------------------------------------------------- */
+        if( i > 10 &&
+            iDotPos >= 0 &&
+            nPrecision + nTruncations >= 15)
+        {
+            if (/*pszBuffer[i-1] == '9' && */
+                 pszBuffer[i-2] == '9' 
+                && pszBuffer[i-3] == '9' 
+                && pszBuffer[i-4] == '9' 
+                && pszBuffer[i-5] == '9' 
+                && pszBuffer[i-6] == '9' )
+            {
+                nPrecision --;
+                nTruncations ++;
+                sprintf(szFormat, "%%.%df", nPrecision);
+                snprintf(pszBuffer, nBufferLen, szFormat, dfVal);
+                continue;
+            }
+            else if (i - 9 > iDotPos && /*pszBuffer[i-1] == '9' && */
+                     /*pszBuffer[i-2] == '9' && */
+                    (nCountBeforeDot >= 4 || pszBuffer[i-3] == '9') 
+                    && (nCountBeforeDot >= 5 || pszBuffer[i-4] == '9') 
+                    && (nCountBeforeDot >= 6 || pszBuffer[i-5] == '9') 
+                    && (nCountBeforeDot >= 7 || pszBuffer[i-6] == '9')
+                    && (nCountBeforeDot >= 8 || pszBuffer[i-7] == '9')
+                    && pszBuffer[i-8] == '9'
+                    && pszBuffer[i-9] == '9')
+            {
+                nPrecision --;
+                nTruncations ++;
+                sprintf(szFormat, "%%.%df", nPrecision);
+                snprintf(pszBuffer, nBufferLen, szFormat, dfVal);
+                continue;
+            }
+        }
+
+        break;
     }
+
 }
 
 /************************************************************************/
@@ -89,62 +174,71 @@ void OGRMakeWktCoordinate( char *pszTarget, double x, double y, double z,
                            int nDimension )
 
 {
-    const size_t bufSize = 400;
-    const size_t maxTargetSize= 75; /* Assumed max length of the target buffer. */
+    const size_t bufSize = 75;
+    const size_t maxTargetSize = 75; /* Assumed max length of the target buffer. */
 
     char szX[bufSize];
     char szY[bufSize];
     char szZ[bufSize];
 
-    memset( szX, '\0', bufSize );
-    memset( szY, '\0', bufSize );
-    memset( szZ, '\0', bufSize );
+    szZ[0] = '\0';
 
-    if( x == (int) x && y == (int) y && z == (int) z )
+    int nLenX, nLenY;
+
+    if( x == (int) x && y == (int) y )
     {
         snprintf( szX, bufSize, "%d", (int) x );
-        snprintf( szY, bufSize, " %d", (int) y );
+        snprintf( szY, bufSize, "%d", (int) y );
     }
     else
     {
-        snprintf( szX, bufSize, "%.15f", x );
-        OGRTrimExtraZeros( szX );
-
-        snprintf( szY, bufSize, " %.15f", y );
-        OGRTrimExtraZeros( szY );
+        OGRFormatDouble( szX, bufSize, x, '.' );
+        OGRFormatDouble( szY, bufSize, y, '.' );
     }
+
+    nLenX = strlen(szX);
+    nLenY = strlen(szY);
 
     if( nDimension == 3 )
     {
         if( z == (int) z )
         {
-            snprintf( szZ, bufSize, " %d", (int) z );
+            snprintf( szZ, bufSize, "%d", (int) z );
         }
         else
         {
-            snprintf( szZ, bufSize, " %.15f", z );
-            OGRTrimExtraZeros( szZ );
+            OGRFormatDouble( szZ, bufSize, z, '.' );
         }
     }
 
-    if( strlen(szX) + strlen(szY) + strlen(szZ) > maxTargetSize )
+    if( nLenX + 1 + nLenY + ((nDimension == 3) ? (1 + strlen(szZ)) : 0) >= maxTargetSize )
     {
-        strcpy( szX, "0" );
-        strcpy( szY, " 0" );
-        if( nDimension == 3 )
-            strcpy( szZ, " 0" );
-
 #ifdef DEBUG
         CPLDebug( "OGR", 
                   "Yow!  Got this big result in OGRMakeWktCoordinate()\n"
                   "%s %s %s", 
                   szX, szY, szZ );
 #endif
+        if( nDimension == 3 )
+            strcpy( pszTarget, "0 0 0");
+        else
+            strcpy( pszTarget, "0 0");
     }
-
-    strcpy( pszTarget, szX );
-    strcat( pszTarget, szY );
-    strcat( pszTarget, szZ );
+    else
+    {
+        memcpy( pszTarget, szX, nLenX );
+        pszTarget[nLenX] = ' ';
+        memcpy( pszTarget + nLenX + 1, szY, nLenY );
+        if (nDimension == 3)
+        {
+            pszTarget[nLenX + 1 + nLenY] = ' ';
+            strcpy( pszTarget + nLenX + 1 + nLenY + 1, szZ );
+        }
+        else
+        {
+            pszTarget[nLenX + 1 + nLenY] = '\0';
+        }
+    }
 }
 
 /************************************************************************/
@@ -287,8 +381,8 @@ const char * OGRWktReadPoints( const char * pszInput,
 /* -------------------------------------------------------------------- */
 /*      Add point to list.                                              */
 /* -------------------------------------------------------------------- */
-        (*ppaoPoints)[*pnPointsRead].x = atof(szTokenX);
-        (*ppaoPoints)[*pnPointsRead].y = atof(szTokenY);
+        (*ppaoPoints)[*pnPointsRead].x = CPLAtof(szTokenX);
+        (*ppaoPoints)[*pnPointsRead].y = CPLAtof(szTokenY);
 
 /* -------------------------------------------------------------------- */
 /*      Do we have a Z coordinate?                                      */
@@ -302,10 +396,12 @@ const char * OGRWktReadPoints( const char * pszInput,
                 *ppadfZ = (double *) CPLCalloc(sizeof(double),*pnMaxPoints);
             }
 
-            (*ppadfZ)[*pnPointsRead] = atof(szDelim);
-            
+            (*ppadfZ)[*pnPointsRead] = CPLAtof(szDelim);
+
             pszInput = OGRWktReadToken( pszInput, szDelim );
         }
+        else if ( *ppadfZ != NULL )
+            (*ppadfZ)[*pnPointsRead] = 0.0;
         
         (*pnPointsRead)++;
 
@@ -391,10 +487,15 @@ void OGRFree( void * pMemory )
  * options for all OGR commandline utilities.  It takes care of the following
  * commandline options:
  *  
+ *  --version: report version of GDAL in use. 
+ *  --license: report GDAL license info.
+ *  --format [format]: report details of one format driver. 
  *  --formats: report all format drivers configured.
  *  --optfile filename: expand an option file into the argument list. 
  *  --config key value: set system configuration option. 
  *  --debug [on/off/value]: set debug level.
+ *  --pause: Pause for user input (allows time to attach debugger)
+ *  --locale [locale]: Install a locale using setlocale() (debugging)
  *  --help-general: report detailed help on general options. 
  *
  * The argument array is replaced "in place" and should be freed with 
@@ -411,7 +512,8 @@ void OGRFree( void * pMemory )
  *        exit( -argc );
  *
  * @param nArgc number of values in the argument list.
- * @param Pointer to the argument list array (will be updated in place). 
+ * @param ppapszArgv pointer to the argument list array (will be updated in place). 
+ * @param nOptions unused.
  *
  * @return updated nArgc argument count.  Return of 0 requests terminate 
  * without error, return of -1 requests exit with error code.
@@ -420,219 +522,8 @@ void OGRFree( void * pMemory )
 int OGRGeneralCmdLineProcessor( int nArgc, char ***ppapszArgv, int nOptions )
 
 {
-    char **papszReturn = NULL;
-    int  iArg;
-    char **papszArgv = *ppapszArgv;
-
     (void) nOptions;
-    
-/* -------------------------------------------------------------------- */
-/*      Preserve the program name.                                      */
-/* -------------------------------------------------------------------- */
-    papszReturn = CSLAddString( papszReturn, papszArgv[0] );
-
-/* ==================================================================== */
-/*      Loop over all arguments.                                        */
-/* ==================================================================== */
-    for( iArg = 1; iArg < nArgc; iArg++ )
-    {
-
-/* -------------------------------------------------------------------- */
-/*      --config                                                        */
-/* -------------------------------------------------------------------- */
-        if( EQUAL(papszArgv[iArg],"--config") )
-        {
-            if( iArg + 2 >= nArgc )
-            {
-                CPLError( CE_Failure, CPLE_AppDefined, 
-                          "--config option given without a key and value argument." );
-                CSLDestroy( papszReturn );
-                return -1;
-            }
-
-            CPLSetConfigOption( papszArgv[iArg+1], papszArgv[iArg+2] );
-
-            iArg += 2;
-        }
-
-/* -------------------------------------------------------------------- */
-/*      --mempreload                                                    */
-/* -------------------------------------------------------------------- */
-        else if( EQUAL(papszArgv[iArg],"--mempreload") )
-        {
-            int i;
-
-            if( iArg + 1 >= nArgc )
-            {
-                CPLError( CE_Failure, CPLE_AppDefined, 
-                          "--mempreload option given without directory path.");
-                CSLDestroy( papszReturn );
-                return -1;
-            }
-            
-            char **papszFiles = CPLReadDir( papszArgv[iArg+1] );
-            if( CSLCount(papszFiles) == 0 )
-            {
-                CPLError( CE_Failure, CPLE_AppDefined, 
-                          "--mempreload given invalid or empty directory.");
-                CSLDestroy( papszReturn );
-                return -1;
-            }
-                
-            for( i = 0; papszFiles[i] != NULL; i++ )
-            {
-                CPLString osOldPath, osNewPath;
-                
-                if( EQUAL(papszFiles[i],".") || EQUAL(papszFiles[i],"..") )
-                    continue;
-
-                osOldPath = CPLFormFilename( papszArgv[iArg+1], 
-                                             papszFiles[i], NULL );
-                osNewPath.Printf( "/vsimem/%s", papszFiles[i] );
-
-                CPLDebug( "VSI", "Preloading %s to %s.", 
-                          osOldPath.c_str(), osNewPath.c_str() );
-
-                if( CPLCopyFile( osNewPath, osOldPath ) != 0 )
-                    return -1;
-            }
-            
-            CSLDestroy( papszFiles );
-            iArg += 1;
-        }
-
-/* -------------------------------------------------------------------- */
-/*      --debug                                                         */
-/* -------------------------------------------------------------------- */
-        else if( EQUAL(papszArgv[iArg],"--debug") )
-        {
-            if( iArg + 1 >= nArgc )
-            {
-                CPLError( CE_Failure, CPLE_AppDefined, 
-                          "--debug option given without debug level." );
-                CSLDestroy( papszReturn );
-                return -1;
-            }
-
-            CPLSetConfigOption( "CPL_DEBUG", papszArgv[iArg+1] );
-            iArg += 1;
-        }
-
-/* -------------------------------------------------------------------- */
-/*      --optfile                                                       */
-/*                                                                      */
-/*      Annoyingly the options inserted by --optfile will *not* be      */
-/*      processed properly if they are general options.                 */
-/* -------------------------------------------------------------------- */
-        else if( EQUAL(papszArgv[iArg],"--optfile") )
-        {
-            const char *pszLine;
-            FILE *fpOptFile;
-
-            if( iArg + 1 >= nArgc )
-            {
-                CPLError( CE_Failure, CPLE_AppDefined, 
-                          "--optfile option given without filename." );
-                CSLDestroy( papszReturn );
-                return -1;
-            }
-
-            fpOptFile = VSIFOpen( papszArgv[iArg+1], "rb" );
-
-            if( fpOptFile == NULL )
-            {
-                CPLError( CE_Failure, CPLE_AppDefined, 
-                          "Unable to open optfile '%s'.\n%s",
-                          papszArgv[iArg+1], VSIStrerror( errno ) );
-                CSLDestroy( papszReturn );
-                return -1;
-            }
-            
-            while( (pszLine = CPLReadLine( fpOptFile )) != NULL )
-            {
-                char **papszTokens;
-                int i;
-
-                if( pszLine[0] == '#' || strlen(pszLine) == 0 )
-                    continue;
-
-                papszTokens = CSLTokenizeString( pszLine );
-                for( i = 0; papszTokens != NULL && papszTokens[i] != NULL; i++)
-                    papszReturn = CSLAddString( papszReturn, papszTokens[i] );
-                CSLDestroy( papszTokens );
-            }
-
-            VSIFClose( fpOptFile );
-                
-            iArg += 1;
-        }
-
-/* -------------------------------------------------------------------- */
-/*      --formats                                                       */
-/* -------------------------------------------------------------------- */
-#ifdef OGR_ENABLED
-        else if( EQUAL(papszArgv[iArg], "--formats") )
-        {
-            int iDr;
-
-            printf( "Supported Formats:\n" );
-
-            OGRSFDriverRegistrar *poR = OGRSFDriverRegistrar::GetRegistrar();
-        
-            for( iDr = 0; iDr < poR->GetDriverCount(); iDr++ )
-            {
-                OGRSFDriver *poDriver = poR->GetDriver(iDr);
-
-                if( poDriver->TestCapability( ODrCCreateDataSource ) )
-                    printf( "  -> \"%s\" (read/write)\n", 
-                            poDriver->GetName() );
-                else
-                    printf( "  -> \"%s\" (readonly)\n", 
-                            poDriver->GetName() );
-            }
-
-            CSLDestroy( papszReturn );
-            return 0;
-        }
-#endif /* OGR_ENABLED */
-
-/* -------------------------------------------------------------------- */
-/*      --locale                                                        */
-/* -------------------------------------------------------------------- */
-        else if( EQUAL(papszArgv[iArg],"--locale") && iArg < nArgc-1 )
-        {
-            setlocale( LC_ALL, papszArgv[++iArg] );
-        }
-
-/* -------------------------------------------------------------------- */
-/*      --help-general                                                  */
-/* -------------------------------------------------------------------- */
-        else if( EQUAL(papszArgv[iArg],"--help-general") )
-        {
-            printf( "Generic GDAL/OGR utility command options:\n" );
-#ifdef OGR_ENABLED
-            printf( "  --formats: report all configured format drivers.\n" );
-#endif /* OGR_ENABLED */
-            printf( "  --optfile filename: expand an option file into the argument list.\n" );
-            printf( "  --config key value: set system configuration option.\n" );
-            printf( "  --debug [on/off/value]: set debug level.\n" );
-            printf( "  --help-general: report detailed help on general options.\n" );
-            CSLDestroy( papszReturn );
-            return 0;
-        }
-
-/* -------------------------------------------------------------------- */
-/*      carry through unrecognised options.                             */
-/* -------------------------------------------------------------------- */
-        else
-        {
-            papszReturn = CSLAddString( papszReturn, papszArgv[iArg] );
-        }
-    }
-
-    *ppapszArgv = papszReturn;
-
-    return CSLCount( *ppapszArgv );
+    return GDALGeneralCmdLineProcessor( nArgc, ppapszArgv, GDAL_OF_VECTOR );
 }
 
 /************************************************************************/
@@ -690,7 +581,14 @@ int OGRParseDate( const char *pszInput, OGRField *psField, int nOptions )
     
     if( strstr(pszInput,"-") != NULL || strstr(pszInput,"/") != NULL )
     {
-        psField->Date.Year = (GInt16)atoi(pszInput);
+        int nYear = atoi(pszInput);
+        if( nYear != (GInt16)nYear )
+        {
+            CPLError(CE_Failure, CPLE_NotSupported,
+                     "Years < -32768 or > 32767 are not supported");
+            return FALSE;
+        }
+        psField->Date.Year = (GInt16)nYear;
         if( psField->Date.Year < 100 && psField->Date.Year >= 30 )
             psField->Date.Year += 1900;
         else if( psField->Date.Year < 30 && psField->Date.Year >= 0 )
@@ -854,6 +752,13 @@ int OGRParseXMLDateTime( const char* pszXMLDateTime,
         TZ = 0;
         bRet = TRUE;
     }
+    /* Date is expressed as a UTC date with only year:month:day */
+    else if (sscanf(pszXMLDateTime, "%04d-%02d-%02d", &year, &month, &day) == 3)
+    {
+        TZ = 0;
+        bRet = TRUE;
+    }
+
     if (bRet)
     {
         if (pnYear) *pnYear = year;
@@ -1094,6 +999,48 @@ char* OGRGetXML_UTF8_EscapedString(const char* pszString)
 }
 
 /************************************************************************/
+/*                        OGRCompareDate()                              */
+/************************************************************************/
+
+int OGRCompareDate(   OGRField *psFirstTuple,
+                      OGRField *psSecondTuple )
+{
+    /* FIXME? : We ignore TZFlag */
+
+    if (psFirstTuple->Date.Year < psSecondTuple->Date.Year)
+        return -1;
+    else if (psFirstTuple->Date.Year > psSecondTuple->Date.Year)
+        return 1;
+
+    if (psFirstTuple->Date.Month < psSecondTuple->Date.Month)
+        return -1;
+    else if (psFirstTuple->Date.Month > psSecondTuple->Date.Month)
+        return 1;
+
+    if (psFirstTuple->Date.Day < psSecondTuple->Date.Day)
+        return -1;
+    else if (psFirstTuple->Date.Day > psSecondTuple->Date.Day)
+        return 1;
+
+    if (psFirstTuple->Date.Hour < psSecondTuple->Date.Hour)
+        return -1;
+    else if (psFirstTuple->Date.Hour > psSecondTuple->Date.Hour)
+        return 1;
+
+    if (psFirstTuple->Date.Minute < psSecondTuple->Date.Minute)
+        return -1;
+    else if (psFirstTuple->Date.Minute > psSecondTuple->Date.Minute)
+        return 1;
+
+    if (psFirstTuple->Date.Second < psSecondTuple->Date.Second)
+        return -1;
+    else if (psFirstTuple->Date.Second > psSecondTuple->Date.Second)
+        return 1;
+
+    return 0;
+}
+
+/************************************************************************/
 /*                        OGRFastAtof()                                 */
 /************************************************************************/
 
@@ -1112,6 +1059,7 @@ double OGRCallAtofOnShortString(const char* pszStr)
     while(*p == '+'  ||
           *p == '-'  ||
           (*p >= '0' && *p <= '9') ||
+          *p == '.'  ||
           (*p == 'e' || *p == 'E' || *p == 'd' || *p == 'D'))
     {
         szTemp[nCounter++] = *(p++);
@@ -1190,4 +1138,105 @@ double OGRFastAtof(const char* pszStr)
                 return OGRCallAtofOnShortString(pszStr);
         }
     }
+}
+
+/**
+ * Check that panPermutation is a permutation of [0,nSize-1].
+ * @param panPermutation an array of nSize elements.
+ * @param nSize size of the array.
+ * @return OGRERR_NONE if panPermutation is a permutation of [0,nSize-1].
+ * @since OGR 1.9.0
+ */
+OGRErr OGRCheckPermutation(int* panPermutation, int nSize)
+{
+    OGRErr eErr = OGRERR_NONE;
+    int* panCheck = (int*)CPLCalloc(nSize, sizeof(int));
+    int i;
+    for(i=0;i<nSize;i++)
+    {
+        if (panPermutation[i] < 0 || panPermutation[i] >= nSize)
+        {
+            CPLError(CE_Failure, CPLE_IllegalArg,
+                     "Bad value for element %d", i);
+            eErr = OGRERR_FAILURE;
+            break;
+        }
+        if (panCheck[panPermutation[i]] != 0)
+        {
+            CPLError(CE_Failure, CPLE_IllegalArg,
+                     "Array is not a permutation of [0,%d]",
+                     nSize - 1);
+            eErr = OGRERR_FAILURE;
+            break;
+        }
+        panCheck[panPermutation[i]] = 1;
+    }
+    CPLFree(panCheck);
+    return eErr;
+}
+
+
+OGRErr OGRReadWKBGeometryType( unsigned char * pabyData, OGRwkbGeometryType *peGeometryType, OGRBoolean *pbIs3D )
+{
+    if ( ! (peGeometryType && pbIs3D) )
+        return OGRERR_FAILURE;
+    
+/* -------------------------------------------------------------------- */
+/*      Get the byte order byte.                                        */
+/* -------------------------------------------------------------------- */
+    OGRwkbByteOrder eByteOrder = DB2_V72_FIX_BYTE_ORDER((OGRwkbByteOrder) *pabyData);
+    if (!( eByteOrder == wkbXDR || eByteOrder == wkbNDR ))
+        return OGRERR_CORRUPT_DATA;
+
+/* -------------------------------------------------------------------- */
+/*      Get the geometry feature type.  For now we assume that          */
+/*      geometry type is between 0 and 255 so we only have to fetch     */
+/*      one byte.                                                       */
+/* -------------------------------------------------------------------- */
+    int bIs3D = FALSE;
+    int iRawType;
+    
+    memcpy(&iRawType, pabyData + 1, 4);
+    if ( OGR_SWAP(eByteOrder))
+    {
+        CPL_SWAP32PTR(&iRawType);
+    }
+    
+    /* Old-style OGC z-bit is flipped? */
+    if ( wkb25DBit & iRawType )
+    {
+        /* Clean off top 3 bytes */
+        iRawType &= 0x000000FF;
+        bIs3D = TRUE;        
+    }
+    
+    /* ISO SQL/MM style Z types (between 1001 and 1007)? */
+    if ( iRawType >= 1001 && iRawType <= 1007 )
+    {
+        /* Remove the ISO padding */
+        iRawType -= 1000;
+        bIs3D = TRUE;
+    }
+    
+    /* Sometimes the Z flag is in the 2nd byte? */
+    if ( iRawType & (wkb25DBit >> 16) )
+    {
+        /* Clean off top 3 bytes */
+        iRawType &= 0x000000FF;
+        bIs3D = TRUE;        
+    }
+
+    /* Nothing left but (hopefully) basic 2D types */
+
+    /* What if what we have is still out of range? */
+    if ( iRawType < 1 || iRawType > (int)wkbGeometryCollection )
+    {
+        CPLError(CE_Failure, CPLE_NotSupported, "Unsupported WKB type %d", iRawType);            
+        return OGRERR_UNSUPPORTED_GEOMETRY_TYPE;
+    }
+
+    *pbIs3D = bIs3D;
+    *peGeometryType = (OGRwkbGeometryType)iRawType;
+    
+    return OGRERR_NONE;
 }

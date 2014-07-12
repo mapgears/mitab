@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_conv.h 17742 2009-10-03 16:13:16Z rouault $
+ * $Id: cpl_conv.h 27121 2014-04-03 22:08:55Z rouault $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Convenience functions declarations.
@@ -8,6 +8,7 @@
  *
  ******************************************************************************
  * Copyright (c) 1998, Frank Warmerdam
+ * Copyright (c) 2007-2013, Even Rouault <even dot rouault at mines-paris dot org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -50,7 +51,7 @@ CPL_C_START
 void CPL_DLL CPLVerifyConfiguration(void);
 
 const char CPL_DLL * CPL_STDCALL
-CPLGetConfigOption( const char *, const char * );
+CPLGetConfigOption( const char *, const char * ) CPL_WARN_UNUSED_RESULT;
 void CPL_DLL CPL_STDCALL CPLSetConfigOption( const char *, const char * );
 void CPL_DLL CPL_STDCALL CPLSetThreadLocalConfigOption( const char *pszKey, 
                                                         const char *pszValue );
@@ -60,10 +61,10 @@ void CPL_DLL CPL_STDCALL CPLFreeConfig(void);
 /*      Safe malloc() API.  Thin cover over VSI functions with fatal    */
 /*      error reporting if memory allocation fails.                     */
 /* -------------------------------------------------------------------- */
-void CPL_DLL *CPLMalloc( size_t );
-void CPL_DLL *CPLCalloc( size_t, size_t );
-void CPL_DLL *CPLRealloc( void *, size_t );
-char CPL_DLL *CPLStrdup( const char * );
+void CPL_DLL *CPLMalloc( size_t ) CPL_WARN_UNUSED_RESULT;
+void CPL_DLL *CPLCalloc( size_t, size_t ) CPL_WARN_UNUSED_RESULT;
+void CPL_DLL *CPLRealloc( void *, size_t ) CPL_WARN_UNUSED_RESULT;
+char CPL_DLL *CPLStrdup( const char * ) CPL_WARN_UNUSED_RESULT;
 char CPL_DLL *CPLStrlwr( char *);
 
 #define CPLFree VSIFree
@@ -73,8 +74,8 @@ char CPL_DLL *CPLStrlwr( char *);
 /* -------------------------------------------------------------------- */
 char CPL_DLL *CPLFGets( char *, int, FILE *);
 const char CPL_DLL *CPLReadLine( FILE * );
-const char CPL_DLL *CPLReadLineL( FILE * );
-const char CPL_DLL *CPLReadLine2L( FILE * , int nMaxCols, char** papszOptions);
+const char CPL_DLL *CPLReadLineL( VSILFILE * );
+const char CPL_DLL *CPLReadLine2L( VSILFILE * , int nMaxCols, char** papszOptions);
 
 /* -------------------------------------------------------------------- */
 /*      Convert ASCII string to floationg point number                  */
@@ -190,6 +191,7 @@ FILE CPL_DLL    *CPLOpenShared( const char *, const char *, int );
 void CPL_DLL     CPLCloseShared( FILE * );
 CPLSharedFileInfo CPL_DLL *CPLGetSharedList( int * );
 void CPL_DLL     CPLDumpSharedList( FILE * );
+void CPL_DLL     CPLCleanupSharedFileMutex( void );
 
 /* -------------------------------------------------------------------- */
 /*      DMS to Dec to DMS conversion.                                   */
@@ -210,6 +212,41 @@ int CPL_DLL CPLUnlinkTree( const char * );
 int CPL_DLL CPLCopyFile( const char *pszNewPath, const char *pszOldPath );
 int CPL_DLL CPLMoveFile( const char *pszNewPath, const char *pszOldPath );
 
+/* -------------------------------------------------------------------- */
+/*      ZIP Creation.                                                   */
+/* -------------------------------------------------------------------- */
+#define CPL_ZIP_API_OFFERED
+void CPL_DLL  *CPLCreateZip( const char *pszZipFilename, char **papszOptions );
+CPLErr CPL_DLL CPLCreateFileInZip( void *hZip, const char *pszFilename, 
+                                   char **papszOptions );
+CPLErr CPL_DLL CPLWriteFileInZip( void *hZip, const void *pBuffer, int nBufferSize );
+CPLErr CPL_DLL CPLCloseFileInZip( void *hZip );
+CPLErr CPL_DLL CPLCloseZip( void *hZip );
+
+/* -------------------------------------------------------------------- */
+/*      ZLib compression                                                */
+/* -------------------------------------------------------------------- */
+
+void CPL_DLL *CPLZLibDeflate( const void* ptr, size_t nBytes, int nLevel,
+                              void* outptr, size_t nOutAvailableBytes,
+                              size_t* pnOutBytes );
+void CPL_DLL *CPLZLibInflate( const void* ptr, size_t nBytes,
+                              void* outptr, size_t nOutAvailableBytes,
+                              size_t* pnOutBytes );
+
+/* -------------------------------------------------------------------- */
+/*      XML validation.                                                 */
+/* -------------------------------------------------------------------- */
+int CPL_DLL CPLValidateXML(const char* pszXMLFilename,
+                           const char* pszXSDFilename,
+                           char** papszOptions);
+						   
+/* -------------------------------------------------------------------- */
+/*      Locale handling. Prevents parallel executions of setlocale().   */
+/* -------------------------------------------------------------------- */
+char* CPLsetlocale (int category, const char* locale);
+void CPLCleanupSetlocaleMutex(void);
+
 CPL_C_END
 
 /* -------------------------------------------------------------------- */
@@ -218,7 +255,7 @@ CPL_C_END
 
 #if defined(__cplusplus) && !defined(CPL_SUPRESS_CPLUSPLUS)
 
-class CPLLocaleC
+class CPL_DLL CPLLocaleC
 {
 public:
     CPLLocaleC();
@@ -227,7 +264,7 @@ public:
 private:
     char *pszOldLocale;
 
-    // Make it non-copyable
+    /* Make it non-copyable */
     CPLLocaleC(CPLLocaleC&);
     CPLLocaleC& operator=(CPLLocaleC&);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_http.h,v 1.1 2010-07-08 19:31:09 aboudreault Exp $
+ * $Id: cpl_http.h 27044 2014-03-16 23:41:27Z rouault $
  *
  * Project:  Common Portability Library
  * Purpose:  Function wrapper for libcurl HTTP access.
@@ -7,6 +7,7 @@
  *
  ******************************************************************************
  * Copyright (c) 2006, Frank Warmerdam
+ * Copyright (c) 2009, Even Rouault <even dot rouault at mines-paris dot org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -52,16 +53,31 @@ typedef struct {
 
 /*! Describe the result of a CPLHTTPFetch() call */
 typedef struct {
-    /*! HTTP status code : 200=success, value < 0 if request failed */ int     nStatus;
-    /*! Content-Type of the response */                                char    *pszContentType;
-    /*! Error message from curl, or NULL */                            char    *pszErrBuf;
+    /*! cURL error code : 0=success, non-zero if request failed */ 
+    int     nStatus;
 
-    /*! Length of the pabyData buffer */                               int     nDataLen;
-                                                                       int     nDataAlloc;
-    /*! Buffer with downloaded data */                                 GByte   *pabyData;
+    /*! Content-Type of the response */                                
+    char    *pszContentType;
 
-    /*! Number of parts in a multipart message */                      int     nMimePartCount;
-    /*! Array of parts (resolved by CPLHTTPParseMultipartMime()) */    CPLMimePart *pasMimePart;
+    /*! Error message from curl, or NULL */                            
+    char    *pszErrBuf;
+
+    /*! Length of the pabyData buffer */                               
+    int     nDataLen;
+    int     nDataAlloc;
+
+    /*! Buffer with downloaded data */                                 
+    GByte   *pabyData;
+
+    /*! Headers returned */
+    char    **papszHeaders;
+
+    /*! Number of parts in a multipart message */                      
+    int     nMimePartCount;
+
+    /*! Array of parts (resolved by CPLHTTPParseMultipartMime()) */    
+    CPLMimePart *pasMimePart;
+
 } CPLHTTPResult;
 
 int CPL_DLL   CPLHTTPEnabled( void );
@@ -69,6 +85,20 @@ CPLHTTPResult CPL_DLL *CPLHTTPFetch( const char *pszURL, char **papszOptions);
 void CPL_DLL  CPLHTTPCleanup( void );
 void CPL_DLL  CPLHTTPDestroyResult( CPLHTTPResult *psResult );
 int  CPL_DLL  CPLHTTPParseMultipartMime( CPLHTTPResult *psResult );
+
+/* -------------------------------------------------------------------- */
+/*      The following is related to OAuth2 authorization around         */
+/*      google services like fusion tables, and potentially others      */
+/*      in the future.  Code in cpl_google_oauth2.cpp.                  */
+/*                                                                      */
+/*      These services are built on CPL HTTP services.                  */
+/* -------------------------------------------------------------------- */
+
+char CPL_DLL *GOA2GetAuthorizationURL( const char *pszScope );
+char CPL_DLL *GOA2GetRefreshToken( const char *pszAuthToken,
+                                   const char *pszScope );
+char CPL_DLL *GOA2GetAccessToken( const char *pszRefreshToken,
+                                  const char *pszScope );
 
 CPL_C_END
 

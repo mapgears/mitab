@@ -36,6 +36,8 @@ OPTFLAGS = $(OPTFLAGS) -DMITAB_CDECL
 MITAB_DLL = mitab.dll
 !endif
 
+EXTERNAL_LIBS =  wsock32.lib ws2_32.lib
+
 LIBS	=	$(TABLIB) ../ogr/ogr.lib ../cpl/cpl.lib
 
 default:    $(TABLIB) tab2tab.exe ogrinfo.exe mitabc_test.exe $(MITAB_DLL)
@@ -44,22 +46,22 @@ $(TABLIB):	$(TAB_OBJS)
 	lib /out:$(TABLIB) $(TAB_OBJS)
 
 tab2tab.exe:	tab2tab.cpp $(LIBS)
-	$(CC) $(CFLAGS) tab2tab.cpp $(LIBS)
+	$(CC) $(CFLAGS) tab2tab.cpp $(LIBS) $(EXTERNAL_LIBS)
 
 mitabc_test.exe:	mitabc_test.c $(LIBS)
-	$(CC) $(CFLAGS) mitabc_test.c $(LIBS)
+	$(CC) $(CFLAGS) mitabc_test.c $(LIBS) $(EXTERNAL_LIBS)
 
 ogr2ogr.exe:	ogr2ogr.cpp $(OGRTAB_OBJS) $(LIBS)
-	$(CC) $(CFLAGS) ogr2ogr.cpp $(OGRTAB_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) ogr2ogr.cpp $(OGRTAB_OBJS) $(LIBS) $(EXTERNAL_LIBS)
 
 ogrinfo.exe:	ogrinfo.cpp $(OGRTAB_OBJS) $(LIBS)
-	$(CC) $(CFLAGS) ogrinfo.cpp $(OGRTAB_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) ogrinfo.cpp $(OGRTAB_OBJS) $(LIBS) $(EXTERNAL_LIBS)
 
 tabindex.exe:	tabindex.cpp $(LIBS)
-	$(CC) $(CFLAGS) tabindex.cpp $(LIBS)
+	$(CC) $(CFLAGS) tabindex.cpp $(LIBS) $(EXTERNAL_LIBS)
 
 $(MITAB_DLL): $(LIBS) $(TAB_OBJS)
-	link /dll /out:$(MITAB_DLL) /implib:mitab_i.lib  $(TAB_OBJS) $(LIBS)
+	link /dll /out:$(MITAB_DLL) /implib:mitab_i.lib  $(TAB_OBJS) $(LIBS) $(EXTERNAL_LIBS)
 
 clean:  
 	del *.obj

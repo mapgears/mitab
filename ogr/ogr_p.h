@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_p.h 17696 2009-09-26 15:56:39Z rouault $
+ * $Id: ogr_p.h 27044 2014-03-16 23:41:27Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Some private helper functions and stuff for OGR implementation.
@@ -7,6 +7,7 @@
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
+ * Copyright (c) 2008-2014, Even Rouault <even dot rouault at mines-paris dot org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -37,8 +38,13 @@
 
 #include "cpl_string.h"
 #include "cpl_conv.h"
+#include "cpl_minixml.h"
 
 #include "ogr_core.h"
+#include "ogr_geometry.h"
+
+/* A default name for the default geometry column, instead of '' */
+#define OGR_GEOMETRY_DEFAULT_NON_EMPTY_NAME     "_ogr_geometry_"
 
 #ifdef CPL_MSB 
 #  define OGR_SWAP(x)   (x == wkbNDR)
@@ -62,7 +68,10 @@ const char CPL_DLL * OGRWktReadPoints( const char * pszInput,
                                        int * pnReadPoints );
 
 void CPL_DLL OGRMakeWktCoordinate( char *, double, double, double, int );
+
 #endif
+
+void OGRFormatDouble( char *pszBuffer, int nBufferLen, double dfVal, char chDecimalSep, int nPrecision = 15 );
 
 /* -------------------------------------------------------------------- */
 /*      Date-time parsing and processing functions                      */
@@ -83,6 +92,8 @@ char CPL_DLL * OGRGetXMLDateTime(int year, int month, int day,
                                  int hour, int minute, int second, int TZFlag);
 char CPL_DLL * OGRGetXML_UTF8_EscapedString(const char* pszString);
 
+int OGRCompareDate(   OGRField *psFirstTuple,
+                      OGRField *psSecondTuple ); /* used by ogr_gensql.cpp and ogrfeaturequery.cpp */
 
 /* General utility option processing. */
 int CPL_DLL OGRGeneralCmdLineProcessor( int nArgc, char ***ppapszArgv, int nOptions );
@@ -90,10 +101,6 @@ int CPL_DLL OGRGeneralCmdLineProcessor( int nArgc, char ***ppapszArgv, int nOpti
 /************************************************************************/
 /*     Support for special attributes (feature query and selection)     */
 /************************************************************************/
-CPL_C_START
-#include "swq.h"
-CPL_C_END
-
 #define SPF_FID 0
 #define SPF_OGR_GEOMETRY 1
 #define SPF_OGR_STYLE 2
@@ -102,7 +109,10 @@ CPL_C_END
 #define SPECIAL_FIELD_COUNT 5
 
 extern const char* SpecialFieldNames[SPECIAL_FIELD_COUNT];
+
+#ifdef _SWQ_H_INCLUDED_
 extern const swq_field_type SpecialFieldTypes[SPECIAL_FIELD_COUNT];
+#endif
 
 /************************************************************************/
 /*     Some SRS related stuff, search in SRS data files.                */
@@ -112,5 +122,30 @@ OGRErr CPL_DLL OSRGetEllipsoidInfo( int, char **, double *, double *);
 
 /* Fast atof function */
 double OGRFastAtof(const char* pszStr);
+
+OGRErr CPL_DLL OGRCheckPermutation(int* panPermutation, int nSize);
+
+/* GML related */
+
+OGRGeometry *GML2OGRGeometry_XMLNode( const CPLXMLNode *psNode,
+                                      int bGetSecondaryGeometryOption,
+                                      int nRecLevel = 0,
+                                      int bIgnoreGSG = FALSE,
+                                      int bOrientation = TRUE,
+                                      int bFaceHoleNegative = FALSE );
+
+/************************************************************************/
+/*                        PostGIS EWKB encoding                         */
+/************************************************************************/
+
+OGRGeometry CPL_DLL *OGRGeometryFromEWKB( GByte *pabyWKB, int nLength, int* pnSRID );
+OGRGeometry CPL_DLL *OGRGeometryFromHexEWKB( const char *pszBytea, int* pnSRID );
+char CPL_DLL * OGRGeometryToHexEWKB( OGRGeometry * poGeometry, int nSRSId );
+
+/************************************************************************/
+/*                        WKB Type Handling encoding                    */
+/************************************************************************/
+
+OGRErr OGRReadWKBGeometryType( unsigned char * pabyData, OGRwkbGeometryType *eGeometryType, OGRBoolean *b3D );
 
 #endif /* ndef OGR_P_H_INCLUDED */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_gensql.h 10645 2007-01-18 02:22:39Z warmerdam $
+ * $Id: ogr_gensql.h 27384 2014-05-24 12:28:12Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Classes related to generic implementation of ExecuteSQL().
@@ -7,6 +7,7 @@
  *
  ******************************************************************************
  * Copyright (c) 2002, Frank Warmerdam
+ * Copyright (c) 2010-2013, Even Rouault <even dot rouault at mines-paris dot org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,6 +32,18 @@
 #define _OGR_GENSQL_H_INCLUDED
 
 #include "ogrsf_frmts.h"
+#include "swq.h"
+#include "cpl_hash_set.h"
+
+#define GEOM_FIELD_INDEX_TO_ALL_FIELD_INDEX(poFDefn, iGeom) \
+    ((poFDefn)->GetFieldCount() + SPECIAL_FIELD_COUNT + (iGeom))
+
+#define IS_GEOM_FIELD_INDEX(poFDefn, idx) \
+    (((idx) >= (poFDefn)->GetFieldCount() + SPECIAL_FIELD_COUNT) && \
+     ((idx) < (poFDefn)->GetFieldCount() + SPECIAL_FIELD_COUNT + (poFDefn)->GetGeomFieldCount()))
+
+#define ALL_FIELD_INDEX_TO_GEOM_FIELD_INDEX(poFDefn, idx) \
+    ((idx) - ((poFDefn)->GetFieldCount() + SPECIAL_FIELD_COUNT))
 
 /************************************************************************/
 /*                        OGRGenSQLResultsLayer                         */
@@ -39,28 +52,31 @@
 class CPL_DLL OGRGenSQLResultsLayer : public OGRLayer
 {
   private:
-    OGRDataSource *poSrcDS;
+    GDALDataset *poSrcDS;
     OGRLayer    *poSrcLayer;
     void        *pSelectInfo;
+
+    char        *pszWHERE;
 
     OGRLayer   **papoTableLayers;
 
     OGRFeatureDefn *poDefn;
 
     int         PrepareSummary();
+    
+    int        *panGeomFieldToSrcGeomField;
 
     int         nIndexSize;
     long       *panFIDIndex;
+    int         bOrderByValid;
 
     int         nNextIndexFID;
     OGRFeature  *poSummaryFeature;
 
     int         iFIDFieldIndex;
 
-    OGRField    *pasOrderByIndex;
-
     int         nExtraDSCount;
-    OGRDataSource **papoExtraDS;
+    GDALDataset **papoExtraDS;
 
     OGRFeature *TranslateFeature( OGRFeature * );
     void        CreateOrderByIndex();
@@ -69,11 +85,24 @@ class CPL_DLL OGRGenSQLResultsLayer : public OGRLayer
     int         Compare( OGRField *pasFirst, OGRField *pasSecond );
 
     void        ClearFilters();
+    void        ApplyFiltersToSource();
+
+    void        FindAndSetIgnoredFields();
+    void        ExploreExprForIgnoredFields(swq_expr_node* expr, CPLHashSet* hSet);
+    void        AddFieldDefnToSet(int iTable, int iColumn, CPLHashSet* hSet);
+
+    int         ContainGeomSpecialField(swq_expr_node* expr);
+
+    void        InvalidateOrderByIndex();
     
+    int         MustEvaluateSpatialFilterOnGenSQL();
+
   public:
-                OGRGenSQLResultsLayer( OGRDataSource *poSrcDS, 
-                                       void *pSelectInfo, 
-                                       OGRGeometry *poSpatFilter );
+                OGRGenSQLResultsLayer( GDALDataset *poSrcDS, 
+                                       void *pSelectInfo,
+                                       OGRGeometry *poSpatFilter,
+                                       const char *pszWHERE,
+                                       const char *pszDialect );
     virtual     ~OGRGenSQLResultsLayer();
 
     virtual OGRGeometry *GetSpatialFilter();
@@ -85,12 +114,15 @@ class CPL_DLL OGRGenSQLResultsLayer : public OGRLayer
 
     virtual OGRFeatureDefn *GetLayerDefn();
 
-    virtual OGRSpatialReference *GetSpatialRef();
-
     virtual int         GetFeatureCount( int bForce = TRUE );
-    virtual OGRErr      GetExtent(OGREnvelope *psExtent, int bForce = TRUE);
+    virtual OGRErr      GetExtent(OGREnvelope *psExtent, int bForce = TRUE) { return GetExtent(0, psExtent, bForce); }
+    virtual OGRErr      GetExtent(int iGeomField, OGREnvelope *psExtent, int bForce = TRUE);
 
     virtual int         TestCapability( const char * );
+
+    virtual void        SetSpatialFilter( OGRGeometry * poGeom ) { SetSpatialFilter(0, poGeom); }
+    virtual void        SetSpatialFilter( int iGeomField, OGRGeometry * );
+    virtual OGRErr      SetAttributeFilter( const char * );
 };
 
 #endif /* ndef _OGR_GENSQL_H_INCLUDED */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogr_featurestyle.h 16763 2009-04-14 09:57:15Z chaitanya $
+ * $Id: ogr_featurestyle.h 19442 2010-04-18 00:02:37Z mloskot $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  Define of Feature Representation
@@ -260,7 +260,7 @@ class CPL_DLL OGRStylePen : public OGRStyleTool
     void SetColor(const char *pszColor){SetParamStr(OGRSTPenColor,pszColor);}
     double Width(GBool &bDefault){return GetParamDbl(OGRSTPenWidth,bDefault);}
     void SetWidth(double dfWidth){SetParamDbl(OGRSTPenWidth,dfWidth);}
-    const char *Pattern(GBool &bDefault){return (char *)GetParamStr(OGRSTPenPattern,bDefault);}
+    const char *Pattern(GBool &bDefault){return (const char *)GetParamStr(OGRSTPenPattern,bDefault);}
     void SetPattern(const char *pszPattern){SetParamStr(OGRSTPenPattern,pszPattern);}
     const char *Id(GBool &bDefault){return GetParamStr(OGRSTPenId,bDefault);}
     void SetId(const char *pszId){SetParamStr(OGRSTPenId,pszId);}

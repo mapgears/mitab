@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: ogrsurface.cpp 16574 2009-03-14 13:09:10Z rouault $
+ * $Id: ogrsurface.cpp 19399 2010-04-13 18:35:24Z rouault $
  *
  * Project:  OpenGIS Simple Features Reference Implementation
  * Purpose:  The OGRSurface class.
@@ -42,22 +42,6 @@
  *
  * @return the area of the feature in square units of the spatial reference
  * system in use.
- */
-
-/**
- * \fn OGRErr OGRSurface::Centroid( OGRPoint * poPoint ) const;
- *
- * \brief Compute and return centroid of surface.
- * The centroid is not necessarily
- * within the geometry.  
- *
- * This method relates to the SFCOM ISurface::get_Centroid() method.
- *
- * NOTE: Only implemented when GEOS included in build.
- *
- * @param poPoint point to be set with the centroid location.
- *
- * @return OGRERR_NONE if it succeeds or OGRERR_FAILURE otherwise. 
  */
 
 /**

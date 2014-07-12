@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: cpl_csv.cpp 17148 2009-05-29 20:45:45Z rouault $
+ * $Id: cpl_csv.cpp 27044 2014-03-16 23:41:27Z rouault $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  CSV (comma separated value) file access.
@@ -7,6 +7,7 @@
  *
  ******************************************************************************
  * Copyright (c) 1999, Frank Warmerdam
+ * Copyright (c) 2009-2012, Even Rouault <even dot rouault at mines-paris dot org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -30,12 +31,9 @@
 #include "cpl_csv.h"
 #include "cpl_conv.h"
 #include "cpl_multiproc.h"
+#include "gdal_csv.h"
 
-CPL_CVSID("$Id: cpl_csv.cpp 17148 2009-05-29 20:45:45Z rouault $");
-
-CPL_C_START
-const char * GDALDefaultCSVFilename( const char *pszBasename );
-CPL_C_END
+CPL_CVSID("$Id: cpl_csv.cpp 27044 2014-03-16 23:41:27Z rouault $");
 
 /* ==================================================================== */
 /*      The CSVTable is a persistant set of info about an open CSV      */
@@ -64,6 +62,18 @@ typedef struct ctb {
     int         *panLineIndex;
     char        *pszRawData;
 } CSVTable;
+
+
+static void CSVDeaccessInternal( CSVTable **ppsCSVTableList, int bCanUseTLS, const char * pszFilename );
+
+/************************************************************************/
+/*                            CSVFreeTLS()                              */
+/************************************************************************/
+static void CSVFreeTLS(void* pData)
+{
+    CSVDeaccessInternal( (CSVTable **)pData, FALSE, NULL );
+    CPLFree(pData);
+}
 
 /* It would likely be better to share this list between threads, but
    that will require some rework. */
@@ -95,7 +105,7 @@ static CSVTable *CSVAccess( const char * pszFilename )
     if( ppsCSVTableList == NULL )
     {
         ppsCSVTableList = (CSVTable **) CPLCalloc(1,sizeof(CSVTable*));
-        CPLSetTLS( CTLS_CSVTABLEPTR, ppsCSVTableList, TRUE );
+        CPLSetTLSWithFreeFunc( CTLS_CSVTABLEPTR, ppsCSVTableList, CSVFreeTLS );
     }
 
 /* -------------------------------------------------------------------- */
@@ -111,7 +121,7 @@ static CSVTable *CSVAccess( const char * pszFilename )
              * Eventually we should consider promoting to the front of
              * the list to accelerate frequently accessed tables.
              */
-            
+
             return( psTable );
         }
     }
@@ -148,18 +158,11 @@ static CSVTable *CSVAccess( const char * pszFilename )
 /*                            CSVDeaccess()                             */
 /************************************************************************/
 
-void CSVDeaccess( const char * pszFilename )
+static void CSVDeaccessInternal( CSVTable **ppsCSVTableList, int bCanUseTLS, const char * pszFilename )
 
 {
     CSVTable    *psLast, *psTable;
     
-/* -------------------------------------------------------------------- */
-/*      Fetch the table, and allocate the thread-local pointer to it    */
-/*      if there isn't already one.                                     */
-/* -------------------------------------------------------------------- */
-    CSVTable **ppsCSVTableList;
-
-    ppsCSVTableList = (CSVTable **) CPLGetTLS( CTLS_CSVTABLEPTR );
     if( ppsCSVTableList == NULL )
         return;
     
@@ -169,7 +172,7 @@ void CSVDeaccess( const char * pszFilename )
     if( pszFilename == NULL )
     {
         while( *ppsCSVTableList != NULL )
-            CSVDeaccess( (*ppsCSVTableList)->pszFilename );
+            CSVDeaccessInternal( ppsCSVTableList, bCanUseTLS, (*ppsCSVTableList)->pszFilename );
         
         return;
     }
@@ -187,7 +190,8 @@ void CSVDeaccess( const char * pszFilename )
 
     if( psTable == NULL )
     {
-        CPLDebug( "CPL_CSV", "CPLDeaccess( %s ) - no match.", pszFilename );
+        if (bCanUseTLS)
+            CPLDebug( "CPL_CSV", "CPLDeaccess( %s ) - no match.", pszFilename );
         return;
     }
 
@@ -214,7 +218,20 @@ void CSVDeaccess( const char * pszFilename )
 
     CPLFree( psTable );
 
-    CPLReadLine( NULL );
+    if (bCanUseTLS)
+        CPLReadLine( NULL );
+}
+
+void CSVDeaccess( const char * pszFilename )
+{
+    CSVTable **ppsCSVTableList;
+/* -------------------------------------------------------------------- */
+/*      Fetch the table, and allocate the thread-local pointer to it    */
+/*      if there isn't already one.                                     */
+/* -------------------------------------------------------------------- */
+    ppsCSVTableList = (CSVTable **) CPLGetTLS( CTLS_CSVTABLEPTR );
+
+    CSVDeaccessInternal(ppsCSVTableList, TRUE, pszFilename);
 }
 
 /************************************************************************/
@@ -513,11 +530,12 @@ char **CSVReadParseLine2( FILE * fp, char chDelimiter )
 /* -------------------------------------------------------------------- */
     pszWorkLine = CPLStrdup( pszLine );
 
+    int i = 0, nCount = 0;
+    int nWorkLineLength = strlen(pszWorkLine);
+
     while( TRUE )
     {
-        int             i, nCount = 0;
-
-        for( i = 0; pszWorkLine[i] != '\0'; i++ )
+        for( ; pszWorkLine[i] != '\0'; i++ )
         {
             if( pszWorkLine[i] == '\"'
                 && (i == 0 || pszWorkLine[i-1] != '\\') )
@@ -531,11 +549,18 @@ char **CSVReadParseLine2( FILE * fp, char chDelimiter )
         if( pszLine == NULL )
             break;
 
-        pszWorkLine = (char *)
-            CPLRealloc(pszWorkLine,
-                       strlen(pszWorkLine) + strlen(pszLine) + 2);
-        strcat( pszWorkLine, "\n" ); // This gets lost in CPLReadLine().
-        strcat( pszWorkLine, pszLine );
+        int nLineLen = strlen(pszLine);
+
+        char* pszWorkLineTmp = (char *)
+            VSIRealloc(pszWorkLine,
+                       nWorkLineLength + nLineLen + 2);
+        if (pszWorkLineTmp == NULL)
+            break;
+        pszWorkLine = pszWorkLineTmp;
+        strcat( pszWorkLine + nWorkLineLength, "\n" ); // This gets lost in CPLReadLine().
+        strcat( pszWorkLine + nWorkLineLength, pszLine );
+
+        nWorkLineLength += nLineLen + 1;
     }
     
     papszReturn = CSVSplitLine( pszWorkLine, chDelimiter );
@@ -1125,7 +1150,7 @@ const char * CSVFilename( const char *pszBasename )
 /**
  * Override CSV file search method.
  *
- * @param CSVFileOverride The pointer to a function which will return the
+ * @param pfnNewHook The pointer to a function which will return the
  * full path for a given filename.
   *
 
@@ -1173,4 +1198,3 @@ void SetCSVFilenameHook( const char *(*pfnNewHook)( const char * ) )
     pfnCSVFilenameHook = pfnNewHook;
 }
 CPL_C_END
-

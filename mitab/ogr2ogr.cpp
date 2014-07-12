@@ -128,9 +128,9 @@ CPL_CVSID("$Id: ogr2ogr.cpp,v 1.4 2007-03-22 19:48:35 dmorissette Exp $");
 
 static void Usage();
 
-static int TranslateLayer( OGRDataSource *poSrcDS, 
+static int TranslateLayer( GDALDataset *poSrcDS, 
                            OGRLayer * poSrcLayer,
-                           OGRDataSource *poDstDS,
+                           GDALDataset *poDstDS,
                            char ** papszLSCO,
                            const char *pszNewLayerName,
                            int bTransform, 
@@ -328,9 +328,9 @@ int main( int nArgc, char ** papszArgv )
 /* -------------------------------------------------------------------- */
 /*      Open data source.                                               */
 /* -------------------------------------------------------------------- */
-    OGRDataSource       *poDS;
+    GDALDataset       *poDS;
         
-    poDS = OGRSFDriverRegistrar::Open( pszDataSource, FALSE );
+    poDS = (GDALDataset*) OGROpen( pszDataSource, FALSE, NULL );
 
 /* -------------------------------------------------------------------- */
 /*      Report failure                                                  */
@@ -345,7 +345,7 @@ int main( int nArgc, char ** papszArgv )
 
         for( int iDriver = 0; iDriver < poR->GetDriverCount(); iDriver++ )
         {
-            printf( "  -> %s\n", poR->GetDriver(iDriver)->GetName() );
+            printf( "  -> %s\n", poR->GetDriver(iDriver)->GetDescription() );
         }
 
         exit( 1 );
@@ -354,11 +354,11 @@ int main( int nArgc, char ** papszArgv )
 /* -------------------------------------------------------------------- */
 /*      Try opening the output datasource as an existing, writable      */
 /* -------------------------------------------------------------------- */
-    OGRDataSource       *poODS;
+    GDALDataset       *poODS;
     
     if( bUpdate )
     {
-        poODS = OGRSFDriverRegistrar::Open( pszDestDataSource, TRUE );
+        poODS = (GDALDataset*) OGROpen( pszDestDataSource, TRUE, NULL );
         if( poODS == NULL )
         {
             printf( "FAILURE:\n"
@@ -374,14 +374,14 @@ int main( int nArgc, char ** papszArgv )
     else
     {
         OGRSFDriverRegistrar *poR = OGRSFDriverRegistrar::GetRegistrar();
-        OGRSFDriver          *poDriver = NULL;
+        GDALDriver          *poDriver = NULL;
         int                  iDriver;
 
         for( iDriver = 0;
              iDriver < poR->GetDriverCount() && poDriver == NULL;
              iDriver++ )
         {
-            if( EQUAL(poR->GetDriver(iDriver)->GetName(),pszFormat) )
+            if( EQUAL(poR->GetDriver(iDriver)->GetDescription(),pszFormat) )
             {
                 poDriver = poR->GetDriver(iDriver);
             }
@@ -394,12 +394,12 @@ int main( int nArgc, char ** papszArgv )
         
             for( iDriver = 0; iDriver < poR->GetDriverCount(); iDriver++ )
             {
-                printf( "  -> `%s'\n", poR->GetDriver(iDriver)->GetName() );
+                printf( "  -> `%s'\n", poR->GetDriver(iDriver)->GetDescription() );
             }
             exit( 1 );
         }
 
-        if( !poDriver->TestCapability( ODrCCreateDataSource ) )
+        if( !poDriver->GetMetadataItem( GDAL_DCAP_CREATE ) )
         {
             printf( "%s driver does not support data source creation.\n",
                     pszFormat );
@@ -409,7 +409,7 @@ int main( int nArgc, char ** papszArgv )
 /* -------------------------------------------------------------------- */
 /*      Create the output data source.                                  */
 /* -------------------------------------------------------------------- */
-        poODS = poDriver->CreateDataSource( pszDestDataSource, papszDSCO );
+        poODS = poDriver->Create( pszDestDataSource, 0, 0, 0, GDT_Unknown, papszDSCO );
         if( poODS == NULL )
         {
             printf( "%s driver failed to create %s\n", 
@@ -555,10 +555,10 @@ static void Usage()
     
     for( int iDriver = 0; iDriver < poR->GetDriverCount(); iDriver++ )
     {
-        OGRSFDriver *poDriver = poR->GetDriver(iDriver);
+        GDALDriver *poDriver = poR->GetDriver(iDriver);
 
-        if( poDriver->TestCapability( ODrCCreateDataSource ) )
-            printf( "     -f \"%s\"\n", poDriver->GetName() );
+        if( poDriver->GetMetadataItem( GDAL_DCAP_CREATE ) )
+            printf( "     -f \"%s\"\n", poDriver->GetDescription() );
     }
 
     printf( " -append: Append to existing layer instead of creating new\n"
@@ -592,9 +592,9 @@ static void Usage()
 /*                           TranslateLayer()                           */
 /************************************************************************/
 
-static int TranslateLayer( OGRDataSource *poSrcDS, 
+static int TranslateLayer( GDALDataset *poSrcDS, 
                            OGRLayer * poSrcLayer,
-                           OGRDataSource *poDstDS,
+                           GDALDataset *poDstDS,
                            char **papszLCO,
                            const char *pszNewLayerName,
                            int bTransform, 

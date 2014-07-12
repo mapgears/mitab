@@ -313,22 +313,22 @@ int main(int argc, char *argv[])
  **********************************************************************/
 static int DumpMapFileBlocks(const char *pszFname)
 {
-    FILE        *fp;
+    VSILFILE        *fp;
     TABRawBinBlock *poBlock;
     int         nOffset = 0;
-    VSIStatBuf  sStatBuf;
+    VSIStatBufL  sStatBuf;
 
     /*---------------------------------------------------------------------
      * Try to open source file
      * Note: we use stat() to fetch the file size.
      *--------------------------------------------------------------------*/
-    if ( VSIStat(pszFname, &sStatBuf) == -1 )
+    if ( VSIStatL(pszFname, &sStatBuf) == -1 )
     {
         printf("stat() failed for %s\n", pszFname);
         return -1;
     }
 
-    fp = fopen(pszFname, "rb");
+    fp = VSIFOpenL(pszFname, "rb");
     if (fp == NULL)
     {
         printf("Failed to open %s\n", pszFname);
@@ -361,7 +361,7 @@ static int DumpMapFileBlocks(const char *pszFname)
     /*---------------------------------------------------------------------
      * Cleanup and exit.
      *--------------------------------------------------------------------*/
-    fclose(fp);
+    VSIFCloseL(fp);
 
     return 0;
 }
@@ -480,14 +480,14 @@ static int DumpMapFileIndexTree2MIF(const char *pszFname, int nMaxDepth)
  **********************************************************************/
 static int DumpMapFileBlockDetails(const char *pszFname, int nOffset)
 {
-    FILE        *fp;
+    VSILFILE        *fp;
     TABRawBinBlock *poBlock;
 
     /*---------------------------------------------------------------------
      * Try to open source file
      * Note: we use stat() to fetch the file size.
      *--------------------------------------------------------------------*/
-    fp = fopen(pszFname, "rb");
+    fp = VSIFOpenL(pszFname, "rb");
     if (fp == NULL)
     {
         printf("Failed to open %s\n", pszFname);
@@ -517,7 +517,7 @@ static int DumpMapFileBlockDetails(const char *pszFname, int nOffset)
     /*---------------------------------------------------------------------
      * Cleanup and exit.
      *--------------------------------------------------------------------*/
-    fclose(fp);
+    VSIFCloseL(fp);
 
     return 0;
 }

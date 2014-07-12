@@ -1,5 +1,5 @@
 /**********************************************************************
- * $Id: cpl_getexecpath.cpp 10645 2007-01-18 02:22:39Z warmerdam $
+ * $Id: cpl_getexecpath.cpp 21915 2011-03-08 21:58:16Z warmerdam $
  *
  * Project:  CPL - Common Portability Library
  * Purpose:  Implement CPLGetExecPath().
@@ -28,10 +28,13 @@
  ****************************************************************************/
 
 #include "cpl_conv.h"
+#include "cpl_string.h"
 
-CPL_CVSID("$Id: cpl_getexecpath.cpp 10645 2007-01-18 02:22:39Z warmerdam $");
+CPL_CVSID("$Id: cpl_getexecpath.cpp 21915 2011-03-08 21:58:16Z warmerdam $");
 
 #if defined(WIN32) || defined(WIN32CE)
+
+#define HAVE_IMPLEMENTATION 1
 
 #if defined(WIN32CE)
 #  include "cpl_win32ce_api.h"
@@ -46,16 +49,72 @@ CPL_CVSID("$Id: cpl_getexecpath.cpp 10645 2007-01-18 02:22:39Z warmerdam $");
 int CPLGetExecPath( char *pszPathBuf, int nMaxLength )
 {
 #ifndef WIN32CE
-    if( GetModuleFileName( NULL, pszPathBuf, nMaxLength ) == 0 )
+    if( CSLTestBoolean(
+            CPLGetConfigOption( "GDAL_FILENAME_IS_UTF8", "YES" ) ) )
+    {
+        wchar_t *pwszPathBuf = (wchar_t*)
+            CPLCalloc(nMaxLength+1,sizeof(wchar_t));
+
+        if( GetModuleFileNameW( NULL, pwszPathBuf, nMaxLength ) == 0 )
+        {
+            CPLFree( pwszPathBuf );
+            return FALSE;
+        }
+        else
+        {
+            char *pszDecoded = 
+                CPLRecodeFromWChar(pwszPathBuf,CPL_ENC_UCS2,CPL_ENC_UTF8);
+
+            strncpy( pszPathBuf, pszDecoded, nMaxLength );
+            CPLFree( pszDecoded );
+            CPLFree( pwszPathBuf );
+            return TRUE;
+        }
+    }
+    else
+    {
+        if( GetModuleFileName( NULL, pszPathBuf, nMaxLength ) == 0 )
+            return FALSE;
+        else
+            return TRUE;
+    }
 #else
     if( CE_GetModuleFileNameA( NULL, pszPathBuf, nMaxLength ) == 0 )
-#endif
         return FALSE;
     else
         return TRUE;
+#endif
 }
 
-#else /* ndef WIN32 */
+#endif
+
+/************************************************************************/
+/*                           CPLGetExecPath()                           */
+/************************************************************************/
+
+#if !defined(HAVE_IMPLEMENTATION) && defined(__linux)
+
+#include "cpl_multiproc.h"
+
+#define HAVE_IMPLEMENTATION 1
+
+int CPLGetExecPath( char *pszPathBuf, int nMaxLength )
+{
+    long nPID = getpid();
+    CPLString osExeLink;
+    ssize_t nResultLen;
+
+    osExeLink.Printf( "/proc/%ld/exe", nPID );
+    nResultLen = readlink( osExeLink, pszPathBuf, nMaxLength );
+    if( nResultLen >= 0 )
+        pszPathBuf[nResultLen] = '\0';
+    else
+        pszPathBuf[0] = '\0';
+
+    return nResultLen > 0;
+}
+
+#endif
 
 /************************************************************************/
 /*                           CPLGetExecPath()                           */
@@ -66,7 +125,7 @@ int CPLGetExecPath( char *pszPathBuf, int nMaxLength )
  *
  * The path to the executable currently running is returned.  This path
  * includes the name of the executable.   Currently this only works on 
- * win32 platform. 
+ * win32 and linux platforms.  The returned path is UTF-8 encoded.
  *
  * @param pszPathBuf the buffer into which the path is placed.
  * @param nMaxLength the buffer size, MAX_PATH+1 is suggested.
@@ -74,10 +133,13 @@ int CPLGetExecPath( char *pszPathBuf, int nMaxLength )
  * @return FALSE on failure or TRUE on success.
  */
 
+#ifndef HAVE_IMPLEMENTATION
+
 int CPLGetExecPath( char *pszPathBuf, int nMaxLength )
 
 {
     return FALSE;
 }
+
 #endif
 

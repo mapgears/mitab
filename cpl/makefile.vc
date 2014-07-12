@@ -23,7 +23,11 @@ OBJ	=	cpl_conv.obj \
 		cpl_strtod.obj \
 		cpl_vsil_subfile.obj \
 		cpl_recode_stub.obj \
-		cpl_vsil_stdout.obj
+		cpl_vsil_stdout.obj \
+		cpl_vsil_stdout.obj \
+		cplstringlist.obj cpl_recode.obj cpl_recode_stub.obj cpl_vsil_stdin.obj cpl_vsil_stdout.obj \
+		cpl_vsil_sparsefile.obj cpl_vsil_tar.obj cpl_vsil_cache.obj cpl_vsil_abstract_archive.obj cpl_time.obj \
+		cpl_hash_set.obj cpl_list.obj cpl_progress.obj cpl_spawn.obj cpl_virtualmem.obj
 
 LIB	=	cpl.lib
 

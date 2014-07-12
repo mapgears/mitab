@@ -2,11 +2,26 @@
 *.slo
 *.lo
 *.o
+*.obj
 
 # Compiled Dynamic libraries
-*.so
+*.so*
+*.dll
+*.pdb
+*.exe
+*.exp
+*.ilk
 
 # Compiled Static libraries
 *.lai
 *.la
 *.a
+*.lib
+
+mitab/ogrinfo
+mitab/tab2tab
+mitab/tabdump
+mitab/tabindex
+mitab/mitabc_test
+mitab/ogr2ogr
+cpl/cpl_config.h

@@ -32,7 +32,7 @@ MITAB_SHARED_LIB_FULLNAME=libmitab.so.1.0.1
 
 # -ldl doesn't work on MacOSX
 ifneq "$(shell uname -s)" "Darwin"
-  DL_LIB = -ldl
+  DL_LIB = -ldl -lpthread
 endif
 
 LIBS =	$(MITAB_LIB) ../ogr/ogr.a ../cpl/cpl.a $(LIB_DBMALLOC) $(DL_LIB)
@@ -75,7 +75,7 @@ $(MITAB_LIB): $(MITABLIB_OBJS)
 
 $(MITAB_SHARED_LIB_FULLNAME): $(MITABLIB_OBJS)
 	rm -f $(MITAB_SHARED_LIB_FULLNAME) $(MITAB_SHARED_LIB_SONAME)  $(MITAB_SHARED_LIB_LINKNAME)
-	$(CXX) $(MITABLIB_OBJS) ../ogr/ogr.a ../cpl/cpl.a -shared -Wl,-soname,$(MITAB_SHARED_LIB_SONAME) -o $(MITAB_SHARED_LIB_FULLNAME) -ldl
+	$(CXX) $(MITABLIB_OBJS) ../ogr/ogr.a ../cpl/cpl.a -shared -Wl,-soname,$(MITAB_SHARED_LIB_SONAME) -o $(MITAB_SHARED_LIB_FULLNAME) -ldl -lpthread
 	ln -s $(MITAB_SHARED_LIB_FULLNAME) $(MITAB_SHARED_LIB_SONAME)
 	ln -s $(MITAB_SHARED_LIB_SONAME) $(MITAB_SHARED_LIB_LINKNAME) 
 

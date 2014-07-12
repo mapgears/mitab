@@ -152,18 +152,20 @@ int main( int nArgc, char ** papszArgv )
 /*      Open data source.                                               */
 /* -------------------------------------------------------------------- */
     OGRDataSource       *poDS;
-    OGRSFDriver         *poDriver;
+    OGRSFDriverH        hDriver;
+    GDALDriver         *poDriver;
 
-    poDS = OGRSFDriverRegistrar::Open( pszDataSource, !bReadOnly, &poDriver );
+    poDS = (OGRDataSource*) OGROpen( pszDataSource, !bReadOnly, &hDriver );
     if( poDS == NULL && !bReadOnly )
     {
-        poDS = OGRSFDriverRegistrar::Open( pszDataSource, FALSE, &poDriver );
+        poDS = (OGRDataSource*) OGROpen( pszDataSource, FALSE, &hDriver );
         if( poDS != NULL && bVerbose )
         {
             printf( "Had to open data source read-only.\n" );
             bReadOnly = TRUE;
         }
     }
+    poDriver = (GDALDriver*) hDriver;
 
 /* -------------------------------------------------------------------- */
 /*      Report failure                                                  */
@@ -178,7 +180,7 @@ int main( int nArgc, char ** papszArgv )
 
         for( int iDriver = 0; iDriver < poR->GetDriverCount(); iDriver++ )
         {
-            printf( "  -> %s\n", poR->GetDriver(iDriver)->GetName() );
+            printf( "  -> %s\n", poR->GetDriver(iDriver)->GetDescription() );
         }
 
         exit( 1 );
@@ -190,13 +192,13 @@ int main( int nArgc, char ** papszArgv )
     if( bVerbose )
         printf( "INFO: Open of `%s'\n"
                 "using driver `%s' successful.\n",
-                pszDataSource, poDriver->GetName() );
+                pszDataSource, poDriver->GetDescription() );
 
     if( bVerbose && !EQUAL(pszDataSource,poDS->GetName()) )
     {
         printf( "INFO: Internal data source name `%s'\n"
                 "      different from user name `%s'.\n",
-                poDS->GetName(), pszDataSource );
+                poDS->GetDescription(), pszDataSource );
     }
 
 /* -------------------------------------------------------------------- */

@@ -442,7 +442,7 @@ static void WriteFile( const char * pszDest, const char * pszMifOrTab )
     x[4] = 96;
     y[4] = 46;
     
-    mitab_c_set_points( feature, 0, 5, x, y );
+    mitab_c_set_points( feature, 3, 5, x, y );
     
     x[0] = 95.5;
     y[0] = 45.5;

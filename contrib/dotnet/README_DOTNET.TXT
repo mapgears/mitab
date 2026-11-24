@@ -1,7 +1,7 @@
 The .net wrappers include:
 
-	1. MiApi.cs			This imports the c functions and enumerations from version 
-						1.3.0 of the MapInfo Tab API.
+	1. MiApi.cs			This imports the c functions and enumerations from the
+						current MapInfo Tab C API (MITAB_VERSION_INT 2000000).
 	
 	2. MiWrapper.cs		These classes wrap the functions in MiApi to produce a 
 						hierarchy of classes giving readonly access to the feature points. 

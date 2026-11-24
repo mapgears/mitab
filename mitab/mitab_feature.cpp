@@ -9,6 +9,7 @@
  *
  **********************************************************************
  * Copyright (c) 1999-2002, Daniel Morissette
+ * Copyright (c) 2014, Even Rouault <even.rouault at spatialys.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -173,6 +174,8 @@
 #include "mitab.h"
 #include "mitab_utils.h"
 #include "mitab_geometry.h"
+
+#include <utility>
 
 /*=====================================================================
  *                      class TABFeature
@@ -742,6 +745,15 @@ int TABFeature::UpdateMBR(TABMAPFile * poMapFile /*=NULL*/)
         {
             poMapFile->Coordsys2Int(oEnv.MinX, oEnv.MinY, m_nXMin, m_nYMin);
             poMapFile->Coordsys2Int(oEnv.MaxX, oEnv.MaxY, m_nXMax, m_nYMax);
+            /* Coordsys2Int can turn a min value into a max one and vice versa. */
+            if (m_nXMin > m_nXMax)
+            {
+                std::swap(m_nXMin, m_nXMax);
+            }
+            if (m_nYMin > m_nYMax)
+            {
+                std::swap(m_nYMin, m_nYMax);
+            }
         }
 
         return 0;

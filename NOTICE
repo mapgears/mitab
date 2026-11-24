@@ -1,0 +1,59 @@
+This file accompanies source and binary copies of MITAB. The permission
+for the library itself is in LICENSE. The two components below keep the
+terms printed in their source files.
+
+ogr/swq.c and ogr/swq.h
+-----------------------
+
+Copyright (C) 2001 Information Interoperability Institute (3i)
+
+Permission to use, copy, modify and distribute this software and
+its documentation for any purpose and without fee is hereby granted,
+provided that the above copyright notice appear in all copies, that
+both the copyright notice and this permission notice appear in
+supporting documentation, and that the name of 3i not be used
+in advertising or publicity pertaining to distribution of the software
+without specific, written prior permission.  3i makes no
+representations about the suitability of this software for any purpose.
+It is provided "as is" without express or implied warranty.
+
+cpl/cpl_recode_stub.cpp
+-----------------------
+
+The bulk of this code is derived from the utf.c module from FLTK.
+
+Copyright (c) 2008, Frank Warmerdam
+Copyright 2006 by Bill Spitzak and others.
+
+Permission to use, copy, modify, and distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+GDAL MapInfo fixes
+------------------
+
+Selected fixes were ported from the GDAL MapInfo driver. The GDAL copies
+of the destination files use the same MIT-style permission as LICENSE.
+Even Rouault wrote these commits:
+
+  a5cbb6c535  mitab_coordsys.cpp, mitab_spatialref.cpp
+  2789405d5b  mitab_feature.cpp
+  1a9fbce231  mitab_feature_mif.cpp
+  bc34cd533c  mitab_feature_mif.cpp
+  588cc86485  mitab_feature_mif.cpp
+  62d8f0bb3d  mitab_feature_mif.cpp
+  2c5c3db03f  mitab_mapindexblock.cpp
+  6edba1e791  mitab_mapobjectblock.cpp
+
+The GDAL copies of mitab_feature.cpp, mitab_mapindexblock.cpp, and
+mitab_mapobjectblock.cpp at the commits above already included:
+
+  Copyright (c) 2014, Even Rouault <even.rouault at spatialys.com>

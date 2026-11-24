@@ -1,12 +1,37 @@
-# Compiled Object files
-*.slo
-*.lo
-*.o
+﻿# Visual Studio
+.vs/
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+CppProperties.json
 
-# Compiled Dynamic libraries
-*.so
+# Build output
+bin/
+obj/
+Debug/
+Release/
+x64/
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.tlog
+*.lastbuildstate
+*.idb
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
+# Generated libraries
+*.dll
+*.lib
+
+# CMake build artifacts
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Backups
+*.vcxproj.bak
+
+# Local editor workspace with absolute paths
+mitab.code-workspace
+

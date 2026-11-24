@@ -134,7 +134,15 @@ Type
 const
 // update to match mitab.h (app. line 194), when new versions are released
   Libversion = 1007000;
-  
+  LibversionOr = 2000000;
+
+// file class values (TABFileClass, mitab_c_get_table_class)
+  TABFC_IMapInfoFile = 0;
+  TABFC_TABFile      = 1;
+  TABFC_TABView      = 2;
+  TABFC_TABSeamless  = 3;
+  TABFC_MIFFile      = 4;
+
 // feature type values
   TABFC_NoGeom      = 0;
   TABFC_Point       = 1;
@@ -259,6 +267,18 @@ type
   Tmitab_c_is_field_indexed               = function(handle: mitab_handle; field: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
   Tmitab_c_is_field_unique                = function(handle: mitab_handle; field: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
   Tmitab_c_set_quick_spatial_index_mode   = function(handle: mitab_handle): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_file_version               = function(handle: mitab_handle): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_table_class                = function(handle: mitab_handle): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_bounds_set                     = function(handle: mitab_handle): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_charset                    = function(handle: mitab_handle; charset: pchar): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_extended_mif_coordsys_vb   = function(dataset: mitab_handle; coordsys: pchar; l: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_symbol_angle               = procedure(feature: mitab_feature; symbol_angle: double); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_symbol_angle               = function(feature: mitab_feature): double; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_symbol_style               = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_symbol_style               = procedure(feature: mitab_feature; symbol_style: longint); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_text_style                 = function(feature: mitab_feature): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_set_text_style                 = procedure(feature: mitab_feature; text_style: longint); {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
+  Tmitab_c_get_feature_count_by_type      = function(handle: mitab_handle; var numPoints, numLines, numRegions, numTexts: longint): longint; {$IFDEF LINUX} cdecl; {$ELSE} stdcall; {$ENDIF}
 
 var
   LibPath: string;        // Full path to the MITAB DLL, default value is just 'mitab.dll'
@@ -349,6 +369,18 @@ var
   mitab_c_is_field_indexed: Tmitab_c_is_field_indexed;
   mitab_c_is_field_unique: Tmitab_c_is_field_unique;
   mitab_c_set_quick_spatial_index_mode: Tmitab_c_set_quick_spatial_index_mode;
+  mitab_c_get_file_version: Tmitab_c_get_file_version;
+  mitab_c_get_table_class: Tmitab_c_get_table_class;
+  mitab_c_bounds_set: Tmitab_c_bounds_set;
+  mitab_c_set_charset: Tmitab_c_set_charset;
+  mitab_c_get_extended_mif_coordsys_vb: Tmitab_c_get_extended_mif_coordsys_vb;
+  mitab_c_set_symbol_angle: Tmitab_c_set_symbol_angle;
+  mitab_c_get_symbol_angle: Tmitab_c_get_symbol_angle;
+  mitab_c_get_symbol_style: Tmitab_c_get_symbol_style;
+  mitab_c_set_symbol_style: Tmitab_c_set_symbol_style;
+  mitab_c_get_text_style: Tmitab_c_get_text_style;
+  mitab_c_set_text_style: Tmitab_c_set_text_style;
+  mitab_c_get_feature_count_by_type: Tmitab_c_get_feature_count_by_type;
 
 procedure MITAB_load;
 function MITAB_LibOK: boolean;
@@ -405,7 +437,7 @@ begin
     @mitab_c_getlibversion:= GenericGetProcAddress('mitab_c_getlibversion',0);
     if @mitab_c_getlibversion<>nil then  // does the function exist?
     begin
-      if mitab_c_getlibversion=Libversion then  // does it return the correct number?
+      if (mitab_c_getlibversion=Libversion) or (mitab_c_getlibversion=LibversionOr) then  // does it return the correct number?
       begin
         MITAB_LoadErr:= 0;
         @mitab_c_add_field:=                     GenericGetProcAddress('mitab_c_add_field',28);
@@ -488,6 +520,18 @@ begin
         @mitab_c_is_field_indexed:=              GenericGetProcAddress('mitab_c_is_field_indexed',8);
         @mitab_c_is_field_unique:=               GenericGetProcAddress('mitab_c_is_field_unique',8);
         @mitab_c_set_quick_spatial_index_mode:=  GenericGetProcAddress('mitab_c_set_quick_spatial_index_mode',4);
+        @mitab_c_get_file_version:=              GenericGetProcAddress('mitab_c_get_file_version',4);
+        @mitab_c_get_table_class:=               GenericGetProcAddress('mitab_c_get_table_class',4);
+        @mitab_c_bounds_set:=                    GenericGetProcAddress('mitab_c_bounds_set',4);
+        @mitab_c_set_charset:=                   GenericGetProcAddress('mitab_c_set_charset',8);
+        @mitab_c_get_extended_mif_coordsys_vb:=  GenericGetProcAddress('mitab_c_get_extended_mif_coordsys_vb',12);
+        @mitab_c_set_symbol_angle:=              GenericGetProcAddress('mitab_c_set_symbol_angle',12);
+        @mitab_c_get_symbol_angle:=              GenericGetProcAddress('mitab_c_get_symbol_angle',4);
+        @mitab_c_get_symbol_style:=              GenericGetProcAddress('mitab_c_get_symbol_style',4);
+        @mitab_c_set_symbol_style:=              GenericGetProcAddress('mitab_c_set_symbol_style',8);
+        @mitab_c_get_text_style:=                GenericGetProcAddress('mitab_c_get_text_style',4);
+        @mitab_c_set_text_style:=                GenericGetProcAddress('mitab_c_set_text_style',8);
+        @mitab_c_get_feature_count_by_type:=     GenericGetProcAddress('mitab_c_get_feature_count_by_type',20);
       end else MITAB_LoadErr:= -4;
     end else MITAB_LoadErr:= -3;
   end else MITAB_LoadErr:= -2;

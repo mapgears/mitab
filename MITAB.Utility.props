@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    tab2tab, tabdump, ogrinfo and ogr2ogr call MITAB C++ classes.
+    mitab.dll exports only the stdcall C API used by Delphi, so the
+    utilities link the object files already produced for that DLL
+    instead of its import library. CPL and OGR stay static libraries.
+  -->
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <WarningLevel>Level3</WarningLevel>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+      <AdditionalOptions>/SUBSYSTEM:CONSOLE,5.01 %(AdditionalOptions)</AdditionalOptions>
+      <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
+    </Link>
+  </ItemDefinitionGroup>
+  <PropertyGroup>
+    <BeforeLinkTargets>$(BeforeLinkTargets);LinkMitabObjects</BeforeLinkTargets>
+  </PropertyGroup>
+  <Target Name="LinkMitabObjects" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_MitabObjDir>$(SolutionDir)obj\MITAB\$(Platform)\$(Configuration)\</_MitabObjDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_MitabObj Include="$(_MitabObjDir)*.obj" />
+      <Link Include="@(_MitabObj)" />
+    </ItemGroup>
+    <Error Condition="'@(_MitabObj)' == ''" Text="No MITAB object files in $(_MitabObjDir). Build the MITAB project before the utilities." />
+  </Target>
+</Project>

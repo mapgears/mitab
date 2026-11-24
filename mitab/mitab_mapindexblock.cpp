@@ -10,6 +10,7 @@
  *
  **********************************************************************
  * Copyright (c) 1999, 2000, Daniel Morissette
+ * Copyright (c) 2014, Even Rouault <even.rouault at spatialys.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1051,8 +1052,8 @@ int  TABMAPIndexBlock::PickSeedsForSplit(TABMAPIndexEntry *pasEntries,
     // corresponding dimension
     double dX, dY;
 
-    dX = (double)(nHighestMinX - nLowestMaxX) / nSrcWidth;
-    dY = (double)(nHighestMinY - nLowestMaxY) / nSrcHeight;
+    dX = (nSrcWidth == 0) ? 0 : (double)(nHighestMinX - nLowestMaxX) / nSrcWidth;
+    dY = (nSrcHeight == 0) ? 0 : (double)(nHighestMinY - nLowestMaxY) / nSrcHeight;
 
     // Choose the pair with the greatest normalized separation along
     // any dimension

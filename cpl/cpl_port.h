@@ -175,6 +175,15 @@ typedef int             GBool;
 #if defined(WIN32) && defined(_MSC_VER)
 
 #define VSI_LARGE_API_SUPPORTED
+/* Windows/MSVC: 64-bit file stat support */
+#ifndef VSI_STAT64
+#define VSI_STAT64 _stati64
+#endif
+
+#ifndef VSI_STAT64_T
+#define VSI_STAT64_T _stati64
+#endif
+
 typedef __int64          GIntBig;
 typedef unsigned __int64 GUIntBig;
 

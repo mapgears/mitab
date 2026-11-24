@@ -87,8 +87,18 @@ Type
   mitab_handle = Longword;
   mitab_feature = Longword;
   mitab_projinfo = Longword;
+  TadProjParams = array [1..6] of double;
+  TadDatumParams = array [1..5] of double;
+  TadAffineParams = array [1..6] of double;
 
 const
+
+// file class values (TABFileClass, mitab_c_get_table_class)
+  TABFC_IMapInfoFile = 0;
+  TABFC_TABFile      = 1;
+  TABFC_TABView      = 2;
+  TABFC_TABSeamless  = 3;
+  TABFC_MIFFile      = 4;
 
 // feature type values
   TABFC_NoGeom      = 0;
@@ -102,6 +112,7 @@ const
   TABFC_Rectangle   = 8;
   TABFC_Ellipse     = 9;
   TABFC_MultiPoint  = 10;
+  TABFC_Collection  = 11;
 
 // field types
   TABFT_Char        = 1;
@@ -111,6 +122,8 @@ const
   TABFT_Float       = 5;
   TABFT_Date        = 6;
   TABFT_Logical     = 7;
+  TABFT_Time        = 8;
+  TABFT_DateTime    = 9;
 
 // text justification
   TABTJ_Left        = 0;
@@ -130,7 +143,8 @@ const
 const
 
   DLL = 'mitab.dll';
-  Libversion = 1002004;
+  Libversion = 1007000;
+  LibversionOr = 2000000;
 
 function  mitab_c_add_field              (handle: mitab_handle; field_name: pchar;field_type, width, precision, indexed, unique: longint): longint;             stdcall; external DLL Name '_mitab_c_add_field@28'            ;
 procedure mitab_c_close                  (handle: mitab_handle);                                                                                                stdcall; external DLL Name '_mitab_c_close@4'                 ;
@@ -199,6 +213,32 @@ function  mitab_c_load_coordsys_table    (filename: pchar): longint;            
 function  mitab_c_get_extended_mif_coordsys (dataset: mitab_handle): pchar;                                                                                     stdcall; external DLL Name '_mitab_c_get_extended_mif_coordsys@4';
 function  mitab_c_get_feature_count      (handle: mitab_handle): longint;                                                                                       stdcall; external DLL Name '_mitab_c_get_feature_count@4'     ;
 function  mitab_c_get_field_as_double    (feature: mitab_feature; field: longint): double;                                                                      stdcall; external DLL Name '_mitab_c_get_field_as_double@8'   ;
+function  mitab_c_get_file_version       (handle: mitab_handle): longint;                                                                                       stdcall; external DLL Name '_mitab_c_get_file_version@4'      ;
+function  mitab_c_get_table_class        (handle: mitab_handle): longint;                                                                                       stdcall; external DLL Name '_mitab_c_get_table_class@4'       ;
+function  mitab_c_bounds_set             (handle: mitab_handle): longint;                                                                                       stdcall; external DLL Name '_mitab_c_bounds_set@4'            ;
+function  mitab_c_set_quick_spatial_index_mode (handle: mitab_handle): longint;                                                                                 stdcall; external DLL Name '_mitab_c_set_quick_spatial_index_mode@4';
+function  mitab_c_set_charset            (handle: mitab_handle; charset: pchar): longint;                                                                       stdcall; external DLL Name '_mitab_c_set_charset@8'           ;
+procedure mitab_c_set_symbol_angle       (feature: mitab_feature; symbol_angle: double);                                                                        stdcall; external DLL Name '_mitab_c_set_symbol_angle@12'      ;
+function  mitab_c_get_symbol_angle       (feature: mitab_feature): double;                                                                                      stdcall; external DLL Name '_mitab_c_get_symbol_angle@4'      ;
+function  mitab_c_get_symbol_style       (feature: mitab_feature): longint;                                                                                     stdcall; external DLL Name '_mitab_c_get_symbol_style@4'      ;
+procedure mitab_c_set_symbol_style       (feature: mitab_feature; symbol_style: longint);                                                                       stdcall; external DLL Name '_mitab_c_set_symbol_style@8'      ;
+function  mitab_c_get_text_style         (feature: mitab_feature): longint;                                                                                     stdcall; external DLL Name '_mitab_c_get_text_style@4'        ;
+procedure mitab_c_set_text_style         (feature: mitab_feature; text_style: longint);                                                                         stdcall; external DLL Name '_mitab_c_set_text_style@8'        ;
+function  mitab_c_get_feature_count_by_type (handle: mitab_handle; var numPoints, numLines, numRegions, numTexts: longint): longint;                            stdcall; external DLL Name '_mitab_c_get_feature_count_by_type@20';
+function  mitab_c_is_field_indexed       (handle: mitab_handle; field: longint): longint;                                                                       stdcall; external DLL Name '_mitab_c_is_field_indexed@8'      ;
+function  mitab_c_is_field_unique        (handle: mitab_handle; field: longint): longint;                                                                       stdcall; external DLL Name '_mitab_c_is_field_unique@8'       ;
+function  mitab_c_get_collection_region_ref     (feature: mitab_feature): mitab_feature;                                                                        stdcall; external DLL Name '_mitab_c_get_collection_region_ref@4';
+function  mitab_c_get_collection_polyline_ref   (feature: mitab_feature): mitab_feature;                                                                        stdcall; external DLL Name '_mitab_c_get_collection_polyline_ref@4';
+function  mitab_c_get_collection_multipoint_ref (feature: mitab_feature): mitab_feature;                                                                        stdcall; external DLL Name '_mitab_c_get_collection_multipoint_ref@4';
+function  mitab_c_set_collection_region         (feature, region: mitab_feature; make_copy: longint): longint;                                                  stdcall; external DLL Name '_mitab_c_set_collection_region@12';
+function  mitab_c_set_collection_polyline       (feature, polyline: mitab_feature; make_copy: longint): longint;                                                stdcall; external DLL Name '_mitab_c_set_collection_polyline@12';
+function  mitab_c_set_collection_multipoint     (feature, multipoint: mitab_feature; make_copy: longint): longint;                                              stdcall; external DLL Name '_mitab_c_set_collection_multipoint@12';
+procedure mitab_c_get_projection_info    (projInfo: mitab_projinfo; var nProjId, nEllipsoidId, nUnitsId: longint; var adProjParams: TadProjParams);             stdcall; external DLL Name '_mitab_c_get_projection_info@20'  ;
+procedure mitab_c_set_projection_info    (projInfo: mitab_projinfo; nProjId, nEllipsoidId, nUnitsId: longint; var adProjParams: TadProjParams);                  stdcall; external DLL Name '_mitab_c_set_projection_info@20'  ;
+procedure mitab_c_get_datum_info         (projInfo: mitab_projinfo; var dDatumShiftX, dDatumShiftY, dDatumShiftZ: double; var adDatumParams: TadDatumParams);    stdcall; external DLL Name '_mitab_c_get_datum_info@20'       ;
+procedure mitab_c_set_datum_info         (projInfo: mitab_projinfo; dDatumShiftX, dDatumShiftY, dDatumShiftZ: double; var adDatumParams: TadDatumParams);        stdcall; external DLL Name '_mitab_c_set_datum_info@32'       ;
+function  mitab_c_get_affine_params      (projInfo: mitab_projinfo; var nAffineUnits: longint; var adAffineParams: TadAffineParams): longint;                    stdcall; external DLL Name '_mitab_c_get_affine_params@12'    ;
+procedure mitab_c_set_affine_params      (projInfo: mitab_projinfo; nAffineUnits: longint; var adAffineParams: TadAffineParams);                                 stdcall; external DLL Name '_mitab_c_set_affine_params@12'    ;
 
 implementation
 end.

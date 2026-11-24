@@ -8,6 +8,14 @@ using System.Collections;
 
 namespace EBop.MapObjects.MapInfo {
 
+	// file class values (TABFileClass, mitab_c_get_table_class)
+	public enum FileClass {
+		TABFC_IMapInfoFile = 0,
+		TABFC_TABFile = 1,
+		TABFC_TABView = 2,
+		TABFC_TABSeamless = 3,
+		TABFC_MIFFile = 4};
+
 	// feature type values
 	public enum FeatureType {
 		TABFC_NoGeom = 0,
@@ -20,7 +28,8 @@ namespace EBop.MapObjects.MapInfo {
 		TABFC_Region = 7,
 		TABFC_Rectangle = 8,
 		TABFC_Ellipse = 9,
-		TABFC_MultiPoint = 10};
+		TABFC_MultiPoint = 10,
+		TABFC_Collection = 11};
 
 	public enum FieldType { 
 		TABFT_Char = 1,
@@ -29,7 +38,9 @@ namespace EBop.MapObjects.MapInfo {
 		TABFT_Decimal = 4,
 		TABFT_Float = 5,
 		TABFT_Date = 6,
-		TABFT_Logical = 7};
+		TABFT_Logical = 7,
+		TABFT_Time = 8,
+		TABFT_DateTime = 9};
 
 	public enum Justification {
 		TABTJ_Left = 0,
@@ -48,7 +59,7 @@ namespace EBop.MapObjects.MapInfo {
 		TABTL_Arrow = 2};
 
 	/// <summary>
-	/// Wrapper functions for the version 1.3.0 of the MapInfo Tab API.
+	/// Wrapper functions for the MapInfo Tab C API (MITAB_VERSION_INT 2000000).
 	/// </summary>
 	/// <remarks>
 	/// Requires mitab.dll (www.maptools.org)
@@ -195,7 +206,7 @@ namespace EBop.MapObjects.MapInfo {
 		/// <param name="feature_type">A member of the feature type enumeration. At this point, only the following 
 		/// types can be created by this C API function: TABFC_NoGeom (0), TABFC_Point (1), TABFC_FontPoint (2), 
 		/// TABFC_CustomPoint (3), TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6), TABFC_Region (7), 
-		/// TABFC_Rectangle (8), TABFC_Ellipse (9) and TABFC_MultiPoint (10)</param>
+		/// TABFC_Rectangle (8), TABFC_Ellipse (9), TABFC_MultiPoint (10) and TABFC_Collection (11)</param>
 		/// <returns>The new mitab_feature object, or NULL if creation failed. Note that the new object will 
 		/// have to be released using mitab_c_destroy_feature().</returns>
 		[DllImport("mitab.dll")]
@@ -367,9 +378,7 @@ namespace EBop.MapObjects.MapInfo {
 		/// Return a mitab_feature's object type. 
 		/// </summary>
 		/// <param name="feature">The mitab_feature object.</param>
-		/// <returns>A member of the FeatureType enumeration, one of TABFC_NoGeom (0), TABFC_Point (1), 
-		/// TABFC_FontPoint (2), TABFC_CustomPoint (3), TABFC_Text (4), TABFC_Polyline (5), TABFC_Arc (6),
-		/// TABFC_Region (7), TABFC_Rectangle (8), TABFC_Ellipse (9) or TABFC_MultiPoint (10).</returns>
+		/// <returns>A member of the FeatureType enumeration.</returns>
 		[DllImport("mitab.dll")]
 		public static extern FeatureType mitab_c_get_type( IntPtr feature );
 
@@ -436,8 +445,7 @@ namespace EBop.MapObjects.MapInfo {
 		/// </summary>
 		/// <param name="handle">The dataset's handle.</param>
 		/// <param name="field">The index of the field to look at, with 0 being the first field.</param>
-		/// <returns>The field type, one of TABFT_Char (1), TABFT_Integer (2), TABFT_SmallInt (3),
-		/// TABFT_Decimal (4), TABFT_Float (5), TABFT_Date (6), or TABFT_Logical (7)</returns>
+		/// <returns>The field type, a member of the FieldType enumeration.</returns>
 		[DllImport("mitab.dll")]
 		public static extern FieldType mitab_c_get_field_type( IntPtr handle, int field );
 		
@@ -549,5 +557,95 @@ namespace EBop.MapObjects.MapInfo {
 		/// first part of a polygon. If the feature is not a region the return value will be false.</returns>
 		[DllImport("mitab.dll")]
 		public static extern int mitab_c_is_interior_ring( IntPtr feature, int requestedringindex );
+
+		/// <summary>Returns the TAB or MIF file version, or -1.</summary>
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_get_file_version( IntPtr handle );
+
+		/// <summary>Returns the file class, a member of FileClass.</summary>
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_get_table_class( IntPtr handle );
+
+		/// <summary>Returns 1 if dataset bounds were set, otherwise 0.</summary>
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_bounds_set( IntPtr handle );
+
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_set_quick_spatial_index_mode( IntPtr handle );
+
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_set_charset( IntPtr handle,
+			[MarshalAs(UnmanagedType.LPStr)] string charset );
+
+		[DllImport("mitab.dll")]
+		public static extern void mitab_c_set_symbol_angle( IntPtr feature, double symbol_angle );
+
+		[DllImport("mitab.dll")]
+		public static extern double mitab_c_get_symbol_angle( IntPtr feature );
+
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_get_symbol_style( IntPtr feature );
+
+		[DllImport("mitab.dll")]
+		public static extern void mitab_c_set_symbol_style( IntPtr feature, int symbol_style );
+
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_get_text_style( IntPtr feature );
+
+		[DllImport("mitab.dll")]
+		public static extern void mitab_c_set_text_style( IntPtr feature, int text_style );
+
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_get_feature_count_by_type( IntPtr handle,
+			out int numPoints, out int numLines, out int numRegions, out int numTexts );
+
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_is_field_indexed( IntPtr handle, int field );
+
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_is_field_unique( IntPtr handle, int field );
+
+		[DllImport("mitab.dll")]
+		public static extern IntPtr mitab_c_get_collection_region_ref( IntPtr feature );
+
+		[DllImport("mitab.dll")]
+		public static extern IntPtr mitab_c_get_collection_polyline_ref( IntPtr feature );
+
+		[DllImport("mitab.dll")]
+		public static extern IntPtr mitab_c_get_collection_multipoint_ref( IntPtr feature );
+
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_set_collection_region( IntPtr feature, IntPtr region, int make_copy );
+
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_set_collection_polyline( IntPtr feature, IntPtr polyline, int make_copy );
+
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_set_collection_multipoint( IntPtr feature, IntPtr multipoint, int make_copy );
+
+		[DllImport("mitab.dll")]
+		public static extern void mitab_c_get_projection_info( IntPtr projInfo,
+			out int nProjId, out int nEllipsoidId, out int nUnitsId, double[] adProjParams );
+
+		[DllImport("mitab.dll")]
+		public static extern void mitab_c_set_projection_info( IntPtr projInfo,
+			int nProjId, int nEllipsoidId, int nUnitsId, double[] adProjParams );
+
+		[DllImport("mitab.dll")]
+		public static extern void mitab_c_get_datum_info( IntPtr projInfo,
+			out double dDatumShiftX, out double dDatumShiftY, out double dDatumShiftZ, double[] adDatumParams );
+
+		[DllImport("mitab.dll")]
+		public static extern void mitab_c_set_datum_info( IntPtr projInfo,
+			double dDatumShiftX, double dDatumShiftY, double dDatumShiftZ, double[] adDatumParams );
+
+		/// <summary>Returns 0 when the projection has no affine parameters.</summary>
+		[DllImport("mitab.dll")]
+		public static extern int mitab_c_get_affine_params( IntPtr projInfo,
+			out int nAffineUnits, double[] adAffineParams );
+
+		[DllImport("mitab.dll")]
+		public static extern void mitab_c_set_affine_params( IntPtr projInfo,
+			int nAffineUnits, double[] adAffineParams );
 	}
 }

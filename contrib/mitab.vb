@@ -96,6 +96,14 @@ Type mitab_projinfo
   ph(255) As Byte
 End Type
 
+Rem file class values (TABFileClass, mitab_c_get_table_class)
+
+Public Const TABFC_IMapInfoFile = 0
+Public Const TABFC_TABFile = 1
+Public Const TABFC_TABView = 2
+Public Const TABFC_TABSeamless = 3
+Public Const TABFC_MIFFile = 4
+
 Rem feature type values
 
 Public Const TABFC_NoGeom = 0
@@ -144,6 +152,7 @@ Public Const TABTL_Arrow = 2
 Rem version 
 
 Public Const Libversion = 1007000
+Public Const LibversionOr = 2000000
 
 
 Public Declare Function mitab_c_add_field Lib "mitab.dll" Alias "_mitab_c_add_field@28" (ByVal handle As Long, ByVal field_name As String, ByVal field_type As Long, ByVal width As Long, ByVal precision As Long, ByVal indexed As Long, ByVal unique As Long) As Long
@@ -206,4 +215,29 @@ Public Declare Function mitab_c_get_field_precision Lib "mitab.dll" Alias "_mita
 Public Declare Function mitab_c_is_interior_ring Lib "mitab.dll" Alias "_mitab_c_is_interior_ring@8" (ByVal feature As Long, ByVal requestedringindex As Long) As Long
 Public Declare Function mitab_c_load_coordsys_table Lib "mitab.dll" Alias "_mitab_c_load_coordsys_table@4" (ByVal filename As String) As Long
 Public Declare Function mitab_c_get_feature_count Lib "mitab.dll" Alias "_mitab_c_get_feature_count@4" (ByVal handle As Long) As Long
-Public Declare Function mitab_c_get_field_as_double Lib "mitab.dll" Alias "_mitab_c_get_field_as_double_vb@8" (ByVal feature As Long, ByVal field As Long) As Double
+Public Declare Function mitab_c_get_field_as_double Lib "mitab.dll" Alias "_mitab_c_get_field_as_double@8" (ByVal feature As Long, ByVal field As Long) As Double
+Public Declare Function mitab_c_get_file_version Lib "mitab.dll" Alias "_mitab_c_get_file_version@4" (ByVal handle As Long) As Long
+Public Declare Function mitab_c_get_table_class Lib "mitab.dll" Alias "_mitab_c_get_table_class@4" (ByVal handle As Long) As Long
+Public Declare Function mitab_c_bounds_set Lib "mitab.dll" Alias "_mitab_c_bounds_set@4" (ByVal handle As Long) As Long
+Public Declare Function mitab_c_set_charset Lib "mitab.dll" Alias "_mitab_c_set_charset@8" (ByVal handle As Long, ByVal charset As String) As Long
+Public Declare Sub mitab_c_set_symbol_angle Lib "mitab.dll" Alias "_mitab_c_set_symbol_angle@12" (ByVal feature As Long, ByVal symbol_angle As Double)
+Public Declare Function mitab_c_get_symbol_angle Lib "mitab.dll" Alias "_mitab_c_get_symbol_angle@4" (ByVal feature As Long) As Double
+Public Declare Function mitab_c_get_symbol_style Lib "mitab.dll" Alias "_mitab_c_get_symbol_style@4" (ByVal feature As Long) As Long
+Public Declare Sub mitab_c_set_symbol_style Lib "mitab.dll" Alias "_mitab_c_set_symbol_style@8" (ByVal feature As Long, ByVal symbol_style As Long)
+Public Declare Function mitab_c_get_text_style Lib "mitab.dll" Alias "_mitab_c_get_text_style@4" (ByVal feature As Long) As Long
+Public Declare Sub mitab_c_set_text_style Lib "mitab.dll" Alias "_mitab_c_set_text_style@8" (ByVal feature As Long, ByVal text_style As Long)
+Public Declare Function mitab_c_get_feature_count_by_type Lib "mitab.dll" Alias "_mitab_c_get_feature_count_by_type@20" (ByVal handle As Long, numPoints As Long, numLines As Long, numRegions As Long, numTexts As Long) As Long
+Public Declare Function mitab_c_is_field_indexed Lib "mitab.dll" Alias "_mitab_c_is_field_indexed@8" (ByVal handle As Long, ByVal field As Long) As Long
+Public Declare Function mitab_c_is_field_unique Lib "mitab.dll" Alias "_mitab_c_is_field_unique@8" (ByVal handle As Long, ByVal field As Long) As Long
+Public Declare Function mitab_c_get_collection_region_ref Lib "mitab.dll" Alias "_mitab_c_get_collection_region_ref@4" (ByVal feature As Long) As Long
+Public Declare Function mitab_c_get_collection_polyline_ref Lib "mitab.dll" Alias "_mitab_c_get_collection_polyline_ref@4" (ByVal feature As Long) As Long
+Public Declare Function mitab_c_get_collection_multipoint_ref Lib "mitab.dll" Alias "_mitab_c_get_collection_multipoint_ref@4" (ByVal feature As Long) As Long
+Public Declare Function mitab_c_set_collection_region Lib "mitab.dll" Alias "_mitab_c_set_collection_region@12" (ByVal feature As Long, ByVal region As Long, ByVal make_copy As Long) As Long
+Public Declare Function mitab_c_set_collection_polyline Lib "mitab.dll" Alias "_mitab_c_set_collection_polyline@12" (ByVal feature As Long, ByVal polyline As Long, ByVal make_copy As Long) As Long
+Public Declare Function mitab_c_set_collection_multipoint Lib "mitab.dll" Alias "_mitab_c_set_collection_multipoint@12" (ByVal feature As Long, ByVal multipoint As Long, ByVal make_copy As Long) As Long
+Public Declare Sub mitab_c_get_projection_info Lib "mitab.dll" Alias "_mitab_c_get_projection_info@20" (ByVal projInfo As Long, nProjId As Long, nEllipsoidId As Long, nUnitsId As Long, adProjParams As Double)
+Public Declare Sub mitab_c_set_projection_info Lib "mitab.dll" Alias "_mitab_c_set_projection_info@20" (ByVal projInfo As Long, ByVal nProjId As Long, ByVal nEllipsoidId As Long, ByVal nUnitsId As Long, adProjParams As Double)
+Public Declare Sub mitab_c_get_datum_info Lib "mitab.dll" Alias "_mitab_c_get_datum_info@20" (ByVal projInfo As Long, dDatumShiftX As Double, dDatumShiftY As Double, dDatumShiftZ As Double, adDatumParams As Double)
+Public Declare Sub mitab_c_set_datum_info Lib "mitab.dll" Alias "_mitab_c_set_datum_info@32" (ByVal projInfo As Long, ByVal dDatumShiftX As Double, ByVal dDatumShiftY As Double, ByVal dDatumShiftZ As Double, adDatumParams As Double)
+Public Declare Function mitab_c_get_affine_params Lib "mitab.dll" Alias "_mitab_c_get_affine_params@12" (ByVal projInfo As Long, nAffineUnits As Long, adAffineParams As Double) As Long
+Public Declare Sub mitab_c_set_affine_params Lib "mitab.dll" Alias "_mitab_c_set_affine_params@12" (ByVal projInfo As Long, ByVal nAffineUnits As Long, adAffineParams As Double)

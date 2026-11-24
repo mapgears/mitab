@@ -1,0 +1,25 @@
+---
+description: Procedure for porting MITAB fixes from GDAL. Use when the task mentions MITAB, GDAL, MapInfo TAB/MIF migration, docs/gdal-migration, or a GDAL commit to port into mapgears.
+globs: docs/gdal-migration/**,mitab/**
+alwaysApply: false
+---
+
+# Перенос MITAB из GDAL
+
+Перед любой задачей переноса прочитать `docs/gdal-migration/ANALYSIS.md` и `docs/gdal-migration/PROGRESS.md`. Повторный полный разбор истории GDAL (521 коммит после `b075f49fca`) не делать, если ответ уже есть в этих файлах.
+
+Дальше смотреть только SHA и функции текущего пункта: `git show <sha>` в клоне GDAL. GDAL только читать. Писать код только в `mapgears/mitab/`.
+
+Не менять `cpl/`, `ogr/`, публичный C API (`mitab_capi.h` и сигнатуры, на которые опираются внешние вызовы) и файлы сборки (`*.sln`, `*.vcxproj`, CMake) без отдельного разрешения пользователя. Пункты B1–B6 в `PROGRESS.md` со статусом `BLOCKED` или `SKIPPED` не реализовывать.
+
+Сохранять сборку VS2013, toolset `v120_xp` и образ Win32 с subsystem 5.01. Конфигурация x64 в решении есть, но обязательная проверка переноса остаётся `Release|Win32`. Не использовать C++ новее C++11. Типы и размеры писать так, чтобы та же правка собиралась и для x64 (`GInt32` не подменять на `long`). Не задавать глобальный `DEBUG`: в заголовках под ним появляются виртуальные `Dump`, и это меняет C++ ABI DLL.
+
+После переноса обновить строку пункта в `PROGRESS.md`: статус, коммит MITAB (пусто, пока коммита нет), что реально показала сборка и проверка из `ANALYSIS.md`. `VERIFIED` ставить только после `Release|Win32` `v120_xp` и указанной для пункта проверки. Если сборка или тест не запускались, так и записать.
+
+Git commit и push не создавать без явного разрешения пользователя.
+
+Пример обновления журнала после сборки, которая прошла, а чтение MIF ещё нет:
+
+```markdown
+| 1 | break после Mollweide | a5cbb6c535 | IMPLEMENTED | | Release\|Win32 v120_xp собрался. Чтение проекции 13 не прогонялось |
+```

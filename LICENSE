@@ -1,0 +1,51 @@
+MITAB library
+Copyright (c) 1998-2005, Daniel Morissette
+Copyright (c) 1998-2005, Frank Warmerdam
+Copyright (c) 1999,2000, Stephane Villeneuve
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+The same permission appears in the source files that carry it. Those files
+keep their own copyright lines. Additional lines confirmed in this tree:
+
+Copyright (c) 1999, Les Technologies SoftMap Inc.
+  ogr/ogrspatialreference.cpp and the other OGR sources that name SoftMap
+
+Copyright (c) 2006, Andrey Kiselev
+  cpl/cpl_strtod.cpp
+
+Copyright (c) 2009, Even Rouault
+  cpl/cpl_atomic_ops.cpp
+
+Copyright (c) 2010, Even Rouault
+  cpl/cpl_vsil_stdout.cpp
+
+Copyright (c) 2014, Even Rouault
+  mitab/mitab_feature.cpp
+  mitab/mitab_mapindexblock.cpp
+  mitab/mitab_mapobjectblock.cpp
+
+Copyright (c) 2002, Bo Thomsen
+  contrib/mitab_dyn.pas and the other contrib bindings that name Bo Thomsen
+
+ogr/swq.c, ogr/swq.h, and cpl/cpl_recode_stub.cpp are not covered by the
+permission above. Their terms are in NOTICE.
+
+contrib/dotnet/MiApi.cs, contrib/dotnet/MiWrapper.cs, and
+ogr/ogr_srs_esri_names.h do not contain this permission notice.
